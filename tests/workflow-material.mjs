@@ -1,0 +1,88 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+import {withDefaultDiamondScale} from '../dist/default-scale.mjs';
+import {scaleCoverageKey,scaleCoverageTarget} from '../dist/scale-milestones.mjs';
+import {makeState,scale} from '../dist/engine.mjs';
+import {validateState} from '../dist/state.mjs';
+import {createMaterialWorkspace,tuningIdentity} from '../dist/material-ui.mjs';
+import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
+import {chordCoordinates} from '../dist/hexboard-chords.mjs';
+const source=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8');
+const page=readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');
+assert.doesNotMatch(source,/Select an interval cell to inspect it and hear both notes/);
+const scaleControls=source.slice(source.indexOf('function scaleControls()'),source.indexOf('function scaleDetails()'));
+assert.ok(scaleControls?.includes('<label>Scale<select')&&scaleControls.includes('<label>Mode<select'),'Discover scale controls use concise labels');assert.ok(scaleControls.includes('<summary>Advanced scale options</summary>'),'scale filters use the requested disclosure label');
+const advancedScaleOptions=scaleControls.indexOf('<details class="scale-advanced"'),milestoneControls=scaleControls.indexOf('<section class="scale-milestones"');
+assert.ok(advancedScaleOptions>=0&&milestoneControls>advancedScaleOptions&&scaleControls.indexOf('</details>',advancedScaleOptions)>milestoneControls,'coverage milestones are inside Advanced scale options, after the scale filter');
+assert.doesNotMatch(source,/zsxdcvgbhnjm1234567890-=/,'the app has no global keyboard note map');
+const keyboardStart=source.lastIndexOf("document.addEventListener('keydown'");
+const keyboardHandler=source.slice(keyboardStart,source.indexOf('\nrender();',keyboardStart));
+assert.doesNotMatch(keyboardHandler,/playPitches|playScale/,'the app key handler does not trigger notes');
+assert.match(page,/<div id="inspector"[^>]*\shidden><\/div>/,'the empty interval inspector starts hidden');
+const jiPlacementSource=source.slice(source.indexOf('function placeJIControls('),source.indexOf('function placeMatrixControls('));
+assert.doesNotMatch(jiPlacementSource,/hexboard/,'Create does not render the shared JI controls; its search inherits them.');
+const states=[makeState('meantone')];let placed,heard,notice,loaded;
+const context=vm.createContext({states,structuredClone,tuningIdentity,withDefaultDiamondScale,scaleCoverageKey,coverageSettings:scaleCoverageTarget});
+vm.runInContext('let layoutState=null;'+source.split('\n').find(x=>x.startsWith('function getLayoutStates(')),context);
+const boardStates=()=>context.getLayoutStates();
+boardStates()[0].n=31;states[0].n=7;states[0].mode=2;
+assert.equal(boardStates()[0].n,31);assert.equal(boardStates()[0].mode,10);
+const collection=createMaterialWorkspace({getState:()=>states[0],play:(p,k)=>heard={p,k},place:x=>placed=x,load:x=>loaded=x,refresh:()=>{},notify:x=>notice=x,validate:validateState});
+collection.addScale();const scaleItem=collection.serialize()[0];assert.equal(scaleItem.state.n,7);assert.equal(scaleItem.coords.length,7);
+const coords=chordCoordinates(states[0],[0,2,4],{2:1});collection.add('chord',states[0],coords,'Test chord');
+collection.change({dataset:{materialName:'1'},value:'Renamed chord'});collection.click({dataset:{material:'hear',i:'0'}});assert.equal(heard.k,'scale');assert.equal(heard.p.length,7);
+collection.click({dataset:{material:'place',i:'1'}});assert.deepEqual(placed.coords,coords);
+const saved=JSON.parse(JSON.stringify(collection.serialize()));collection.restore(null);collection.restore(saved);assert.equal(collection.serialize()[1].label,'Renamed chord');assert.deepEqual(collection.serialize()[1].coords,coords);
+let exported;
+const hex=createHexboardWorkspace({getStates:boardStates,play:()=>{},refresh:()=>{},notify:e=>notice=e,download:(name,body)=>exported=body,getHz:()=>220});
+const click=action=>hex.click({closest:()=>({dataset:{hexAction:action}})});
+click('export');const before=exported;const count=hex.showScale(scaleItem.coords,scaleItem.label);assert.ok(count>0);const html=hex.render();assert.match(html,/7\/7 notes represented/);assert.match(html,/scale-highlight/);assert.equal(boardStates()[0].n,31);assert.equal(states[0].n,7);click('export');assert.deepEqual(JSON.parse(exported,(k,v)=>/IdHex$/.test(k)?undefined:v),JSON.parse(before,(k,v)=>/IdHex$/.test(k)?undefined:v),'Temporary scale highlight must not change export');
+hex.clearHighlight();assert.ok(!hex.render().includes('class="scale-highlight"'));
+// Exercise the real app click handler against the current HexBoard API. A stale
+// call to the removed comparison-panel open() method used to break this handoff.
+let useScaleHandler,renderedPlay=false,scrolled=false;
+const handoff=vm.createContext({states,layoutState:{state:boardStates()[0]},view:'scales',
+ hexWorkspace:hex,getLayoutStates:boardStates,
+ materialWorkspace:{click:()=>false},presetWorkspace:{click:()=>false},
+ renderWorkspace:()=>{renderedPlay=true;},$:()=>({scrollIntoView:()=>{scrolled=true;}}),
+ document:{addEventListener:(name,fn)=>{if(name==='click')useScaleHandler=fn;}}});
+vm.runInContext(source.split('\n').find(line=>line.startsWith("document.addEventListener('click',")),handoff);
+const useScaleButton={dataset:{hexOpen:'0'},closest:selector=>selector==='button'?useScaleButton:null};
+useScaleHandler({target:useScaleButton,shiftKey:false});
+assert.equal(handoff.view,'hexboard');assert.ok(renderedPlay&&scrolled);
+assert.equal(boardStates()[0].n,states[0].n);assert.equal(boardStates()[0].mode,states[0].mode);
+boardStates()[0].n=31;boardStates()[0].mode=0;
+assert.ok(hex.showChord(coords,'Voiced chord')>0);assert.match(hex.render(),/Voiced chord/);assert.equal(boardStates()[0].n,31);
+const original=states[0].g;states[0].g+=.1;placed=null;collection.click({dataset:{material:'place',i:'1'}});assert.equal(placed,null);assert.match(notice,/source tuning/);collection.click({dataset:{material:'load',i:'1'}});assert.equal(loaded.g,original);assert.equal(boardStates()[0].g,states[0].g);
+collection.click({dataset:{material:'remove',i:'0'}});assert.equal(collection.serialize().length,1);
+// Exercise actual navigation logic with small interface stand-ins.
+const nodes=new Map(),get=id=>{if(!nodes.has(id))nodes.set(id,{id,hidden:false,appendChild(n){n.parentElement=this},insertBefore(n){n.parentElement=this}});return nodes.get(id)};
+const nav=vm.createContext({$:get,document:{querySelectorAll:()=>[]}});
+vm.runInContext("let view='scales';"+source.split('\n').find(x=>x.startsWith('const lastViews='))+source.split('\n').find(x=>x.startsWith('const sectionFor='))+source.slice(source.indexOf('function syncNavigation(){'),source.indexOf('function switchSection(')),nav);
+for(const [view,section] of [['scales','discover'],['matrices','discover'],['targets','discover'],['chords','discover'],['hexboard','play'],['composition','create']]){vm.runInContext(`view='${view}';syncNavigation()`,nav);assert.equal(get('#'+section+'-view').hidden,false);if(section==='create'){assert.notEqual(get('#analysis-explore').parentElement,get('#create-view'),'Create does not take ownership of the HexBoard workspace');assert.equal(get('#material-host').parentElement.id,'#create-view','the material collection belongs in Create');}else {assert.equal(get('#analysis-explore').parentElement.id,'#'+section+'-view');if(section==='discover')assert.notEqual(get('#material-host').parentElement,get('#discover-view'),'the material collection is not attached to Discover');}}
+vm.runInContext("view='scales';syncNavigation()",nav);assert.equal(get('#material-host').parentElement.id,'#create-view','leaving Create keeps the collection out of Discover');assert.match(source,/\$\('#material-host'\)\.hidden=sectionFor\(view\)!=='create'/,'the collection stays hidden outside Create');
+const htmlSource=readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');assert.deepEqual([...htmlSource.matchAll(/id="tab-(\w+)"/g)].map(m=>m[1]),['discover','play','create']);assert.match(htmlSource,/<div id="create-view"[^>]*>[\s\S]*?<h2>Composition suite<\/h2>/);assert.doesNotMatch(htmlSource,/data-view="hexboard"/,'Play is the sole HexBoard entry point.');assert.doesNotMatch(htmlSource,/tab-compare|compare-view|compare-chooser|data-view="compare-/);assert.match(source,/Use scale in Play/);assert.doesNotMatch(source,/Use scale in Create/);const cssSource=readFileSync(new URL('../dist/style.css',import.meta.url),'utf8');assert.match(cssSource,/#play-view \.hex-layout/);assert.doesNotMatch(cssSource,/#create-view \.hex-layout/);
+assert.ok(!source.slice(source.indexOf('function renderPanel('),source.indexOf('function scaleControls(')).includes('data-field="n"'));
+console.log('Discover/Play/Create routing; independent layout scale; collection naming, playback, source checks, persistence; 7-note highlight on 31-note board; voiced chord placement; unchanged exports passed.');
+
+// Older sessions reopen their last analysis tool inside Discover.
+const restoreNavigation=source.slice(source.indexOf('const previousDiscover='),source.indexOf('materialWorkspace.restore(data.material'));
+for(const [settings,want] of [
+ [{view:'choose',lastViews:{explore:'targets'}},'targets'],
+ [{view:'matrices',lastViews:{explore:'scales'}},'matrices'],
+ [{view:'chords',lastViews:{discover:'chords'}},'chords'],
+ [{view:'hexboard',lastViews:{create:'hexboard'}},'hexboard'],
+ [{view:'composition',lastViews:{create:'composition'}},'composition'],[{view:'compare-matrices',lastViews:{discover:'targets'}},'targets'],[{},'scales']
+]){
+ const c=vm.createContext({data:{settings},lastViews:{discover:'matrices',play:'hexboard',create:'composition'},view:''});vm.runInContext(restoreNavigation,c);assert.equal(c.view,want);assert.equal(c.lastViews.play,'hexboard');assert.equal(c.lastViews.create,'composition');assert.equal(Object.hasOwn(c.lastViews,'compare'),false);
+}
+// Discover owns both setup and analysis; other top-level views are siblings.
+const discover=htmlSource.slice(htmlSource.indexOf('<div id="discover-view"'),htmlSource.indexOf('<div id="play-view"'));
+for(const id of ['temperament-section','tuning-section','explore-scale-controls','analysis-explore'])assert.ok(discover.includes(`id="${id}"`));
+assert.ok(discover.indexOf('tuning-section')<discover.indexOf('explore-scale-controls'));
+assert.ok(discover.indexOf('explore-scale-controls')<discover.indexOf('analysis-explore'));
+assert.ok(!htmlSource.includes('id="choose-view"')&&!htmlSource.includes('id="explore-view"'));
+const temperamentOptionsStart=htmlSource.indexOf('<details id="advanced-temperament-options"'),temperamentSearchStart=htmlSource.indexOf('<details id="advanced-temperament"',temperamentOptionsStart),temperamentOptionsEnd=htmlSource.indexOf('</details></section>',temperamentOptionsStart);assert.ok(temperamentOptionsStart>=0&&temperamentSearchStart>temperamentOptionsStart&&temperamentOptionsEnd>temperamentSearchStart);assert.ok(htmlSource.slice(temperamentOptionsStart,temperamentOptionsEnd).includes('id="advanced-temperament-editor"'));assert.ok(htmlSource.slice(temperamentOptionsStart,temperamentOptionsEnd).includes('Advanced temperament options'));
+const presetMove=source.slice(source.indexOf('function renderPresetControls('),source.indexOf('function renderPanel('));assert.match(presetMove,/target\.replaceChildren\(editor\)/,'only one preset editor remains inside Advanced temperament options after rerender');
+console.log('Discover order and legacy/current session navigation passed.');

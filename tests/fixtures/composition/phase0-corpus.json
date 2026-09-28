@@ -1,0 +1,2961 @@
+{
+  "format": "temperament-lab-composition-phase0-corpus-v1",
+  "capturedFromCommit": "a8d551a9340d6ac6ae80527055e534fd0a1df681",
+  "capturedOn": "2026-09-24",
+  "snapshotMethod": "Captured once from the listed canonical constructor inputs. The test reads these literal resolved states, rows, p/g values, scale coordinates, cents, layout axes/probes, chord-v2 outputs and placements; it never reruns a tuner to produce expected values.",
+  "independentOracles": [
+    "Integer dot products of prime-factor exponent vectors with frozen mapping rows check each canonical JI member coordinate.",
+    "The EDO case uses integer step count period*31 + generator*18; separate coordinates [0,0] and [-18,31] both have zero 31-EDO steps and remain distinct coordinate identities.",
+    "Coordinate cents are checked from the literal dot product period*p + generator*g; frequency is checked by the independent product tonicHz * 2^(period*p/1200) * 2^(generator*g/1200).",
+    "Fixed reference ratios use 2^(referencePeriods*p/1200) and the stored ideal rational. The optimized-period case records the same ideal 2/1 but explicitly expects the resolved actual period not to be pure.",
+    "Board unwrapped probes are checked from physical staggered geometry and frozen axes; wrapped probes are checked as baseCoordinate + register on the period component exactly once."
+  ],
+  "tolerances": {
+    "cents": 1e-7,
+    "relativeHz": 1e-10,
+    "coordinates": "exact integer equality"
+  },
+  "tonicHz": 220,
+  "fixtures": [
+    {
+      "id": "meantone-7-mode4",
+      "description": "Meantone canonical mapping; explicit 7-note, fifth-rotation mode.",
+      "provenance": "{...makeState('meantone'), n:7, mode:4}",
+      "state": {
+        "key": "meantone",
+        "name": "Meantone",
+        "basis": [
+          2,
+          3,
+          5
+        ],
+        "rows": [
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            4
+          ]
+        ],
+        "p": 1200,
+        "g": 696.6512,
+        "n": 7,
+        "mode": 4,
+        "tuning": "Published CWE",
+        "tuneConfig": null
+      },
+      "reference": {
+        "idealRatio": {
+          "numerator": 2,
+          "denominator": 1
+        },
+        "periods": 1,
+        "expectsPure": true
+      },
+      "scale": {
+        "collision": false,
+        "coordinates": [
+          {
+            "degree": 0,
+            "generator": 0,
+            "coordinate": [
+              0,
+              0
+            ],
+            "pitchCents": 0
+          },
+          {
+            "degree": 1,
+            "generator": 2,
+            "coordinate": [
+              -1,
+              2
+            ],
+            "pitchCents": 193.3023999999998
+          },
+          {
+            "degree": 2,
+            "generator": 4,
+            "coordinate": [
+              -2,
+              4
+            ],
+            "pitchCents": 386.6048000000003
+          },
+          {
+            "degree": 3,
+            "generator": -1,
+            "coordinate": [
+              1,
+              -1
+            ],
+            "pitchCents": 503.3488
+          },
+          {
+            "degree": 4,
+            "generator": 1,
+            "coordinate": [
+              0,
+              1
+            ],
+            "pitchCents": 696.6512
+          },
+          {
+            "degree": 5,
+            "generator": 3,
+            "coordinate": [
+              -1,
+              3
+            ],
+            "pitchCents": 889.9536
+          },
+          {
+            "degree": 6,
+            "generator": 5,
+            "coordinate": [
+              -2,
+              5
+            ],
+            "pitchCents": 1083.2559999999996
+          }
+        ]
+      },
+      "layouts": {
+        "off": {
+          "config": {
+            "offset": 0,
+            "rotation": 0,
+            "mirror": false,
+            "center": 65,
+            "register": 0,
+            "deviceRotation": 1,
+            "outside": false,
+            "registerAlignment": "manual",
+            "copyPeriodStep": 1,
+            "base": 7,
+            "style": "bosanquet",
+            "periodWrapping": false,
+            "periodPlacement": null
+          },
+          "axes": {
+            "a": [
+              -1,
+              2
+            ],
+            "b": [
+              -4,
+              7
+            ]
+          },
+          "vector": null,
+          "playable": 11,
+          "coverage": 7,
+          "probes": [
+            {
+              "index": 65,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                0,
+                0
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": 0,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 66,
+              "enabled": true,
+              "degree": 1,
+              "coordinate": [
+                -1,
+                2
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": 193.30240000000003,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 67,
+              "enabled": true,
+              "degree": 2,
+              "coordinate": [
+                -2,
+                4
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": 386.60480000000007,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 54,
+              "enabled": true,
+              "degree": 6,
+              "coordinate": [
+                -3,
+                5
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": -116.74399999999969,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 53,
+              "enabled": true,
+              "degree": 5,
+              "coordinate": [
+                -2,
+                3
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": -310.0464000000002,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 77,
+              "enabled": true,
+              "degree": 3,
+              "coordinate": [
+                1,
+                -1
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": 503.3488,
+              "wrapped": false,
+              "conflict": false
+            }
+          ]
+        },
+        "on": {
+          "config": {
+            "offset": 0,
+            "rotation": 0,
+            "mirror": false,
+            "center": 65,
+            "register": 0,
+            "deviceRotation": 1,
+            "outside": false,
+            "registerAlignment": "manual",
+            "copyPeriodStep": 1,
+            "base": 7,
+            "style": "bosanquet",
+            "periodWrapping": true,
+            "periodPlacement": {
+              "column": 4,
+              "row": 3
+            }
+          },
+          "axes": {
+            "a": [
+              -1,
+              2
+            ],
+            "b": [
+              -4,
+              7
+            ]
+          },
+          "vector": {
+            "column": 4,
+            "row": 3
+          },
+          "playable": 133,
+          "coverage": 7,
+          "probes": [
+            {
+              "index": 65,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                0,
+                0
+              ],
+              "baseCoordinate": [
+                0,
+                0
+              ],
+              "register": 0,
+              "cents": 0,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 64,
+              "enabled": true,
+              "degree": 6,
+              "coordinate": [
+                -3,
+                5
+              ],
+              "baseCoordinate": [
+                -2,
+                5
+              ],
+              "register": -1,
+              "cents": -116.74399999999969,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 66,
+              "enabled": true,
+              "degree": 1,
+              "coordinate": [
+                -1,
+                2
+              ],
+              "baseCoordinate": [
+                -1,
+                2
+              ],
+              "register": 0,
+              "cents": 193.30240000000003,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 63,
+              "enabled": true,
+              "degree": 5,
+              "coordinate": [
+                -2,
+                3
+              ],
+              "baseCoordinate": [
+                -1,
+                3
+              ],
+              "register": -1,
+              "cents": -310.0464000000002,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 67,
+              "enabled": true,
+              "degree": 2,
+              "coordinate": [
+                -2,
+                4
+              ],
+              "baseCoordinate": [
+                -2,
+                4
+              ],
+              "register": 0,
+              "cents": 386.60480000000007,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 62,
+              "enabled": true,
+              "degree": 4,
+              "coordinate": [
+                -1,
+                1
+              ],
+              "baseCoordinate": [
+                0,
+                1
+              ],
+              "register": -1,
+              "cents": -503.3488,
+              "wrapped": true,
+              "conflict": false
+            }
+          ]
+        }
+      },
+      "v2": {
+        "chordText": "4:5:6",
+        "identityFingerprint": "ji2:1/1:5/4:3/2",
+        "canonicalRatios": [
+          "1/1",
+          "5/4",
+          "3/2"
+        ],
+        "projectedMembers": [
+          {
+            "ratio": "1/1",
+            "coordinate": [
+              0,
+              0
+            ]
+          },
+          {
+            "ratio": "5/4",
+            "coordinate": [
+              -2,
+              4
+            ]
+          },
+          {
+            "ratio": "3/2",
+            "coordinate": [
+              0,
+              1
+            ]
+          }
+        ],
+        "completeOccurrenceCount": 3,
+        "occurrence": {
+          "id": "occ2:[\"ji2:1/1:5/4:3/2\",[2,3,5],[[1,1,0],[0,1,4]],7,1]",
+          "root": 0,
+          "coordinates": [
+            [
+              0,
+              0
+            ],
+            [
+              -2,
+              4
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "degrees": [
+            0,
+            2,
+            4
+          ],
+          "pitches": [
+            0,
+            386.60480000000007,
+            696.6512
+          ]
+        },
+        "realization": {
+          "id": "voice2:[\"occ2:[\\\"ji2:1/1:5/4:3/2\\\",[2,3,5],[[1,1,0],[0,1,4]],7,1]\",{\"inversion\":0,\"style\":\"original\",\"order\":\"pitch\",\"periodShift\":0,\"registerMin\":-8,\"registerMax\":8,\"reach\":0},[[0,0],[-2,4],[0,1]]]",
+          "coordinates": [
+            [
+              0,
+              0
+            ],
+            [
+              -2,
+              4
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "degrees": [
+            0,
+            2,
+            4
+          ],
+          "registers": [
+            0,
+            0,
+            0
+          ],
+          "pitches": [
+            0,
+            386.60480000000007,
+            696.6512
+          ],
+          "inversion": 0,
+          "periodShift": 0,
+          "collapsedMembers": 0,
+          "withinRegisterRange": true
+        },
+        "fingering": {
+          "keys": [
+            103,
+            105,
+            107
+          ],
+          "coordinates": [
+            [
+              0,
+              0
+            ],
+            [
+              -2,
+              4
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "pitches": [
+            0,
+            386.60480000000007,
+            696.6512
+          ],
+          "periodShift": 0,
+          "reach": 4
+        },
+        "projectionCardinality": {
+          "status": "preserved",
+          "source": 3,
+          "tempered": 3
+        }
+      }
+    },
+    {
+      "id": "meantone-31edo",
+      "description": "Compatible 31-EDO realization with canonical EDO settings.",
+      "provenance": "const e=applyTuningMethod(makeState('meantone'),{method:'EDO',n:'31',k:'18',h:'31'}); ({...e,n:31,mode:0})",
+      "state": {
+        "key": "meantone",
+        "name": "Meantone",
+        "basis": [
+          2,
+          3,
+          5
+        ],
+        "rows": [
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            4
+          ]
+        ],
+        "p": 1200,
+        "g": 696.7741935483871,
+        "n": 31,
+        "mode": 0,
+        "tuning": "EDO",
+        "tuneConfig": {
+          "fixed": true,
+          "period": 1200,
+          "targets": "primes",
+          "custom": "3/2, 5/4, 6/5",
+          "edoMax": "500",
+          "edoVariants": false,
+          "n": "31",
+          "k": "18",
+          "h": "31",
+          "pure": "5/4",
+          "jiAll": false,
+          "method": "EDO"
+        }
+      },
+      "reference": {
+        "idealRatio": {
+          "numerator": 2,
+          "denominator": 1
+        },
+        "periods": 1,
+        "expectsPure": true
+      },
+      "edo": {
+        "stepsPerOctave": 31,
+        "generatorStep": 18,
+        "periodSteps": 31
+      },
+      "scale": {
+        "collision": false,
+        "coordinates": [
+          {
+            "degree": 0,
+            "generator": 0,
+            "coordinate": [
+              0,
+              0
+            ],
+            "pitchCents": 0
+          },
+          {
+            "degree": 1,
+            "generator": 19,
+            "coordinate": [
+              -11,
+              19
+            ],
+            "pitchCents": 38.70967741935419
+          },
+          {
+            "degree": 2,
+            "generator": 7,
+            "coordinate": [
+              -4,
+              7
+            ],
+            "pitchCents": 77.4193548387093
+          },
+          {
+            "degree": 3,
+            "generator": 26,
+            "coordinate": [
+              -15,
+              26
+            ],
+            "pitchCents": 116.1290322580644
+          },
+          {
+            "degree": 4,
+            "generator": 14,
+            "coordinate": [
+              -8,
+              14
+            ],
+            "pitchCents": 154.8387096774186
+          },
+          {
+            "degree": 5,
+            "generator": 2,
+            "coordinate": [
+              -1,
+              2
+            ],
+            "pitchCents": 193.54838709677415
+          },
+          {
+            "degree": 6,
+            "generator": 21,
+            "coordinate": [
+              -12,
+              21
+            ],
+            "pitchCents": 232.2580645161288
+          },
+          {
+            "degree": 7,
+            "generator": 9,
+            "coordinate": [
+              -5,
+              9
+            ],
+            "pitchCents": 270.9677419354839
+          },
+          {
+            "degree": 8,
+            "generator": 28,
+            "coordinate": [
+              -16,
+              28
+            ],
+            "pitchCents": 309.6774193548372
+          },
+          {
+            "degree": 9,
+            "generator": 16,
+            "coordinate": [
+              -9,
+              16
+            ],
+            "pitchCents": 348.3870967741932
+          },
+          {
+            "degree": 10,
+            "generator": 4,
+            "coordinate": [
+              -2,
+              4
+            ],
+            "pitchCents": 387.0967741935483
+          },
+          {
+            "degree": 11,
+            "generator": 23,
+            "coordinate": [
+              -13,
+              23
+            ],
+            "pitchCents": 425.8064516129034
+          },
+          {
+            "degree": 12,
+            "generator": 11,
+            "coordinate": [
+              -6,
+              11
+            ],
+            "pitchCents": 464.5161290322576
+          },
+          {
+            "degree": 13,
+            "generator": 30,
+            "coordinate": [
+              -17,
+              30
+            ],
+            "pitchCents": 503.2258064516136
+          },
+          {
+            "degree": 14,
+            "generator": 18,
+            "coordinate": [
+              -10,
+              18
+            ],
+            "pitchCents": 541.9354838709678
+          },
+          {
+            "degree": 15,
+            "generator": 6,
+            "coordinate": [
+              -3,
+              6
+            ],
+            "pitchCents": 580.645161290322
+          },
+          {
+            "degree": 16,
+            "generator": 25,
+            "coordinate": [
+              -14,
+              25
+            ],
+            "pitchCents": 619.354838709678
+          },
+          {
+            "degree": 17,
+            "generator": 13,
+            "coordinate": [
+              -7,
+              13
+            ],
+            "pitchCents": 658.0645161290322
+          },
+          {
+            "degree": 18,
+            "generator": 1,
+            "coordinate": [
+              0,
+              1
+            ],
+            "pitchCents": 696.7741935483871
+          },
+          {
+            "degree": 19,
+            "generator": 20,
+            "coordinate": [
+              -11,
+              20
+            ],
+            "pitchCents": 735.4838709677424
+          },
+          {
+            "degree": 20,
+            "generator": 8,
+            "coordinate": [
+              -4,
+              8
+            ],
+            "pitchCents": 774.1935483870966
+          },
+          {
+            "degree": 21,
+            "generator": 27,
+            "coordinate": [
+              -15,
+              27
+            ],
+            "pitchCents": 812.9032258064508
+          },
+          {
+            "degree": 22,
+            "generator": 15,
+            "coordinate": [
+              -8,
+              15
+            ],
+            "pitchCents": 851.6129032258068
+          },
+          {
+            "degree": 23,
+            "generator": 3,
+            "coordinate": [
+              -1,
+              3
+            ],
+            "pitchCents": 890.322580645161
+          },
+          {
+            "degree": 24,
+            "generator": 22,
+            "coordinate": [
+              -12,
+              22
+            ],
+            "pitchCents": 929.0322580645152
+          },
+          {
+            "degree": 25,
+            "generator": 10,
+            "coordinate": [
+              -5,
+              10
+            ],
+            "pitchCents": 967.7419354838712
+          },
+          {
+            "degree": 26,
+            "generator": 29,
+            "coordinate": [
+              -16,
+              29
+            ],
+            "pitchCents": 1006.4516129032236
+          },
+          {
+            "degree": 27,
+            "generator": 17,
+            "coordinate": [
+              -9,
+              17
+            ],
+            "pitchCents": 1045.1612903225796
+          },
+          {
+            "degree": 28,
+            "generator": 5,
+            "coordinate": [
+              -2,
+              5
+            ],
+            "pitchCents": 1083.8709677419356
+          },
+          {
+            "degree": 29,
+            "generator": 24,
+            "coordinate": [
+              -13,
+              24
+            ],
+            "pitchCents": 1122.580645161288
+          },
+          {
+            "degree": 30,
+            "generator": 12,
+            "coordinate": [
+              -6,
+              12
+            ],
+            "pitchCents": 1161.290322580644
+          }
+        ]
+      },
+      "layouts": {
+        "off": {
+          "config": {
+            "offset": 0,
+            "rotation": 0,
+            "mirror": false,
+            "center": 65,
+            "register": 0,
+            "deviceRotation": 1,
+            "outside": false,
+            "registerAlignment": "manual",
+            "copyPeriodStep": 1,
+            "base": 7,
+            "style": "bosanquet",
+            "periodWrapping": false,
+            "periodPlacement": null
+          },
+          "axes": {
+            "a": [
+              -1,
+              2
+            ],
+            "b": [
+              -4,
+              7
+            ]
+          },
+          "vector": null,
+          "playable": 133,
+          "coverage": 31,
+          "probes": [
+            {
+              "index": 65,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                0,
+                0
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": 0,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 64,
+              "enabled": true,
+              "degree": 26,
+              "coordinate": [
+                1,
+                -2
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": -193.54838709677415,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 66,
+              "enabled": true,
+              "degree": 5,
+              "coordinate": [
+                -1,
+                2
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": 193.54838709677415,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 63,
+              "enabled": true,
+              "degree": 21,
+              "coordinate": [
+                2,
+                -4
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": -387.0967741935483,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 67,
+              "enabled": true,
+              "degree": 10,
+              "coordinate": [
+                -2,
+                4
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": 387.0967741935483,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 62,
+              "enabled": true,
+              "degree": 16,
+              "coordinate": [
+                3,
+                -6
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": -580.645161290322,
+              "wrapped": false,
+              "conflict": false
+            }
+          ]
+        },
+        "on": {
+          "config": {
+            "offset": 0,
+            "rotation": 0,
+            "mirror": false,
+            "center": 65,
+            "register": 0,
+            "deviceRotation": 1,
+            "outside": false,
+            "registerAlignment": "manual",
+            "copyPeriodStep": 1,
+            "base": 7,
+            "style": "bosanquet",
+            "periodWrapping": true,
+            "periodPlacement": {
+              "column": 2,
+              "row": 7
+            }
+          },
+          "axes": {
+            "a": [
+              -1,
+              2
+            ],
+            "b": [
+              -4,
+              7
+            ]
+          },
+          "vector": {
+            "column": 2,
+            "row": 7
+          },
+          "playable": 133,
+          "coverage": 31,
+          "probes": [
+            {
+              "index": 65,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                0,
+                0
+              ],
+              "baseCoordinate": [
+                0,
+                0
+              ],
+              "register": 0,
+              "cents": 0,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 64,
+              "enabled": true,
+              "degree": 26,
+              "coordinate": [
+                -17,
+                29
+              ],
+              "baseCoordinate": [
+                -16,
+                29
+              ],
+              "register": -1,
+              "cents": -193.54838709677642,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 66,
+              "enabled": true,
+              "degree": 5,
+              "coordinate": [
+                -1,
+                2
+              ],
+              "baseCoordinate": [
+                -1,
+                2
+              ],
+              "register": 0,
+              "cents": 193.54838709677415,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 63,
+              "enabled": true,
+              "degree": 21,
+              "coordinate": [
+                -16,
+                27
+              ],
+              "baseCoordinate": [
+                -15,
+                27
+              ],
+              "register": -1,
+              "cents": -387.0967741935492,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 67,
+              "enabled": true,
+              "degree": 10,
+              "coordinate": [
+                -2,
+                4
+              ],
+              "baseCoordinate": [
+                -2,
+                4
+              ],
+              "register": 0,
+              "cents": 387.0967741935483,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 62,
+              "enabled": true,
+              "degree": 16,
+              "coordinate": [
+                -15,
+                25
+              ],
+              "baseCoordinate": [
+                -14,
+                25
+              ],
+              "register": -1,
+              "cents": -580.645161290322,
+              "wrapped": true,
+              "conflict": false
+            }
+          ]
+        }
+      },
+      "v2": {
+        "chordText": "4:5:6",
+        "identityFingerprint": "ji2:1/1:5/4:3/2",
+        "canonicalRatios": [
+          "1/1",
+          "5/4",
+          "3/2"
+        ],
+        "projectedMembers": [
+          {
+            "ratio": "1/1",
+            "coordinate": [
+              0,
+              0
+            ]
+          },
+          {
+            "ratio": "5/4",
+            "coordinate": [
+              -2,
+              4
+            ]
+          },
+          {
+            "ratio": "3/2",
+            "coordinate": [
+              0,
+              1
+            ]
+          }
+        ],
+        "completeOccurrenceCount": 27,
+        "occurrence": {
+          "id": "occ2:[\"ji2:1/1:5/4:3/2\",[2,3,5],[[1,1,0],[0,1,4]],31,0]",
+          "root": 0,
+          "coordinates": [
+            [
+              0,
+              0
+            ],
+            [
+              -2,
+              4
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "degrees": [
+            0,
+            10,
+            18
+          ],
+          "pitches": [
+            0,
+            387.0967741935483,
+            696.7741935483871
+          ]
+        },
+        "realization": {
+          "id": "voice2:[\"occ2:[\\\"ji2:1/1:5/4:3/2\\\",[2,3,5],[[1,1,0],[0,1,4]],31,0]\",{\"inversion\":0,\"style\":\"original\",\"order\":\"pitch\",\"periodShift\":0,\"registerMin\":-8,\"registerMax\":8,\"reach\":0},[[0,0],[-2,4],[0,1]]]",
+          "coordinates": [
+            [
+              0,
+              0
+            ],
+            [
+              -2,
+              4
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "degrees": [
+            0,
+            10,
+            18
+          ],
+          "registers": [
+            0,
+            0,
+            0
+          ],
+          "pitches": [
+            0,
+            387.0967741935483,
+            696.7741935483871
+          ],
+          "inversion": 0,
+          "periodShift": 0,
+          "collapsedMembers": 0,
+          "withinRegisterRange": true
+        },
+        "fingering": {
+          "keys": [
+            114,
+            116,
+            128
+          ],
+          "coordinates": [
+            [
+              0,
+              0
+            ],
+            [
+              -2,
+              4
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "pitches": [
+            0,
+            387.0967741935483,
+            696.7741935483871
+          ],
+          "periodShift": 0,
+          "reach": 4
+        },
+        "projectionCardinality": {
+          "status": "preserved",
+          "source": 3,
+          "tempered": 3
+        }
+      }
+    },
+    {
+      "id": "tritave-245-243",
+      "description": "Genuine 3/1 reference period from 245/243 on 3.5.7.",
+      "provenance": "{...fromCommas('245/243','3.5.7','Computed CWE'), n:19, mode:0}",
+      "state": {
+        "key": "custom",
+        "name": "From commas",
+        "basis": [
+          3,
+          5,
+          7
+        ],
+        "rows": [
+          [
+            1,
+            1,
+            2
+          ],
+          [
+            0,
+            2,
+            -1
+          ]
+        ],
+        "p": 1901.9550008653873,
+        "g": 440.6645533234155,
+        "n": 19,
+        "mode": 0,
+        "tuning": "Computed CWE",
+        "tuneConfig": {
+          "method": "Computed CWE",
+          "fixed": true
+        }
+      },
+      "reference": {
+        "idealRatio": {
+          "numerator": 3,
+          "denominator": 1
+        },
+        "periods": 1,
+        "expectsPure": true
+      },
+      "scale": {
+        "collision": false,
+        "coordinates": [
+          {
+            "degree": 0,
+            "generator": 0,
+            "coordinate": [
+              0,
+              0
+            ],
+            "pitchCents": 0
+          },
+          {
+            "degree": 1,
+            "generator": 13,
+            "coordinate": [
+              -3,
+              13
+            ],
+            "pitchCents": 22.77419060823877
+          },
+          {
+            "degree": 2,
+            "generator": 9,
+            "coordinate": [
+              -2,
+              9
+            ],
+            "pitchCents": 162.07097817996464
+          },
+          {
+            "degree": 3,
+            "generator": 5,
+            "coordinate": [
+              -1,
+              5
+            ],
+            "pitchCents": 301.36776575169006
+          },
+          {
+            "degree": 4,
+            "generator": 18,
+            "coordinate": [
+              -4,
+              18
+            ],
+            "pitchCents": 324.1419563599293
+          },
+          {
+            "degree": 5,
+            "generator": 1,
+            "coordinate": [
+              0,
+              1
+            ],
+            "pitchCents": 440.6645533234155
+          },
+          {
+            "degree": 6,
+            "generator": 14,
+            "coordinate": [
+              -3,
+              14
+            ],
+            "pitchCents": 463.4387439316547
+          },
+          {
+            "degree": 7,
+            "generator": 10,
+            "coordinate": [
+              -2,
+              10
+            ],
+            "pitchCents": 602.7355315033801
+          },
+          {
+            "degree": 8,
+            "generator": 6,
+            "coordinate": [
+              -1,
+              6
+            ],
+            "pitchCents": 742.0323190751055
+          },
+          {
+            "degree": 9,
+            "generator": 2,
+            "coordinate": [
+              0,
+              2
+            ],
+            "pitchCents": 881.329106646831
+          },
+          {
+            "degree": 10,
+            "generator": 15,
+            "coordinate": [
+              -3,
+              15
+            ],
+            "pitchCents": 904.1032972550706
+          },
+          {
+            "degree": 11,
+            "generator": 11,
+            "coordinate": [
+              -2,
+              11
+            ],
+            "pitchCents": 1043.400084826796
+          },
+          {
+            "degree": 12,
+            "generator": 7,
+            "coordinate": [
+              -1,
+              7
+            ],
+            "pitchCents": 1182.696872398521
+          },
+          {
+            "degree": 13,
+            "generator": 3,
+            "coordinate": [
+              0,
+              3
+            ],
+            "pitchCents": 1321.9936599702464
+          },
+          {
+            "degree": 14,
+            "generator": 16,
+            "coordinate": [
+              -3,
+              16
+            ],
+            "pitchCents": 1344.7678505784856
+          },
+          {
+            "degree": 15,
+            "generator": 12,
+            "coordinate": [
+              -2,
+              12
+            ],
+            "pitchCents": 1484.064638150211
+          },
+          {
+            "degree": 16,
+            "generator": 8,
+            "coordinate": [
+              -1,
+              8
+            ],
+            "pitchCents": 1623.3614257219365
+          },
+          {
+            "degree": 17,
+            "generator": 4,
+            "coordinate": [
+              0,
+              4
+            ],
+            "pitchCents": 1762.658213293662
+          },
+          {
+            "degree": 18,
+            "generator": 17,
+            "coordinate": [
+              -3,
+              17
+            ],
+            "pitchCents": 1785.4324039019007
+          }
+        ]
+      },
+      "layouts": {
+        "off": {
+          "config": {
+            "offset": 0,
+            "rotation": 0,
+            "mirror": false,
+            "center": 65,
+            "register": 0,
+            "deviceRotation": 1,
+            "outside": false,
+            "registerAlignment": "manual",
+            "copyPeriodStep": 1,
+            "base": 2,
+            "style": "period",
+            "periodWrapping": false,
+            "periodPlacement": null
+          },
+          "axes": {
+            "a": [
+              1,
+              0
+            ],
+            "b": [
+              0,
+              1
+            ]
+          },
+          "vector": null,
+          "playable": 66,
+          "coverage": 7,
+          "probes": [
+            {
+              "index": 65,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                0,
+                0
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": 0,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 64,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                -1,
+                0
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": -1901.9550008653873,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 66,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                1,
+                0
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": 1901.9550008653873,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 63,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                -2,
+                0
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": -3803.9100017307746,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 67,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                2,
+                0
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": 3803.9100017307746,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 62,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                -3,
+                0
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": -5705.8650025961615,
+              "wrapped": false,
+              "conflict": false
+            }
+          ]
+        },
+        "on": {
+          "config": {
+            "offset": 0,
+            "rotation": 0,
+            "mirror": false,
+            "center": 65,
+            "register": 0,
+            "deviceRotation": 1,
+            "outside": false,
+            "registerAlignment": "manual",
+            "copyPeriodStep": 1,
+            "base": 2,
+            "style": "period",
+            "periodWrapping": true,
+            "periodPlacement": {
+              "column": -12,
+              "row": 19
+            }
+          },
+          "axes": {
+            "a": [
+              1,
+              0
+            ],
+            "b": [
+              0,
+              1
+            ]
+          },
+          "vector": {
+            "column": -12,
+            "row": 19
+          },
+          "playable": 133,
+          "coverage": 14,
+          "probes": [
+            {
+              "index": 65,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                0,
+                0
+              ],
+              "baseCoordinate": [
+                0,
+                0
+              ],
+              "register": 0,
+              "cents": 0,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 64,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                -1,
+                0
+              ],
+              "baseCoordinate": [
+                0,
+                0
+              ],
+              "register": -1,
+              "cents": -1901.9550008653873,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 66,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                1,
+                0
+              ],
+              "baseCoordinate": [
+                0,
+                0
+              ],
+              "register": 1,
+              "cents": 1901.9550008653873,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 63,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                -2,
+                0
+              ],
+              "baseCoordinate": [
+                0,
+                0
+              ],
+              "register": -2,
+              "cents": -3803.9100017307746,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 67,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                2,
+                0
+              ],
+              "baseCoordinate": [
+                0,
+                0
+              ],
+              "register": 2,
+              "cents": 3803.9100017307746,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 62,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                -3,
+                0
+              ],
+              "baseCoordinate": [
+                0,
+                0
+              ],
+              "register": -3,
+              "cents": -5705.8650025961615,
+              "wrapped": true,
+              "conflict": false
+            }
+          ]
+        }
+      },
+      "v2": {
+        "chordText": "3:5:7",
+        "identityFingerprint": "ji2:1/1:5/3:7/3",
+        "canonicalRatios": [
+          "1/1",
+          "5/3",
+          "7/3"
+        ],
+        "projectedMembers": [
+          {
+            "ratio": "1/1",
+            "coordinate": [
+              0,
+              0
+            ]
+          },
+          {
+            "ratio": "5/3",
+            "coordinate": [
+              0,
+              2
+            ]
+          },
+          {
+            "ratio": "7/3",
+            "coordinate": [
+              1,
+              -1
+            ]
+          }
+        ],
+        "completeOccurrenceCount": 16,
+        "occurrence": {
+          "id": "occ2:[\"ji2:1/1:5/3:7/3\",[3,5,7],[[1,1,2],[0,2,-1]],19,13]",
+          "root": 1,
+          "coordinates": [
+            [
+              -3,
+              13
+            ],
+            [
+              -3,
+              15
+            ],
+            [
+              -2,
+              12
+            ]
+          ],
+          "degrees": [
+            1,
+            10,
+            15
+          ],
+          "pitches": [
+            22.774190608239223,
+            904.1032972550711,
+            1484.064638150211
+          ]
+        },
+        "realization": {
+          "id": "voice2:[\"occ2:[\\\"ji2:1/1:5/3:7/3\\\",[3,5,7],[[1,1,2],[0,2,-1]],19,13]\",{\"inversion\":0,\"style\":\"original\",\"order\":\"pitch\",\"periodShift\":0,\"registerMin\":-8,\"registerMax\":8,\"reach\":0},[[-3,13],[-3,15],[-2,12]]]",
+          "coordinates": [
+            [
+              -3,
+              13
+            ],
+            [
+              -3,
+              15
+            ],
+            [
+              -2,
+              12
+            ]
+          ],
+          "degrees": [
+            1,
+            10,
+            15
+          ],
+          "registers": [
+            0,
+            0,
+            0
+          ],
+          "pitches": [
+            22.774190608239223,
+            904.1032972550711,
+            1484.064638150211
+          ],
+          "inversion": 0,
+          "periodShift": 0,
+          "collapsedMembers": 0,
+          "withinRegisterRange": true
+        },
+        "fingering": {
+          "keys": [
+            125,
+            106,
+            135
+          ],
+          "coordinates": [
+            [
+              -3,
+              13
+            ],
+            [
+              -3,
+              15
+            ],
+            [
+              -2,
+              12
+            ]
+          ],
+          "pitches": [
+            22.774190608239223,
+            904.1032972550711,
+            1484.064638150211
+          ],
+          "periodShift": 0,
+          "reach": 3
+        },
+        "projectionCardinality": {
+          "status": "preserved",
+          "source": 3,
+          "tempered": 3
+        }
+      }
+    },
+    {
+      "id": "divided-octave-128-125",
+      "description": "400-cent period; three temperament periods equal one 2/1 octave. The 1/1 [0,0] and 5/4 [1,0] members share a period class but differ by one 400-cent period; this is not equal absolute frequency.",
+      "provenance": "{...fromCommas('128/125','2.3.5','Computed CWE'), n:19, mode:0}",
+      "state": {
+        "key": "custom",
+        "name": "From commas",
+        "basis": [
+          2,
+          3,
+          5
+        ],
+        "rows": [
+          [
+            3,
+            4,
+            7
+          ],
+          [
+            0,
+            1,
+            0
+          ]
+        ],
+        "p": 400,
+        "g": 305.0691154305116,
+        "n": 19,
+        "mode": 0,
+        "tuning": "Computed CWE",
+        "tuneConfig": {
+          "method": "Computed CWE",
+          "fixed": true
+        }
+      },
+      "reference": {
+        "idealRatio": {
+          "numerator": 2,
+          "denominator": 1
+        },
+        "periods": 3,
+        "expectsPure": true
+      },
+      "scale": {
+        "collision": false,
+        "coordinates": [
+          {
+            "degree": 0,
+            "generator": 0,
+            "coordinate": [
+              0,
+              0
+            ],
+            "pitchCents": 0
+          },
+          {
+            "degree": 1,
+            "generator": 4,
+            "coordinate": [
+              -3,
+              4
+            ],
+            "pitchCents": 20.276461722046406
+          },
+          {
+            "degree": 2,
+            "generator": 8,
+            "coordinate": [
+              -6,
+              8
+            ],
+            "pitchCents": 40.55292344409281
+          },
+          {
+            "degree": 3,
+            "generator": 12,
+            "coordinate": [
+              -9,
+              12
+            ],
+            "pitchCents": 60.82938516613922
+          },
+          {
+            "degree": 4,
+            "generator": 16,
+            "coordinate": [
+              -12,
+              16
+            ],
+            "pitchCents": 81.10584688818562
+          },
+          {
+            "degree": 5,
+            "generator": 3,
+            "coordinate": [
+              -2,
+              3
+            ],
+            "pitchCents": 115.2073462915348
+          },
+          {
+            "degree": 6,
+            "generator": 7,
+            "coordinate": [
+              -5,
+              7
+            ],
+            "pitchCents": 135.48380801358144
+          },
+          {
+            "degree": 7,
+            "generator": 11,
+            "coordinate": [
+              -8,
+              11
+            ],
+            "pitchCents": 155.76026973562784
+          },
+          {
+            "degree": 8,
+            "generator": 15,
+            "coordinate": [
+              -11,
+              15
+            ],
+            "pitchCents": 176.03673145767425
+          },
+          {
+            "degree": 9,
+            "generator": 2,
+            "coordinate": [
+              -1,
+              2
+            ],
+            "pitchCents": 210.1382308610232
+          },
+          {
+            "degree": 10,
+            "generator": 6,
+            "coordinate": [
+              -4,
+              6
+            ],
+            "pitchCents": 230.4146925830696
+          },
+          {
+            "degree": 11,
+            "generator": 10,
+            "coordinate": [
+              -7,
+              10
+            ],
+            "pitchCents": 250.69115430511602
+          },
+          {
+            "degree": 12,
+            "generator": 14,
+            "coordinate": [
+              -10,
+              14
+            ],
+            "pitchCents": 270.9676160271629
+          },
+          {
+            "degree": 13,
+            "generator": 18,
+            "coordinate": [
+              -13,
+              18
+            ],
+            "pitchCents": 291.2440777492084
+          },
+          {
+            "degree": 14,
+            "generator": 1,
+            "coordinate": [
+              0,
+              1
+            ],
+            "pitchCents": 305.0691154305116
+          },
+          {
+            "degree": 15,
+            "generator": 5,
+            "coordinate": [
+              -3,
+              5
+            ],
+            "pitchCents": 325.345577152558
+          },
+          {
+            "degree": 16,
+            "generator": 9,
+            "coordinate": [
+              -6,
+              9
+            ],
+            "pitchCents": 345.6220388746042
+          },
+          {
+            "degree": 17,
+            "generator": 13,
+            "coordinate": [
+              -9,
+              13
+            ],
+            "pitchCents": 365.8985005966506
+          },
+          {
+            "degree": 18,
+            "generator": 17,
+            "coordinate": [
+              -12,
+              17
+            ],
+            "pitchCents": 386.174962318697
+          }
+        ]
+      },
+      "layouts": {
+        "off": {
+          "config": {
+            "offset": 0,
+            "rotation": 0,
+            "mirror": false,
+            "center": 65,
+            "register": 0,
+            "deviceRotation": 1,
+            "outside": false,
+            "registerAlignment": "manual",
+            "copyPeriodStep": 1,
+            "base": 2,
+            "style": "period",
+            "periodWrapping": false,
+            "periodPlacement": null
+          },
+          "axes": {
+            "a": [
+              1,
+              0
+            ],
+            "b": [
+              0,
+              1
+            ]
+          },
+          "vector": null,
+          "playable": 66,
+          "coverage": 7,
+          "probes": [
+            {
+              "index": 65,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                0,
+                0
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": 0,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 64,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                -1,
+                0
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": -400,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 66,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                1,
+                0
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": 400,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 63,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                -2,
+                0
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": -800,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 67,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                2,
+                0
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": 800,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 62,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                -3,
+                0
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": -1200,
+              "wrapped": false,
+              "conflict": false
+            }
+          ]
+        },
+        "on": {
+          "config": {
+            "offset": 0,
+            "rotation": 0,
+            "mirror": false,
+            "center": 65,
+            "register": 0,
+            "deviceRotation": 1,
+            "outside": false,
+            "registerAlignment": "manual",
+            "copyPeriodStep": 1,
+            "base": 2,
+            "style": "period",
+            "periodWrapping": true,
+            "periodPlacement": {
+              "column": 8,
+              "row": -19
+            }
+          },
+          "axes": {
+            "a": [
+              1,
+              0
+            ],
+            "b": [
+              0,
+              1
+            ]
+          },
+          "vector": {
+            "column": 8,
+            "row": -19
+          },
+          "playable": 133,
+          "coverage": 14,
+          "probes": [
+            {
+              "index": 65,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                0,
+                0
+              ],
+              "baseCoordinate": [
+                0,
+                0
+              ],
+              "register": 0,
+              "cents": 0,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 64,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                -1,
+                0
+              ],
+              "baseCoordinate": [
+                0,
+                0
+              ],
+              "register": -1,
+              "cents": -400,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 66,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                1,
+                0
+              ],
+              "baseCoordinate": [
+                0,
+                0
+              ],
+              "register": 1,
+              "cents": 400,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 63,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                -2,
+                0
+              ],
+              "baseCoordinate": [
+                0,
+                0
+              ],
+              "register": -2,
+              "cents": -800,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 67,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                2,
+                0
+              ],
+              "baseCoordinate": [
+                0,
+                0
+              ],
+              "register": 2,
+              "cents": 800,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 62,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                -3,
+                0
+              ],
+              "baseCoordinate": [
+                0,
+                0
+              ],
+              "register": -3,
+              "cents": -1200,
+              "wrapped": true,
+              "conflict": false
+            }
+          ]
+        }
+      },
+      "v2": {
+        "chordText": "4:5:6",
+        "identityFingerprint": "ji2:1/1:5/4:3/2",
+        "canonicalRatios": [
+          "1/1",
+          "5/4",
+          "3/2"
+        ],
+        "projectedMembers": [
+          {
+            "ratio": "1/1",
+            "coordinate": [
+              0,
+              0
+            ]
+          },
+          {
+            "ratio": "5/4",
+            "coordinate": [
+              1,
+              0
+            ]
+          },
+          {
+            "ratio": "3/2",
+            "coordinate": [
+              1,
+              1
+            ]
+          }
+        ],
+        "completeOccurrenceCount": 18,
+        "occurrence": {
+          "id": "occ2:[\"ji2:1/1:5/4:3/2\",[2,3,5],[[3,4,7],[0,1,0]],19,0]",
+          "root": 0,
+          "coordinates": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              1,
+              1
+            ]
+          ],
+          "degrees": [
+            0,
+            0,
+            14
+          ],
+          "pitches": [
+            0,
+            400,
+            705.0691154305116
+          ]
+        },
+        "realization": {
+          "id": "voice2:[\"occ2:[\\\"ji2:1/1:5/4:3/2\\\",[2,3,5],[[3,4,7],[0,1,0]],19,0]\",{\"inversion\":0,\"style\":\"original\",\"order\":\"pitch\",\"periodShift\":0,\"registerMin\":-8,\"registerMax\":8,\"reach\":0},[[0,0],[1,1]]]",
+          "coordinates": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              1
+            ]
+          ],
+          "degrees": [
+            0,
+            14
+          ],
+          "registers": [
+            0,
+            1
+          ],
+          "pitches": [
+            0,
+            705.0691154305116
+          ],
+          "inversion": 0,
+          "periodShift": 0,
+          "collapsedMembers": 1,
+          "withinRegisterRange": true
+        },
+        "fingering": {
+          "keys": [
+            65,
+            56
+          ],
+          "coordinates": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              1
+            ]
+          ],
+          "pitches": [
+            0,
+            705.0691154305116
+          ],
+          "periodShift": 0,
+          "reach": 2
+        },
+        "projectionCardinality": {
+          "status": "collapsed",
+          "source": 3,
+          "tempered": 2
+        }
+      }
+    },
+    {
+      "id": "optimized-meantone-we",
+      "description": "Same Meantone mapping with opt-in free-period Weil–Euclidean tuning.",
+      "provenance": "{...applyTuningMethod(makeState('meantone'),{method:'Weil–Euclidean',fixed:false}), n:7, mode:4}",
+      "state": {
+        "key": "meantone",
+        "name": "Meantone",
+        "basis": [
+          2,
+          3,
+          5
+        ],
+        "rows": [
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            4
+          ]
+        ],
+        "p": 1201.390585549339,
+        "g": 697.0454752173355,
+        "n": 7,
+        "mode": 4,
+        "tuning": "Weil–Euclidean",
+        "tuneConfig": {
+          "fixed": false,
+          "period": 1200,
+          "targets": "primes",
+          "custom": "3/2, 5/4, 6/5",
+          "edoMax": "500",
+          "edoVariants": false,
+          "n": "31",
+          "k": "",
+          "h": "",
+          "pure": "5/4",
+          "jiAll": false,
+          "method": "Weil–Euclidean"
+        }
+      },
+      "reference": {
+        "idealRatio": {
+          "numerator": 2,
+          "denominator": 1
+        },
+        "periods": 1,
+        "expectsPure": false
+      },
+      "scale": {
+        "collision": false,
+        "coordinates": [
+          {
+            "degree": 0,
+            "generator": 0,
+            "coordinate": [
+              0,
+              0
+            ],
+            "pitchCents": 0
+          },
+          {
+            "degree": 1,
+            "generator": 2,
+            "coordinate": [
+              -1,
+              2
+            ],
+            "pitchCents": 192.70036488533196
+          },
+          {
+            "degree": 2,
+            "generator": 4,
+            "coordinate": [
+              -2,
+              4
+            ],
+            "pitchCents": 385.40072977066393
+          },
+          {
+            "degree": 3,
+            "generator": -1,
+            "coordinate": [
+              1,
+              -1
+            ],
+            "pitchCents": 504.3451103320035
+          },
+          {
+            "degree": 4,
+            "generator": 1,
+            "coordinate": [
+              0,
+              1
+            ],
+            "pitchCents": 697.0454752173355
+          },
+          {
+            "degree": 5,
+            "generator": 3,
+            "coordinate": [
+              -1,
+              3
+            ],
+            "pitchCents": 889.7458401026674
+          },
+          {
+            "degree": 6,
+            "generator": 5,
+            "coordinate": [
+              -2,
+              5
+            ],
+            "pitchCents": 1082.4462049879994
+          }
+        ]
+      },
+      "layouts": {
+        "off": {
+          "config": {
+            "offset": 0,
+            "rotation": 0,
+            "mirror": false,
+            "center": 65,
+            "register": 0,
+            "deviceRotation": 1,
+            "outside": false,
+            "registerAlignment": "manual",
+            "copyPeriodStep": 1,
+            "base": 7,
+            "style": "bosanquet",
+            "periodWrapping": false,
+            "periodPlacement": null
+          },
+          "axes": {
+            "a": [
+              -1,
+              2
+            ],
+            "b": [
+              -4,
+              7
+            ]
+          },
+          "vector": null,
+          "playable": 11,
+          "coverage": 7,
+          "probes": [
+            {
+              "index": 65,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                0,
+                0
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": 0,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 66,
+              "enabled": true,
+              "degree": 1,
+              "coordinate": [
+                -1,
+                2
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": 192.70036488533196,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 67,
+              "enabled": true,
+              "degree": 2,
+              "coordinate": [
+                -2,
+                4
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": 385.40072977066393,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 54,
+              "enabled": true,
+              "degree": 6,
+              "coordinate": [
+                -3,
+                5
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": -118.94438056133959,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 53,
+              "enabled": true,
+              "degree": 5,
+              "coordinate": [
+                -2,
+                3
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": -311.64474544667155,
+              "wrapped": false,
+              "conflict": false
+            },
+            {
+              "index": 77,
+              "enabled": true,
+              "degree": 3,
+              "coordinate": [
+                1,
+                -1
+              ],
+              "baseCoordinate": null,
+              "register": null,
+              "cents": 504.3451103320035,
+              "wrapped": false,
+              "conflict": false
+            }
+          ]
+        },
+        "on": {
+          "config": {
+            "offset": 0,
+            "rotation": 0,
+            "mirror": false,
+            "center": 65,
+            "register": 0,
+            "deviceRotation": 1,
+            "outside": false,
+            "registerAlignment": "manual",
+            "copyPeriodStep": 1,
+            "base": 7,
+            "style": "bosanquet",
+            "periodWrapping": true,
+            "periodPlacement": {
+              "column": 4,
+              "row": 3
+            }
+          },
+          "axes": {
+            "a": [
+              -1,
+              2
+            ],
+            "b": [
+              -4,
+              7
+            ]
+          },
+          "vector": {
+            "column": 4,
+            "row": 3
+          },
+          "playable": 133,
+          "coverage": 7,
+          "probes": [
+            {
+              "index": 65,
+              "enabled": true,
+              "degree": 0,
+              "coordinate": [
+                0,
+                0
+              ],
+              "baseCoordinate": [
+                0,
+                0
+              ],
+              "register": 0,
+              "cents": 0,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 64,
+              "enabled": true,
+              "degree": 6,
+              "coordinate": [
+                -3,
+                5
+              ],
+              "baseCoordinate": [
+                -2,
+                5
+              ],
+              "register": -1,
+              "cents": -118.94438056133959,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 66,
+              "enabled": true,
+              "degree": 1,
+              "coordinate": [
+                -1,
+                2
+              ],
+              "baseCoordinate": [
+                -1,
+                2
+              ],
+              "register": 0,
+              "cents": 192.70036488533196,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 63,
+              "enabled": true,
+              "degree": 5,
+              "coordinate": [
+                -2,
+                3
+              ],
+              "baseCoordinate": [
+                -1,
+                3
+              ],
+              "register": -1,
+              "cents": -311.64474544667155,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 67,
+              "enabled": true,
+              "degree": 2,
+              "coordinate": [
+                -2,
+                4
+              ],
+              "baseCoordinate": [
+                -2,
+                4
+              ],
+              "register": 0,
+              "cents": 385.40072977066393,
+              "wrapped": true,
+              "conflict": false
+            },
+            {
+              "index": 62,
+              "enabled": true,
+              "degree": 4,
+              "coordinate": [
+                -1,
+                1
+              ],
+              "baseCoordinate": [
+                0,
+                1
+              ],
+              "register": -1,
+              "cents": -504.3451103320035,
+              "wrapped": true,
+              "conflict": false
+            }
+          ]
+        }
+      },
+      "v2": {
+        "chordText": "4:5:6",
+        "identityFingerprint": "ji2:1/1:5/4:3/2",
+        "canonicalRatios": [
+          "1/1",
+          "5/4",
+          "3/2"
+        ],
+        "projectedMembers": [
+          {
+            "ratio": "1/1",
+            "coordinate": [
+              0,
+              0
+            ]
+          },
+          {
+            "ratio": "5/4",
+            "coordinate": [
+              -2,
+              4
+            ]
+          },
+          {
+            "ratio": "3/2",
+            "coordinate": [
+              0,
+              1
+            ]
+          }
+        ],
+        "completeOccurrenceCount": 3,
+        "occurrence": {
+          "id": "occ2:[\"ji2:1/1:5/4:3/2\",[2,3,5],[[1,1,0],[0,1,4]],7,1]",
+          "root": 0,
+          "coordinates": [
+            [
+              0,
+              0
+            ],
+            [
+              -2,
+              4
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "degrees": [
+            0,
+            2,
+            4
+          ],
+          "pitches": [
+            0,
+            385.40072977066393,
+            697.0454752173355
+          ]
+        },
+        "realization": {
+          "id": "voice2:[\"occ2:[\\\"ji2:1/1:5/4:3/2\\\",[2,3,5],[[1,1,0],[0,1,4]],7,1]\",{\"inversion\":0,\"style\":\"original\",\"order\":\"pitch\",\"periodShift\":0,\"registerMin\":-8,\"registerMax\":8,\"reach\":0},[[0,0],[-2,4],[0,1]]]",
+          "coordinates": [
+            [
+              0,
+              0
+            ],
+            [
+              -2,
+              4
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "degrees": [
+            0,
+            2,
+            4
+          ],
+          "registers": [
+            0,
+            0,
+            0
+          ],
+          "pitches": [
+            0,
+            385.40072977066393,
+            697.0454752173355
+          ],
+          "inversion": 0,
+          "periodShift": 0,
+          "collapsedMembers": 0,
+          "withinRegisterRange": true
+        },
+        "fingering": {
+          "keys": [
+            103,
+            105,
+            107
+          ],
+          "coordinates": [
+            [
+              0,
+              0
+            ],
+            [
+              -2,
+              4
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "pitches": [
+            0,
+            385.40072977066393,
+            697.0454752173355
+          ],
+          "periodShift": 0,
+          "reach": 4
+        },
+        "projectionCardinality": {
+          "status": "preserved",
+          "source": 3,
+          "tempered": 3
+        }
+      }
+    }
+  ],
+  "notes": [
+    "The divided-octave 4:5:6 source retains three exact JI members; v2 reports two period classes and realization.collapsedMembers=1. The collapsed 5/4 member is a one-period displacement from unison, not an equal-frequency duplicate.",
+    "Composition material must preserve the selected placed coordinates and source/voicing metadata, even when v2 reports a period-class collapse."
+  ]
+}

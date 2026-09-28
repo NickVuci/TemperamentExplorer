@@ -1,0 +1,2 @@
+import {parseSearch,searchCommas} from './comma-search.mjs';
+self.onmessage=e=>{try{const config=parseSearch(e.data);let batch=[],last=Date.now();for(const result of searchCommas(config)){batch.push(...result.batch);if(result.status!=='running'||Date.now()-last>100){self.postMessage({...result,batch});batch=[];last=Date.now();}}}catch(error){self.postMessage({status:'error',message:error.message});}};

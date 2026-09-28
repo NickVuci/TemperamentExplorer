@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {makeState} from '../dist/engine.mjs';
+import {buildBoard} from '../dist/hexboard.mjs';
+import {createChordCatalogueWorkspace} from '../dist/chord-catalog-ui.mjs';
+const s=makeState('miracle11'),cfg={base:7,style:'bosanquet',center:65,offset:0,rotation:0,register:0,outside:false,periodWrapping:true};
+const ui=createChordCatalogueWorkspace({getState:()=>s,getSettings:()=>({tol:10,limit:11}),getBoard:()=>buildBoard(s,cfg)});
+let start=Date.now();while(ui.model().discovery.status!=='ready'){assert.ok(Date.now()-start<5000);await new Promise(r=>setTimeout(r,5));}
+ui.change({dataset:{catalogueField:'v2-search'},value:'4:5:6:7:9:11'});
+let html=ui.render(),types=html.slice(html.indexOf('class="chord-v2-types"'),html.indexOf('class="chord-v2-occurrences"'));
+assert.match(types,/4:5:6:7:9:11/);assert.match(types,/1\/11:9:7:6:5:4/);assert.doesNotMatch(types,/<details/);
+ui.click({dataset:{catalogueAction:'v2-chord',id:'4:5:6:7:9:11'}});const occurrence=ui.model().analysis.occurrences.completeOccurrences[0];ui.click({dataset:{catalogueAction:'v2-root',id:occurrence.id}});
+html=ui.render();const bottom=html.indexOf('class="chord-v2-secondary"'),main=html.slice(0,bottom);
+const order=['data-catalogue-field="v2-search"','class="chord-v2-types"','class="chord-v2-occurrences"','data-catalogue-field="v2-inversion"','class="catalogue-fingerings"'];
+assert.ok(order.every((x,i)=>main.includes(x)&&(!i||main.indexOf(x)>main.indexOf(order[i-1]))));
+assert.doesNotMatch(main,/<details/);assert.doesNotMatch(main,/data-catalogue-field="v2-(?:maxError|style|reach|order|registerMin|registerMax|periodShift)"/);
+assert.match(html.slice(bottom),/Chord details/);assert.match(html.slice(bottom),/Voicing & placement options/);assert.doesNotMatch(html,/Engine options|chordEngineVersion2/);
+assert.doesNotMatch(html,/<details[^>]*\sopen(?:\s|>)/);
+const selected=ui.model().selected;ui.change({dataset:{catalogueField:'v2-search'},value:'not-a-chord'});assert.match(ui.render(),/No matching chord types/);assert.equal(ui.model().selected,selected,'Filtering does not discard an existing occurrence');
+ui.change({dataset:{catalogueField:'v2-search'},value:'1:97/64'});assert.match(ui.render(),/data-id="1:97\/64"/);ui.click({dataset:{catalogueAction:'v2-chord',id:'1:97/64'}});assert.equal(ui.model().analysis.projection.basisStatus,'outside-basis');
+ui.change({dataset:{catalogueField:'v2-search'},value:'0:5:6'});assert.match(ui.render(),/role="alert"/);assert.match(ui.render(),/Ratios must be positive/);
+ui.change({dataset:{catalogueField:'v2-search'},value:''});assert.equal(ui.model().discovery.status,'ready');assert.match(ui.render(),/data-catalogue-action="v2-chord"/);ui.destroy();

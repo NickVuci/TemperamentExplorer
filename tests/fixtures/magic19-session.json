@@ -1,0 +1,231 @@
+{
+  "format": "temperament-lab-v1",
+  "workflowVersion": 3,
+  "states": [
+    {
+      "name": "Magic (11-limit)",
+      "basis": [
+        2,
+        3,
+        5,
+        7,
+        11
+      ],
+      "rows": [
+        [
+          1,
+          0,
+          2,
+          -1,
+          6
+        ],
+        [
+          0,
+          5,
+          1,
+          12,
+          -8
+        ]
+      ],
+      "commas": "100/99, 225/224, 245/243",
+      "source": "https://en.xen.wiki/w/Magic_family#11-limit",
+      "defaultSize": 19,
+      "defaultTuning": "Weil–Euclidean",
+      "p": 1200,
+      "g": 380.70084777914127,
+      "key": "magic11",
+      "n": 19,
+      "mode": 10,
+      "tuning": "Weil–Euclidean"
+    },
+    {
+      "name": "Dreamtone",
+      "basis": [
+        2,
+        3,
+        5,
+        11,
+        13
+      ],
+      "rows": [
+        [
+          1,
+          1,
+          0,
+          4,
+          10
+        ],
+        [
+          0,
+          1,
+          4,
+          -1,
+          -11
+        ]
+      ],
+      "g": 690.1826,
+      "p": 1200,
+      "commas": "33/32, 55/54, 975/968",
+      "source": "https://en.xen.wiki/w/Meantone_family#Dreamtone",
+      "key": "dreamtone",
+      "n": 19,
+      "mode": 0,
+      "tuning": "Published CWE"
+    }
+  ],
+  "material": [],
+  "layoutScale": {
+    "n": 19,
+    "mode": 0
+  },
+  "compare": [
+    null,
+    null
+  ],
+  "chords": {
+    "panel": 0,
+    "size": 3,
+    "limit": 11,
+    "tol": 10,
+    "other": true,
+    "all": false,
+    "selections": [
+      [
+        0,
+        6,
+        11
+      ],
+      [
+        0,
+        6,
+        11
+      ]
+    ],
+    "octaves": [
+      {},
+      {}
+    ],
+    "pins": []
+  },
+  "commaSearch": {
+    "form": {
+      "basis": "2.3.5.7",
+      "bound": 4,
+      "overrides": "2:12",
+      "min": 0,
+      "max": 35,
+      "must": "",
+      "hideInverse": true,
+      "primitive": true
+    },
+    "configRaw": null,
+    "selected": [],
+    "sort": "cents"
+  },
+  "hexboard": {
+    "panel": 0,
+    "configs": [
+      {
+        "periodWrapping": true,
+        "showPeriodLabels": false,
+        "periodPlacement": null,
+        "copyPeriodStep": 1,
+        "registerAlignment": "scale",
+        "base": 7,
+        "scaleFilter": "2",
+        "offset": 0,
+        "style": "bosanquet",
+        "rotation": 2,
+        "mirror": false,
+        "flipHorizontal": false,
+        "flipVertical": false,
+        "center": 65,
+        "register": 0,
+        "deviceRotation": 1,
+        "outside": false,
+        "ap": 1,
+        "ag": 0,
+        "bp": 0,
+        "bg": 1,
+        "tolerance": 10,
+        "limit": 11,
+        "root": 65,
+        "selected": 13,
+        "chord": [],
+        "selectChord": false,
+        "palette": "spectrum",
+        "layerGrowth": "balanced",
+        "layerColors": {}
+      },
+      {
+        "periodWrapping": false,
+        "showPeriodLabels": false,
+        "periodPlacement": null,
+        "copyPeriodStep": 1,
+        "registerAlignment": "scale",
+        "base": 7,
+        "scaleFilter": "2",
+        "offset": 0,
+        "style": "bosanquet",
+        "rotation": 0,
+        "mirror": false,
+        "flipHorizontal": false,
+        "flipVertical": false,
+        "center": 65,
+        "register": 0,
+        "deviceRotation": 1,
+        "outside": false,
+        "ap": 1,
+        "ag": 0,
+        "bp": 0,
+        "bg": 1,
+        "tolerance": 10,
+        "limit": 13,
+        "root": 65,
+        "selected": 65,
+        "chord": [],
+        "selectChord": false,
+        "palette": "spectrum",
+        "layerGrowth": "balanced",
+        "layerColors": {}
+      }
+    ],
+    "catalogue": {
+      "config": {
+        "minTones": 3,
+        "maxTones": 7,
+        "search": "",
+        "custom": "",
+        "style": "compact",
+        "reach": 0
+      },
+      "selection": {
+        "group": "",
+        "root": "",
+        "instance": "",
+        "voicing": "0",
+        "fingering": ""
+      },
+      "spelling": ""
+    }
+  },
+  "settings": {
+    "scaleFilter": "2",
+    "diamondScope": "scale",
+    "view": "hexboard",
+    "lastViews": {
+      "discover": "matrices",
+      "create": "hexboard",
+      "compare": "compare-matrices"
+    },
+    "comparisonEnabled": false,
+    "targetfilter": "mapped",
+    "showoutside": true,
+    "layout": "distance",
+    "labels": "cents",
+    "limit": "basis",
+    "tolerance": "10",
+    "tonic": 220,
+    "wave": "triangle"
+  }
+}

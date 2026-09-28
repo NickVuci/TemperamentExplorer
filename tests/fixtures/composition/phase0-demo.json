@@ -1,0 +1,1364 @@
+{
+  "format": "composition-specification-fixture-v1",
+  "fixtureId": "meantone-eight-bar-progression",
+  "status": "Specification/test fixture only. It is not an importable project or a claim that composition playback/editor features exist.",
+  "provenance": "Uses the frozen meantone-7-mode4 state in phase0-corpus.json and its canonical scale coordinates. The period-placement vector is pinned to the valid vector captured from the approved demo probe so board cells stay reproducible.",
+  "musicalContext": {
+    "sourceFixtureId": "meantone-7-mode4",
+    "state": {
+      "key": "meantone",
+      "name": "Meantone",
+      "basis": [
+        2,
+        3,
+        5
+      ],
+      "rows": [
+        [
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          4
+        ]
+      ],
+      "p": 1200,
+      "g": 696.6512,
+      "n": 7,
+      "mode": 4,
+      "tuning": "Published CWE",
+      "tuneConfig": null
+    },
+    "scaleCoordinates": [
+      {
+        "degree": 0,
+        "coordinate": [
+          0,
+          0
+        ],
+        "pitchCents": 0
+      },
+      {
+        "degree": 1,
+        "coordinate": [
+          -1,
+          2
+        ],
+        "pitchCents": 193.3023999999998
+      },
+      {
+        "degree": 2,
+        "coordinate": [
+          -2,
+          4
+        ],
+        "pitchCents": 386.6048000000003
+      },
+      {
+        "degree": 3,
+        "coordinate": [
+          1,
+          -1
+        ],
+        "pitchCents": 503.3488
+      },
+      {
+        "degree": 4,
+        "coordinate": [
+          0,
+          1
+        ],
+        "pitchCents": 696.6512
+      },
+      {
+        "degree": 5,
+        "coordinate": [
+          -1,
+          3
+        ],
+        "pitchCents": 889.9536
+      },
+      {
+        "degree": 6,
+        "coordinate": [
+          -2,
+          5
+        ],
+        "pitchCents": 1083.2559999999996
+      }
+    ],
+    "tonicHz": 220,
+    "tempoQuarterBpm": 100,
+    "meter": {
+      "numerator": 4,
+      "denominator": 4
+    },
+    "ppq": 960,
+    "totalTicks": 30720,
+    "expectedDurationSeconds": 19.2
+  },
+  "layout": {
+    "offset": 0,
+    "rotation": 0,
+    "mirror": false,
+    "center": 65,
+    "register": 0,
+    "deviceRotation": 1,
+    "outside": false,
+    "registerAlignment": "manual",
+    "copyPeriodStep": 1,
+    "base": 7,
+    "style": "bosanquet",
+    "periodWrapping": true,
+    "periodPlacement": {
+      "column": 4,
+      "row": 3
+    },
+    "boardVector": {
+      "column": 4,
+      "row": 3
+    }
+  },
+  "progression": [
+    "I",
+    "IV",
+    "V",
+    "I",
+    "I",
+    "ii",
+    "V",
+    "I"
+  ],
+  "voicings": [
+    {
+      "id": "demo-voicing-1",
+      "sourceChord": "4:5:6",
+      "identityFingerprint": "ji2:1/1:5/4:3/2",
+      "canonicalRatios": [
+        "1/1",
+        "5/4",
+        "3/2"
+      ],
+      "projectedMembers": [
+        {
+          "ratio": "1/1",
+          "coordinate": [
+            0,
+            0
+          ]
+        },
+        {
+          "ratio": "5/4",
+          "coordinate": [
+            -2,
+            4
+          ]
+        },
+        {
+          "ratio": "3/2",
+          "coordinate": [
+            0,
+            1
+          ]
+        }
+      ],
+      "sourceCardinality": 3,
+      "temperedCardinality": 3,
+      "occurrenceId": "occ2:[\"ji2:1/1:5/4:3/2\",[2,3,5],[[1,1,0],[0,1,4]],7,1]",
+      "rootDegree": 0,
+      "occurrenceCoordinates": [
+        [
+          0,
+          0
+        ],
+        [
+          -2,
+          4
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "realizationId": "voice2:[\"occ2:[\\\"ji2:1/1:5/4:3/2\\\",[2,3,5],[[1,1,0],[0,1,4]],7,1]\",{\"inversion\":0,\"style\":\"original\",\"order\":\"pitch\",\"periodShift\":0,\"registerMin\":-8,\"registerMax\":8,\"reach\":0},[[0,0],[-2,4],[0,1]]]",
+      "realizationCoordinates": [
+        [
+          0,
+          0
+        ],
+        [
+          -2,
+          4
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "selectedFingering": {
+        "keys": [
+          103,
+          105,
+          107
+        ],
+        "coordinates": [
+          [
+            0,
+            0
+          ],
+          [
+            -2,
+            4
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "pitches": [
+          0,
+          386.60480000000007,
+          696.6512
+        ],
+        "periodShift": 0,
+        "reach": 4
+      },
+      "collapsedMembers": 0
+    },
+    {
+      "id": "demo-voicing-2",
+      "sourceChord": "4:5:6",
+      "identityFingerprint": "ji2:1/1:5/4:3/2",
+      "canonicalRatios": [
+        "1/1",
+        "5/4",
+        "3/2"
+      ],
+      "projectedMembers": [
+        {
+          "ratio": "1/1",
+          "coordinate": [
+            0,
+            0
+          ]
+        },
+        {
+          "ratio": "5/4",
+          "coordinate": [
+            -2,
+            4
+          ]
+        },
+        {
+          "ratio": "3/2",
+          "coordinate": [
+            0,
+            1
+          ]
+        }
+      ],
+      "sourceCardinality": 3,
+      "temperedCardinality": 3,
+      "occurrenceId": "occ2:[\"ji2:1/1:5/4:3/2\",[2,3,5],[[1,1,0],[0,1,4]],7,0]",
+      "rootDegree": 3,
+      "occurrenceCoordinates": [
+        [
+          1,
+          -1
+        ],
+        [
+          -1,
+          3
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "realizationId": "voice2:[\"occ2:[\\\"ji2:1/1:5/4:3/2\\\",[2,3,5],[[1,1,0],[0,1,4]],7,0]\",{\"inversion\":0,\"style\":\"original\",\"order\":\"pitch\",\"periodShift\":0,\"registerMin\":-8,\"registerMax\":8,\"reach\":0},[[1,-1],[-1,3],[1,0]]]",
+      "realizationCoordinates": [
+        [
+          1,
+          -1
+        ],
+        [
+          -1,
+          3
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "selectedFingering": {
+        "keys": [
+          106,
+          108,
+          119
+        ],
+        "coordinates": [
+          [
+            1,
+            -1
+          ],
+          [
+            -1,
+            3
+          ],
+          [
+            1,
+            0
+          ]
+        ],
+        "pitches": [
+          503.3488,
+          889.9535999999998,
+          1200
+        ],
+        "periodShift": 0,
+        "reach": 4
+      },
+      "collapsedMembers": 0
+    },
+    {
+      "id": "demo-voicing-3",
+      "sourceChord": "4:5:6",
+      "identityFingerprint": "ji2:1/1:5/4:3/2",
+      "canonicalRatios": [
+        "1/1",
+        "5/4",
+        "3/2"
+      ],
+      "projectedMembers": [
+        {
+          "ratio": "1/1",
+          "coordinate": [
+            0,
+            0
+          ]
+        },
+        {
+          "ratio": "5/4",
+          "coordinate": [
+            -2,
+            4
+          ]
+        },
+        {
+          "ratio": "3/2",
+          "coordinate": [
+            0,
+            1
+          ]
+        }
+      ],
+      "sourceCardinality": 3,
+      "temperedCardinality": 3,
+      "occurrenceId": "occ2:[\"ji2:1/1:5/4:3/2\",[2,3,5],[[1,1,0],[0,1,4]],7,2]",
+      "rootDegree": 4,
+      "occurrenceCoordinates": [
+        [
+          0,
+          1
+        ],
+        [
+          -2,
+          5
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "realizationId": "voice2:[\"occ2:[\\\"ji2:1/1:5/4:3/2\\\",[2,3,5],[[1,1,0],[0,1,4]],7,2]\",{\"inversion\":0,\"style\":\"original\",\"order\":\"pitch\",\"periodShift\":0,\"registerMin\":-8,\"registerMax\":8,\"reach\":0},[[0,1],[-2,5],[0,2]]]",
+      "realizationCoordinates": [
+        [
+          0,
+          1
+        ],
+        [
+          -2,
+          5
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "selectedFingering": {
+        "keys": [
+          107,
+          109,
+          139
+        ],
+        "coordinates": [
+          [
+            0,
+            1
+          ],
+          [
+            -2,
+            5
+          ],
+          [
+            0,
+            2
+          ]
+        ],
+        "pitches": [
+          696.6512,
+          1083.2560000000003,
+          1393.3024
+        ],
+        "periodShift": 0,
+        "reach": 4
+      },
+      "collapsedMembers": 0
+    },
+    {
+      "id": "demo-voicing-4",
+      "sourceChord": "10:12:15",
+      "identityFingerprint": "ji2:1/1:6/5:3/2",
+      "canonicalRatios": [
+        "1/1",
+        "6/5",
+        "3/2"
+      ],
+      "projectedMembers": [
+        {
+          "ratio": "1/1",
+          "coordinate": [
+            0,
+            0
+          ]
+        },
+        {
+          "ratio": "6/5",
+          "coordinate": [
+            2,
+            -3
+          ]
+        },
+        {
+          "ratio": "3/2",
+          "coordinate": [
+            0,
+            1
+          ]
+        }
+      ],
+      "sourceCardinality": 3,
+      "temperedCardinality": 3,
+      "occurrenceId": "occ2:[\"ji2:1/1:6/5:3/2\",[2,3,5],[[1,1,0],[0,1,4]],7,3]",
+      "rootDegree": 1,
+      "occurrenceCoordinates": [
+        [
+          -1,
+          2
+        ],
+        [
+          1,
+          -1
+        ],
+        [
+          -1,
+          3
+        ]
+      ],
+      "realizationId": "voice2:[\"occ2:[\\\"ji2:1/1:6/5:3/2\\\",[2,3,5],[[1,1,0],[0,1,4]],7,3]\",{\"inversion\":0,\"style\":\"original\",\"order\":\"pitch\",\"periodShift\":0,\"registerMin\":-8,\"registerMax\":8,\"reach\":0},[[-1,2],[1,-1],[-1,3]]]",
+      "realizationCoordinates": [
+        [
+          -1,
+          2
+        ],
+        [
+          1,
+          -1
+        ],
+        [
+          -1,
+          3
+        ]
+      ],
+      "selectedFingering": {
+        "keys": [
+          104,
+          106,
+          108
+        ],
+        "coordinates": [
+          [
+            -1,
+            2
+          ],
+          [
+            1,
+            -1
+          ],
+          [
+            -1,
+            3
+          ]
+        ],
+        "pitches": [
+          193.30240000000003,
+          503.3488,
+          889.9535999999998
+        ],
+        "periodShift": 0,
+        "reach": 4
+      },
+      "collapsedMembers": 0
+    }
+  ],
+  "chordEvents": [
+    {
+      "id": "chord-bar-01",
+      "bar": 1,
+      "startTick": 0,
+      "durationTick": 3840,
+      "velocity": 92,
+      "voicingId": "demo-voicing-1",
+      "tones": [
+        {
+          "toneId": "chord-bar-01-tone-1",
+          "coordinate": [
+            0,
+            0
+          ]
+        },
+        {
+          "toneId": "chord-bar-01-tone-2",
+          "coordinate": [
+            -2,
+            4
+          ]
+        },
+        {
+          "toneId": "chord-bar-01-tone-3",
+          "coordinate": [
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chord-bar-02",
+      "bar": 2,
+      "startTick": 3840,
+      "durationTick": 3840,
+      "velocity": 92,
+      "voicingId": "demo-voicing-2",
+      "tones": [
+        {
+          "toneId": "chord-bar-02-tone-1",
+          "coordinate": [
+            1,
+            -1
+          ]
+        },
+        {
+          "toneId": "chord-bar-02-tone-2",
+          "coordinate": [
+            -1,
+            3
+          ]
+        },
+        {
+          "toneId": "chord-bar-02-tone-3",
+          "coordinate": [
+            1,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chord-bar-03",
+      "bar": 3,
+      "startTick": 7680,
+      "durationTick": 3840,
+      "velocity": 92,
+      "voicingId": "demo-voicing-3",
+      "tones": [
+        {
+          "toneId": "chord-bar-03-tone-1",
+          "coordinate": [
+            0,
+            1
+          ]
+        },
+        {
+          "toneId": "chord-bar-03-tone-2",
+          "coordinate": [
+            -2,
+            5
+          ]
+        },
+        {
+          "toneId": "chord-bar-03-tone-3",
+          "coordinate": [
+            0,
+            2
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chord-bar-04",
+      "bar": 4,
+      "startTick": 11520,
+      "durationTick": 3840,
+      "velocity": 92,
+      "voicingId": "demo-voicing-1",
+      "tones": [
+        {
+          "toneId": "chord-bar-04-tone-1",
+          "coordinate": [
+            0,
+            0
+          ]
+        },
+        {
+          "toneId": "chord-bar-04-tone-2",
+          "coordinate": [
+            -2,
+            4
+          ]
+        },
+        {
+          "toneId": "chord-bar-04-tone-3",
+          "coordinate": [
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chord-bar-05",
+      "bar": 5,
+      "startTick": 15360,
+      "durationTick": 3840,
+      "velocity": 92,
+      "voicingId": "demo-voicing-1",
+      "tones": [
+        {
+          "toneId": "chord-bar-05-tone-1",
+          "coordinate": [
+            0,
+            0
+          ]
+        },
+        {
+          "toneId": "chord-bar-05-tone-2",
+          "coordinate": [
+            -2,
+            4
+          ]
+        },
+        {
+          "toneId": "chord-bar-05-tone-3",
+          "coordinate": [
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chord-bar-06",
+      "bar": 6,
+      "startTick": 19200,
+      "durationTick": 3840,
+      "velocity": 92,
+      "voicingId": "demo-voicing-4",
+      "tones": [
+        {
+          "toneId": "chord-bar-06-tone-1",
+          "coordinate": [
+            -1,
+            2
+          ]
+        },
+        {
+          "toneId": "chord-bar-06-tone-2",
+          "coordinate": [
+            1,
+            -1
+          ]
+        },
+        {
+          "toneId": "chord-bar-06-tone-3",
+          "coordinate": [
+            -1,
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chord-bar-07",
+      "bar": 7,
+      "startTick": 23040,
+      "durationTick": 3840,
+      "velocity": 92,
+      "voicingId": "demo-voicing-3",
+      "tones": [
+        {
+          "toneId": "chord-bar-07-tone-1",
+          "coordinate": [
+            0,
+            1
+          ]
+        },
+        {
+          "toneId": "chord-bar-07-tone-2",
+          "coordinate": [
+            -2,
+            5
+          ]
+        },
+        {
+          "toneId": "chord-bar-07-tone-3",
+          "coordinate": [
+            0,
+            2
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chord-bar-08",
+      "bar": 8,
+      "startTick": 26880,
+      "durationTick": 3840,
+      "velocity": 92,
+      "voicingId": "demo-voicing-1",
+      "tones": [
+        {
+          "toneId": "chord-bar-08-tone-1",
+          "coordinate": [
+            0,
+            0
+          ]
+        },
+        {
+          "toneId": "chord-bar-08-tone-2",
+          "coordinate": [
+            -2,
+            4
+          ]
+        },
+        {
+          "toneId": "chord-bar-08-tone-3",
+          "coordinate": [
+            0,
+            1
+          ]
+        }
+      ]
+    }
+  ],
+  "melodyPatternByBar": [
+    [
+      0,
+      2,
+      4,
+      2
+    ],
+    [
+      3,
+      5,
+      0,
+      5
+    ],
+    [
+      4,
+      6,
+      1,
+      6
+    ],
+    [
+      2,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      1,
+      2,
+      4
+    ],
+    [
+      1,
+      3,
+      5,
+      3
+    ],
+    [
+      4,
+      6,
+      1,
+      6
+    ],
+    [
+      2,
+      1,
+      0
+    ]
+  ],
+  "melodyPeriodShiftsByBar": [
+    [
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      0
+    ]
+  ],
+  "melodyEvents": [
+    {
+      "id": "melody-bar-01-beat-01",
+      "bar": 1,
+      "beat": 1,
+      "startTick": 0,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 0,
+      "periodShift": 0,
+      "coordinate": [
+        0,
+        0
+      ],
+      "toneId": "melody-bar-01-beat-01-tone-1",
+      "boardCell": 8
+    },
+    {
+      "id": "melody-bar-01-beat-02",
+      "bar": 1,
+      "beat": 2,
+      "startTick": 960,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 2,
+      "periodShift": 0,
+      "coordinate": [
+        -2,
+        4
+      ],
+      "toneId": "melody-bar-01-beat-02-tone-1",
+      "boardCell": 19
+    },
+    {
+      "id": "melody-bar-01-beat-03",
+      "bar": 1,
+      "beat": 3,
+      "startTick": 1920,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 4,
+      "periodShift": 0,
+      "coordinate": [
+        0,
+        1
+      ],
+      "toneId": "melody-bar-01-beat-03-tone-1",
+      "boardCell": 59
+    },
+    {
+      "id": "melody-bar-01-beat-04",
+      "bar": 1,
+      "beat": 4,
+      "startTick": 2880,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 2,
+      "periodShift": 0,
+      "coordinate": [
+        -2,
+        4
+      ],
+      "toneId": "melody-bar-01-beat-04-tone-1",
+      "boardCell": 19
+    },
+    {
+      "id": "melody-bar-02-beat-01",
+      "bar": 2,
+      "beat": 1,
+      "startTick": 3840,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 3,
+      "periodShift": 0,
+      "coordinate": [
+        1,
+        -1
+      ],
+      "toneId": "melody-bar-02-beat-01-tone-1",
+      "boardCell": 39
+    },
+    {
+      "id": "melody-bar-02-beat-02",
+      "bar": 2,
+      "beat": 2,
+      "startTick": 4800,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 5,
+      "periodShift": 0,
+      "coordinate": [
+        -1,
+        3
+      ],
+      "toneId": "melody-bar-02-beat-02-tone-1",
+      "boardCell": 79
+    },
+    {
+      "id": "melody-bar-02-beat-03",
+      "bar": 2,
+      "beat": 3,
+      "startTick": 5760,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 0,
+      "periodShift": 1,
+      "coordinate": [
+        1,
+        0
+      ],
+      "toneId": "melody-bar-02-beat-03-tone-1",
+      "boardCell": 119
+    },
+    {
+      "id": "melody-bar-02-beat-04",
+      "bar": 2,
+      "beat": 4,
+      "startTick": 6720,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 5,
+      "periodShift": 0,
+      "coordinate": [
+        -1,
+        3
+      ],
+      "toneId": "melody-bar-02-beat-04-tone-1",
+      "boardCell": 79
+    },
+    {
+      "id": "melody-bar-03-beat-01",
+      "bar": 3,
+      "beat": 1,
+      "startTick": 7680,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 4,
+      "periodShift": 0,
+      "coordinate": [
+        0,
+        1
+      ],
+      "toneId": "melody-bar-03-beat-01-tone-1",
+      "boardCell": 59
+    },
+    {
+      "id": "melody-bar-03-beat-02",
+      "bar": 3,
+      "beat": 2,
+      "startTick": 8640,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 6,
+      "periodShift": 0,
+      "coordinate": [
+        -2,
+        5
+      ],
+      "toneId": "melody-bar-03-beat-02-tone-1",
+      "boardCell": 99
+    },
+    {
+      "id": "melody-bar-03-beat-03",
+      "bar": 3,
+      "beat": 3,
+      "startTick": 9600,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 1,
+      "periodShift": 1,
+      "coordinate": [
+        0,
+        2
+      ],
+      "toneId": "melody-bar-03-beat-03-tone-1",
+      "boardCell": 139
+    },
+    {
+      "id": "melody-bar-03-beat-04",
+      "bar": 3,
+      "beat": 4,
+      "startTick": 10560,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 6,
+      "periodShift": 0,
+      "coordinate": [
+        -2,
+        5
+      ],
+      "toneId": "melody-bar-03-beat-04-tone-1",
+      "boardCell": 99
+    },
+    {
+      "id": "melody-bar-04-beat-01",
+      "bar": 4,
+      "beat": 1,
+      "startTick": 11520,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 2,
+      "periodShift": 0,
+      "coordinate": [
+        -2,
+        4
+      ],
+      "toneId": "melody-bar-04-beat-01-tone-1",
+      "boardCell": 19
+    },
+    {
+      "id": "melody-bar-04-beat-02",
+      "bar": 4,
+      "beat": 2,
+      "startTick": 12480,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 1,
+      "periodShift": 0,
+      "coordinate": [
+        -1,
+        2
+      ],
+      "toneId": "melody-bar-04-beat-02-tone-1",
+      "boardCell": 9
+    },
+    {
+      "id": "melody-bar-04-beat-03",
+      "bar": 4,
+      "beat": 3,
+      "startTick": 13440,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 0,
+      "periodShift": 0,
+      "coordinate": [
+        0,
+        0
+      ],
+      "toneId": "melody-bar-04-beat-03-tone-1",
+      "boardCell": 8
+    },
+    {
+      "id": "melody-bar-04-beat-04",
+      "bar": 4,
+      "beat": 4,
+      "startTick": 14400,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 0,
+      "periodShift": 0,
+      "coordinate": [
+        0,
+        0
+      ],
+      "toneId": "melody-bar-04-beat-04-tone-1",
+      "boardCell": 8
+    },
+    {
+      "id": "melody-bar-05-beat-01",
+      "bar": 5,
+      "beat": 1,
+      "startTick": 15360,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 0,
+      "periodShift": 0,
+      "coordinate": [
+        0,
+        0
+      ],
+      "toneId": "melody-bar-05-beat-01-tone-1",
+      "boardCell": 8
+    },
+    {
+      "id": "melody-bar-05-beat-02",
+      "bar": 5,
+      "beat": 2,
+      "startTick": 16320,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 1,
+      "periodShift": 0,
+      "coordinate": [
+        -1,
+        2
+      ],
+      "toneId": "melody-bar-05-beat-02-tone-1",
+      "boardCell": 9
+    },
+    {
+      "id": "melody-bar-05-beat-03",
+      "bar": 5,
+      "beat": 3,
+      "startTick": 17280,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 2,
+      "periodShift": 0,
+      "coordinate": [
+        -2,
+        4
+      ],
+      "toneId": "melody-bar-05-beat-03-tone-1",
+      "boardCell": 19
+    },
+    {
+      "id": "melody-bar-05-beat-04",
+      "bar": 5,
+      "beat": 4,
+      "startTick": 18240,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 4,
+      "periodShift": 0,
+      "coordinate": [
+        0,
+        1
+      ],
+      "toneId": "melody-bar-05-beat-04-tone-1",
+      "boardCell": 59
+    },
+    {
+      "id": "melody-bar-06-beat-01",
+      "bar": 6,
+      "beat": 1,
+      "startTick": 19200,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 1,
+      "periodShift": 0,
+      "coordinate": [
+        -1,
+        2
+      ],
+      "toneId": "melody-bar-06-beat-01-tone-1",
+      "boardCell": 9
+    },
+    {
+      "id": "melody-bar-06-beat-02",
+      "bar": 6,
+      "beat": 2,
+      "startTick": 20160,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 3,
+      "periodShift": 0,
+      "coordinate": [
+        1,
+        -1
+      ],
+      "toneId": "melody-bar-06-beat-02-tone-1",
+      "boardCell": 39
+    },
+    {
+      "id": "melody-bar-06-beat-03",
+      "bar": 6,
+      "beat": 3,
+      "startTick": 21120,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 5,
+      "periodShift": 0,
+      "coordinate": [
+        -1,
+        3
+      ],
+      "toneId": "melody-bar-06-beat-03-tone-1",
+      "boardCell": 79
+    },
+    {
+      "id": "melody-bar-06-beat-04",
+      "bar": 6,
+      "beat": 4,
+      "startTick": 22080,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 3,
+      "periodShift": 0,
+      "coordinate": [
+        1,
+        -1
+      ],
+      "toneId": "melody-bar-06-beat-04-tone-1",
+      "boardCell": 39
+    },
+    {
+      "id": "melody-bar-07-beat-01",
+      "bar": 7,
+      "beat": 1,
+      "startTick": 23040,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 4,
+      "periodShift": 0,
+      "coordinate": [
+        0,
+        1
+      ],
+      "toneId": "melody-bar-07-beat-01-tone-1",
+      "boardCell": 59
+    },
+    {
+      "id": "melody-bar-07-beat-02",
+      "bar": 7,
+      "beat": 2,
+      "startTick": 24000,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 6,
+      "periodShift": 0,
+      "coordinate": [
+        -2,
+        5
+      ],
+      "toneId": "melody-bar-07-beat-02-tone-1",
+      "boardCell": 99
+    },
+    {
+      "id": "melody-bar-07-beat-03",
+      "bar": 7,
+      "beat": 3,
+      "startTick": 24960,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 1,
+      "periodShift": 1,
+      "coordinate": [
+        0,
+        2
+      ],
+      "toneId": "melody-bar-07-beat-03-tone-1",
+      "boardCell": 139
+    },
+    {
+      "id": "melody-bar-07-beat-04",
+      "bar": 7,
+      "beat": 4,
+      "startTick": 25920,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 6,
+      "periodShift": 0,
+      "coordinate": [
+        -2,
+        5
+      ],
+      "toneId": "melody-bar-07-beat-04-tone-1",
+      "boardCell": 99
+    },
+    {
+      "id": "melody-bar-08-beat-01",
+      "bar": 8,
+      "beat": 1,
+      "startTick": 26880,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 2,
+      "periodShift": 0,
+      "coordinate": [
+        -2,
+        4
+      ],
+      "toneId": "melody-bar-08-beat-01-tone-1",
+      "boardCell": 19
+    },
+    {
+      "id": "melody-bar-08-beat-02",
+      "bar": 8,
+      "beat": 2,
+      "startTick": 27840,
+      "durationTick": 960,
+      "velocity": 88,
+      "sourceDegree": 1,
+      "periodShift": 0,
+      "coordinate": [
+        -1,
+        2
+      ],
+      "toneId": "melody-bar-08-beat-02-tone-1",
+      "boardCell": 9
+    },
+    {
+      "id": "melody-bar-08-beat-03",
+      "bar": 8,
+      "beat": 3,
+      "startTick": 28800,
+      "durationTick": 1920,
+      "velocity": 88,
+      "sourceDegree": 0,
+      "periodShift": 0,
+      "coordinate": [
+        0,
+        0
+      ],
+      "toneId": "melody-bar-08-beat-03-tone-1",
+      "boardCell": 8
+    }
+  ],
+  "derivation": "Eight 4/4 bars contain 32 quarter notes. At 960 PPQ each chord lasts 3840 ticks; the final bar melody uses 960+960+1920 ticks. Duration=(30720/960)*60/100=19.2 seconds. Melody coordinates are frozen scale degree coordinates with three requested +1-period lifts applied once. Chord events copy the selected placement coordinates, not the unshifted realization as a second pitch source. Each listed boardCell was enabled and had exactly that [period,generator] coordinate at capture."
+}
