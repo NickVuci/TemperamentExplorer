@@ -11,6 +11,12 @@ export function scaleCoverageKey(s,options={}){
  const {limit,primeLimit}=scaleCoverageTarget(s,options);
  return JSON.stringify([s.basis,s.rows,s.p,s.g,limit,primeLimit]);
 }
+// Automatic defaults follow mapping and target changes, never a retuning.
+// Analysis caches still include cents because MOS/coverage results can change.
+export function scaleDefaultKey(s,options={}){
+ const {limit,primeLimit}=scaleCoverageTarget(s,options);
+ return JSON.stringify([s.basis,s.rows,limit,primeLimit]);
+}
 const record=(size,extra={})=>({n:size.n,signature:size.signature,mos:size.mos,mode:0,...extra});
 
 /** Central analysis of all collision-free consecutive-generator scales.

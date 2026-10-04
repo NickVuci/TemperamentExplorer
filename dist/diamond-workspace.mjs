@@ -1,12 +1,14 @@
-import {diamondLayout,parseDiamondHarmonics,selectedDiamondCoordinates,selectedDiamondChord} from './diamond-layout.mjs';
+import {diamondLayout,parseDiamondHarmonics,selectedDiamondCoordinates,selectedDiamondChord,selectedDiamondChordTuning} from './diamond-layout.mjs';
 import {diamondApproximation,renderDiamond} from './tonality-diamond.mjs';
 import {esc,option} from './ui.mjs';
-export function createDiamondWorkspace({document:doc,getState,refresh,notify,play,onInspect,onCollect,onPlace,onChord,onChordChange=()=>{}}){
+import {diamondHarmonicSelection,diamondCellsForSelection} from './diamond-harmonic-selection.mjs';
+export function createDiamondWorkspace({document:doc,getState,refresh,notify,play,onInspect,onCollect,onPlace,onChord,onChordChange=()=>{},getHarmonicMode=()=>false}){
  let layout={harmonics:'',fold:false},interaction='play',selection=new Set(),playing=new Set(),geometry=null,signature='',layoutOptionsOpen=false,auditioning=false,auditionTimer=null;
  function clearAudition(){if(auditionTimer!==null)clearTimeout(auditionTimer);auditionTimer=null;auditioning=false;}
+ function displayCells(){const ids=interaction==='play'&&playing.size>0?playing:selection;return (geometry?.cells??[]).filter(cell=>ids.has(cell.id));}
  function chordDisplay(){
-  const usePlaying=interaction==='play'&&playing.size>1,ids=usePlaying?playing:selection.size>1?selection:interaction==='select'?selection:new Set(),chord=selectedDiamondChord(geometry?.cells??[],ids);
-  return chord?{...chord,source:usePlaying||auditioning?'playing':'selected'}:null;
+  const usePlaying=interaction==='play'&&playing.size>0,ids=new Set(displayCells().map(cell=>cell.id)),chord=selectedDiamondChord(geometry?.cells??[],ids);
+  return chord?{...chord,source:usePlaying||auditioning?'playing':'selected',tuning:selectedDiamondChordTuning(geometry?.cells??[],ids)}:null;
  }
  function paint(){
   doc.querySelectorAll('[data-diamond-key]').forEach(el=>{const on=selection.has(el.dataset.diamondKey);el.classList.toggle('selected',on);el.setAttribute('aria-pressed',String(on));});
@@ -40,9 +42,12 @@ export function createDiamondWorkspace({document:doc,getState,refresh,notify,pla
   return {enabled:true,c:v.c};
  }
  function item(){
-  const coords=selectedDiamondCoordinates(geometry?.cells??[],selection);if(coords.length<2)throw Error('Select at least two distinct sounding notes.');if(coords.length>256)throw Error('Select no more than 256 distinct sounding notes for the collection.');
-  const targets=geometry.cells.filter(t=>selection.has(t.id)),alternative=targets.some(t=>!t.status.approximation.mapped);
-  return {kind:coords.length>8?'scale':'chord',coords,label:`Diamond${alternative?' approximations':''} · ${targets.map(t=>t.label).join(' : ')}`.slice(0,100),exact:true};
+  const targets=geometry.cells.filter(t=>selection.has(t.id)),alternative=targets.some(t=>!t.status?.approximation?.mapped);
+  const coords=getHarmonicMode()?targets.map(t=>{if(!t.status?.approximation?.m)throw Error('Some selected cells have no available approximation.');return [...t.status.approximation.m];}):selectedDiamondCoordinates(geometry?.cells??[],selection);
+  if(coords.length<2)throw Error('Select at least two sounding voices.');if(coords.length>256)throw Error('Select no more than 256 sounding voices for the collection.');
+  const label=`Diamond${alternative?' approximations':''} · ${targets.map(t=>t.label).join(' : ')}`.slice(0,100);
+  const harmonic=getHarmonicMode()&&coords.length<=8?diamondHarmonicSelection(getState(),targets.map(t=>({cellId:t.id,ratio:t.label,coordinate:[...t.status.approximation.m],mapped:!!t.status.approximation.mapped})),{label}):null;
+  return {kind:coords.length>8?'scale':'chord',coords,label,exact:true,...(harmonic?{harmonicSelection:harmonic}:{})};
  }
  function change(el){
   const setting=el.dataset.diamondSetting;if(!setting)return false;
@@ -71,6 +76,8 @@ export function createDiamondWorkspace({document:doc,getState,refresh,notify,pla
   if(typeof data.harmonics!=='string'||typeof data.fold!=='boolean'||!['play','select'].includes(data.interaction)||!Array.isArray(data.selected)||data.selected.length>2401||data.selected.some(id=>typeof id!=='string'||!/^\d{1,2}:\d{1,2}$/.test(id)))throw Error('Invalid saved diamond layout.');
   layout={harmonics:data.harmonics?parseDiamondHarmonics(data.harmonics).join(':'):'',fold:data.fold};selection=new Set(data.selected);playing.clear();clearAudition();interaction=data.interaction;signature='';
  }
- function updatePlaying(notes){playing=new Set((Array.isArray(notes)?notes:[]).map(note=>note?.id).filter(id=>typeof id==='string'));paint();}
- return {render,press,click,change,mountOptions,restore,updatePlaying,chordDisplay,layout:()=>({...layout}),serialize:()=>({...layout,interaction,selected:[...selection]})};
+ function updatePlaying(notes){playing=new Set((Array.isArray(notes)?notes:[]).map(note=>note?.id).filter(id=>typeof id==='string'));const active=geometry?.cells.filter(cell=>playing.has(cell.id))??[];if(active.length&&new Set(active.map(cell=>cell.label)).size===1)onInspect(active[0].label);paint();}
+ return {render,press,click,change,mountOptions,restore,updatePlaying,chordDisplay,displayCells,
+  highlightCatalogueInterpretation(value){const ids=diamondCellsForSelection(geometry?.cells??[],value);doc.querySelectorAll('[data-diamond-key]').forEach(el=>el.classList.toggle('catalogue-highlight',ids.includes(el.dataset.diamondKey)));return ids.length;},
+  layout:()=>({...layout}),serialize:()=>({...layout,interaction,selected:[...selection]})};
 }

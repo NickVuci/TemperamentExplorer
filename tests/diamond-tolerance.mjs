@@ -29,6 +29,6 @@ context.manualTolerance=context.clampTolerance('0');assert.equal(context.setting
 assert.equal(context.clampTolerance('-5'),0);assert.equal(context.clampTolerance('120'),100);assert.equal(context.clampTolerance('invalid'),null);
 assert.match(source,/data-diamond-tolerance-reset/);
 assert.match(source,/manualTolerance=null;renderWorkspace\(\);return;/,'the Auto button restores the computed tolerance');
-assert.match(source,/workflowVersion:7/);
+assert.match(source,/workflowVersion:8/);
 assert.match(source,/manualTolerance,tonic:/,'manual tolerance is stored in session files');
 console.log('Diamond tolerance editing, automatic fallback, range limits, shared settings and session version passed.');

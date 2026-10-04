@@ -55,6 +55,18 @@ export function maximumDiamondError(s,cfg){
 export function renderDiamondTolerance(cfg){
  return `<div class="diamond-tolerance-control"><span>Maximum error (cents)</span><div class="diamond-tolerance-entry"><input type="number" min="0" max="100" step="0.001" value="${Number(cfg.tol).toFixed(3)}" data-diamond-tolerance aria-label="Maximum error in cents"><button type="button" class="quiet diamond-auto-tolerance" data-diamond-tolerance-reset aria-label="Use automatic tolerance" ${cfg.toleranceAutomatic?'disabled':''}>Auto</button></div></div>`;
 }
+function diamondGridPath({count,w,h,pad}){
+ const vertex=(i,j)=>`${pad+(i+j)*w} ${pad+(count+j-i)*h}`,lines=[];
+ // Each axis boundary is painted once across the whole lattice.
+ for(let i=0;i<=count;i++)lines.push(`M${vertex(i,0)}L${vertex(i,count)}`);
+ for(let j=0;j<=count;j++)lines.push(`M${vertex(0,j)}L${vertex(count,j)}`);
+ // Ratio bars meet at shared vertices; paint each continuous row once.
+ for(let row=1-count;row<count;row++){
+  const inset=Math.abs(row)*w,y=pad+(count+row)*h;
+  lines.push(`M${pad+inset} ${y}H${pad+2*count*w-inset}`);
+ }
+ return lines.join('');
+}
 export function renderDiamond(s,idx,cfg,chosen='1/1',header=''){
  const geometry=cfg.geometry??diamondLayout(cfg,cfg.diamondLayout),{count,h,w,pad}=geometry;
  const cellW=w,cellH=h;
@@ -62,10 +74,13 @@ export function renderDiamond(s,idx,cfg,chosen='1/1',header=''){
  const cells=geometry.cells.map(t=>{
   const status=t.status??diamondApproximation(s,t,cfg),v=status.approximation,shown=status.shown,mapped=!!v?.mapped;
   const x=pad+(t.i+t.j+1)*w,y=pad+(count+t.j-t.i)*h;
+  // Cell fills share exact edges; highlight strokes stay fully inside each tile.
+  // The common grid is drawn once, after every cell, independent of cell order.
+  const clipId=`diamond-clip-${idx}-${t.i}-${t.j}`,shape=`M${x} ${y-cellH}L${x+cellW} ${y}L${x} ${y+cellH}L${x-cellW} ${y}Z`,highlightShape=`M${x} ${y-cellH*.94}L${x+cellW*.94} ${y}L${x} ${y+cellH*.94}L${x-cellW*.94} ${y}Z`,boundary=`${x},${y-cellH} ${x+cellW},${y} ${x},${y+cellH} ${x-cellW},${y}`;
   const fill=shown&&v?errorColor(v.error,cfg.maxError??cfg.tol):'#202835',ink=shown&&v?'#11151c':'#eef2f7';
   const description=v?`${mapped?'mapped':'best available'}, ${v.error.toFixed(3)} cents error`:status.mappedCoordinate?'hidden by display filter':'outside temperament basis';
-  return `<g class="diamond-cell ${cfg.selectedIds?.includes(t.id)?'selected':''}" role="button" tabindex="0" data-diamond="${idx},${t.n},${t.d}" data-diamond-key="${t.id}" aria-pressed="${!!cfg.selectedIds?.includes(t.id)}" aria-disabled="${!v}" aria-label="${t.label}, ${description}" style="--diamond-fill:${fill};--diamond-ink:${ink}" ><title>${esc(t.label)} · ${esc(description)}</title><path d="M${x} ${y-cellH}L${x+cellW} ${y}L${x} ${y+cellH}L${x-cellW} ${y}Z"/><path class="diamond-divider" d="M${x-cellW} ${y}H${x+cellW}"/><text x="${x}" y="${y-cellH*.38}">${t.n}</text><text x="${x}" y="${y+cellH*.5}">${t.d}</text></g>`;
+  return `<defs><clipPath id="${clipId}" clipPathUnits="userSpaceOnUse"><polygon points="${boundary}"/></clipPath></defs><g clip-path="url(#${clipId})" class="diamond-cell ${cfg.selectedIds?.includes(t.id)?'selected':''}" role="button" tabindex="0" data-diamond="${idx},${t.n},${t.d}" data-diamond-key="${t.id}" aria-pressed="${!!cfg.selectedIds?.includes(t.id)}" aria-disabled="${!v}" aria-label="${t.label}, ${description}" style="--diamond-fill:${fill};--diamond-ink:${ink}" ><title>${esc(t.label)} · ${esc(description)}</title><path class="diamond-cell-fill" d="${shape}"/><path class="diamond-cell-highlight" d="${highlightShape}"/><path class="diamond-cell-active-divider" d="M${x-cellW} ${y}H${x+cellW}"/><text x="${x}" y="${y-cellH*.38}">${t.n}</text><text x="${x}" y="${y+cellH*.5}">${t.d}</text></g>`;
  }).join('');
  const primeLabel=cfg.primeLimit==null?'':` · ${formatPrimeFilter(cfg.primeLimit)}`;
- return `<section class="diamond-panel"><div class="diamond-canvas"><div class="diamond-canvas-tools"><div id="diamond-detail-${idx}" class="diamond-detail" aria-live="polite" hidden><div data-diamond-cell-detail></div><div class="diamond-chord-readout" data-diamond-chord aria-live="polite" hidden></div></div>${cfg.canvasControls??''}</div><div class="diamond-scroll">${header}<svg class="tonality-diamond" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" style="--diamond-min-width:${Math.max(280,count*94)}px;${count<=10?'max-height:max(420px,72vh)':''}" role="group" aria-label="${geometry.custom?`Custom harmonics ${geometry.harmonics.join(':')}`:`${cfg.limit}-odd-limit${primeLabel}`} tonality diamond">${cells}</svg>${cfg.toolbar??''}</div></div></section>`;
+ return `<section class="diamond-panel"><div class="diamond-canvas"><div class="diamond-canvas-tools"><div id="diamond-detail-${idx}" class="diamond-detail" aria-live="polite" hidden><div data-diamond-cell-detail></div><div class="diamond-chord-readout" data-diamond-chord aria-live="polite" hidden></div></div>${cfg.canvasControls??''}</div><div class="diamond-scroll">${header}<svg class="tonality-diamond" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" style="--diamond-min-width:${Math.max(280,count*94)}px;${count<=10?'max-height:max(420px,72vh)':''}" role="group" aria-label="${geometry.custom?`Custom harmonics ${geometry.harmonics.join(':')}`:`${cfg.limit}-odd-limit${primeLabel}`} tonality diamond">${cells}<path class="diamond-grid" d="${diamondGridPath(geometry)}" aria-hidden="true"/></svg>${cfg.toolbar??''}</div></div></section>`;
 }

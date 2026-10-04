@@ -26,8 +26,11 @@ interval/JI, chord, and HexBoard-layout application.
 
 The top-level tabs are **Discover**, **Play**, and **Create**.
 
-- **Discover** presents Temperament, Tuning, and Scale/Mode controls in one setup
-  row. Advanced temperament controls contain comma search and direct mapping input.
+A compact Temperament, Tuning, and Scale/Mode setup row sits outside the tab
+panels and remains available on Discover, Play, and Create. Advanced temperament
+controls contain comma search and direct mapping input.
+
+- **Discover** owns the analysis workspace.
   Analysis opens on Interval Matrix and also provides JI-target tonality diamonds
   and generated-scale details. A manual chord-inspection view remains reachable
   from interval workflows but is not a primary tab.
@@ -65,6 +68,125 @@ requires the kernel to leave rank 2, constructs the saturated integer annihilato
 derives the required period subdivision, and reduces the generator by whole
 periods. Known kernels may select a familiar preset generator basis; tuning is then
 applied separately. Direct mappings are validated by `state.mjs`.
+
+`ji-monzo.mjs` owns bounded exact ratio factorization and integer matrix mapping.
+`harmonic-context.mjs` builds immutable mapping-only records and versioned keys
+from the basis/matrix, canonicalizing basis-column permutations only in the key;
+its kernel witnesses use exact matrix multiplication, never tuned cents or comma
+labels. The B harmonic interface uses these records for catalogue, selection and session
+handoffs; A compatibility consumers retain their earlier local key formats.
+`harmonic-equivalence.mjs` now exposes exact, period and mapped-octave policies
+with exact removed-lift certificates and translation/permutation-invariant set
+keys. The v2 chord projection retains its older period-class compatibility path
+until a later catalogue migration.
+The same shared module offers explicit exact-JI and octave-family identities,
+with input-member links and reciprocal duals. Existing `ji2:` fingerprints remain stable. B live recognition adds complete
+octave-family matches while retaining every played full coordinate.
+`harmonic-types.mjs` now defines JSON-safe validation boundaries for mapping,
+tempered shape, selection and ET assessment records, and dependency-specific
+keys for tuning, target set, scale/mode and layout. B Discover/Play, diamond handoffs and optional material/session provenance use
+these boundaries. Invalid optional provenance cannot invalidate valid sounding material.
+Target-set IDs encode the exact sorted prime subgroup alongside odd limit,
+prime filter and representation policy; they are independent of the tuning
+matrix.
+`ji-limit-engine.mjs#targetSet` now produces immutable octave-folded or native
+exact JI target sets with source-pair and register-lift provenance. Existing
+diamond APIs remain on their octave display behavior. `targetId` reduces the
+final octave-folded ratio after applying powers of two, so reciprocal aliases
+such as 5/8 and 5/4 resolve to the same canonical target record.
+`harmonic-intervals.mjs` projects those targets through the exact integer map,
+retaining enharmonic identities per coordinate and keeping actual-tuning error
+as a separate derived view. `engine.mjs#createTargetClassifier` and
+`assignments.mjs` now use the shared projection/error path; the legacy response
+shape and tolerance precedence remain.
+`harmonic-mappings.mjs` classifies validated alternative contexts by exact
+mapping identity, unimodular coordinate rebase, preserved-column extension, or
+changed mapping. It adapts `assignments.mjs#checkAssignments`, keeps incomplete
+extensions unresolved, and can preview a whole chord under one candidate
+context without changing active state. It also enumerates bounded one-prime
+extensions from generator coefficients −16 through +16 by default (with
+explicit 32/64 bounds), ranks them using target tuning error, and returns at
+most 20 fully validated contexts. B Discover → Chords previews these contexts and requires explicit adoption.
+Adoption preserves every existing mapping column and the current period/generator tuning.
+`harmonic-approximations.mjs` searches a bounded temperament lattice for
+incidental interval approximations without changing canonical mappings. It
+retains canonical tuning error as a separate baseline, reports optional exact
+target-set collisions, and caps searches at generator coefficient ±256 (±32 by
+default). It also supplies shared exact-coordinate error records and ranking
+policies. `assignments.mjs#approximationDomain` exposes the unbounded search
+descriptor, finite ordered scale-dyad coordinates, and tonic-relative mode-note
+coordinates (respecting the displayed matrix span). The existing assignment
+and diamond approximation functions now adapt through this shared engine with
+their output ordering and mapped-secondary behavior preserved; unified
+catalogue UI migration remains future work. The same module exposes
+`searchChordApproximations`, which selects bounded root-relative member
+coordinates and derives each dyad from vertex differences. A fully mapped JI
+chord is kept as a separate comparison; an incomplete canonical projection has
+no aggregate improvement score. Candidate shapes preserve exact interpretation
+and dual-family links, tuning errors, and optional exact target-set collision
+records. The default search uses generator bound ±32, eight candidates per
+member, a 10,000-combination cap, a 250,000-dyad-derivation cap, and returns at
+most 12 shapes. Shortlist/cap exhaustion is reported as partial. B Discover → Chords compares both interval and whole-chord alternatives
+against the canonical mapping without adopting incidental coordinates into that map.
+
+`harmonic-dyad-graph.mjs#buildDyadIndex` indexes every mapped target
+interpretation by exact octave class for octave-folded target sets, or by full
+coordinate for native-exact target sets. It keeps enharmonic JI identities as
+parallel interpretations of one graph vertex, retains non-unison targets that
+collapse to unison, links reciprocal target IDs, and reports targets outside
+the active mapping subgroup separately. `domainsForShape` returns all directed
+dyad domains for a supplied coordinate shape and distinguishes empty-edge
+non-dyadic shapes from degenerate repeated vertices. This layer is tuning
+independent and applies no cent threshold. `enumerateDyadicShapes` now emits
+deduplicated rooted compatible cliques from that finite vertex graph, defaulting
+to triangles and tetrads. It reports per-query neighbor, domain-check,
+candidate-shape and search-node bounds through its live progress envelope;
+neighbor truncation or any early stop is marked partial. Candidate generation
+does not run JI lifting or ET assessment and does not depend on a selected
+scale.
+
+`harmonic-ji-lift.mjs#findCoherentJILift` searches the finite root-vertex
+interpretation domains with pairwise domain consistency and deterministic
+smallest-domain branching. Octave-policy JI labels compare exponent vectors
+modulo only the prime-2 generator; native-exact labels compare the full
+monzo. Successful witnesses restore the exact mapped octave lift (including
+divided-octave period vectors) for every vertex and dyad. Exhaustive failure,
+cancellation, state exhaustion and compatibility-check exhaustion are
+separate outcomes; the latter three return `unknown`, never a negative proof.
+`harmonic-et.mjs#assessET` converts complete solver results into target-set-relative assessments: `not-dyadic`, `ji-liftable`, `essentially-tempered`, or `unknown`. ET records include per-edge domain counts, a replayable bounded-search certificate, and representative cycle conflicts. `cycleWitness` restores exact interval lifts before summing monzos; a raw cycle that maps to an octave is corrected by the recorded prime-2 lift before kernel validation. `verifyETEvidence` recomputes kernel cycles and replays complete negative searches under the recorded context and bounds. Changing JI limits rebuilds the assessment context while leaving the shape identity alone.
+`harmonic-et.mjs#discoverDyadicHarmony` now joins bounded shape enumeration and
+assessment in an async, immutable batch stream. A JI-liftable shape carries a
+generic exact interpretation with its existing `harmonicIdentity` family ID,
+basis-order monzos, root-relative dyads and register lifts; shape identity stays
+separate from JI identity. ET and solver-unknown rows remain separate. Search
+totals, candidate counts, enumeration coverage, cancellation and incompleteness
+are reported in each progress snapshot and the final envelope; only a fully
+searched empty result is `complete-empty`. Defaults cap per-shape work at
+100,000 states / 1,000,000 compatibility checks and total work at 500,000 /
+2,000,000, in addition to the enumerator's finite bounds. The job checks
+cancellation at shape and batch boundaries, polls the synchronous solver's
+cancellation callback, and yields to the event loop between batches and during
+8 ms time slices. It does not cache streamed results. This producer feeds the shared Worker adapter and the explicit B ET search. One
+deterministic coherent lift is retained per candidate shape, not every possible
+JI labeling; the catalogue query preserves other JI chord identities
+from their existing producer.
+
+`harmonic-catalogue.mjs` now joins interval, curated/line/subset JI, bounded ET,
+mapping-extension and approximation producers through `queryCatalogue`,
+`getHarmonicEntry` and `resolveSelection`. Exact JI labels remain separate rows
+within shared shape/family groups. Custom lookup precedes browse caps. Catalogue
+records have no scale-occurrence or board-placement dependency; target eligibility,
+mapping and tuning quality remain separate fields. Pagination binds to the full
+query context, and bounds/unknown/cancellation remain visible.
+`harmonic-catalogue-jobs.mjs` owns query/ET/approximation request envelopes,
+latest-request rejection, Worker/fallback dispatch and a per-workspace bounded
+LRU. Only complete results within the byte cap are cached. Tuning, target sets,
+equivalence and producer bounds enter the context; scale/mode/layout do not.
+`harmonic-cooperative.mjs` drives the same generator algorithms synchronously
+for compatibility or asynchronously for jobs. Graph traversal, CSP states/
+compatibility checks and chord-approximation combinations yield every 256 work
+items. The existing `chord-v2-worker.mjs` supports these jobs beside the unchanged
+legacy Play discovery envelope. B uses these envelopes; A retains the legacy Play envelope for comparison.
 
 The application currently supports prime-basis rank-2 mappings. Arbitrary composite
 or fractional basis elements and higher-rank scale enumeration are not supported.
@@ -120,10 +242,11 @@ in a single pass through generated sizes without constructing four UI searches.
 
 `default-scale.mjs` projects the first diamond-complete scale and completing mode
 from that analysis. Startup/reset, built-in/saved preset selection, new comma
-mapping, and changes to tuning or shared JI limits use that default. The layout
+mapping, and changes to shared JI limits use that default. Retuning preserves
+both Discover and Play scale sizes and modes while refreshing analysis. The layout
 initializes its independent target scale/mode from the same result; its base subset
 defaults to the first interval-complete MOS when that MOS fits the target. Manual
-scale/mode/base edits survive ordinary redraws; a changed analysis context applies
+scale/mode/base edits survive ordinary redraws; a changed mapping/target context applies
 new defaults. Saved sessions and explicit material/chord loads retain their chosen
 scale/mode, and saved HexBoard base settings are retained on restoration. If no
 qualifying scale exists through 256 notes before pitch collisions, retain the
@@ -179,6 +302,12 @@ tolerance; a mapped target outside tolerance (`M×`) does not suppress it.
 `assignments.mjs` owns finite-scale alternatives, exact target assignments, and
 exact consistency/extension checks.
 
+Its `approximationDomain` adapter distinguishes bounded temperament-lattice
+search, all ordered scale-matrix dyads, and tonic-relative notes of the selected
+mode. Finite domains use `matrixScale`, so the optional whole-octave span for
+divided-period temperaments applies consistently. Legacy best-approximation
+functions are compatibility adapters over the shared error and ranking code.
+
 The JI-target view is an interactive odd-limit tonality diamond, optionally narrowed
 by the prime limit. Its display compacts the allowed harmonic axes into a complete
 diamond; canonical analytical targets retain their original identities. Its approximation
@@ -190,6 +319,11 @@ scale-and-mode source to Mode when restored. Mapped cells are colored by tuning
 error; when another scale interval is closer, the mapped target remains available
 as a secondary approximation.
 
+`tonality-diamond.mjs` draws exact shared-edge cell fills and clips highlights to
+their rhombi. A single noninteractive grid layer paints each axis boundary and
+ratio-bar row once after all cells. Crisp tile fills avoid antialias blending
+between neighbours; the shared grid supplies smooth borders. Cell
+styles have one canonical block; per-cell outlines and divider strokes are removed.
 `diamond-layout.mjs` owns compact display geometry and ordered custom harmonic
 lists (2–16 distinct integers from 1–256). The default folds ratios into one octave;
 custom layouts preserve the entered harmonic/reciprocal register unless the user
@@ -202,22 +336,78 @@ Shift pedal and keyboard activation without replacing the SVG; voice lifecycle
 remains in `audio.mjs`. Cell fills indicate selection and playback without geometry
 changes. Layout and selection are included in session files and old sessions use
 the default layout. Changes to tuning, scale, source or filters invalidate selections.
-Transfers retain the sounding integer coordinates: collections accept 2–256 unique
-notes (up to 8 as a chord), Chords requires 2–8 distinct scale degrees and fits a
-contiguous generator scale when needed, and HexBoard uses existing placement checks.
+Transfers retain sounding integer coordinates. A retains its distinct-degree
+scale-fit handoff. B Chords accepts 2–8 source cell voices, including repeated
+or coincident coordinates, without changing the Discover scale. Larger B
+selections can be collected as scales. `diamond-harmonic-selection.mjs` records
+exact cell IDs, ratios, source coordinates and whether the sound is canonical
+or an alternative approximation. Reverse links require exact sounded ratios
+and coordinates; an unavailable current display is reported explicitly.
 No-fit and unavailable-note states remain explicit; handoff does not imply a
 physical fingering exists.
-Selecting or simultaneously playing 2–8 distinct diamond pitches displays their
-exact JI chord in the detail panel. Fixed-denominator lines use otonal spelling
+Selecting or simultaneously playing distinct diamond pitches replaces the single
+interval details with the JI chord label and one column per distinct cell interval.
+The readout uses the current playing cells or selection and clears when both are
+empty. Single intervals and chords share the same compact table renderer and row spacing,
+with mapping metadata retained only for accessibility. The table stacks each cell's
+JI ratio, JI cents, sounding tempered cents,
+and signed deviation, preserving the cell's reference and sounding register. JI rows
+share one continuous divider. The readout has a transparent background and occupies
+normal flow outside the SVG, so growing selections cannot obscure playable cells.
+On desktop, a fixed-height band keeps live chord changes from moving the SVG under
+a held pointer; oversized data scrolls within that band.
+Its columns use their intrinsic value widths, with contained horizontal scrolling
+for large chords. A fixed heading row reserves space for chord notation in both
+single-interval and chord readouts. JI rows are white; each tempered value and
+signed deviation uses its own diamond cell’s shared error colour. Total error
+remains the sum of absolute errors across all note pairs in the tooltip;
+unavailable members never receive an aggregate score. A single held
+pitch restores interval details, and a persistent selection returns after release.
+Fixed-denominator lines use otonal spelling
 (such as `4:5:6`), fixed-numerator lines use the reciprocal utonal spelling
-(`1/6:5:4`), and mixed selections show both forms. Larger selections remain
-available for transfers and report their distinct-pitch count instead.
+(`1/6:5:4`), and mixed selections use their exact otonal spelling. Chord labels
+support 2–8 distinct JI pitches; larger selections remain available for transfers
+and show every distinct interval column. Aggregate error remains in the colour
+tooltip, while visible deviations contain only signed cents.
 
 ## Chord system
 
-Chord engine v2 is the sole Scale Chords catalogue engine. The former catalogue
-engine and runtime selector were removed; `chord-session-v2-adapter.mjs` is retained
-only to migrate compatible saved sessions.
+Discover → Chords always opens B · Harmonic discovery. The former classic-view
+selector and local preference are removed; legacy A/B session values are ignored
+when loading. The manual inspector remains available for direct coordinate
+inspection, and `chord-session-v2-adapter.mjs` continues migrating compatible
+saved sessions.
+
+`harmonic-catalogue-ui.mjs` owns B Discover → Chords, independently of the board.
+It browses mapped JI chords, intervals, target-relative ET assessments, compatible
+mapping extensions and better approximations. Shared JI limits remain one state
+owner. Search can inspect exact 2–8-voice spellings outside browse limits.
+Scope filters compare whole-temperament availability, Discover/Play anywhere
+occurrence and tonic anchoring. Occurrences/voicings are resolved lazily through
+the Stage 8 engine; tuning tolerance never removes a mapped B identity. ET
+requires Start and retains explicit bounds, completeness and unknown evidence.
+Changed contexts disable stale actions immediately.
+
+`harmonic-selection.mjs` adapts these records into validated selections containing
+full voice coordinates and optional JI metadata. `harmonic-play-ui.mjs` preserves
+the sent voicing and independent Play scale. Scale fit is explicit and affects
+Play only. Roots are selectable; exact board placements are computed only for
+selected harmonies, with the top three shown first and no implicit fingering choice.
+A and the manual inspector remain as compatibility views over shared services.
+`harmonic-inspection.mjs` owns coordinate-chord inspection for manual and board
+consumers: the shared target classifier supplies tuning-quality overlays;
+`buildDyadIndex` and `assessET` supply mapping domains and coherent-lift truth.
+Repeated harmonic classes preserve sounding voices without a false ET claim.
+Manual period-placement changes feed full voiced coordinates to assessment.
+The same bounded finite-coordinate candidate search powers degree and board
+adapters, with reach as a physical predicate. Its defaults are 250,000 visited
+nodes, 20,000 occurrences and 1,000 groups, and truncation is displayed explicitly.
+`chords.mjs` contains only degree/session wrappers; `bestChordTarget`, the old
+independent occurrence loop and manual search cache are removed. Historical
+search JSON remains stable while nonenumerable bounds are available to the UI.
+Legacy pins remain usable from the manual inspector. The classic catalogue
+presentation and historical session adapter are retained intentionally; no retired
+pre-v2 analytical engine is reactivated.
 
 The canonical pipeline is:
 
@@ -232,11 +422,20 @@ The canonical pipeline is:
   complete chord-catalogue shapes using the full `[period, generator]` offsets
   from the lowest sounding note. Register is retained, so an octave is a two-note
   `1:2` match and `4:5:6` differs from `2:5:6`. The readout shows the best-ranked
-  JI identity and alternate matches; it does not select a chord or claim the played
-  tuning is acoustically pure. Candidates are cached by mapping, tuning, JI limits,
-  and tolerance.
+  JI identity and alternate matches. B also indexes complete octave families
+  (native exact families without prime 2), permitting arbitrary played registers
+  while retaining those full sounding coordinates. Extra notes cannot get a
+  triad-subset label. B mapping matches remain eligible above tolerance; the
+  canonical spelling error is disclosed separately. The readout does not select
+  a harmony or claim acoustic purity. A keeps register-sensitive tolerance gating.
 - `chord-occurrence-v2.mjs` finds exact occurrences in the selected scale and mode.
   Occurrence uses mapped coordinates, never cent tolerance or board availability.
+  `searchShapeOccurrences` is the shared JI/coordinate-only engine. It searches
+  period-repeated membership and retains every source member, octave residue,
+  degree and explicit period lift. Shape/scale context owns occurrence IDs;
+  `tonicAnchored` and the tonic subset are separate from anywhere-in-scale counts.
+  `searchOccurrences` preserves legacy JI IDs/order/counts as a compatibility
+  adapter. `analyzeShape` supplies shape analysis without requiring a ratio root.
 - `chord-discovery-v2.mjs` searches a bounded catalogue of curated chords, harmonic
   segments, and reciprocals, with shared odd/prime-limit filters and worker-backed
   progress/cancellation.
@@ -246,16 +445,22 @@ The canonical pipeline is:
 - `chord-realization-v2.mjs` applies root, inversion, harmonic-spelling (default),
   compact/open spacing, ordering, period shifts, and register bounds, then finds
   alternate physical fingerings without changing occurrence truth.
+  `realizeShape` and the `realizeChord` adapter use `chord-voicings.mjs#shapeVoicings`.
+  Realizations preserve all voices by default, including repeats, octave copies
+  and coincident mapped coordinates; optional `memberPolicy: 'exact-unique'`
+  explicitly removes full-coordinate duplicates. `voices[]` retains source/member
+  correspondence and complete reference-coordinate lifts. Octave moves use actual
+  M(2), including a generator component; native references such as 3/1 are labelled
+  as reference moves. JI labels/errors are optional overlays and use the actual
+  sounding differences against ideal reference cents. Coordinate-only results
+  have null JI quality fields. Board placement remains a separate step.
 
 No scale occurrence, no playable fingering, outside-basis projection, tempered
-cardinality collapse, and poor tuning are distinct states. The main Play panel
-shows search, chord families, real occurrences, inversions, and fingerings; filters,
-diagnostics, partial matches, and relationships are collapsed below.
-The live readout above the HexBoard follows the shared player's held and Shift-latched
-voices. It matches complete register-sensitive note sets from the finite 2–8-tone
-catalogue; extra distinct notes do not receive a partial chord label. Transposing
-the entire set preserves its label, while moving an individual note by a period
-changes its voicing identity.
+cardinality collapse, and poor tuning are distinct states. A Play retains its
+search/family/voicing catalogue. B Play presents the selection sent from Discover
+and explicit occurrence/fingering choices. The live readout follows held and
+Shift-latched voices in both modes; label interpretation never changes playback
+or persistent selection.
 
 ## HexBoard layout and period wrapping
 
@@ -309,7 +514,10 @@ palette/layer colors, while clearing per-button and per-degree overrides. Loadin
 a saved preset restores its own button/degree colors.
 
 `layout-targets.mjs` adapts canonical realizations, imported finder materials,
-and selected keys, plus the filtered v2 chord catalogue after discovery finishes.
+and selected keys, plus the filtered catalogue after discovery finishes. In B,
+`layout-targets.mjs#harmonicCatalogueLayoutTargets` consumes shared JI/coordinate
+shapes and gives each abstract shape one type vote; aliases and compact inversions
+remain variants, so they cannot inflate desirability weight.
 Catalogue types use canonical compact inversions at all available roots; equivalent
 tempered types remain grouped by the catalogue. `layout-candidates.mjs` searches up to five usable MOS bases,
 six rotations, reflections, and automatic placement in the existing Bosanquet,
@@ -352,13 +560,25 @@ independently of backend access.
 conversion, range checks, envelopes, chord/sequence scheduling, held
 voices, cancellation, Stop behavior, and cleanup. UI and HexBoard player modules
 own selection/highlighting and Shift sustain, but do not create oscillators.
+Each voice routes oscillator → attack/decay gain → independent release gate →
+shared output protection. Release uses a 60 ms cosine fade to exact zero; it never
+cancels active attack/decay automation. Stop can override a future release and
+cancels future sequence notes before onset. The output shaper is linear below
+0.6 peak and smoothly bounds excessive polyphony below 0.95. Held onsets have a
+5 ms scheduling lead. `scripts/audio-render-audit.mjs` supports optional PCM
+verification with an external software Web Audio renderer; `tests/audio.mjs`
+covers the lifecycle and pointer integration without that dependency.
 
 Built-in and saved temperaments appear in the same Discover selector. Built-ins
 come from `catalog.mjs`; saved snapshots use site-scoped D1 records with
 optimistic revisions and do not require sign-in. Session files remain
 `temperament-lab-v1` and preserve the primary temperament, views, linked JI
 settings (odd limit, optional prime limit or prime subgroup, and tolerance),
-material, comma search, chord state, and HexBoard settings. Older two-temperament
+material, comma search, chord state, and HexBoard settings. Workflow version 8
+adds optional B catalogue/Play selections, A/B mode and harmonic material
+provenance. Custom spellings, repeated voices and selected voicing controls
+round-trip. Historical ET metadata is not shown as a current proof after restore;
+ET reassessment requires a fresh explicit search. Older two-temperament
 sessions restore their primary temperament and ignore retired comparison data.
 Pre-v5 sessions with an unset prime limit migrate to the new
 Temperament basis default; newer sessions preserve an explicitly unset filter.
@@ -388,6 +608,9 @@ Compatibility aliases and narrow session migrations are intentional.
 - Several controller tests use source extraction and mocked DOM contexts. Core
   calculations have strong regression coverage, but full browser, keyboard,
   screen-reader, and acoustic acceptance remain manual.
+- The classic catalogue presentation remains for the requested A/B comparison.
+  Manual/board analytical rules are fully migrated to shared services; older
+  session and degree APIs remain intentional compatibility adapters.
 - The material collection can save, play, inspect, and place scales/chords. A chord
   progression and melody/phrase composition sequencer is not implemented.
 - Product limits include 256 scale notes, bounded chord discovery, 2–8-tone exact

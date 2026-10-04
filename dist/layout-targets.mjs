@@ -1,7 +1,28 @@
 import {analyzeChord} from './chord-analysis-v2.mjs';
-import {realizeChord} from './chord-realization-v2.mjs';
+import {realizeChord,realizeShape} from './chord-realization-v2.mjs';
+import {searchShapeOccurrences,occurrenceShape} from './chord-occurrence-v2.mjs';
+import {harmonicEntryGeometry} from './harmonic-selection.mjs';
 import {BoundedCache} from './cache.mjs';
 const catalogueCache=new BoundedCache(16);
+const harmonicCatalogueCache=new BoundedCache(16);
+
+// Every abstract shape receives one vote; aliases and inversions are variants.
+export function harmonicCatalogueLayoutTargets(s,rows=[]){
+ const key=JSON.stringify([s.basis,s.rows,s.p,s.g,s.n,s.mode,rows.map(row=>row.id)]);
+ return harmonicCatalogueCache.get(key,()=>{
+  const seen=new Set(),targets=[];
+  for(const row of rows.slice(0,512)){
+   const geometry=harmonicEntryGeometry(s,row);if(!geometry)continue;
+   const shape=occurrenceShape(s,geometry.shape);if(seen.has(shape.id))continue;
+   const occurrence=searchShapeOccurrences(s,geometry.shape).completeOccurrences[0];if(!occurrence)continue;
+   const first=realizeShape(s,geometry.shape,occurrence,{style:'compact'},{tones:geometry.tones});
+   if(first.coords.length<2||first.coords.length>8)continue;
+   const variants=first.variants.map(v=>v.id===first.inversion?first.coords:realizeShape(s,geometry.shape,occurrence,{style:'compact',inversion:v.id},{tones:geometry.tones}).coords);
+   seen.add(shape.id);targets.push({coords:variants[0],variants,exact:false,periodCopies:true,label:row.preferredLabel??row.targetRatio??'Coordinate harmony',kind:'catalogue',source:{id:shape.id},realization:null});
+  }
+  return targets;
+ });
+}
 
 // The filtered catalogue owns desirability and temperament equivalence. Layout
 // scoring tests its compact inversions at every available root on the board.

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {DEFAULT_ODD_LIMIT,MANUAL_PRIME_LIMIT_VALUES,ODD_LIMIT_VALUES,PRIME_LIMIT_VALUES,diamondTargets,formatPrimeFilter,primeFilterForBasis,primeLimitForBasis,ratioWithinJILimits,targets,validateJILimits} from '../dist/engine.mjs';
+import {DEFAULT_ODD_LIMIT,MANUAL_PRIME_LIMIT_VALUES,ODD_LIMIT_VALUES,PRIME_LIMIT_VALUES,diamondTargets,formatPrimeFilter,primeFilterForBasis,primeLimitForBasis,ratioWithinJILimits,targetId,targetSet,targetSetIdentity,targets,validateJILimits} from '../dist/engine.mjs';
 
 assert.equal(DEFAULT_ODD_LIMIT,15);
 assert.deepEqual(MANUAL_PRIME_LIMIT_VALUES,[3,5,7,11,13]);
@@ -21,6 +21,10 @@ assert.ok(!ratioWithinJILimits(9,8,{oddLimit:7,primeLimit:3}));
 assert.ok(!ratioWithinJILimits(11,8,{oddLimit:13,primeLimit:3}));
 assert.ok(!ratioWithinJILimits(25,24,{oddLimit:13,primeLimit:3}));
 assert.ok(ratioWithinJILimits(2,1,{oddLimit:3,primeLimit:2}));
+const octaveTargetSpec={oddLimit:15,primeFilter:[2,3,5],mappingSubgroup:[2,3,5],representationPolicy:'octave'};
+assert.equal(targetId(octaveTargetSpec,'5/8'),targetId(octaveTargetSpec,'5/4'),'octave-folded target IDs reduce after folding');
+assert.ok(targetSet(octaveTargetSpec).targets.some(target=>target.id===targetId(octaveTargetSpec,'5/8')));
+assert.notEqual(targetSetIdentity(octaveTargetSpec),targetSetIdentity({...octaveTargetSpec,representationPolicy:'native-exact'}));
 const porkypine=[2,3,5,11],porkypineFilter=primeFilterForBasis(porkypine);
 assert.deepEqual(porkypineFilter,porkypine,'an incomplete basis remains its exact prime subgroup');
 assert.ok(ratioWithinJILimits(11,8,{oddLimit:15,primeLimit:porkypineFilter}));
@@ -43,3 +47,12 @@ for(const value of [0,1,4,9,97.1,101,'5'])assert.throws(()=>validateJILimits({od
 for(const value of [[],[2,2],[2,4],[2,101],[2,'3']])assert.throws(()=>validateJILimits({oddLimit:15,primeLimit:value}));
 for(const invalid of [[0,1],[1,0],[-3,2],[1.5,1]])assert.throws(()=>ratioWithinJILimits(...invalid,{oddLimit:13}));
 console.log('Odd and prime limits share one validated target engine; optional prime filtering intersects the mandatory odd-limit bound.');
+
+const {parsePrimeFilterInput}=await import('../dist/ji-limit-engine.mjs');
+assert.equal(parsePrimeFilterInput('11',[2,3,5]),11);
+assert.deepEqual(parsePrimeFilterInput('2.3.5.11',[2,3,5]),[2,3,5,11]);
+assert.deepEqual(parsePrimeFilterInput('11, 2, 5',[2,3,5]),[2,5,11]);
+assert.deepEqual(parsePrimeFilterInput('basis',[2,3,5,11]),[2,3,5,11]);
+assert.equal(parsePrimeFilterInput('',[2,3,5]),null);
+for(const invalid of ['9','2.3.3','2x3','101'])assert.throws(()=>parsePrimeFilterInput(invalid,[2,3,5]));
+assert.ok(!targets(15,parsePrimeFilterInput('2.3.5.11',[2,3,5])).some(t=>t.label==='7/4'));

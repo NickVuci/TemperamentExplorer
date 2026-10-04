@@ -2,6 +2,7 @@
 import {ratioWithinJILimits,validateJILimits} from './ji-limit-engine.mjs';
 import {gcd,scale} from './engine.mjs';
 import {chordIdentity} from './chord-identity-v2.mjs';
+import {signedIntervalError} from './harmonic-intervals.mjs';
 export function parseDiamondHarmonics(text){
  if(/[:,]\s*[:,]/.test(String(text)))throw Error('Separate each harmonic with a single colon or comma.');
  const parts=String(text).trim().split(/[\s,:]+/);
@@ -43,6 +44,24 @@ export function selectedDiamondChord(cells,ids){
   ?reciprocalLabel(chordIdentity(ratios.map(r=>{const [n,d]=r.split('/');return `${d}/${n}`;}).join(':')).aliases.otonal)
   :reciprocalLabel(otonal);
  return {kind:'chord',form,cardinality:identity.cardinality,otonal,utonal};
+}
+// Read the same approximations the cells actually sound. Canonical remapping
+// would misreport alternative/scale/mode selections and unavailable members.
+export function selectedDiamondChordTuning(cells,ids){
+ const chosen=new Set(ids),unique=new Map();
+ for(const cell of cells)if(chosen.has(cell.id)&&!unique.has(cell.label))unique.set(cell.label,cell);
+ const members=[...unique.values()].sort((a,b)=>a.c-b.c);
+ if(members.length<2)return null;
+ const idealCents=members.map(cell=>cell.c-members[0].c),available=members.every(cell=>Number.isFinite(cell.status?.approximation?.c));
+ const intervals=members.map(cell=>{const v=cell.status?.approximation,available=Number.isFinite(v?.c);return {ratio:cell.label,idealCents:cell.c,temperedCents:available?v.c:null,errorCents:available?signedIntervalError(v.c,cell.c):null,mapped:available&&!!v.mapped};});
+ const common={idealCents,intervals,intervalCount:members.length*(members.length-1)/2};
+ if(!available)return {...common,available:false,temperedCents:null,totalErrorCents:null,mapped:false};
+ const temperedCents=members.map(cell=>cell.status.approximation.c-members[0].status.approximation.c);
+ const errors=temperedCents.map((c,index)=>signedIntervalError(c,idealCents[index])).sort((a,b)=>a-b);
+ // Sum every |error[j] - error[i]| without enumerating a large pitch set's dyads.
+ let totalErrorCents=0,prefix=0;
+ errors.forEach((error,index)=>{totalErrorCents+=index*error-prefix;prefix+=error;});
+ return {...common,available:true,temperedCents,totalErrorCents:Math.max(0,totalErrorCents),mapped:members.every(cell=>cell.status.approximation.mapped)};
 }
 // Find a generated scale containing the exact generator coordinates. Period
 // lifts are retained by the chord inspector, including divided/non-octave periods.

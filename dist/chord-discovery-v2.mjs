@@ -1,6 +1,10 @@
 import {chordIdentity,jiSubset,exactRatio} from './chord-identity-v2.mjs';
 import {DEFAULT_ODD_LIMIT,ratioWithinJILimits,validateJILimits} from './ji-limit-engine.mjs';
 import {analyzeChord} from './chord-analysis-v2.mjs';
+import {legacyJIChordCandidates} from './harmonic-ji-chords.mjs';
+// Transitional public entry for board-independent catalogue consumers. Legacy
+// Play discovery retains its verified scale/tolerance semantics until Stage 11.
+export {queryCatalogue,getHarmonicEntry,resolveSelection} from './harmonic-catalogue.mjs';
 export const DISCOVERY_BOUNDS=Object.freeze({candidates:256,harmonicStart:16,harmonicMaximum:23,tones:8,relationships:24});
 export const discoveryDefaults=()=>({minTones:3,maxTones:6,oddLimit:DEFAULT_ODD_LIMIT,primeLimit:null,form:'both',maxError:10,maxSpan:255,occurrence:'complete',collisions:'preserved',sort:'accuracy',contains:''});
 export function validateDiscovery(config={}){
@@ -13,16 +17,11 @@ export function validateDiscovery(config={}){
  if(typeof c.contains!=='string'||c.contains.length>300)throw Error('Invalid contains-chord input.');if(c.contains.trim())chordIdentity(c.contains);
  return c;
 }
-let candidates;
+let legacyCandidates;
 export function chordCandidates(){
- if(candidates)return candidates;
- const seeds=['1:2','2:5:6','4:5:6','5:6:8','4:6:7','6:9:11','4:5:6:7','4:5:6:7:9','4:5:6:7:9:11','4:5:6:7:9:11:13','4:5:6:7:9:11:13:15','8:10:11:12','8:9:10:12','8:9:10:11:12','1:3:5','1:5:7','1:7:11','1:31:97'];
- for(let start=2;start<=16;start++)for(let size=2;size<=8;size++)seeds.push(Array.from({length:size},(_,i)=>start+i).join(':'));
- const map=new Map();
- for(const seed of seeds){const base=chordIdentity(seed),dual=chordIdentity(base.aliases.reciprocal);const ai=base.aliases.otonal.split(':').map(Number),bi=dual.aliases.otonal.split(':').map(Number),aScore=ai.reduce((a,b)=>a+b,0),bScore=bi.reduce((a,b)=>a+b,0);const [o,u]=aScore<bScore||aScore===bScore&&base.fingerprint<dual.fingerprint?[base,dual]:[dual,base];const pairId=[o.fingerprint,u.fingerprint].sort().join('|');
-  for(const [identity,form,label]of [[o,'otonal',o.aliases.otonal],[u,'utonal',o.aliases.reciprocal]])if(!map.has(identity.fingerprint)&&map.size<256)map.set(identity.fingerprint,{identity,text:label,label,form:o.fingerprint===u.fingerprint?'self':form,pairId});
- }
- candidates=Object.freeze([...map.values()]);return candidates;
+ if(legacyCandidates)return legacyCandidates;
+ legacyCandidates=legacyJIChordCandidates();
+ return legacyCandidates;
 }
 export function withinJILimits(identity,oddLimit,primeLimit=null){const q=identity.canonicalRatios.map(exactRatio);for(let i=0;i<q.length;i++)for(let j=i+1;j<q.length;j++){const a=q[i],b=q[j];if(!ratioWithinJILimits(b[0]*a[1],b[1]*a[0],{oddLimit,primeLimit}))return false;}return true;}
 export function withinOddLimit(identity,limit){return withinJILimits(identity,limit,null);}

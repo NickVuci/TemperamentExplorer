@@ -1,5 +1,6 @@
 import {recommendLayouts} from '../dist/layout-recommendations.mjs';
-import {layoutTargets} from '../dist/layout-targets.mjs';
+import {layoutTargets,harmonicCatalogueLayoutTargets} from '../dist/layout-targets.mjs';
+import {getHarmonicEntry} from '../dist/harmonic-catalogue.mjs';
 import assert from 'node:assert/strict';
 import {makeState,scale} from '../dist/engine.mjs';
 import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
@@ -19,6 +20,9 @@ click('chords-play');assert.equal(played.length,3);for(let i=1;i<3;i++)assert.ok
 ui.change({dataset:{hexCustomColor:'key'},value:'#abcdef'});ui.change({dataset:{hexColorScope:''},value:'degree'});ui.change({dataset:{hexCustomColor:'degree'},value:'#fedcba'});ui.change({dataset:{hexField:'rotation'},type:'select-one',value:String((ui.serialize().configs[0].rotation+1)%6)});assert.match(ui.render(),/>Custom layout<\/span>/);assert.deepEqual(ui.serialize().configs[0].keyColors,{},'Manual layout geometry changes clear per-button colors.');assert.deepEqual(ui.serialize().configs[0].degreeColors,{},'Manual layout geometry changes clear per-degree colors.');
 ui.change({dataset:{hexField:'target'},type:'select-one',value:'7'});assert.equal(s.n,7);html=ui.render();assert.match(html,/changed\. Search again/);assert.doesNotMatch(html,/<optgroup label="Ranked recommendations/);
 assert.equal(notice,'');ui.destroy();
+const aliases=await Promise.all(['4:5:6','5:6:8','2:5:6'].map(text=>getHarmonicEntry({state:s},text))),types=harmonicCatalogueLayoutTargets(s,aliases);
+assert.equal(types.length,1,'B gives register aliases one abstract layout vote');assert.equal(types[0].kind,'catalogue');assert.equal(types[0].variants.length,3,'inversions stay variants of that type');
+assert.equal(harmonicCatalogueLayoutTargets({...s,n:2},aliases).length,0,'absent shapes do not become desired Play-scale targets');
 // Worker adapter rejects stale replies and keeps one worker (and geometry cache) for chord-only updates.
 const oldWorker=globalThis.Worker,instances=[];globalThis.Worker=class {constructor(){this.messages=[];instances.push(this);}postMessage(m){this.messages.push(m);}terminate(){this.terminated=true;}};
 try{let updates=0;const controller=createLayoutRecommendations(()=>updates++),cfg=oldConfig;

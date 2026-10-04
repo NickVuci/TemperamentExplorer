@@ -21,17 +21,17 @@ if (process.argv[2]) {
   assert.equal(current,baseline,'Retained rules must match the pre-refactor cascade.');
   console.log(createHash('sha256').update(baseline).digest('hex'));
 } else {
-  // Updated for controls over the diamond's upper side areas.
-  const expected='db682b7af47340e326d3bdbeedf0ad5244d50560670f463844b9101fda09f581';
+  // Updated for the canonical shared diamond grid and cell styles.
+  const expected='6fef04637acd2fbddb527841b86d08acaf228e0dd54d644304cde428641dda36';
   assert.equal(createHash('sha256').update(current).digest('hex'),expected);
 }
 assert.ok(source.includes('--matrix-cell-height'));
 assert.ok(source.includes('overflow: auto'));
 assert.ok(source.includes('.hex-primary-controls'));
-assert.match(source,/\.discover-module select\s*\{[^}]*height:\s*42px;[^}]*border-radius:\s*6px;/,'Discover dropdowns share one height and control style');
+assert.match(source,/\.discover-module select\s*\{[^}]*height:\s*32px;[^}]*border-radius:\s*6px;/,'Discover dropdowns share one height and control style');
 assert.match(source,/\.discover-scale \.formrow\s*\{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/,'the scale size and mode controls share one row');
 assert.match(source,/\.discover-scale \.scale-advanced\s*\{[^}]*border:\s*0;/,'the Discover scale disclosure has no outline');
-assert.match(source,/\.discover-module \.tuning-choice > \.tuning-summary\s*\{[^}]*margin:\s*25px 0 0;/,'Generator and Period align with the tuning select field');
+assert.match(source,/\.discover-module \.tuning-choice > \.tuning-summary\s*\{[^}]*margin:\s*15px 0 0;/,'Generator and Period align with the tuning select field');
 assert.match(source,/\.discover-module \.tuning-summary > span,\s*\.discover-module \.tuning-summary \.period-summary > span\s*\{[^}]*width:\s*100%;[^}]*justify-content:\s*space-between;/,'Generator and Period labels are left aligned while cent values share a right edge');
 assert.match(source,/\.discover-module \.advanced-temperament-options\[open\],\s*\.discover-module \.advanced-tuning-options\[open\]\s*\{[^}]*border-bottom:\s*0;/,'expanded advanced option menus have no bottom rule');
 assert.match(source,/\.hex-custom-color \.hex-controls\s*\{[^}]*grid-template-columns:\s*96px[^}]*\}[\s\S]*?\.hex-custom-color \.hex-controls h4\s*\{[^}]*width:\s*96px;/,'selected-button title width stays fixed as its number changes');

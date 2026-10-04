@@ -1,7 +1,7 @@
 import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {diamondLayout,parseDiamondHarmonics,selectedDiamondCoordinates,selectedDiamondChord,fitDiamondChord} from '../dist/diamond-layout.mjs';
+import {diamondLayout,parseDiamondHarmonics,selectedDiamondCoordinates,selectedDiamondChord,selectedDiamondChordTuning,fitDiamondChord} from '../dist/diamond-layout.mjs';
 import {createDiamondWorkspace} from '../dist/diamond-workspace.mjs';
 import {diamondApproximation,maximumDiamondError} from '../dist/tonality-diamond.mjs';
 import {diamondTargets} from '../dist/ji-limit-engine.mjs';
@@ -32,6 +32,29 @@ assert.equal(selectedDiamondChord(layout.cells,['0:0','1:1','2:2']),null,'repeat
 const largeLine=diamondLayout(cfg,{harmonics:'1:2:3:4:5:6:7:8:9',fold:false});
 assert.deepEqual(selectedDiamondChord(largeLine.cells,largeLine.harmonics.map((_,i)=>`${i}:0`)),{kind:'collection',form:'otonal',cardinality:9});
 const coords=selectedDiamondCoordinates(cells,['0:0','1:0','2:0']);assert.deepEqual(coords,[[0,0],mapRatio(5,4,s),mapRatio(3,2,s)]);
+const rowIds=['0:0','1:0','2:0'];
+const tuning=selectedDiamondChordTuning(cells,rowIds);
+assert.deepEqual(tuning.idealCents,[0,1200*Math.log2(5/4),1200*Math.log2(3/2)]);
+assert.deepEqual(tuning.temperedCents,coords.map(m=>m[0]*s.p+m[1]*s.g));assert.equal(tuning.intervalCount,3);assert.equal(tuning.mapped,true);
+assert.deepEqual(tuning.intervals.map(interval=>interval.ratio),['1/1','5/4','3/2']);
+for(const interval of tuning.intervals){const cell=cells.find(cell=>cell.label===interval.ratio);assert.equal(interval.idealCents,cell.c);assert.equal(interval.temperedCents,cell.status.approximation.c);assert.equal(interval.errorCents,cell.status.approximation.c-cell.c);}
+const noRoot=selectedDiamondChordTuning(cells,['1:0','2:0']);assert.deepEqual(noRoot.intervals.map(interval=>interval.ratio),['5/4','3/2']);assert.equal(noRoot.intervals[0].idealCents,cells.find(cell=>cell.id==='1:0').c,'displayed intervals retain the cells reference even when unison is not selected');
+function pairErrorOracle(chosen){let total=0;for(let i=0;i<chosen.length;i++)for(let j=i+1;j<chosen.length;j++)total+=Math.abs((chosen[j].status.approximation.c-chosen[i].status.approximation.c)-(chosen[j].c-chosen[i].c));return total;}
+assert.ok(Math.abs(tuning.totalErrorCents-pairErrorOracle(cells.filter(cell=>rowIds.includes(cell.id))))<1e-9);
+const opposed=cells.map(cell=>{const index=rowIds.indexOf(cell.id);return index<0?cell:{...cell,status:{approximation:{...cell.status.approximation,c:cell.c+[-8,5,0][index],mapped:false}}};});
+assert.equal(selectedDiamondChordTuning(opposed,rowIds).totalErrorCents,26,'opposing signed errors never cancel');assert.equal(selectedDiamondChordTuning(opposed,rowIds).mapped,false,'actual alternative sound is retained');
+assert.deepEqual(selectedDiamondChordTuning(opposed,rowIds).intervals.map(interval=>interval.errorCents),[-8,5,0],'every interval retains its own signed deviation');
+const shifted=opposed.map(cell=>({...cell,c:cell.c+1200,status:{approximation:{...cell.status.approximation,c:cell.status.approximation.c+1901.955}}}));
+assert.ok(Math.abs(selectedDiamondChordTuning(shifted,rowIds).totalErrorCents-26)<1e-9,'common register/transposition cannot change chord error');
+assert.equal(selectedDiamondChordTuning(cells,['0:0','1:1','2:2']),null,'repeated JI unisons remain a single interval');
+const unavailable=cells.map(cell=>cell.id==='2:0'?{...cell,status:{approximation:null}}:cell);
+assert.equal(selectedDiamondChordTuning(unavailable,rowIds).available,false);assert.equal(selectedDiamondChordTuning(unavailable,rowIds).totalErrorCents,null,'unavailable members cannot produce a pure tempered chord');
+for(const [state,harmonics]of [[s,'4:5:6'],[fromCommas('128/125','2.3.5'),'4:5:6'],[fromCommas('245/243','3.5.7'),'3:5:7']]){
+ const members=diamondLayout(cfg,{harmonics,fold:false}).cells.map(cell=>({...cell,status:diamondApproximation(state,cell,cfg)}));
+ for(const ids of [rowIds,['0:0','0:1','0:2']]){const values=members.filter(cell=>ids.includes(cell.id)),actual=selectedDiamondChordTuning(members,ids);assert.ok(actual.available);assert.ok(Math.abs(actual.totalErrorCents-pairErrorOracle(values))<1e-9,'otonal/utonal error uses actual register even with divided or non-octave periods');}
+}
+const largeMembers=largeLine.cells.map(cell=>({...cell,status:{approximation:{c:cell.c+(cell.i%3-1)*4,mapped:false}}})),largeIds=largeLine.harmonics.map((_,index)=>`${index}:0`);
+assert.ok(Math.abs(selectedDiamondChordTuning(largeMembers,largeIds).totalErrorCents-pairErrorOracle(largeMembers.filter(cell=>largeIds.includes(cell.id))))<1e-9,'larger collections include every pair');
 assert.deepEqual(selectedDiamondCoordinates(cells,['0:0','1:1']),[[0,0]]);
 assert.throws(()=>selectedDiamondCoordinates([{id:'0:0',status:{approximation:null}}],['0:0']),/no available approximation/);
 for(const state of [s,{...fromCommas('128/125','2.3.5','Computed WE'),n:2,mode:0},{...fromCommas('245/243','3.5.7','Computed WE'),n:2,mode:0}]){
@@ -63,6 +86,7 @@ assert.doesNotMatch(diamondMarkup,/Pure · 0¢/,'the error legend no longer labe
 assert.doesNotMatch(diamondMarkup,/Select cells or a line, then play/,'remove the helper sentence');
 for(const diamondKey of ['0:0','1:0','2:0'])assert.deepEqual(workspace.press({dataset:{diamondKey}}),{enabled:false,track:true});
 assert.equal(chordReadout.source,'selected');assert.equal(chordReadout.form,'otonal');assert.equal(chordReadout.otonal,'4:5:6');
+assert.deepEqual(chordReadout.tuning,tuning,'workspace readout follows the selected cells actual sound');
 assert.equal(refreshed,0,'cell selection must not replace the live SVG');
 const click=action=>workspace.click({closest:()=>({dataset:{diamondAction:action}})});
 click('hear');assert.deepEqual(played,coords.map(m=>m[0]*s.p+m[1]*s.g));assert.equal(chordReadout.source,'playing','Play selection marks the selected JI chord as playing');click('collect');click('place');click('chord');
@@ -73,6 +97,8 @@ workspace.restore({harmonics:'4:5:7',fold:false,interaction:'select',selected:['
 workspace.restore({...workspace.serialize(),interaction:'play'});const playModeMarkup=workspace.render(cfg,'');assert.doesNotMatch(playModeMarkup,/diamond-selection-actions/,'selection actions stay hidden while notes are played');assert.match(playModeMarkup,/diamond-pointer-controls/,'the pointer action selector remains on the canvas');assert.match(playModeMarkup,/id="diamond-pointer-help"/,'play instructions remain visible in note-play mode');assert.equal(workspace.chordDisplay().source,'selected','a multi-cell selection remains labeled when switching to play mode');
 workspace.updatePlaying([{id:'0:0'},{id:'0:1'},{id:'0:2'}]);assert.equal(chordReadout.source,'playing');assert.equal(chordReadout.form,'utonal');assert.equal(chordReadout.utonal,'1/7:5:4');
 workspace.updatePlaying([]);assert.equal(workspace.chordDisplay().source,'selected','the selected chord remains visible after playback ends');
+workspace.updatePlaying([{id:'0:0'}]);assert.equal(workspace.chordDisplay(),null,'one playing pitch takes priority over a previous chord selection');
+workspace.updatePlaying([]);
 console.log('Compact flush subgroup geometry; harmonic/reciprocal register; exact transfers; non-octave chord fitting; selection and session lifecycle passed.');
 
 const boardState=fitDiamondChord(s,coords),board=createHexboardWorkspace({getStates:()=>[boardState],play(){},refresh(){},notify(){},download(){},getHz:()=>220});

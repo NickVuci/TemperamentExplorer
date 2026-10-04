@@ -1,5 +1,5 @@
 // Continuous pointer playing without replacing the SVG during a gesture.
-export function createHexboardPlayer({document:doc,window:win,press,startVoice,onActiveNotesChange=()=>{},selector="[data-hex-key]",keyField="hexKey",surface=".hex-board",keyboard=false}){
+export function createHexboardPlayer({document:doc,window:win,press,startVoice,onActiveNotesChange=()=>{},selector="[data-hex-key]",keyField="hexKey",surface=".hex-board",keyboard=false,focusOnPointer=true}){
  const pointers=new Map(),held=new Map();let sustain=false,lastActiveSignature='[]';
  const keyAt=el=>el?.closest?.(selector);
  const paint=(id,on)=>doc.querySelector(`${selector.slice(0,-1)}="${id}"]`)?.classList.toggle('is-playing',on);
@@ -16,7 +16,7 @@ export function createHexboardPlayer({document:doc,window:win,press,startVoice,o
   paint(id,true);return id;
  }
  function reset(){pointers.clear();for(const [id,v] of held){v.release();paint(id,false);}held.clear();sustain=false;publishActiveNotes();}
- doc.addEventListener('pointerdown',e=>{const node=keyAt(e.target);if(!node||e.button!==0)return;e.preventDefault();node.focus?.({preventScroll:true});pedal(e.shiftKey);pointers.set(e.pointerId,play(node));publishActiveNotes();});
+ doc.addEventListener('pointerdown',e=>{const node=keyAt(e.target);if(!node||e.button!==0)return;e.preventDefault();if(focusOnPointer)node.focus?.({preventScroll:true});pedal(e.shiftKey);pointers.set(e.pointerId,play(node));publishActiveNotes();});
  doc.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;e.preventDefault();if(e.pointerType==='mouse'&&!(e.buttons&1)){pointers.delete(e.pointerId);releaseUnused();publishActiveNotes();return;}pedal(e.shiftKey);const node=keyAt(doc.elementFromPoint(e.clientX,e.clientY)),next=node?.dataset[keyField]??null;if(next===pointers.get(e.pointerId)){publishActiveNotes();return;}pointers.set(e.pointerId,null);releaseUnused();pointers.set(e.pointerId,play(node));publishActiveNotes();});
  doc.addEventListener('pointerup',e=>{if(!pointers.has(e.pointerId))return;e.preventDefault();pedal(e.shiftKey);pointers.delete(e.pointerId);releaseUnused();publishActiveNotes();});
  doc.addEventListener('pointercancel',reset);

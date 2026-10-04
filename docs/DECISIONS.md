@@ -102,7 +102,9 @@ as occurrences, or defining a chord by one board fingering.
 **Consequences.** Otonal/utonal reciprocals can be paired for browsing while keeping
 exact identities. A chord may be mapped and well tuned yet absent from the selected
 scale; an occurrence may exist with no available fingering. Legacy compatibility
-must never reactivate the retired engine.
+must never reactivate the retired engine. Manual and board discovery now use
+`harmonic-inspection.mjs` adapters over the same target and coherent-lift services.
+A/B selects compatible presentations, not a retired engine.
 
 ## D-013 — Live chord labels preserve played register
 
@@ -219,8 +221,10 @@ it fits. This supersedes the earlier basis-odd-limit interval-MOS default.
 A matrix containing every interval does not imply that one tonic has all the
 notes. Defaults should provide the latter, including when the first such scale is
 not a MOS. Selected odd/prime limits are part of the analysis identity; changes to
-tuning, mapping, or target limits recompute defaults. Manual edits remain stable
-within an unchanged context, and saved session/material/chord selections survive
+mapping or target limits recompute scale defaults. Retuning refreshes analysis
+without replacing Discover or Play scale/mode selections. Analysis cache keys
+include tuning; automatic scale-default keys exclude it. Manual edits remain stable
+within an unchanged mapping/target context, and saved session/material/chord selections survive
 restoration.
 
 **Consequences.** Search collision-free consecutive-generator scales through 256
@@ -310,3 +314,398 @@ This prevents either a large catalogue or one selection from hiding the other.
 **Boundary.** The catalogue and layout searches are bounded. The existing
 20,000-placement limit is disclosed. Worker generation IDs reject obsolete results,
 and caches separate geometry/scale work from chord scoring.
+
+## D-014 — Mapping identity is a canonical basis/matrix pair
+
+**Decision.** Harmonic mapping keys contain the exact prime basis and both
+integer `[period, generator]` rows. Sort basis columns, and reorder both rows
+in the same way, only while forming the key; retain each context's original
+working order for monzos and coordinates. Do not include tuning, scale, labels,
+comma strings, or floating-point pitch coincidence in mapping identity. Kernel
+witnesses require exact `Mv = 0`.
+
+**Rationale.** Paired basis-column permutations describe the same
+homomorphism, while tuning or incomplete comma metadata cannot change what the
+matrix annihilates. Existing state constraints define valid rank-2 matrices;
+the context validates those fields with a derived pure reference tuning.
+
+**Rejected alternatives.** Raw ordered JSON keys that change under column
+permutation; row reduction that changes coordinate semantics; cent-based kernel
+tests; inferring that displayed comma strings enumerate the complete kernel.
+
+**Consequences.** `harmonic-context.mjs` owns the new key and exact witnesses.
+Existing key consumers migrate only in their dedicated tasks; versioned cache
+identities must preserve the mapping-key schema.
+
+## D-015 — Harmonic quotients keep the mapped octave distinct from the period
+
+**Decision.** Full coordinates, period classes, and mapped-octave classes are
+separate policies. The period vector is `[1,0]`; the octave vector is the exact
+image of 2/1 when prime 2 belongs to the mapping subgroup. A mapped zero
+octave and a missing prime 2 cannot define octave equivalence. For any nonzero
+octave vector, an exact unimodular Bézout transform yields a canonical residue,
+representative, and removed integer lift. Set keys normalize common translation
+and note permutation under the stated policy only.
+
+**Rationale.** Pajara and augmented divide the octave into two and three
+temperament periods. Reducing both to a generator number erases distinct octave
+classes. A mapped octave may also have a generator component, so period-count
+modulus alone is insufficient. The lift certificate reconstructs every input
+coordinate without floating-point pitch calculations.
+
+**Consequences.** `harmonic-equivalence.mjs` owns these new quotients. The
+existing `chord-projection-v2.mjs#periodClass` is a compatibility path until
+its consumers migrate; exact live recognition keeps its current full-coordinate
+semantics. Non-octave mappings without 2 still support exact and period classes.
+
+## D-016 — Exact JI spelling and octave family are separate identities
+
+**Decision.** Preserve `chordIdentity()` and its `ji2:` fingerprint. A second,
+explicitly selected JI policy groups octave-related members by exact rational
+division, octave reduction, and every anchor. Member links retain input order,
+exact ratio, family class, octave lift, and doublings. Reciprocal otonal/utonal
+families are linked by a dual ID, not merged.
+
+**Rationale.** `4:5:6`, `5:6:8`, and `2:5:6` share harmonic classes but differ
+in exact spelling and played register. `1:2` has one class but remains two
+voices. Exact family policy allows native non-octave analysis without assuming
+mapped octave moves.
+
+**Consequences.** The catalogue can group families; existing full-coordinate
+live labels and `ji2:` session identities remain. A later target-set policy
+selects exact or octave family semantics; no cent inference is involved.
+
+## D-017 — Harmonic records cross boundaries as validated JSON values
+
+**Decision.** Keep exact arithmetic internal and validate plain JSON-safe
+records at future worker/session boundaries. Keys for tuning, target set,
+scale/mode and layout include only their explicit upstream dependencies.
+Target-set identity depends on odd limit, prime filter, exact mapping subgroup
+and representation policy, not the temperament's matrix. Mapping identity
+continues to use the exact basis/matrix key. ET status
+requires structurally consistent evidence: an empty dyad edge, coherent lift,
+or complete nonempty dyads and exhaustive obstruction. The validator checks
+the evidence envelope; only the later solver can prove its mathematical truth.
+
+**Rationale.** BigInt, mutable objects and tuned or display text would make
+cache identity and cross-boundary records unstable. An incomplete ET search
+must remain `unknown`, and a new tuning or mode must not rename a mapped shape.
+
+**Consequences.** `harmonic-types.mjs` owns the new DTO boundaries and key
+builders. Existing cache keys, UI consumers and session schema stay active
+until their dedicated migration tasks.
+
+## D-018 — JI target sets retain representation policy and source axes
+
+**Decision.** Build finite target sets from every ordered pair of odd
+harmonics up to the selected odd limit. Keep each source pair and its exact
+octave lift when folding to octave representatives; preserve the diagonal
+cells as one explicit unison target. Native exact sets keep reduced odd ratios
+unfolded and use no inferred power of 2. Target-set IDs include the actual
+sorted mapping subgroup, selected prime filter, odd limit and representation
+policy, but not the temperament matrix.
+
+**Rationale.** Several Tonality Diamond cells can represent one ratio target,
+and ratios outside the active subgroup may still be useful display targets.
+Source provenance lets the diamond and catalogue share identity without
+discarding those cells. Non-octave analysis cannot silently octave-fold.
+
+**Consequences.** `ji-limit-engine.mjs` owns enumeration and compatibility
+wrappers. Existing diamond display remains octave-based; consumers opt into
+native exact analysis explicitly.
+
+## D-019 — Mapped intervals retain aliases and tuning assessments separately
+
+**Decision.** Project a JI target to integer temperament coordinates only when
+its entire monzo belongs to the mapping subgroup. Keep every target record,
+including distinct JI identities sharing an exact or quotient coordinate.
+Compute tuning error as a separate view from the stored exact coordinate and
+the actual tuned period/generator. A non-octave mapping without 2 exposes no
+octave quotient index.
+
+**Rationale.** Zero-filling a missing prime invents a mapping. Selecting one
+enharmonic label loses other JI interpretations. Floating-point cents can
+coincide in EDO tunings without creating an algebraic identity.
+
+**Consequences.** `harmonic-intervals.mjs` owns projection and reverse lookup;
+legacy classifiers migrate through an adapter and retain their display rules.
+
+## D-020 — Target classification preserves mapped and nearby hit channels
+
+**Decision.** The compatibility classifier obtains canonical mapped
+identities from the shared exact coordinate index. It returns mapped matches
+independently of tolerance and retains nearby `hits` for other target ratios,
+including outside-subgroup targets. Signed interval error is the inspected
+interval cents minus the exact JI target cents.
+
+**Rationale.** A mapped target can be inaccurate under the chosen tuning while
+an unmapped JI target is a useful closer hit. Hiding either channel would
+conflate algebraic representation with tuning quality.
+
+**Consequences.** `createTargetClassifier` keeps its existing response contract
+through an adapter; `assignments.mjs` uses the same signed-error helper without
+changing its finite search domain.
+
+## D-021 — Alternative mappings are complete validated contexts
+
+**Decision.** A proposed alternative mapping is a whole exact rank-2 context.
+An assignment to a target already inside the active subgroup must equal its
+unique image. A one-prime extension preserves every existing prime column;
+insufficient equations remain unresolved. Basis-column reordering and
+unimodular output-coordinate rebases are equivalent representations, while a
+changed matrix is reported as a separate mapping context. Chord previews apply
+one candidate matrix consistently to every member and dyad.
+
+**Rationale.** Choosing a different coordinate independently for each chord
+interval can violate comma/kernel relations and does not define a temperament
+mapping. Cent proximity also cannot distinguish a valid mapping from an
+incidental approximation.
+
+**Consequences.** `harmonic-mappings.mjs` adapts the exact assignment solver and
+returns mapping IDs plus validation evidence. Preview is read-only and carries
+no tuning claim unless a separate candidate tuning is later provided. Bounded
+prime-column search ranks only within its declared finite domain and reports its
+inherited tuning comparison separately from mapping identity.
+
+## D-022 — Incidental approximations do not alter JI mappings
+
+**Decision.** A bounded temperament-lattice candidate is an approximation of a
+requested JI target, not another mapping of that target. The exact canonical
+coordinate and its tuning error remain an independent baseline when the target
+is in the mapping subgroup. Outside-basis targets have no canonical baseline.
+Exact coordinate identity remains separate from floating-point error and from
+collisions with other JI identities in a supplied target set. Search reports
+its finite generator bound and checks both period coefficients at an exact
+nearest-period tie.
+
+**Rationale.** An incidental interval can tune closer than the canonical image
+without preserving the temperament's integer mapping or comma kernel. Treating
+it as a mapping would conflate approximation quality with algebraic identity.
+
+**Consequences.** `harmonic-approximations.mjs` owns bounded lattice search and
+shared tuning-error records. The default generator bound is ±32, hard cap is
+±256, and at most three strict improvements are returned. Scale and chord
+approximation searches adapt this engine while preserving the same identity
+boundary. Existing finite scale and tonic-mode approximation adapters now use
+its common error and ranking policies; their compatibility outputs remain
+unchanged.
+
+## D-023 — Chord approximations are root-relative coordinate assignments
+
+**Decision.** A chord-level approximation chooses one bounded coordinate for
+each exact JI member relative to a fixed `[0,0]` root. Every dyad is derived by
+subtracting the two member coordinates. Independent dyad approximations are
+never combined into a chord. The exact canonical chord projection remains a
+separate comparison; aggregate improvement is defined only when every member
+has a canonical coordinate, using the sum of absolute dyad errors.
+
+**Rationale.** Pairwise best approximations can fail cycle cancellation and may
+not correspond to any pitch collection. Root-relative vertices guarantee that
+all displayed dyads belong to one realizable tempered shape. The comparison
+also retains whether the selected mapping subgroup supplies a conventional JI
+interpretation.
+
+**Consequences.** `searchChordApproximations` returns an approximate shape
+linked to its source JI identity and interpretation, with all edge errors and
+optional exact target-set collisions. Member shortlists, combination count and
+dyad-derivation count are explicitly bounded and report partial coverage. An
+approximate shape never becomes a new mapping variant or a physical fingering.
+
+## D-024 — ET eligibility uses coherent exact JI-class lifts
+
+**Decision.** A JI-lift test anchors one tempered vertex at unison and assigns
+each other vertex one exact target interpretation from its complete root-edge
+domain. Octave-policy comparisons quotient only the exponent of prime 2;
+native-exact comparisons retain every prime exponent. Every assigned pair must
+match an interpretation in its directed dyad domain. Apply pairwise domain
+consistency and deterministic smallest-domain branching; report a no-lift
+result only after exhaustive search. Restore each selected target's integer
+mapped-octave lift by matching its mapped coordinate to the shape's exact
+coordinate difference. Cancellation or either work-budget limit yields
+`unknown`.
+
+**Rationale.** Comparing only tempered classes without retaining all JI
+interpretations can miss a valid chord lift. Comparing only one cycle can
+mistake a failed spelling for an essentially tempered chord. Prime-2 exponent
+quotient is the exact JI octave relation and remains separate from a
+temperament's period; native non-octave analysis has no octave quotient.
+Restoring the mapped lift preserves exact coordinates in divided-period maps
+and never relies on 1200-cent period assumptions.
+
+**Consequences.** `harmonic-ji-lift.mjs#findCoherentJILift` returns a verifiable
+vertex and edge witness, exhaustive `no-lift`, or incomplete `unknown`.
+`harmonic-et.mjs#assessET` converts complete solver evidence
+into a target-set-relative ET assessment; the solver itself does not label
+shapes ET.
+
+## D-025 — ET results carry exact cycle evidence and replayable completeness
+
+**Decision.** Classify a shape as not dyadic when any selected target edge has
+an empty domain, JI-liftable when a coherent vertex assignment is verified,
+essentially tempered only after complete no-lift search, and unknown when a
+search budget or cancellation prevents completion. An ET result is scoped to
+mapping, target set, shape and equivalence. Representative directed cycles are
+explanatory only; each selected edge is lifted to the shape's exact coordinate
+difference, and the corrected cycle monzo must pass `M·v = 0`. The exhaustive
+finite CSP certificate remains the proof of non-liftability.
+
+**Rationale.** In octave analysis, canonical target representatives can make
+a raw cycle sum to the mapped octave. Calling that raw sum a comma confuses
+register with kernel. Restoring each known octave lift yields a true exact
+kernel vector or a zero register cycle. One inconsistent cycle also does not
+rule out another interpretation, so it cannot replace exhaustive search.
+
+**Consequences.** `harmonic-et.mjs#assessET` stores target-set-relative
+statuses, domain counts, a bounded-search certificate and representative
+kernel cycles. `cycleWitness` verifies exact matrix images, while
+`verifyETEvidence` replays a complete negative proof and recalculates its
+cycles. Tuning quality and scale occurrence remain independent overlays.
+
+## D-026 — Stream bounded harmony discovery without merging identities
+
+**Decision.** `discoverDyadicHarmony` consumes the rooted dyadic-shape iterator
+and classifies each yielded shape under one explicit mapping, JI target set and
+equivalence policy. It emits immutable batches with separate ordinary JI,
+essentially tempered, unknown and non-dyadic collections, then one final
+completeness envelope. A shape becomes ET only after its complete no-lift
+certificate; a bounded, cancelled or unassessed shape stays unknown or
+unassessed. JI family identity reuses `harmonic-equivalence.mjs#harmonicIdentity`
+and remains distinct from the temperament shape, exact member monzos and
+register lifts. The assessment solver supplies one deterministic coherent JI
+lift per shape; catalogue merging must retain additional JI labels supplied by
+the ordinary chord producer.
+
+**Rationale.** Joining enumeration and proof search must preserve the difference
+between an empty complete catalogue and a partial search, as well as the
+difference between ET evidence and an unresolved candidate. Reusing the shared
+JI family identity prevents the ET engine from introducing another inversion
+and octave normalization. Total state and compatibility counters make the job's
+combined work finite, while explicit bounds remain part of the result context.
+
+**Consequences.** The async iterator exposes `progress`, immutable result
+batches and terminal states `complete`, `complete-empty`, `incomplete` or
+`cancelled`. `AbortSignal` and `shouldCancel` are checked between shapes and
+inside the synchronous lift solver; event-loop yielding occurs between batches
+and during short time slices. The producer currently has no result cache. If a
+cache is added, its key must include mapping, target set, equivalence, all
+enumeration and assessment bounds, and every algorithm version; partial streams
+must never be reused as complete results.
+
+## D-027 — Catalogue jobs share mathematics and reject obsolete contexts
+
+**Decision.** The catalogue joins established producers and preserves exact JI
+rows within shape/family groups. It does not compute occurrences or placements.
+Its full query context includes matrix/basis working order, tuning, target set,
+categories and all producer bounds; scale/mode/tolerance do not filter it.
+Worker messages carry both a monotonic request ID and full context ID. A newer
+request, cancellation or destruction makes every older message ineligible.
+
+**Rationale.** Joining records must not erase enharmonic interpretations or
+promote partial/unknown searches to complete ET truth. The main thread fallback
+needs the same exact proof algorithm and budgets as the Worker. Separate
+algorithms would risk differing proofs and cancellation behavior.
+
+**Consequences.** Cooperative graph, lift and chord-approximation generators are
+driven by synchronous compatibility wrappers or asynchronous job wrappers.
+They yield every 256 counted work items without resetting search budgets.
+Each dispatcher owns an LRU of eight contexts, with a two-million-byte serialized
+cap per result (at most sixteen million bytes of cached serialized payload).
+Incomplete/cancelled results and oversized complete results are not cached.
+The byte limit describes serialized payload, not a JavaScript heap guarantee.
+Legacy Play envelopes remain supported until the planned UI migration.
+
+## D-028 — Occurrence membership preserves voices and realization uses actual lifts
+
+**Decision.** JI and coordinate-only shapes share one period-repeated scale
+membership engine. Shape and scale context own the new occurrence ID; a JI label
+is optional metadata. Every full source member and octave residue survives a
+shared degree assignment. Full member links take precedence over quotient DTO
+classes; repeated quotient classes without source coordinates are rejected
+because their removed register lifts cannot be recovered honestly.
+
+**Rationale.** Period membership answers whether a pitch belongs to the repeated
+scale, but cannot decide whether two source voices should become one. A 1:2
+octave and an augmented triad over a divided period must retain their sounding
+voices. Quotient-only representatives cannot supply erased registers.
+
+**Consequences.** Realization defaults to preserving members; full-coordinate
+deduplication requires explicit `exact-unique` policy. Register moves use actual
+mapped M(2), or a labelled mapped native reference, and record the full vector
+per voice. Optional JI error overlays compare actual sounding intervals to ideal
+reference lifts, including stretched references. Output analysis is immutable
+without freezing callers' input data. Legacy occurrence IDs/counts remain
+compatible; default legacy realization IDs remain stable where the sounding
+coordinates are unchanged. The divided-octave composition baseline intentionally
+restores its previously omitted 5/4 voice, while its historical corpus is retained.
+
+
+## D-029 — Harmonic discovery is the sole chord catalogue
+
+**Decision.** Discover → Chords always opens harmonic discovery. The former
+classic-view selector and its per-device preference are removed. Older session
+files continue to load, but their A/B preference is ignored. The manual
+inspector remains available for direct coordinate inspection. Play consumes a
+validated full-coordinate selection and resolves board placements separately.
+
+**Rationale.** The user asked to remove the classic-view toggle. Catalogue
+identity, source sound, finite-scale membership, tuning quality and a chosen
+board fingering remain separate facts. A diamond approximation or ET shape
+must not receive invented canonical JI metadata. No handoff may silently resize
+the Play scale or change the requested registers.
+
+**Consequences.** B uses the Stage 7 jobs and Stage 8 occurrence/realization
+owners. Mapping adoption and Play scale fit are explicit. Stale catalogue
+contexts clear actionable previews; ET starts/restarts explicitly and saved
+assessment metadata stays historical. Optional selection provenance preserves
+valid old material even when metadata is unsupported. B live family recognition
+retains exact played registers and discloses canonical quality separately.
+Layout scoring groups shared abstract shapes once, retaining aliases/inversions
+as variants. Stage 12 migrates manual and board coordinate inspection to the
+shared domains, coherent-lift solver and bounded candidate service. Older pins and session adapters remain usable. The classic catalogue toggle
+was removed by the later D-029 decision; legacy saved mode values are ignored.
+
+
+## D-030 — Independent voice release and bounded master output
+
+**Decision.** A release gate after each voice's attack/decay envelope uses a
+60 ms raised-cosine fade to exact zero. Interruptions never cancel an active
+attack or decay. Only future, not-yet-started release curves are cancelled.
+Oscillators stop after the fade, and future sequence notes cancel before onset.
+A shared attenuator and soft output shaper leave signals below 0.6 unchanged and
+bound excessive polyphony below 0.95; temperament pitch and frequency remain
+unchanged.
+
+**Rationale.** Longer releases alone did not solve the reported click. Cancelling
+an automation ramp can remove its endpoint and change the preceding curve;
+compatibility patches depend on browser automation details. An independent gate
+avoids that operation entirely. Rendered stress tests also demonstrated peaks
+above unity with the former square-root chord normalization and fixed held-note
+gain. Output protection addresses all playback paths, including release overlap,
+without limiting which notes the user can sustain.
+
+**Validation.** Audio lifecycle and pointer integration tests; external 48 kHz
+software Web Audio rendering of normal releases, interrupted decay, rapid drag,
+short-tap Stop, 64-note unison chords and 100 sustained voices. This is not a
+measurement of the user's browser or physical output.
+
+
+## D-031 — Coordinate inspection shares catalogue harmonic truth
+
+**Decision.** Arbitrary manual/board coordinates feed the shared target projector,
+dyad index, coordinate shape projection and existing ET solver. A separate
+pair-quality overlay preserves familiar mapped/alternative tolerance filtering.
+The same bounded finite-coordinate candidate search serves scale and board
+compatibility adapters; board reach constrains candidates, not harmony's meaning.
+
+**Rationale.** Individually plausible inner intervals do not establish a coherent
+JI chord. Mapping truth must remain independent of tolerance, physical reach,
+period display folding and register changes. Reusing the established proof and
+quotient owners avoids a third analytical engine.
+
+**Consequences.** Selected chords display coherent-JI/ET/not-dyadic/unknown states,
+with explicit target policy and finite evidence. Repeated harmonic classes keep
+all sounding voices and are not classified as ET. Full coordinates enter proof
+assessment even when the quality matrix displays intervals modulo one period.
+The manual degree/session wrappers preserve old JSON and pins; a bounded-search
+status is available without changing the frozen compatibility results. The A/B presentation selector was removed under D-029. No mapping,
+tuning, fingerings, session identity or historical corpus is regenerated.

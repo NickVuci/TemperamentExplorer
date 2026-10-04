@@ -163,22 +163,31 @@ for(const fixture of corpus.fixtures){
   assert.deepEqual(occurrence.degrees,fixture.v2.occurrence.degrees);
   for(let i=0;i<occurrence.coords.length;i++)close(occurrence.pitches[i],pitch(occurrence.coords[i],s));
   const realization=realizeChord(s,analysis,occurrence,{periodShift:fixture.v2.realization.periodShift});
-  assert.equal(realization.id,fixture.v2.realization.id);
-  assert.deepEqual(realization.coords,fixture.v2.realization.coordinates);
-  assert.deepEqual(realization.degrees,fixture.v2.realization.degrees);
-  assert.deepEqual(realization.registers,fixture.v2.realization.registers);
-  assert.equal(realization.collapsedMembers,fixture.v2.realization.collapsedMembers);
-  assert.equal(realization.withinRegisterRange,fixture.v2.realization.withinRegisterRange);
+  // Stage 8 deliberately restores the 400-cent 5/4 voice omitted by the
+  // historical period-class deduplication. Keep the original corpus unchanged.
+  const preservesDividedVoices=fixture.id==='divided-octave-128-125';
+  const expectedRealization=preservesDividedVoices?{...fixture.v2.realization,
+    coordinates:[[0,0],[1,0],[1,1]],degrees:[0,0,14],registers:[0,1,1],
+    pitches:[0,400,705.0691154305116],collapsedMembers:0}:fixture.v2.realization;
+  const expectedIdParts=JSON.parse(fixture.v2.realization.id.slice('voice2:'.length));
+  expectedIdParts[2]=expectedRealization.coordinates;
+  assert.equal(realization.id,'voice2:'+JSON.stringify(expectedIdParts));
+  assert.deepEqual(realization.coords,expectedRealization.coordinates);
+  assert.deepEqual(realization.degrees,expectedRealization.degrees);
+  assert.deepEqual(realization.registers,expectedRealization.registers);
+  assert.equal(realization.collapsedMembers,expectedRealization.collapsedMembers);
+  assert.equal(realization.withinRegisterRange,expectedRealization.withinRegisterRange);
   for(let i=0;i<realization.coords.length;i++){
     close(realization.pitches[i],pitch(realization.coords[i],s));
-    close(realization.pitches[i],fixture.v2.realization.pitches[i]);
+    close(realization.pitches[i],expectedRealization.pitches[i]);
   }
   const wrappedBoard=buildBoard(s,fixture.layouts.on.config),placementResult=placeRealization(s,realization,wrappedBoard,65);
-  const placed=placementResult.placements.find(p=>p.periodShift===fixture.v2.fingering.periodShift&&p.keys.join(',')===fixture.v2.fingering.keys.join(','));
+  const expectedFingering=preservesDividedVoices?{...fixture.v2.fingering,keys:[65,66,56],coordinates:expectedRealization.coordinates,pitches:expectedRealization.pitches}:fixture.v2.fingering;
+  const placed=placementResult.placements.find(p=>p.periodShift===expectedFingering.periodShift&&p.keys.join(',')===expectedFingering.keys.join(','));
   assert.ok(placed,'frozen exact-register fingering remains available');
-  assert.deepEqual(placed.coords,fixture.v2.fingering.coordinates);
-  for(let i=0;i<placed.pitches.length;i++)close(placed.pitches[i],fixture.v2.fingering.pitches[i]);
-  assert.equal(placed.reach,fixture.v2.fingering.reach);
+  assert.deepEqual(placed.coords,expectedFingering.coordinates);
+  for(let i=0;i<placed.pitches.length;i++)close(placed.pitches[i],expectedFingering.pitches[i]);
+  assert.equal(placed.reach,expectedFingering.reach);
   assert.equal(placed.periodShift,0);
   for(let i=0;i<placed.keys.length;i++){
     const key=wrappedBoard.keys[placed.keys[i]];
@@ -188,8 +197,8 @@ for(const fixture of corpus.fixtures){
   }
   if(fixture.id==='divided-octave-128-125'){
     assert.equal(analysis.projection.cardinalityStatus,'collapsed');
-    assert.equal(realization.collapsedMembers,1);
-    assert.equal(realization.coords.length,2,'the 5/4 member shares a temperament period class with unison');
+    assert.equal(realization.collapsedMembers,0);
+    assert.equal(realization.coords.length,3,'the 5/4 voice survives sharing a period class with unison');
     const unison=analysis.projection.notes.find(n=>n.ratio==='1/1'),fifth=analysis.projection.notes.find(n=>n.ratio==='5/4');
     assert.ok(unison&&fifth);
     eqCoord(unison.coordinate,[0,0]);eqCoord(fifth.coordinate,[1,0]);

@@ -21,6 +21,7 @@ for (const change of [{g:s.g+.1},{p:s.p+.1},{mode:1},{n:31}]) assert.notEqual(sc
 for (const n of original.notes) assert.ok(Math.abs(coordinateCents(s,noteCoordinate(s,n))-n.c)<1e-7);
 
 const ts=targets(13), classify=createTargetClassifier(s,ts,10);
+assert.deepEqual(createTargetClassifier(s,[],10)({c:0,k:0}),{mapped:[],hits:[]},'empty target lists preserve the compatibility response');
 for (const t of ts) {
   const m=mapRatio(t.n,t.d,s);
   if (!m) continue;
@@ -28,7 +29,17 @@ for (const t of ts) {
   assert.deepEqual(classify(v),classifyTargets(s,v,ts,10));
   assert.equal(classify({...v}),classify(v));
 }
+const dreamtone=makeState('dreamtone'),broadTargets=targets(15,null),dreamClassifier=createTargetClassifier(dreamtone,broadTargets,4),thirteenth=broadTargets.find(t=>t.label==='13/12'),mappedThirteenth=mapRatio(thirteenth.n,thirteenth.d,dreamtone),thirteenthCents=coordinateCents(dreamtone,mappedThirteenth),precedence=dreamClassifier({c:thirteenthCents,k:mappedThirteenth[1]});
+assert.ok(precedence.mapped.some(t=>t.label==='13/12'&&!t.within),'mapped target remains listed even outside tolerance');
+assert.ok(precedence.hits.some(t=>t.label==='15/14'&&t.within),'outside-basis near hit remains available beside a poor mapped hit');
 const split=fromCommas('128/125'), nonOctave=fromCommas('245/243','3.5.7');
+assert.deepEqual(mapRatio(21,14,s),[0,1]);
+assert.deepEqual(mapRatio(3,2,s),[0,1]);
+assert.deepEqual(mapRatio(14,14,s),[0,0]);
+assert.deepEqual(mapRatio(3_000_000_000_003,2_000_000_000_002,s),[0,1]);
+assert.equal(mapRatio(7,4,s),null);
+assert.throws(()=>mapRatio(0,1,s),/positive/);
+assert.throws(()=>mapRatio(Number.MAX_SAFE_INTEGER+1,1,s),/safe integer/);
 assert.equal(purePeriod(split),400); assert.equal(approximationSpan(split),3*split.p);
 assert.equal(approximationSpan(nonOctave),nonOctave.p);
 assert.deepEqual(rational(4,-6),[-2n,3n]);

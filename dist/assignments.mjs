@@ -1,27 +1,43 @@
 import {mapRatio,mod,gcd} from './engine.mjs';
 import {ratios} from './tuning.mjs';
-import {sameCoordinate as same,noteCoordinate,coordinateCents} from './pitch.mjs';
+import {sameCoordinate as same,noteCoordinate} from './pitch.mjs';
 import {matrixScale} from './matrix.mjs';
+import {immutable} from './cache.mjs';
+import {rankApproximationCoordinates} from './harmonic-approximations.mjs';
 export {sameCoordinate as same} from './pitch.mjs';
 export const coordinate=m=>`${m[0]} periods + ${m[1]} generators`;
 export function target(text){const list=ratios(text);if(list.length!==1)throw Error('Explore one ratio at a time.');const t=list[0],g=gcd(t.n,t.d);t.n/=g;t.d/=g;t.label=`${t.n}/${t.d}`;return t;}
 const intervalCache=new Map();
 function availableIntervals(s){const key=[s.p,s.g,s.n,s.mode,s.matrixOctave===true].join();if(intervalCache.has(key))return intervalCache.get(key);const span=matrixScale(s),notes=span.notes,list=new Map();for(const a of notes)for(const b of notes){const c=mod(b.c-a.c,span.p),k=b.k-a.k,m=[Math.round((c-k*s.g)/s.p),k];list.set(m.join(),m);}list.set(`${span.periods},0`,[span.periods,0]);if(intervalCache.size>8)intervalCache.clear();intervalCache.set(key,[...list.values()]);return intervalCache.get(key);}
+const coordinateKey=m=>JSON.stringify(m);
+function domainId(kind,s,coordinates){return `approximation-domain-v1:${JSON.stringify([kind,s.basis,s.rows,s.p,s.g,s.n,s.mode,s.matrixOctave===true,coordinates])}`;}
+/** Expose the finite scale/mode coordinate sets used by the legacy diamond adapters. */
+export function approximationDomain(kind,s){
+ if(!['temperament','scale-intervals','tonic-mode'].includes(kind))throw Error('Choose temperament, scale-intervals, or tonic-mode approximation domain.');
+ if(kind==='temperament')return immutable({schemaVersion:1,id:domainId(kind,s,null),kind,finite:false,coordinates:null,
+  search:{api:'searchIntervalApproximations',defaultGeneratorBound:32,maximumGeneratorBound:256}});
+ const span=matrixScale(s),observations=kind==='tonic-mode'?span.notes.map(note=>({coordinate:noteCoordinate(s,note),actualCents:note.c})):null;
+ const coordinates=kind==='scale-intervals'?availableIntervals(s):observations.map(value=>value.coordinate);
+ return immutable({schemaVersion:1,id:domainId(kind,s,coordinates),kind,finite:true,coordinates:coordinates.map(value=>[...value]),
+  ...(observations?{observations}:{}),
+  sourceCount:kind==='scale-intervals'?span.notes.length*span.notes.length+1:span.notes.length,
+  span:{periods:span.periods,noteCount:span.notes.length,periodCents:span.p,basePeriodCents:s.p},
+  description:kind==='scale-intervals'?'Unique coordinates from all ordered matrix-note dyads plus the displayed span period.':'Tonic-relative coordinates for notes in the selected mode and matrix span.'});
+}
+function legacyCandidate(record,available=true){return {m:[...record.coordinate],c:record.tunedCents,error:record.signedErrorCents,available,mapped:record.mapped};}
 export function candidates(s,t){
- const mapped=mapRatio(t.n,t.d,s),list=new Map(),put=(m,available)=>{const key=m.join(',');if(list.has(key)){list.get(key).available ||= available;return;}const c=coordinateCents(s,m);list.set(key,{m,c,error:c-t.c,available,mapped:same(m,mapped)});};
- for(const m of availableIntervals(s))put(m,true);
- if(mapped)put(mapped,false);
- return [...list.values()].sort((a,b)=>Math.abs(a.error)-Math.abs(b.error)||Math.abs(a.m[1])-Math.abs(b.m[1]));
+ const domain=approximationDomain('scale-intervals',s),mapped=mapRatio(t.n,t.d,s),availableCoordinates=new Set(domain.coordinates.map(coordinateKey));
+ const coordinates=[...domain.coordinates,...(mapped?[mapped]:[])];
+ return rankApproximationCoordinates(s,s,t,coordinates,{policy:'candidate-list'})
+  .map(record=>legacyCandidate(record,availableCoordinates.has(coordinateKey(record.coordinate))));
 }
 export function assignment(t,m){if(!Array.isArray(m)||m.length!==2||!m.every(x=>Number.isInteger(x)&&Math.abs(x)<=1000))throw Error('Use integer coordinates between −1000 and 1000.');return {...target(t.label),m:[...m]};}
 export function bestModeApproximations(s,t){
- const mapped=mapRatio(t.n,t.d,s),list=matrixScale(s).notes.map(v=>{const m=noteCoordinate(s,v);return {m,c:v.c,error:v.c-t.c,available:true,mapped:same(m,mapped)};});
- const error=Math.min(...list.map(v=>Math.abs(v.error))),best=list.filter(v=>Math.abs(v.error)<=error+1e-7).sort((a,b)=>Number(b.mapped)-Number(a.mapped)||Math.abs(a.m[1])-Math.abs(b.m[1]));
+ const domain=approximationDomain('tonic-mode',s),best=rankApproximationCoordinates(s,s,t,domain.observations,{policy:'best-set'}).map(record=>legacyCandidate(record));
  return {best,secondary:null};
 }
 export function bestApproximations(s,t){
- const all=candidates(s,t),available=all.filter(v=>v.available),error=Math.min(...available.map(v=>Math.abs(v.error)));
- const best=available.filter(v=>Math.abs(v.error)<=error+1e-7).sort((a,b)=>Number(b.mapped)-Number(a.mapped)||Math.abs(a.m[1])-Math.abs(b.m[1]));
+ const domain=approximationDomain('scale-intervals',s),all=candidates(s,t),best=rankApproximationCoordinates(s,s,t,domain.coordinates,{policy:'best-set'}).map(record=>legacyCandidate(record));
  const mapped=all.find(v=>v.mapped);
  return {best,secondary:mapped&&!best.some(v=>same(v.m,mapped.m))?mapped:null};
 }

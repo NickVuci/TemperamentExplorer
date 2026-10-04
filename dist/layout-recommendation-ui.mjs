@@ -27,7 +27,7 @@ export function createLayoutRecommendations(refresh){
   worker.postMessage({id,state:{basis:s.basis,rows:s.rows,p:s.p,g:s.g,n:s.n,mode:s.mode},config:cfg,targets:wanted});
   return true;
  }
- function markup(cfg,saved={items:[],status:'idle'}){const s=context;if(!s)return '';
+ function markup(cfg,saved={items:[],status:'idle'},part='all'){const s=context;if(!s)return '';
   const current=results.find(r=>layoutKey(r.config)===layoutKey(cfg)),rank=current?results.indexOf(current):0;
   const currentMapping=mappingKey(s),defaultId=saved.defaults?.[currentMapping],presets=saved.items.filter(p=>mappingKey(p.state.context)===currentMapping).map(p=>({...p,fit:layoutPresetForState(p.state,s)})).sort((a,b)=>Number(b.id===defaultId)-Number(a.id===defaultId)||a.name.localeCompare(b.name));
   const editing=presets.find(p=>p.id===cfg.savedLayoutId&&mappingKey(p.state.context)===mappingKey(s));
@@ -37,15 +37,17 @@ export function createLayoutRecommendations(refresh){
   const selectionLabel=activeSaved?editing.name:activeRecommendation?'Recommended layout':'Custom layout';
   const searchNote=loading?'Searching layouts for this scale and its desired chords…':error?error:stale?'Scale, chords, or board settings changed. Search again to refresh the recommendations.':searched?`${results.length} recommendations, highest score first.${current?` Current layout: ${score(current.score)}.`:''}`:'';
   const searchOpen=globalThis.document?.querySelector('.layout-recommendation-search')?.open?'open':'';
-  return `<section class="layout-recommendations" aria-label="Layout recommendations"><div class="layout-recommendation-heading"><label for="layout-recommendation-choice">Layout</label><span class="dim">${esc(selectionLabel)}</span></div><select id="layout-recommendation-choice" data-layout-choice aria-label="Layout recommendations">
+  const chooser=`<section class="layout-recommendations" aria-label="Layout recommendations"><div class="layout-recommendation-heading"><label for="layout-recommendation-choice">Layout</label><span class="dim">${esc(selectionLabel)}</span></div><select id="layout-recommendation-choice" data-layout-choice aria-label="Layout recommendations">
   ${presets.length?`<optgroup label="Saved layouts">${presets.map(p=>`<option value="saved:${esc(p.id)}" ${value==='saved:'+p.id?'selected':''} ${p.fit.error?'disabled':''}>${esc(p.name)}${p.id===defaultId?' · Default':''} · ${p.state.context.n} notes${p.fit.error?' · '+esc(p.fit.error):''}</option>`).join('')}</optgroup>`:''}
   ${value==='current'?option('current','Custom layout · current settings',value):value.startsWith('rec:')&&!results.some(r=>'rec:'+r.id===value)?option(value,selected.label,value):''}
   ${results.length?`<optgroup label="Ranked recommendations · ${results.length}">${results.map((r,i)=>option('rec:'+r.id,recommendationLabel(r,i),value)).join('')}</optgroup>`:loading?'<optgroup label="Ranked recommendations"><option disabled>Searching…</option></optgroup>':''}</select>
-  ${searchNote?`<p role="status" class="viewnote">${esc(searchNote)}</p>`:''}
+  ${searchNote?`<p role="status" class="viewnote">${esc(searchNote)}</p>`:''}</section>`;
+  const advanced=`<div class="layout-recommendation-options">
   <details class="layout-recommendation-search" ${searchOpen}><summary>Search recommended layouts</summary><p class="viewnote">Compare the current scale, desired chords, and pitch mapping.</p><button data-hex-action="layout-search" ${loading?'disabled':''}>${loading?'Searching…':searched?'Search again':'Search layouts'}</button></details>
   ${current?details(current,s):''}
   <details class="layout-save" ${globalThis.document?.querySelector('.layout-save')?.open?'open':''}><summary>${editing?'Name / update saved layout':'Save and name this layout'}</summary><div class="layout-save-fields"><label>Layout name<input data-layout-name maxlength="80" value="${esc(nameDraft??editing?.name??'')}" placeholder="Name this layout" ${saved.busy?'disabled':''}></label><button data-hex-action="layout-save" ${saved.busy||saved.status!=='ready'?'disabled':''}>${editing?'Update preset':'Save layout'}</button>${editing?`<button data-hex-action="layout-save-new" ${saved.busy?'disabled':''}>Save as new</button><button data-hex-action="layout-default" ${saved.busy||saved.status!=='ready'||presetMatches&&isDefault?'disabled':''}>${isDefault?(presetMatches?'Default for this temperament':'Save changes & keep default'):presetMatches?'Make default for this temperament':'Save changes & make default'}</button><button data-hex-action="layout-delete" ${saved.busy?'disabled':''}>Delete preset</button>`:''}</div><p class="viewnote">Remembers this target scale, mode and layout. Uses the current tuning when loaded.</p></details>
-  ${saved.status==='error'?`<p class="notice" role="status">${esc(saved.error)} <button data-hex-action="layout-retry">Retry saved layouts</button></p>`:saved.error?`<p role="status">${esc(saved.error)}</p>`:saved.status==='loading'?'<p class="viewnote">Loading saved layouts…</p>':''}</section>`;
+  ${saved.status==='error'?`<p class="notice" role="status">${esc(saved.error)} <button data-hex-action="layout-retry">Retry saved layouts</button></p>`:saved.error?`<p role="status">${esc(saved.error)}</p>`:saved.status==='loading'?'<p class="viewnote">Loading saved layouts…</p>':''}</div>`;
+  return part==='chooser'?chooser:part==='advanced'?advanced:chooser+advanced;
  }
  function details(r,s){const c=r.chords.find(c=>c.kind!=='catalogue'),desired=r.chords.filter(c=>c.kind==='catalogue'),hasChords=r.chords.length>0,b=r.scale.baseQuality,d=r.scale.chromatic;
   const coverage=[desired.length?`${desired.filter(c=>c.complete).length}/${desired.length} desired chord types playable.`:'',c?`Selected chord: ${c.represented}/${c.required} tones; ${c.complete?'complete voicing available':'no complete voicing'}.`:''].filter(Boolean).join(' ')||'No desired chords in the current filters. Select or send a chord to score it.';

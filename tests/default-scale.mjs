@@ -45,11 +45,11 @@ console.log('Shared diamond defaults: first completing scale/mode, selected limi
 // Execute the actual app's context/default wiring without a browser renderer.
 const {readFileSync}=await import('node:fs');
 const {runInNewContext}=await import('node:vm');
-const {scaleCoverageKey}=await import('../dist/scale-milestones.mjs');
-const {primeFilterForBasis,validateJILimits}=await import('../dist/ji-limit-engine.mjs');
+const {scaleDefaultKey}=await import('../dist/scale-milestones.mjs');
+const {primeFilterForBasis,validateJILimits,parsePrimeFilterInput}=await import('../dist/ji-limit-engine.mjs');
 const app=readFileSync('dist/app.mjs','utf8');
 const fields={'#limit':{value:'15'},'#primeLimit':{value:'basis'}};
-const context={states:[withDefaultDiamondScale(makeState('meantone'))],layoutState:null,coverageSignature:'',matrixPages:[[0,0]],selected:null,$:selector=>fields[selector],withDefaultDiamondScale,scaleCoverageKey,primeFilterForBasis,validateJILimits,structuredClone,toast:()=>{}};
+const context={states:[withDefaultDiamondScale(makeState('meantone'))],layoutState:null,coverageSignature:'',matrixPages:[[0,0]],selected:null,$:selector=>fields[selector],withDefaultDiamondScale,scaleDefaultKey,primeFilterForBasis,validateJILimits,parsePrimeFilterInput,structuredClone,toast:()=>{}};
 for(const name of ['coverageSettings','syncCoverageDefaults','getLayoutStates'])runInNewContext(app.split('\n').find(line=>line.startsWith(`function ${name}(`)),context);
 context.syncCoverageDefaults();let layout=context.getLayoutStates()[0];
 assert.equal(layout.n,11);assert.equal(layout.mode,10);
@@ -58,8 +58,20 @@ context.syncCoverageDefaults();assert.equal(context.states[0].n,7,'manual Discov
 assert.equal(context.getLayoutStates()[0].n,12,'independent manual layout survives redraw');
 fields['#limit'].value='5';context.syncCoverageDefaults();layout=context.getLayoutStates()[0];
 assert.equal(context.states[0].n,9);assert.equal(context.states[0].mode,3);assert.equal(layout.n,9);assert.equal(layout.mode,3);
-context.states[0].g=701;context.syncCoverageDefaults();layout=context.getLayoutStates()[0];
-const tuned=findScaleMilestones(context.states[0],{limit:5,primeLimit:5}).diamond;
-assert.equal(context.states[0].mode,tuned.mode);assert.equal(layout.mode,tuned.mode);
-context.states[0].n=12;context.states[0].mode=2;context.coverageSignature=scaleCoverageKey(context.states[0],context.coverageSettings(context.states[0]));context.syncCoverageDefaults();
+// Exercise both independent selections across generator and period changes,
+// including an EDO collision: retuning cannot silently substitute a scale.
+context.states[0].n=7;context.states[0].mode=4;layout.n=12;layout.mode=2;
+for(const [p,g] of [[1200,701],[1198,695],[1200,700]]){
+ context.states[0].p=p;context.states[0].g=g;context.syncCoverageDefaults();layout=context.getLayoutStates()[0];
+ assert.equal(context.states[0].n,7,'retuning preserves Discover size');
+ assert.equal(context.states[0].mode,4,'retuning preserves Discover mode');
+ assert.equal(layout.n,12,'retuning preserves Play size');
+ assert.equal(layout.mode,2,'retuning preserves Play mode');
+ assert.equal(layout.p,p,'Play receives retuned period');assert.equal(layout.g,g,'Play receives retuned generator');
+}
+context.states[0]=makeState('porcupine');context.syncCoverageDefaults();layout=context.getLayoutStates()[0];
+const changed=defaultDiamondScale(context.states[0],context.coverageSettings(context.states[0]));
+assert.equal(context.states[0].n,changed.n,'mapping changes still apply defaults');
+assert.equal(layout.mode,changed.mode,'mapping changes still apply Play defaults');
+context.states[0].n=12;context.states[0].mode=2;context.coverageSignature=scaleDefaultKey(context.states[0],context.coverageSettings(context.states[0]));context.syncCoverageDefaults();
 assert.equal(context.states[0].n,12,'adopting restored context preserves a saved scale');

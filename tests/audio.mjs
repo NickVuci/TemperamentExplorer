@@ -1,105 +1,79 @@
 import assert from 'node:assert/strict';
-import {createAudioEngine, frequencyFor, isAudibleFrequency} from '../dist/audio.mjs';
+import {createAudioEngine, frequencyFor, isAudibleFrequency, outputCurve} from '../dist/audio.mjs';
 import {createHexboardPlayer} from '../dist/hexboard-player.mjs';
 import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
 import {buildBoard} from '../dist/hexboard.mjs';
 import {makeState} from '../dist/engine.mjs';
 import {fromCommas} from '../dist/tuning.mjs';
 
-const tick = () => new Promise(resolve => setImmediate(resolve));
-function fixture({pending = false, fallback = false} = {}) {
-  const oscillators = [], gains = [], waiters = [], errors = [];
-  let contexts = 0;
-  const param = () => {
-    const events = [];
-    const p = {value:0, events};
-    for (const name of ['setValueAtTime','linearRampToValueAtTime','exponentialRampToValueAtTime','cancelScheduledValues','cancelAndHoldAtTime']) {
-      p[name] = (...args) => { events.push([name,...args]); if (!name.startsWith('cancel')) p.value = args[0]; };
-    }
-    if (fallback) delete p.cancelAndHoldAtTime;
-    return p;
-  };
-  const context = {
-    state:'running', currentTime:5, destination:{},
-    resume: () => pending ? new Promise(resolve => waiters.push(resolve)) : Promise.resolve(),
-    createOscillator() {
-      const oscillator = {frequency:{}, starts:[], stops:[], disconnected:false,
-        connect() {}, disconnect() { this.disconnected = true; },
-        start(at) { this.starts.push(at); }, stop(at) { this.stops.push(at); },
-        end() { this.onended(); }};
-      oscillators.push(oscillator); return oscillator;
-    },
-    createGain() {
-      const gain = {gain:param(), connect() {}, disconnect() {this.disconnected = true;}};
-      gains.push(gain); return gain;
-    }
-  };
-  let settings = {tonic:220, wave:'triangle'};
-  const engine = createAudioEngine({createContext:() => {contexts++; return context;}, getSettings:()=>settings, onError:e=>errors.push(e)});
-  return {engine, oscillators, gains, errors, context, contexts:()=>contexts,
-    settings:next=>settings=next, resume:()=>waiters.splice(0).forEach(resolve=>resolve())};
+const tick=()=>new Promise(resolve=>setImmediate(resolve));
+function fixture({pending=false,fallback=false}={}){
+ const oscillators=[],gains=[],shapers=[],waiters=[],errors=[];let contexts=0;
+ const param=()=>{
+  const events=[],p={value:1,events};
+  for(const name of ['setValueAtTime','linearRampToValueAtTime','exponentialRampToValueAtTime','setValueCurveAtTime','cancelScheduledValues','cancelAndHoldAtTime'])p[name]=(...args)=>events.push([name,...args]);
+  if(fallback)delete p.cancelAndHoldAtTime;
+  return p;
+ };
+ const context={state:pending?'suspended':'running',currentTime:5,destination:{},
+  resume:()=>pending?new Promise(resolve=>waiters.push(resolve)):Promise.resolve(),
+  createOscillator(){const o={frequency:{},starts:[],stops:[],disconnected:false,
+   connect(node){this.envelope=node;},disconnect(){this.disconnected=true;},
+   start(at){this.starts.push(at);},stop(at){this.stops.push(at);},end(){this.onended();}};oscillators.push(o);return o;},
+  createGain(){const g={gain:param(),connect(node){this.target=node;},disconnect(){this.disconnected=true;}};gains.push(g);return g;},
+  createWaveShaper(){const s={connect(node){this.target=node;}};shapers.push(s);return s;}
+ };
+ let settings={tonic:220,wave:'triangle'};
+ const engine=createAudioEngine({createContext:()=>{contexts++;return context;},getSettings:()=>settings,onError:e=>errors.push(e)});
+ return {engine,oscillators,gains,shapers,errors,context,contexts:()=>contexts,
+  settings:next=>settings=next,resume:()=>waiters.splice(0).forEach(resolve=>resolve())};
 }
-assert.equal(frequencyFor(1200,220),440);
-assert.equal(frequencyFor(-1200,220),110);
-for (const n of [NaN,Infinity,-Infinity,0,14.99,16001]) assert.equal(isAudibleFrequency(n),false);
-for (const n of [15,220,16000]) assert.equal(isAudibleFrequency(n),true);
-
-const f = fixture();
-assert.equal(await f.engine.playChord([0,1200]),true);
-assert.equal(f.contexts(),1);
-assert.deepEqual(f.oscillators.map(o=>o.frequency.value),[220,440]);
-assert.deepEqual(f.oscillators[0].starts,[5.02]);
-assert.ok(Math.abs(f.oscillators[0].stops[0]-5.75)<1e-9);
-assert.deepEqual(f.gains[0].gain.events[0],['setValueAtTime',0,5.02]);
-assert.equal(f.gains[0].gain.events[1][1],.14/Math.sqrt(2));
-assert.equal(f.gains[0].gain.events[2][0],'exponentialRampToValueAtTime');
-await f.engine.playSequence([0,100,200]);
-assert.equal(f.contexts(),1);
-assert.ok(f.oscillators.slice(0,2).every(o=>o.stops.at(-1)===undefined));
+const curves=o=>o.envelope.target.gain.events.filter(e=>e[0]==='setValueCurveAtTime');
+assert.equal(frequencyFor(1200,220),440);assert.equal(frequencyFor(-1200,220),110);
+for(const n of [NaN,Infinity,-Infinity,0,14.99,16001])assert.equal(isAudibleFrequency(n),false);
+for(const n of [15,220,16000])assert.equal(isAudibleFrequency(n),true);
+const f=fixture();assert.equal(await f.engine.playChord([0,1200]),true);
+assert.equal(f.contexts(),1);assert.deepEqual(f.oscillators.map(o=>o.frequency.value),[220,440]);
+const first=f.oscillators[0];assert.deepEqual(first.starts,[5.02]);
+assert.equal(first.envelope.gain.value,0,'New voices are silent before any scheduled attack.');
+assert.equal(first.envelope.gain.events[1][1],.14/Math.sqrt(2));
+assert.ok(Math.abs(first.stops[0]-5.79)<1e-9);
+const natural=curves(first)[0];assert.ok(Math.abs(natural[2]-5.72)<1e-9);assert.equal(natural[3],.06);
+assert.equal(natural[1][0],1);assert.equal(natural[1].at(-1),0);
+assert.equal(f.gains[0].gain.value,.25);assert.equal(f.shapers[0].curve,outputCurve);
+assert.equal(outputCurve[16384],0);
+assert.ok(outputCurve.every(v=>Number.isFinite(v)&&Math.abs(v)<=.95));
+for(let i=1;i<outputCurve.length;i++)assert.ok(outputCurve[i]>=outputCurve[i-1]);
+for(let i=14500;i<18200;i++){const x=(i/32768*2-1)*4;if(Math.abs(x)<.6)assert.ok(Math.abs(outputCurve[i]-x)<1e-7,'Ordinary output is unchanged.');}
+await f.engine.playSequence([0,100,200]);assert.equal(f.contexts(),1);
+assert.ok(f.oscillators.slice(0,2).every(o=>o.stops.at(-1)===5),'Future auditions cancel silently before onset.');
 assert.deepEqual(f.oscillators.slice(2).map(o=>o.starts[0]),[5.03,5.18,5.33]);
-f.settings({tonic:440,wave:'sawtooth'});
-const release = f.engine.startVoice(0);
-await tick();
-const held = f.oscillators.at(-1), envelope = f.gains.at(-1).gain;
-assert.equal(held.type,'sawtooth'); assert.equal(held.frequency.value,440);
-assert.equal(envelope.events[1][1],.018); assert.equal(held.stops.length,0);
-release(); release();
-assert.deepEqual(held.stops,[5.1]);
-assert.deepEqual(envelope.events[2],['cancelAndHoldAtTime',5.06]); assert.equal(envelope.events[2][0],'cancelAndHoldAtTime');
-f.engine.stop();
-for (const oscillator of f.oscillators) oscillator.end();
-assert.ok(f.oscillators.every(o=>o.disconnected)); assert.ok(f.gains.every(g=>g.disconnected));
-await f.engine.playChord([NaN,Infinity,-Infinity,1e9]);
-assert.equal(f.oscillators.length,6,'Invalid/out-of-range pitches never create nodes.');
-
-// Releasing or stopping before audio permissions/resume complete must stay silent.
-const pending = fixture({pending:true});
-const earlyRelease = pending.engine.startVoice(0); earlyRelease();
-pending.resume(); await tick(); assert.equal(pending.oscillators.length,0);
-const waiting = pending.engine.playChord([0]); pending.engine.stop(); pending.resume();
-assert.equal(await waiting,false); assert.equal(pending.oscillators.length,0);
-const obsolete = pending.engine.playSequence([0,100]), current = pending.engine.playChord([1200]);
-pending.resume();
-assert.equal(await obsolete,false); assert.equal(await current,true);
-assert.deepEqual(pending.oscillators.map(o=>o.frequency.value),[440]);
-pending.engine.startVoice(100); pending.engine.stop(); pending.resume(); await tick();
-assert.equal(pending.oscillators.length,1,'Stop also cancels pending held voices.');
-
-const fallback = fixture({fallback:true}), finish = fallback.engine.startVoice(0);
-await tick(); finish();
-assert.equal(fallback.gains[0].gain.events[2][0],'cancelScheduledValues');
-// Long holds release immediately; short taps retain their attack even before
-// the clock's first quantum. The fallback must preserve the same audible gate.
-assert.deepEqual(fallback.oscillators[0].stops,[5.1]);
-assert.deepEqual(fallback.gains[0].gain.events.at(-2),['setValueAtTime',.035,5.06]);
-const longHold=fixture(), releaseLong=longHold.engine.startVoice(0);
-await tick();longHold.context.currentTime=6;releaseLong();
-assert.deepEqual(longHold.oscillators[0].stops,[6.04]);
-let errorCount = 0;
-const broken = createAudioEngine({createContext:()=>{throw Error('Unavailable');}, onError:()=>errorCount++});
-assert.equal(await broken.playChord([0]),false);
-broken.startVoice(0); await tick(); assert.equal(errorCount,2);
-console.log('Shared audio scheduling, frequency bounds, held notes, cancellation, cleanup and resume races passed.');
+f.settings({tonic:440,wave:'sawtooth'});const release=f.engine.startVoice(0);await tick();
+const held=f.oscillators.at(-1);assert.equal(held.type,'sawtooth');assert.equal(held.frequency.value,440);
+assert.equal(held.envelope.gain.events[1][1],.018);assert.equal(held.stops.length,0);
+release();release();assert.equal(curves(held).length,1);assert.ok(Math.abs(held.stops[0]-5.135)<1e-9);
+f.context.currentTime=5.01;f.engine.stop();
+assert.ok(Math.abs(curves(held).at(-1)[2]-5.01)<1e-9,'Stop overrides the future short-tap gate.');
+assert.ok(Math.abs(held.stops.at(-1)-5.08)<1e-9);
+const stoppingCount=held.stops.length;f.engine.stop();assert.equal(held.stops.length,stoppingCount,'An active fade is never restarted.');
+for(const o of f.oscillators)o.end();
+assert.ok(f.oscillators.every(o=>o.disconnected&&o.envelope.disconnected&&o.envelope.target.disconnected));
+await f.engine.playChord([NaN,Infinity,-Infinity,1e9]);assert.equal(f.oscillators.length,6);
+const pending=fixture({pending:true});const earlyRelease=pending.engine.startVoice(0);earlyRelease();pending.resume();await tick();assert.equal(pending.oscillators.length,0);
+const waiting=pending.engine.playChord([0]);pending.engine.stop();pending.resume();assert.equal(await waiting,false);
+const obsolete=pending.engine.playSequence([0,100]),current=pending.engine.playChord([1200]);pending.resume();
+assert.equal(await obsolete,false);assert.equal(await current,true);assert.deepEqual(pending.oscillators.map(o=>o.frequency.value),[440]);
+pending.engine.startVoice(100);pending.engine.stop();pending.resume();await tick();assert.equal(pending.oscillators.length,1);
+for(const fallback of [false,true])for(const when of [5.026,5.3,5.725]){
+ const sample=fixture({fallback});await sample.engine.playChord([0]);const o=sample.oscillators[0];
+ const before=structuredClone(o.envelope.gain.events);sample.context.currentTime=when;sample.engine.stop();
+ assert.deepEqual(o.envelope.gain.events,before,'Releasing never edits attack/decay automation in either browser path.');
+ assert.ok(!o.envelope.gain.events.some(e=>e[0].startsWith('cancel')));
+}
+const longHold=fixture();const releaseLong=longHold.engine.startVoice(0);await tick();longHold.context.currentTime=6;releaseLong();assert.ok(Math.abs(longHold.oscillators[0].stops[0]-6.07)<1e-9);
+let errorCount=0;const broken=createAudioEngine({createContext:()=>{throw Error('Unavailable');},onError:()=>errorCount++});
+assert.equal(await broken.playChord([0]),false);broken.startVoice(0);await tick();assert.equal(errorCount,2);
+console.log('Audio graph, bounded output, independent smooth fades, Stop, cleanup and resume races passed.');
 
 // Join the actual pointer handler, layout workspace, and audio engine. Frequencies
 // must follow the displayed integer coordinates in octave and non-octave tunings.
@@ -125,3 +99,4 @@ for(const state of [makeState('meantone'),fromCommas('128/125','2.3.5'),fromComm
  assert.deepEqual(audio.errors,[]);player.reset();workspace.destroy();
 }
 console.log('Mouse-to-layout-to-audio integration passed for ordinary, divided-octave, and tritave periods, with wrapping on/off, dragging and Shift sustain.');
+

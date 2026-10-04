@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {withDefaultDiamondScale} from '../dist/default-scale.mjs';
-import {scaleCoverageKey,scaleCoverageTarget} from '../dist/scale-milestones.mjs';
+import {scaleDefaultKey,scaleCoverageTarget} from '../dist/scale-milestones.mjs';
 import {makeState,scale} from '../dist/engine.mjs';
 import {validateState} from '../dist/state.mjs';
 import {createMaterialWorkspace,tuningIdentity} from '../dist/material-ui.mjs';
@@ -23,7 +23,7 @@ assert.match(page,/<div id="inspector"[^>]*\shidden><\/div>/,'the empty interval
 const jiPlacementSource=source.slice(source.indexOf('function placeJIControls('),source.indexOf('function placeMatrixControls('));
 assert.doesNotMatch(jiPlacementSource,/hexboard/,'Create does not render the shared JI controls; its search inherits them.');
 const states=[makeState('meantone')];let placed,heard,notice,loaded;
-const context=vm.createContext({states,structuredClone,tuningIdentity,withDefaultDiamondScale,scaleCoverageKey,coverageSettings:scaleCoverageTarget});
+const context=vm.createContext({states,structuredClone,tuningIdentity,withDefaultDiamondScale,scaleDefaultKey,coverageSettings:scaleCoverageTarget});
 vm.runInContext('let layoutState=null;'+source.split('\n').find(x=>x.startsWith('function getLayoutStates(')),context);
 const boardStates=()=>context.getLayoutStates();
 boardStates()[0].n=31;states[0].n=7;states[0].mode=2;
@@ -42,7 +42,7 @@ hex.clearHighlight();assert.ok(!hex.render().includes('class="scale-highlight"')
 // Exercise the real app click handler against the current HexBoard API. A stale
 // call to the removed comparison-panel open() method used to break this handoff.
 let useScaleHandler,renderedPlay=false,scrolled=false;
-const handoff=vm.createContext({states,layoutState:{state:boardStates()[0]},view:'scales',
+const handoff=vm.createContext({harmonicMode:'a',manualChordInspector:false,states,layoutState:{state:boardStates()[0]},view:'scales',
  hexWorkspace:hex,getLayoutStates:boardStates,
  materialWorkspace:{click:()=>false},presetWorkspace:{click:()=>false},
  renderWorkspace:()=>{renderedPlay=true;},$:()=>({scrollIntoView:()=>{scrolled=true;}}),
@@ -77,11 +77,13 @@ for(const [settings,want] of [
 ]){
  const c=vm.createContext({data:{settings},lastViews:{discover:'matrices',play:'hexboard',create:'composition'},view:''});vm.runInContext(restoreNavigation,c);assert.equal(c.view,want);assert.equal(c.lastViews.play,'hexboard');assert.equal(c.lastViews.create,'composition');assert.equal(Object.hasOwn(c.lastViews,'compare'),false);
 }
-// Discover owns both setup and analysis; other top-level views are siblings.
+// Shared setup precedes all top-level panels, so switching tabs never hides it.
+const setup=htmlSource.slice(htmlSource.indexOf('<div class="discover-setup"'),htmlSource.indexOf('<div id="discover-view"'));
+for(const id of ['temperament-section','tuning-section','explore-scale-controls'])assert.ok(setup.includes(`id="${id}"`));
+assert.ok(setup.indexOf('tuning-section')<setup.indexOf('explore-scale-controls'));
 const discover=htmlSource.slice(htmlSource.indexOf('<div id="discover-view"'),htmlSource.indexOf('<div id="play-view"'));
-for(const id of ['temperament-section','tuning-section','explore-scale-controls','analysis-explore'])assert.ok(discover.includes(`id="${id}"`));
-assert.ok(discover.indexOf('tuning-section')<discover.indexOf('explore-scale-controls'));
-assert.ok(discover.indexOf('explore-scale-controls')<discover.indexOf('analysis-explore'));
+assert.ok(discover.includes('id="analysis-explore"'));
+assert.ok(!discover.includes('class="discover-setup"'));
 assert.ok(!htmlSource.includes('id="choose-view"')&&!htmlSource.includes('id="explore-view"'));
 const temperamentOptionsStart=htmlSource.indexOf('<details id="advanced-temperament-options"'),temperamentSearchStart=htmlSource.indexOf('<details id="advanced-temperament"',temperamentOptionsStart),temperamentOptionsEnd=htmlSource.indexOf('</details></section>',temperamentOptionsStart);assert.ok(temperamentOptionsStart>=0&&temperamentSearchStart>temperamentOptionsStart&&temperamentOptionsEnd>temperamentSearchStart);assert.ok(htmlSource.slice(temperamentOptionsStart,temperamentOptionsEnd).includes('id="advanced-temperament-editor"'));assert.ok(htmlSource.slice(temperamentOptionsStart,temperamentOptionsEnd).includes('Advanced temperament options'));
 const presetMove=source.slice(source.indexOf('function renderPresetControls('),source.indexOf('function renderPanel('));assert.match(presetMove,/target\.replaceChildren\(editor\)/,'only one preset editor remains inside Advanced temperament options after rerender');
