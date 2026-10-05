@@ -43,6 +43,8 @@ export function createHarmonicPlayWorkspace({getState,getBoard,getNear=()=>65,re
     onCollect(getState(),coords,selection.label,{exact:true,harmonicSelection:validateHarmonicSelection(preserved)});}
    refresh();}catch(e){notify(e.message);}return true;}
  function change(el){if(el?.dataset?.harmonyPlayField!=='root')return false;rootId=el.value;reset();refresh();return true;}
- return {accept,render,sync,click,change,model:()=>{sync();return {selection,realization:voicing,occurrences,placements,fingering,error};},clear:()=>{selection=null;reset();},
+ return {accept,render,sync,click,change,
+  // Highlights fingering `index` (or clears it with -1); false when there is no such fingering.
+  select:index=>{sync();if(index<0){fingering=-1;onHighlight(null);return true;}if(!Number.isInteger(index)||!placements[index]||!selection)return false;fingering=index;onHighlight({...placements[index],label:selection.label});return true;},model:()=>{sync();return {selection,realization:voicing,occurrences,placements,fingering,error};},clear:()=>{selection=null;reset();},
   suspend:()=>{fingering=-1;onHighlight(null);},serialize:()=>selection?{version:1,selection,rootId}:null,restore(data){selection=null;rootId=typeof data?.rootId==='string'?data.rootId:'';reset();if(data?.selection)try{selection=validateHarmonicSelection(data.selection);}catch{notify('Unsupported harmonic metadata was ignored.');}}};
 }

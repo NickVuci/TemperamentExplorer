@@ -11,7 +11,7 @@ import {tuningIdentity} from './material-ui.mjs';
 import {palettes,validColor,mosLayers,keyColor,textColor} from './hexboard-colors.mjs';
 import {inspectCoordinateChord} from './harmonic-inspection.mjs';
 import {renderCoordinateAssessment} from './harmonic-inspection-ui.mjs';
-import {chordPlacements,discoverBoardChords} from './hexboard-chords.mjs';
+import {chordPlacements,discoverBoardChords,chordsWithKey} from './hexboard-chords.mjs';
 import {MAX_CHORD_TONES} from './chord-identity-v2.mjs';
 import {DEFAULT_ODD_LIMIT,scale,scaleChoices,MAX_SCALE_SIZE} from './engine.mjs';
 import {formatPrimeFilter,validateJILimits} from './ji-limit-engine.mjs';
@@ -87,8 +87,21 @@ export function createHexboardWorkspace({getJI,setJI,getStates,play,refresh,onCa
  function wrappingControls(cfg,b){const w=b?.wrapping;return `<div class="hex-controls hex-period-controls"><label>Period Wrapping<select data-hex-field="periodWrapping">${option('off','Off',cfg.periodWrapping?'on':'off')}${option('on','On',cfg.periodWrapping?'on':'off')}</select></label>${w?`<label class="checklabel"><input type="checkbox" data-hex-field="showPeriodLabels" ${cfg.showPeriodLabels?'checked':''}>Show period labels</label><label>Column shift<input type="number" min="-1000" max="1000" step="1" data-hex-period="column" value="${w.vector.column}"></label><label>Row shift<input type="number" min="-1000" max="1000" step="1" data-hex-period="row" value="${w.vector.row}"></label><label>Register alignment<select data-hex-field="registerAlignment">${option('scale','Scale order · automatic',cfg.registerAlignment)}${option('manual','Manual copy shifts',cfg.registerAlignment)}</select></label><label>Pitch shift per copy · periods<select data-hex-field="copyPeriodStep" ${cfg.registerAlignment!=='manual'?'disabled':''}>${[...new Set([...Array.from({length:17},(_,i)=>i-8),w.copyPeriodStep])].sort((a,b)=>a-b).map(n=>option(n,`${signed(n)} · ${signed(Number(fmt(n*state().p)))}¢`,w.copyPeriodStep)).join('')}</select></label><button data-hex-action="period-reverse" title="Negate the physical column and row offsets">Reverse placement</button><button data-hex-action="period-auto">Reset / Auto</button><span class="dim">${w.manual?'Manual placement':'Automatic placement'}</span>`:''}</div>${w?`${w.alignmentIssue?`<p class="notice" role="status">${esc(w.alignmentIssue)}</p>`:''}${w.overlaps.length?`<p class="notice" role="alert">${w.overlaps.length} overlapping keys marked × are disabled. Adjust the placement or use Reset / Auto before exporting.</p>`:''}`:''}`;}
  function input(el){if(recommendations.input(el))return true;if(el.dataset.catalogueField==='v2-search')return catalogue.change(el);if(!el.dataset.hexPeriod)return false;const focused=globalThis.document?.activeElement===el;change(el);if(focused)globalThis.document?.querySelector('[data-hex-period="'+el.dataset.hexPeriod+'"]')?.focus();return true;}
  function colorMarkup(s,cfg,b){const {layers}=mosLayers(s,cfg,b);return `<section class="hex-colors"><h3>MOS layer colors</h3><div class="hex-controls"><label>Palette<select data-hex-field="palette">${Object.entries(palettes).map(([id,p])=>option(id,p.name,cfg.palette)).join('')}</select></label><label>Grow subsets toward<select data-hex-field="layerGrowth">${option('balanced','Both directions',cfg.layerGrowth)}${option('lower','Lower generator indices',cfg.layerGrowth)}${option('higher','Higher generator indices',cfg.layerGrowth)}</select></label><button data-hex-action="reset-colors">Reset all colors</button></div><div class="hex-color-swatches">${layers.map((l,i)=>`<label><input type="color" data-hex-color="${l.n}" value="${l.color}" aria-label="${i?'Added at scale':'Base'} ${l.n} color"><span><b>${i?'Scale':'Base'} ${l.n}</b><small>${i?'+':''}${l.added} notes</small></span></label>`).join('')}</div></section>`;}
+ // The board for the current state, rebuilt only when something it depends on changes. The device sync,
+ // fingering game and harmonies panel read the board every few hundred milliseconds; rebuilding it
+ // each time costs far more than reading it. Callers must not modify the returned board.
+ let boardMemo=null;
+ function boardFor(s,cfg){
+  const key=boardSignature(s,cfg);
+  if(boardMemo?.key===key)return boardMemo.board;
+  const board=buildBoard(s,cfg);
+  boardMemo={key,board};
+  return board;
+ }
+ // Everything about the layout and chord search settings that invalidates found chords.
+ function boardSignature(s,cfg){return JSON.stringify([s.basis,s.rows,s.p,s.g,s.n,s.mode,cfg.base,cfg.offset,cfg.style,cfg.rotation,cfg.mirror,cfg.flipHorizontal,cfg.flipVertical,cfg.deviceRotation,cfg.center,cfg.register,cfg.outside,cfg.ap,cfg.ag,cfg.bp,cfg.bg,cfg.tolerance,cfg.limit,cfg.primeLimit,cfg.periodWrapping,cfg.periodPlacement,cfg.copyPeriodStep,cfg.registerAlignment]);}
  function finderState(s,cfg){
-  const f=finders[0],signature=JSON.stringify([s.basis,s.rows,s.p,s.g,s.n,s.mode,cfg.base,cfg.offset,cfg.style,cfg.rotation,cfg.mirror,cfg.flipHorizontal,cfg.flipVertical,cfg.deviceRotation,cfg.center,cfg.register,cfg.outside,cfg.ap,cfg.ag,cfg.bp,cfg.bg,cfg.tolerance,cfg.limit,cfg.primeLimit,cfg.periodWrapping,cfg.periodPlacement,cfg.copyPeriodStep,cfg.registerAlignment]);
+  const f=finders[0],signature=boardSignature(s,cfg);
   if(f.signature!==signature){f.groups=[];f.selected=-1;f.placement=0;f.searched=false;f.signature=signature;if(f.imported?.identity===tuningIdentity(s)){const g=f.imported;f.groups=[{...g,placements:chordPlacements(buildBoard(s,cfg),g.coordinates,cfg.center,g).sort((a,b)=>a.reach-b.reach)}];f.selected=0;}else f.imported=null;}return f;
  }
  function highlighted(s,cfg){if(catalogueHighlight)return catalogueHighlight;const f=finderState(s,cfg);return f.groups[f.selected]?.placements[f.placement]||null;}
@@ -153,5 +166,89 @@ export function createHexboardWorkspace({getJI,setJI,getStates,play,refresh,onCa
   if(alternativesNode){alternativesNode.replaceChildren();if(matches.length>1){const details=doc.createElement('details'),summary=doc.createElement('summary'),list=doc.createElement('ul');details.className='live-chord-alternatives';summary.textContent=`Other matches (${matches.length-1})`;for(const match of matches.slice(1)){const item=doc.createElement('li'),quality=doc.createElement('small');item.append(doc.createTextNode(match.label+' '));quality.textContent=`· ${fmt(match.maxErrorCents,2)}¢`;item.append(quality);list.append(item);}details.append(summary,list);alternativesNode.append(details);}}
   if(announcementNode)announcementNode.textContent=announcement;
  }
- return {render,refreshCatalogue,acceptHarmonicSelection:value=>{syncHarmonicMode();harmonicPlay.accept(value);},initLayouts,prepareForTemperament,preserveCurrentLayout,input,change,click,press,updateLiveChord,restore,showChord,showScale,clearHighlight:()=>{harmonicPlay.clear();catalogue.clear();scaleHighlight=null;finders.forEach(f=>{f.selected=-1;f.imported=null;});},restoreLegacyJI:data=>catalogue.restoreLegacy(data),destroy:()=>{recommendations.destroy();catalogue.destroy();},serialize:()=>{config();return {configs:structuredClone(configs),catalogue:catalogue.serialize(),harmonic:harmonicPlay.serialize()};}};
+ // Chord shapes on this layout that contain the selected key, each with the places it can be played
+ // that include that key. Reuses the finder's own search (JI limit, tolerance and reach rules),
+ // narrowed to one key, so every result is a chord the Chords panel would also find.
+ let harmonyCache=null;
+ function harmoniesAt({size=3,reach=6}={}){
+  let cfg,s,b;
+  try{cfg=config();s=state();b=boardFor(s,cfg);}catch{return null;}
+  size=size===4?4:3;reach=Math.max(2,Math.min(12,Math.round(Number(reach))||6));
+  const key=b.keys[cfg.selected];
+  if(!key||key.command||!key.enabled)return {key:null,size,reach,harmonies:[],count:0};
+  const signature=JSON.stringify([boardSignature(s,cfg),key.index,size,reach]);
+  if(harmonyCache?.signature===signature)return harmonyCache.result;
+  let found;
+  try{found=chordsWithKey(s,b,key.index,{size,reach,other:false,limit:cfg.limit,primeLimit:cfg.primeLimit,tolerance:cfg.tolerance});}
+  catch(error){
+   // Unsupported chord-search settings are reported to the panel rather than thrown on every poll.
+   const failed={key:{index:key.index,cents:key.c,degree:key.degree},size,reach,harmonies:[],count:0,settings:{limit:cfg.limit,tolerance:cfg.tolerance},error:error.message};
+   harmonyCache={signature,result:failed};return failed;
+  }
+  const harmonies=[];
+  for(const g of found.groups){
+   const ratios=g.label.split(' · ');
+   const roles=[...new Set(g.placements.map(p=>p.keys.indexOf(key.index)))].sort((x,y)=>x-y).map(note=>({note,ratio:ratios[note]??''}));
+   harmonies.push({label:g.label,shape:g.shape,max:g.max,mapped:g.mapped,total:g.total,roles,placements:g.placements});
+  }
+  const result={key:{index:key.index,cents:key.c,degree:key.degree},size,reach,harmonies,count:harmonies.length,settings:{limit:cfg.limit,tolerance:cfg.tolerance}};
+  harmonyCache={signature,result};
+  return result;
+ }
+ // Lights placement `placement` of harmony `index` (from the last harmoniesAt result) on the board.
+ function showHarmony(index,placement=0,options={}){
+  const r=harmoniesAt(options),h=r?.harmonies[index];
+  if(!h||!Number.isInteger(placement)||placement<0||placement>=h.placements.length)return false;
+  catalogue.clear();scaleHighlight=null;if(getHarmonicMode())harmonicPlay.select(-1);
+  const f=finderState(state(),config()); // brings the finder's signature up to date so it keeps the groups set below
+  f.imported=null;f.groups=[{shape:h.shape,label:h.label,max:h.max,mapped:h.mapped,total:h.total,placements:h.placements}];
+  f.selected=0;f.placement=placement;f.searched=true;
+  refresh();return true;
+ }
+ // Sounds the notes of some board keys together (the app's normal chord audition).
+ function hearKeys(indices){
+  const b=buildBoard(state(),config());
+  const keys=indices.map(i=>b.keys[i]).filter(k=>k&&!k.command&&k.enabled);
+  if(!keys.length)return false;
+  play(keys.map(k=>k.c));return true;
+ }
+ // The fingerings of the chord now on the Play board, from whichever source holds it
+ // (the harmonic selection or the finder), and a way to light one of them. Lighting goes
+ // through the normal highlight, so the screen and a physical board both follow.
+ function fingerings(){
+  let harmonic=null,finder=null;
+  if(getHarmonicMode()){
+   const m=harmonicPlay.model();
+   if(m.selection&&m.placements.length)harmonic={source:'harmonic',label:m.selection.label??'Chord',index:m.fingering,placements:m.placements.map(p=>({keys:[...p.keys],reach:p.reach,periodShift:p.periodShift}))};
+  }
+  try{
+   const f=finderState(state(),config()),g=f.groups[f.selected];
+   if(g&&g.placements.length)finder={source:'finder',label:g.label,index:f.placement,placements:g.placements.map(p=>({keys:[...p.keys],reach:p.reach,periodShift:p.periodShift}))};
+  }catch{/* no buildable layout: no fingerings */}
+  // A fingering already highlighted from the harmonic selection wins; otherwise whichever source holds a chord.
+  return harmonic&&(catalogueHighlight||!finder)?harmonic:finder??harmonic;
+ }
+ function showFingering(index){
+  const f=fingerings();
+  if(!f)return false;
+  if(f.source==='harmonic'){if(!harmonicPlay.select(index))return false;}
+  else{if(!Number.isInteger(index)||index<0||index>=f.placements.length)return false;finders[0].placement=index;}
+  refresh();return true;
+ }
+ // What a physical board should show: the same fill, highlight and dimming the SVG uses,
+ // as plain data. Read-only; null when the current layout cannot be built.
+ function deviceSnapshot(){
+  let cfg,s,b;
+  try{cfg=config();s=state();b=boardFor(s,cfg);}catch{return null;}
+  const colors=mosLayers(s,cfg,b),overlay=highlighted(s,cfg),scaleOn=scaleHighlight?.identity===tuningIdentity(s)?scaleHighlight:null;
+  return {keys:b.keys.map((k,i)=>{
+   if(k.command)return {index:i,command:true,enabled:false,color:null,layoutColor:null,dim:false,marked:false,lit:false,m:k.m,c:k.c};
+   const scaleTone=!!(scaleOn&&k.enabled&&scaleOn.gens.includes(k.m[1]-scaleOn.shift)),tone=overlay?.keys.indexOf(i)??-1;
+   const color=k.conflict?'#ad6262':tone===0?'#f5c76e':tone>0?'#a855ca':scaleTone?'#83cebe':keyColor(k,colors);
+   const marked=tone>=0||cfg.chord.includes(i);
+   // `color` is the on-screen fill (highlight colours included); `layoutColor` is the key's own layout colour, which a physical board keeps.
+   return {index:i,command:false,enabled:!!k.enabled,color,layoutColor:k.conflict?'#ad6262':keyColor(k,colors),dim:!!(overlay&&tone<0||scaleOn&&!scaleTone),marked,lit:marked||scaleTone,m:k.m,c:k.c};
+  })};
+ }
+ return {render,deviceSnapshot,fingerings,showFingering,harmoniesAt,showHarmony,hearKeys,refreshCatalogue,acceptHarmonicSelection:value=>{syncHarmonicMode();harmonicPlay.accept(value);},initLayouts,prepareForTemperament,preserveCurrentLayout,input,change,click,press,updateLiveChord,restore,showChord,showScale,clearHighlight:()=>{harmonicPlay.clear();catalogue.clear();scaleHighlight=null;finders.forEach(f=>{f.selected=-1;f.imported=null;});},restoreLegacyJI:data=>catalogue.restoreLegacy(data),destroy:()=>{recommendations.destroy();catalogue.destroy();},serialize:()=>{config();return {configs:structuredClone(configs),catalogue:catalogue.serialize(),harmonic:harmonicPlay.serialize()};}};
 }

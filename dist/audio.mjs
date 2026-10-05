@@ -20,12 +20,18 @@ export function createAudioEngine({
   createContext = () => new (globalThis.AudioContext || globalThis.webkitAudioContext)({latencyHint:'interactive'}),
   onError = () => {},
 } = {}) {
-  let context, output, revision = 0;
+  let context, output, revision = 0, clockRevision = 0;
   const voices = new Set();
+  // Voice groups ('live', 'preview', 'transport', ...) let one source cancel its own
+  // sound without touching another. Every group has its own revision so a request
+  // started before a cancel can never start audio after it.
+  const groups = new Map();
+  const groupState = id => {let g = groups.get(id); if (!g) {g = {revision: 0}; groups.set(id, g);} return g;};
 
   async function ready() {
     if (!context || context.state === 'closed') {
       context = createContext();
+      clockRevision++;
       const input=context.createGain(), protector=context.createWaveShaper();
       input.gain.value=.25;protector.curve=outputCurve;
       input.connect(protector);protector.connect(context.destination);output=input;
@@ -34,7 +40,7 @@ export function createAudioEngine({
     return context;
   }
 
-  function createVoice(cents, settings, at, volume, attack, duration) {
+  function createVoice(cents, settings, at, volume, attack, duration, group = 'live', voiceRevision = 0) {
     const frequency = frequencyFor(cents, settings.tonic);
     if (!isAudibleFrequency(frequency)) return null;
     const oscillator=context.createOscillator(), gain=context.createGain(), gate=context.createGain();
@@ -47,7 +53,7 @@ export function createAudioEngine({
     if(duration!==undefined)gain.gain.exponentialRampToValueAtTime(.001,at+duration);
     gate.gain.value=1;
     oscillator.connect(gain);gain.connect(gate);gate.connect(output);
-    const voice={oscillator,gain,gate,startedAt:at,releaseAt:null,ended:false};
+    const voice={oscillator,gain,gate,startedAt:at,releaseAt:null,ended:false,group,revision:voiceRevision};
     voices.add(voice);
     oscillator.onended=()=>{
       voice.ended=true;voices.delete(voice);
@@ -72,36 +78,95 @@ export function createAudioEngine({
     voice.oscillator.stop(at+RELEASE+STOP_MARGIN);
   }
 
-  function stop(){
-    revision++;
-    if(!context)return;
-    for(const voice of voices){
-      if(voice.startedAt>context.currentTime){
-        // Future sequence notes never start; their gain is still zero.
-        voice.gate.gain.cancelScheduledValues(voice.releaseAt??context.currentTime);
-        voice.gate.gain.setValueAtTime(0,context.currentTime);
-        voice.releaseAt=context.currentTime;
-        voice.oscillator.stop(context.currentTime);
-      }else fadeVoice(voice,context.currentTime);
-    }
+  // Ends one voice now: a future note never starts, a sounding one fades out.
+  function silence(voice){
+    if(voice.startedAt>context.currentTime){
+      // Future sequence notes never start; their gain is still zero.
+      voice.gate.gain.cancelScheduledValues(voice.releaseAt??context.currentTime);
+      voice.gate.gain.setValueAtTime(0,context.currentTime);
+      voice.releaseAt=context.currentTime;
+      voice.oscillator.stop(context.currentTime);
+    }else fadeVoice(voice,context.currentTime);
   }
 
-  async function playEvents(events){
-    stop();
-    const request=revision,settings={...getSettings()};
+  // Global stop: every group, including anything a pending resume would have started.
+  function stop(){
+    revision++;
+    for(const g of groups.values())g.revision++;
+    if(!context)return;
+    for(const voice of voices)silence(voice);
+  }
+
+  function cancelGroup(groupId){
+    groupState(groupId).revision++;
+    if(!context)return;
+    for(const voice of voices)if(voice.group===groupId)silence(voice);
+  }
+
+  function cancelRevision(groupId,voiceRevision){
+    if(!context)return;
+    for(const voice of voices)if(voice.group===groupId&&voice.revision===voiceRevision)silence(voice);
+  }
+
+  // `scope` null: the original behaviour (cut everything first). A scope name only
+  // replaces that group's earlier sound, so a preview never cancels a playing piece.
+  async function playEvents(events,scope=null,override){
+    if(scope)cancelGroup(scope);else stop();
+    const request=revision,groupRequest=groupState(scope??'preview').revision,settings={...getSettings(),...override};
+    const current=()=>request===revision&&(!scope||groupState(scope).revision===groupRequest);
     try{
       await ready();
-      if(request!==revision)return false;
+      if(!current())return false;
       const now=context.currentTime;
       for(const {pitches,offset,duration} of events){
         const volume=(settings.wave==='sawtooth'?.06:.14)/Math.sqrt(pitches.length);
-        for(const cents of pitches)createVoice(cents,settings,now+offset,volume,.018,duration);
+        for(const cents of pitches)createVoice(cents,settings,now+offset,volume,.018,duration,scope??'preview');
       }
       return true;
     }catch(error){
-      if(request===revision){stop();onError(error);}
+      if(current()){if(scope)cancelGroup(scope);else stop();onError(error);}
       return false;
     }
+  }
+
+  // Resolves once the context is running. Call from a user gesture before scheduling.
+  const prepare=()=>ready();
+
+  /**
+   * Schedules timed voices for a group. Each voice is {voiceId, cents, onsetAudioSeconds,
+   * releaseAudioSeconds, velocity, chordSize?}. Pitch comes from the caller's tonic/wave
+   * (project settings), never the app's live settings. Returns one cancelable token per
+   * voice that was started; voices already past, inaudible, or from a stale revision are skipped.
+   */
+  function scheduleVoices(list,{groupId,revision:wanted,settings}={}){
+    if(!groupId)throw Error('scheduleVoices needs a groupId.');
+    if(!context||context.state!=='running')throw Error('Audio is not ready; call prepare() from a user gesture first.');
+    const g=groupState(groupId);
+    if(wanted!==undefined&&wanted!==g.revision)return [];
+    const resolved={...getSettings(),...settings},tokens=[],now=context.currentTime;
+    for(const v of list){
+      if(!(v.releaseAudioSeconds>now))continue;
+      const at=Math.max(v.onsetAudioSeconds,now),duration=v.releaseAudioSeconds-at;
+      if(!(duration>0))continue;
+      const share=(resolved.wave==='sawtooth'?.06:.14)/Math.sqrt(Math.max(1,v.chordSize??1))*Math.min(1.27,Math.max(0,(v.velocity??100)/100));
+      const voice=createVoice(v.cents,resolved,at,share,.018,duration,groupId,g.revision);
+      if(voice)tokens.push({voiceId:v.voiceId,cancel:()=>{if(!voice.ended)silence(voice);}});
+    }
+    return tokens;
+  }
+
+  /** Clock anchors: AudioContext seconds paired with performance.now() milliseconds. */
+  function getClockSnapshot(){
+    const perf=()=>globalThis.performance?.now?.()??Date.now();
+    if(!context)return {audioSeconds:null,performanceMs:perf(),state:'none',clockRevision};
+    const ts=context.getOutputTimestamp?.();
+    const anchored=ts&&Number.isFinite(ts.contextTime)&&Number.isFinite(ts.performanceTime)&&ts.performanceTime>0;
+    return {
+      audioSeconds:context.currentTime,
+      performanceMs:perf(),
+      anchor:anchored?{audioSeconds:ts.contextTime,performanceMs:ts.performanceTime}:{audioSeconds:context.currentTime,performanceMs:perf()},
+      state:context.state,clockRevision,
+    };
   }
 
   function startVoice(cents){
@@ -120,7 +185,11 @@ export function createAudioEngine({
   }
 
   return {
-    stop,startVoice,
+    stop,startVoice,prepare,scheduleVoices,cancelGroup,cancelRevision,getClockSnapshot,
+    // Audition that leaves a playing composition alone.
+    // `settings` ({tonic, wave}) lets a composition audition in its own tuning reference.
+    previewChord:(pitches,settings)=>playEvents([{pitches,offset:.02,duration:.7}],'preview',settings),
+    previewSequence:(pitches,settings)=>playEvents(pitches.map((c,i)=>({pitches:[c],offset:.03+i*.15,duration:.24})),'preview',settings),
     playChord:pitches=>playEvents([{pitches,offset:.02,duration:.7}]),
     playSequence:pitches=>playEvents(pitches.map((c,i)=>({pitches:[c],offset:.03+i*.15,duration:.24}))),
   };

@@ -2,7 +2,7 @@
 
 Prepared for Nick Vuci · 24 September 2026 &#40;UTC&#41; · Version 1\.1
 
-**Status: Phase 0 PASS\. Phases 1–9 have not started, and Phase 1 is not authorized\.**
+**Status: Phase 0 PASS\. An MVP covering Phases 1–3, a scale\-degree melody grid, and the Phase 9 cue/practice seam is implemented \(see A019–A027 and the MVP close record\); Phase 4 recording and Phases 5–8 have not started\.**
 
 **Model policy:** GPT\-6 Luna at **max** reasoning implements the work, including integration, tests, fixes, and documentation\. GPT\-6 Astra plans, orchestrates, reviews evidence, and performs the final sweep for every phase\. This task\-specific policy supersedes the repository’s ordinary model routing for this project\. No Terra or Sol assignments are included\.
 
@@ -156,15 +156,15 @@ Historical authorization: the original request authorized creation of this plan,
 |Phase|Deliverable to test                                                      |Depends on|Current status                          |
 |-----|-------------------------------------------------------------------------|----------|----------------------------------------|
 |0    |Current baseline, frozen contracts, reusable fixture pack                |None      |PASS; Astra final sweep complete        |
-|1    |Composition project opens from Create and survives JSON save/open        |0         |Not started                             |
-|2    |Correctly tuned timed loop with transport and independent live playing   |1         |Not started                             |
-|3    |Editable chord progression from the existing catalogue                   |2         |Not started                             |
-|4    |Melody grid and recorded HexBoard take over accompaniment                |3         |Not started                             |
+|1    |Composition project opens from Create and survives JSON save/open        |0         |MVP implemented (A019–A027)                             |
+|2    |Correctly tuned timed loop with transport and independent live playing   |1         |MVP implemented; loop untested in a browser                             |
+|3    |Editable chord progression from the existing catalogue                   |2         |MVP implemented (A019–A027)                             |
+|4    |Melody grid and recorded HexBoard take over accompaniment                |3         |Partial: melody grid only; recording not started                             |
 |5    |Multitrack clips, sections, and basic mixing                             |4         |Not started                             |
 |6    |Previewed tuning/scale/layout changes and explicit temperament conversion|5         |Not started                             |
 |7    |Reliable project management, recovery, and account saving                |6         |Not started                             |
 |8    |Verified WAV and microtonal MIDI export                                  |7         |Not started                             |
-|9    |Playback-to-board/practice handoff and final release candidate           |8         |Not started                             |
+|9    |Playback-to-board/practice handoff and final release candidate           |8         |Partial: cue and practice-target seam only                             |
 
 The detailed phase gates follow\. Shared seams needed by two plans are implemented once by the first plan to reach them; the second verifies and reuses the accepted implementation\.
 
@@ -464,6 +464,15 @@ All listed dates are **24 September 2026 UTC**\. A001–A011 record the initial 
 |A016|Committed/pushed the Phase 0 source checkpoint and synchronized the initial plan snapshot             |Root created and pushed source-only checkpoint `debb768130b785ca546d1e42ce3330e8344cb2e9`, based on `a8d551a9340d6ac6ae80527055e534fd0a1df681`. The initial plan snapshot was saved as version 5 to the same delivered document identity. No app deployment occurred. This final Phase 0 close update will be synchronized by root after Luna returns; no later document version or commit is asserted here.|Rollback by reverting checkpoint `debb768130b785ca546d1e42ce3330e8344cb2e9` or removing only its five Phase 0 paths; preserve unrelated work. Phase 1 remains unauthorized and unstarted. |
 |A017|Recorded the Phase 0 close decision in the same plan document identity                                     |GPT-6 Luna Max updated only `docs/COMPOSITION_SUITE_PLAN.md` to version 1.1, recording the formal Astra PASS, complete close evidence, test-target matrix, remaining manual/performance gates, and next handoff. The initial version-5 synchronization predates this close update.|Root will synchronize this final documentation update as its immediate next action. No new commit hash or saved document version is claimed. Phase 1 is eligible for planning as P1.1 only after separate authorization. |
 |A018|Confirmed final gate-record delivery and added this synchronization receipt|24 September 2026, 02:03 UTC: root pushed the Phase 0 acceptance record at source commit `5e78d0ab27b584668314f385a9893f9f80c5f9d2` and saved the same delivered plan identity as version 6. A byte comparison of the two plan copies passed. This receipt records those completed operations and is included in the final documentation synchronization; it does not change fixture or product code.|Source and delivered gate records are synchronized. All technical checks and the Astra PASS remain valid. No deployment or Phase 1 work occurred.|
+|A019|Authorization and scope for the MVP|4 October 2026: the user asked for an MVP of the composition suite in the Temperament app, prepared for a later HexBoard rhythm game/learning mode\. The user chose the scope "Phases 1–3 + melody grid + game\-ready cue stream" over a larger recording scope and a smaller Phases 1–3 only scope\. Actor: Claude Sonnet 5\.5 \(claude\-sonnet\-5\-5\) in Claude Code; reasoning effort not recorded\.|Deviation: this plan's GPT\-6 Luna/Astra model policy could not be followed; the Astra final sweep was replaced by self\-review plus the test and browser evidence below, so no phase here is formally Astra\-accepted\. Phase 4 recording and Phases 5\-8 remain unauthorized\.|
+|A020|Baseline on the current checkout|npm ci \-\-ignore\-scripts; npm run build passed \(85 assets\); npm test 73/74\. The one failure, diamond\-controls\.mjs line 91, asserts an exact LF CSS string but dist/style\.css has CRLF endings from the Windows checkout \(core\.autocrlf=true\)\. Platform: Windows 11 10\.0\.26200, Node v22\.16\.0, npm 10\.9\.2\.|Pre\-existing and environmental, not caused by this work; it still fails identically at the end\. The repository has grown to 74 suites since the plan's 35\.|
+|A021|P1: project and context (composition-project\.mjs, composition-context\.mjs)|Schema, frozen limits, validation, atomic parseProject, commands with bounded undo/redo, context snapshot, resolver, degree annotation, guarded chord import\. Tests composition\-project\.mjs and composition\-context\.mjs pass\. Pitch oracle: literal values from phase0\-corpus\.json for all five fixtures; the eight\-bar fixture builds a project that lasts exactly 19\.2 s\.|The context stores the complete temperament state next to the resolved fields so a project reopens without re\-running a tuner\. Items from another tuning are rejected with an explanation\.|
+|A022|P2: shared audio engine and transport (audio\.mjs, composition-transport\.mjs)|Additive voice groups, per\-group revisions, scheduleVoices, cancelGroup, cancelRevision, getClockSnapshot, previewChord/previewSequence\. Existing audio and hexboard\-player suites unchanged and passing\. New fake\-clock tests: exact times, 100 loop iterations without drift or duplicate ids, pause/resume/seek, no catch\-up burst, suspension, stop during pending resume\.|Legacy playChord/playSequence/startVoice keep their global cut\. Edits pause playback \(plan policy\)\. Loop wrap cuts crossing notes and retriggers the next iteration\.|
+|A023|Cue seam and input seam (composition-cues\.mjs, hexboard-player\.mjs)|buildCueTimeline, activeCues, toPracticeTargets \(match modes exact\-coordinate, any\-degree, button\); optional onInput hold events with unchanged note behaviour\. Tests include the fixture's recorded board cells and period shifts, and captured probes for all five temperaments with wrapping on and off \(60 checks\)\.|No scoring or timing engine was added; it belongs to the HexBoard integration plan\. Same\-key presses from two sources still share one voice \(pre\-existing\)\.|
+|A024|P3 and melody UI (composition-view\.mjs, composition-ui\.mjs) and app wiring|Chord progression from the collection \(add, length, reorder, duplicate, rest, delete, hear\), melody grid, transport, project save/open, practice export, undo/redo\. app\.mjs wiring is thin; composition\-session\.mjs holds the v1/v2 rules and the composition is validated before any other restore\. Styles appended after the style\-contract boundary\.|Auditions in Create use the preview group so a playing piece is not cancelled\. Four existing suites needed harness updates for the new dependency \(three vm stubs and one source ordering\); no production behaviour was changed for them\.|
+|A025|Automated verification|npm run build passed \(92 assets\)\. npm test 81/82: all 8 new suites pass \(composition\-audio, \-context, \-cues, \-input, \-project, \-session, \-transport, \-ui\); the only failure is the A020 CRLF one\. A mutation check \(removing the edit\-pauses\-playback call\) made composition\-ui\.mjs fail as intended and was reverted\.|Tests exercise observable state and fake clocks; they do not prove browser or acoustic behaviour\.|
+|A026|Browser verification in headless Chrome|Chrome 154\.0\.8037\.95 on Windows 11 10\.0\.26200 via the DevTools protocol against the Vite dev server: 35 checks passed with no console errors \(favicon 404 ignored\): new composition, four collected chords, chord length edit, six melody notes, playback with the playhead advancing and an AudioContext in the running state, pause/stop, edit pauses, undo/redo, practice\-target export with layout cells, v2 session save, page reload and restore, v1 session still opens, tab switch pauses, Play tab intact\.|Evidence is DOM state and screenshots only\. Audio output was not listened to, and loop playback was not exercised in the browser\.|
+|A027|Documentation|Updated this plan, docs/PROJECT_STATE\.md \(Create and a Composition suite section\) and docs/DECISIONS\.md \(D\-032\)\.|Work is uncommitted in the working tree\.|
 
 ### Entry template for future actions
 
@@ -517,6 +526,28 @@ Plan synchronized; next permitted phase:
 **Plan synchronized; next permitted phase:** The Phase 0 acceptance record was pushed at source commit `5e78d0ab27b584668314f385a9893f9f80c5f9d2` and saved to the same delivered document identity as version 6; A018 records the successful synchronization and matching contents\. The closing documentation includes that receipt\. P1.1 is the next eligible packet after authorization to continue; Phase 1 has not started\.
 
 Current handoff: **Phase 0 passed\.** P0.1 and P0.2 are complete, and P0.3 recorded the formal close; Phase 1–9 product work has not started\. The captured source is `a8d551a9340d6ac6ae80527055e534fd0a1df681` and the integration checkpoint is `debb768130b785ca546d1e42ce3330e8344cb2e9`\. P1.1 is next eligible after authorization, but the current authorization remains limited to Phase 0\.
+
+### MVP close record — PARTIAL PASS (MVP scope)
+
+**Phase:** Phases 1–3 plus a melody grid and the Phase 9 cue/practice seam, as authorized in A019.
+
+**Deliverable demonstrated:** Create opens a composition from the current Play setup, builds a progression from collected chords, edits a scale-degree melody, plays and loops it in the project's tuning, saves/opens project JSON and whole-app sessions, and exports versioned practice targets with the layout's keys (A026). The Phase 3 deliverable was demonstrated in a real browser; the saved fixture is the eight-bar meantone project built in tests/composition-project.mjs.
+
+**Work packets and integration:** One implementer (Claude Sonnet 5.5), sequential: project/context, audio/transport, cues/input, UI, app wiring, documentation. No parallel packets. Not committed.
+
+**Tests and measurements actually run:** A020, A025, A026. No performance budget (4 tracks, 128 bars, 4,096 events) was measured.
+
+**Manual / acoustic / DAW / hardware observations:** None beyond headless Chrome DOM and screenshot checks.
+
+**Astra final sweep:** Not performed (model unavailable); replaced by self-review, a mutation check and the evidence above. This is a deviation from the plan, not an acceptance.
+
+**Unverified items and their dependent features:** Listening for stuck notes or clicks; browser loop playback; Edge, Safari/iPhone, macOS; keyboard and screen-reader operation of the grid; narrow-viewport layout beyond one CSS breakpoint; physical HexBoard and DAW; Worker/account storage (not implemented); editor and voice performance budgets. Phase 4 recording, 5 arrangement/mixing, 6 conversion, 7 persistence/accounts and 8 export are not started.
+
+**Gate: PARTIAL PASS for the MVP scope.** The phases above are not formally accepted; the missing sweep and the unverified items must be closed before any release claim.
+
+**Rollback:** Everything is uncommitted. Remove the new dist/composition-*.mjs and tests/composition-*.mjs, and revert dist/app.mjs, dist/audio.mjs, dist/hexboard-player.mjs, dist/style.css, the three harness edits in tests/, and the docs; saved project files stay valid because they use their own format.
+
+**Next permitted step:** A formal review of this MVP, then Phase 4 recording on the onInput seam. The rhythm game or learning mode should consume toPracticeTargets and onInput.
 
 ## 10\. Implementation kickoff brief
 

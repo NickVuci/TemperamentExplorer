@@ -37,9 +37,9 @@ controls contain comma search and direct mapping input.
 - **Play** owns the HexBoard target scale/mode, layout settings, the v2 Scale
   Chords catalogue, chord realizations/fingerings, temporary scale/chord highlights,
   playback, and HexBoard export.
-- **Create** is the reserved home for the planned composition suite. The existing
-  material collection is available there; the progression and melody/phrase editor
-  is not implemented yet.
+- **Create** hosts the composition suite MVP (see "Composition suite" below). The
+  material collection is also available there. Arrangement, recording, tuning
+  conversion, account saving and WAV/MIDI export are not implemented.
 
 The primary Discover temperament/tuning is shared with Play. Play preserves an
 independent target scale size and mode while refreshing its temperament and tuning
@@ -625,3 +625,141 @@ matrix spans, generated scales, chord identity/projection/occurrence/discovery/
 realization/session compatibility, HexBoard geometry/flips/colors/player/export,
 period order/wrapping, audio lifecycle, presets, legacy-session migration, and
 workflow structure.
+
+## Composition suite (MVP)
+
+Create opens one composition at a time: a chord progression built from collected
+chords, a scale-degree melody grid, a looping tuned transport, and a game-ready cue
+timeline. The authoritative plan, frozen limits and action log are in
+`docs/COMPOSITION_SUITE_PLAN.md`; the format and ownership decision is D-032.
+
+| Concern | Owner |
+| --- | --- |
+| Project schema, validation, limits, commands, bounded undo | `composition-project.mjs` |
+| Musical context snapshot, pitch resolver, degree annotation, guarded chord import | `composition-context.mjs` |
+| Clip expansion, integer-tick timing, loop/seek/pause pump | `composition-transport.mjs` |
+| Voice groups, scoped scheduling/cancellation, clock snapshot | `audio.mjs` (additive; legacy preview methods unchanged) |
+| Cue timeline, board-cell lookup, practice-target export | `composition-cues.mjs` |
+| Logical key down/up events with hold ids | `hexboard-player.mjs` (`onInput`, optional) |
+| Workspace markup / controller | `composition-view.mjs` / `composition-ui.mjs` |
+| `temperament-lab-v1` / `-v2` session envelope rules | `composition-session.mjs` |
+
+Invariants. A note is stored once as an exact integer coordinate `[period,
+generator]` (signed zero canonicalised); cents are `a*p + b*g` and Hz are
+`tonicHz * 2^(cents/1200)` through `pitch.mjs`/`audio.mjs`. Degrees, board cells and
+button numbers are annotations, never identity. A project freezes its own context
+(complete temperament state, resolved tuning, tonic, Create scale, layout); the app
+selection changing never mutates it, and "Load the composition's setup" is an
+explicit action through the app's own state loader. Collected chords from a
+different tuning are refused, never retuned. Timing is 960 ticks per quarter; seconds
+are computed from integer ticks so loops do not drift. Project edits pause
+playback, keep the position and use the edited project on the next Play. Auditions in
+Create use the scoped `preview` voice group and never cancel the transport; global
+Stop/Escape cancels every group.
+
+Cue seam. `buildCueTimeline` yields one cue per sounding tone with its coordinate,
+cents, Hz, degree/register, onset/release (ticks and seconds) and every enabled
+layout key whose `buildBoard` coordinate matches exactly. A pitch with no key stays
+audible and carries a stated reason. `toPracticeTargets` exports a versioned
+`temperament-lab-practice-targets-v1` file with an explicit match mode
+(`exact-coordinate`, `any-degree`, `button`). Judging, latency calibration and the
+physical HexBoard transport belong to the separate HexBoard integration plan; nothing
+here scores a performance.
+
+Sessions. A whole-app save with an open composition is `temperament-lab-v2` with a
+`composition` field; saves without one remain `temperament-lab-v1`. The loader
+accepts both and validates the composition as a candidate before restoring any other
+session part. Standalone files use `temperament-lab-composition-v1`.
+
+Known limits. One chord track and one melody track with one clip each (the schema
+allows more); same-key presses from two sources share one voice; the melody grid is
+fixed at sixteenth-note resolution; no recording, arrangement, mixing, conversion,
+account storage or export. Browser behaviour was exercised in headless Chrome only
+(see the plan log); listening, Edge/Safari, screen readers, physical HexBoard and DAW
+use are unverified.
+
+## Physical HexBoard connection
+
+The header's **Connect HexBoard** button opens Web MIDI (Chrome/Edge, SysEx permission), finds the
+port named "HexBoard", puts the board in delegated-control mode and takes over its keys and LEDs;
+Disconnect (or closing the page) blanks the LEDs and returns the board to normal. Nothing is
+persisted and the board always starts disconnected.
+
+| Concern | Owner |
+| --- | --- |
+| Delegated-control bytes, key/encoder decoding, colour to LED conversion | `hexboard-protocol.mjs` |
+| Web MIDI port, enter/exit, changed-LED sending, unplug detection | `hexboard-device.mjs` |
+| Key routing, the LED picture, the 100 ms follow and 1.5 s refresh timers | `hexboard-sync.mjs` |
+| What the board should show (colours, highlights, dimming) | `hexboard-ui.mjs#deviceSnapshot` |
+| Wiring and header status | `app.mjs` |
+
+Keys. Button index equals the layout's key index (`0..139`). On the Play view a board press is
+dispatched as a pointer press on that key's SVG node with its own pointer id, so sound, selection,
+chord picking, the live chord readout and Shift-free release behave exactly as for a mouse. When the
+Play board is not on screen the key sounds directly at its layout pitch. Command keys and disabled
+keys are silent. A board encoder press acts like Escape (stop and clear highlights).
+
+Lights. Every enabled key always shows its own layout colour, so the layout stays visible whatever is
+highlighted. Ordinary keys are at half brightness; while a chord placement, selected chord keys or a scale
+highlight is active, its keys go to full brightness and the rest drop to 30% (still clearly lit). The
+screen's gold/purple/mint highlight colours are not used on the board. Keys being played, by the board or
+the mouse, are white. Disabled and command keys are dark.
+
+Keeping the board current. After entering host mode the app waits 300 ms for the board to settle,
+then paints. LEDs travel in paced messages of at most 32 LEDs. While connected, the app is sampled every
+100 ms and changed LEDs are sent immediately; the whole picture is resent every 1.5 s, so a message the
+board missed repairs itself and nothing depends on delivery being acknowledged (the protocol has no
+acknowledgement). Disconnecting blanks the LEDs in the same small messages, then exits host mode.
+
+Limits. One board; port chosen by name only; no manual port picker; LED colours are the layout's own
+(the firmware applies its own brightness limit and gamma); not tested on a physical board (see D-033).
+
+## Fingering practice
+
+A panel at the top of the Play view turns the chord on the board into a short game: pick how many of
+its fingerings to practise (3, 5, 10 or all), press Start, and the first fingering lights up; play
+all its keys together and the next lights up, until the set is finished (time, wrong keys and skips are
+shown; Skip and Stop are available). The panel is hidden and any running game ends when the player leaves
+the Play view, changes the chord, or clears the highlight (Escape).
+
+| Concern | Owner |
+| --- | --- |
+| Rules: exact-set completion, lifting keys between fingerings, wrong keys, skip, restore | `fingering-game.mjs` |
+| Panel markup and events (polls every 250 ms, redraws only on visible change) | `fingering-game-ui.mjs` |
+| The chord's fingerings and lighting one | `hexboard-ui.mjs#fingerings` / `#showFingering` (harmonic selection or finder) |
+
+Lighting reuses the Play board's normal highlight, so the screen and a connected HexBoard both follow
+without any extra code. Held keys come from the board player's callback, so mouse and HexBoard play are
+treated the same. A fingering counts only when exactly its keys are held; extra keys block it, and keys
+held from the previous fingering must be lifted before the next one counts. The game's order is the
+board's own (nearest the tonic first). Not covered: scoring or timing targets, a saved history, and
+fingering practice away from the Play view.
+
+## Harmonies with a key
+
+A collapsible panel at the top of the Play view lists, for the key selected on the board (a mouse click or a
+HexBoard press), every chord of 3 or 4 notes that includes that key within a chosen reach (3-10 keys). Each
+row gives the chord's JI ratios, the role the key plays (root or another note), how many places on the layout
+it can be played with that key, its worst tuning error and how many of its intervals map. Choosing a row lights
+one place on the screen and on a connected HexBoard; Previous/Next step through the places and Hear sounds them.
+The chosen chord also becomes the Fingering practice chord, so its fingerings can be practised as a game.
+
+| Concern | Owner |
+| --- | --- |
+| Exhaustive key-centred chord search, same pair rules as the board chord search | `hexboard-chords.mjs#chordsWithKey` |
+| The harmonies query, lighting one, hearing one | `hexboard-ui.mjs#harmoniesAt` / `#showHarmony` / `#hearKeys` |
+| Panel markup and events (polls every 250 ms, redraws on visible change) | `key-harmonies-ui.mjs` |
+
+The search starts from the key, so it is small and complete; the whole-board chord search stops at result caps
+(20,000 places) when the tolerance or reach is wide and can then list fewer chords. Chord quality uses the app's
+odd limit and tolerance. A key that is disabled, or a setting the search rejects, shows a message instead of a
+list. Not covered: chords of other sizes, "other approximations" targets, or saving a harmony list.
+
+## Responsiveness
+
+Switching between Discover and Play must render once, completely. The practice panels (Fingering practice,
+Harmonies with a key) therefore update in the same event as the tab switch (a document-level listener registered
+after the app's own handlers), with a 250 ms poll only as a fallback for changes that do not come from a click or
+key press. The read-only polls (LED sync, fingering game, harmonies panel) share one cached board
+(`hexboard-ui.mjs#boardFor`, rebuilt only when the layout signature changes), so idle cost stays near zero.
+

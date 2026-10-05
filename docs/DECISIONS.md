@@ -709,3 +709,51 @@ assessment even when the quality matrix displays intervals modulo one period.
 The manual degree/session wrappers preserve old JSON and pins; a bounded-search
 status is available without changing the frozen compatibility results. The A/B presentation selector was removed under D-029. No mapping,
 tuning, fingerings, session identity or historical corpus is regenerated.
+
+
+## D-032 — Composition projects, scoped transport and a scoring-free cue seam
+
+**Decision.** Compositions are a separate pure data model (`temperament-lab-composition-v1`)
+that stores exact `[period,generator]` coordinates once and freezes its own musical
+context. Playback is a transport over integer ticks that schedules voices into named
+groups of the one shared audio engine. A cue timeline and a practice-target export
+expose what to play, when and where on the layout, without any judging. Whole-app
+saves containing a composition use a new `temperament-lab-v2` envelope; saves without
+one stay `temperament-lab-v1`.
+
+**Rationale.** Cents, degrees and button numbers each lose information the others keep
+(equal-sounding coordinates, duplicate board cells, retunings), so only the coordinate
+can be identity. The existing `playChord/playSequence` helpers cut all sound and cannot
+sequence or layer, and a second audio owner would duplicate voice lifetime and output
+protection; scoped groups extend the existing owner instead. Rhythm and learning modes
+need rhythm, exact pitch and layout cells but have different timing, calibration and
+device concerns, so the seam stops at data. A new envelope version makes older apps
+reject a file with a composition rather than silently dropping it.
+
+**Consequences.** `audio.mjs` gains groups, `scheduleVoices`, `cancelGroup`,
+`cancelRevision`, `getClockSnapshot`, `previewChord/previewSequence`; legacy methods are
+unchanged and still stop everything. Global Stop cancels all groups and invalidates
+their revisions. Create's auditions use the `preview` group. `hexboard-player.mjs` gains
+an optional `onInput` stream with unchanged playing behaviour. Any future recording,
+practice or rhythm mode should consume the cue timeline and `onInput` rather than add a
+parallel board builder, clock or note identity. Reintroducing tolerance- or
+label-based note identity, or a scoring engine inside the composition modules, would
+contradict this decision.
+
+
+## D-033 — A physical HexBoard drives the existing Play board path
+
+**Decision.** Board key events become pointer events on the Play board's own SVG keys, and the
+board's LEDs are a read-only projection of the same colours and highlights the SVG draws
+(`deviceSnapshot`). The device layer is limited to the port, delegated-control framing and LED
+transport.
+
+**Rationale.** A second note path would duplicate selection, chord picking, live chord
+recognition, release ownership and Stop behaviour, and would drift from the screen. Deriving the LEDs
+from the same data keeps the board and screen showing one truth. Matching the port by the name the
+firmware advertises avoids sending SysEx to unrelated MIDI devices.
+
+**Consequences.** A new key behaviour added to the player is inherited by the board. Off the Play
+view the board falls back to sounding the key directly; that path has no selection or chord
+recognition. LED colours cannot exceed what the layout already defines. A port picker, several boards
+and device-side layout editing are not provided.

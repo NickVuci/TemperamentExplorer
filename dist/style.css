@@ -3523,3 +3523,155 @@ footer {
 body > .discover-setup { width: calc(100% - 7vw); max-width: calc(1640px - 7vw); margin: 0 auto; box-sizing: border-box; border-width: 0 1px 1px; border-radius: 0 0 10px 10px; }
 body > .discover-setup > .discover-module { padding-top: 8px; padding-bottom: 8px; }
 body > .discover-setup + main { padding-top: 24px; }
+
+/* Composition suite */
+.composition-suite {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 14px 0;
+}
+.composition-suite h2 { margin: 0 0 10px; }
+.composition-suite h3 { margin: 18px 0 8px; font-size: 16px; }
+.composition-bar,
+.composition-transport,
+.chord-add,
+.melody-controls,
+.chord-editor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+  margin: 10px 0;
+}
+.composition-suite label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+.composition-suite input[type=number] { width: 84px; }
+.composition-suite input[data-comp-field=name] { width: 240px; max-width: 100%; }
+.composition-context { color: var(--muted); margin: 6px 0; }
+.composition-notice,
+.composition-message {
+  border: 1px solid var(--b);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 10px 0;
+}
+.composition-transport output {
+  font-family: var(--font-mono);
+  color: var(--mint);
+  min-width: 15ch;
+}
+.chord-strip {
+  display: flex;
+  gap: 3px;
+  min-height: 52px;
+  padding: 4px;
+  background: var(--inset-bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.chord-block {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background: var(--surface2);
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  color: var(--text);
+}
+.chord-block[aria-pressed=true] { outline: 2px solid var(--a); }
+.chord-block.is-playing { background: var(--a); color: #101522; }
+.chord-rest {
+  min-width: 0;
+  border-radius: 5px;
+  background: repeating-linear-gradient(135deg, transparent 0 6px, var(--line) 6px 7px);
+}
+.note-grid-wrap {
+  overflow: auto;
+  max-height: 440px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--inset-bg);
+}
+.note-grid { border-collapse: collapse; font-size: 12px; }
+.note-grid th,
+.note-grid td { padding: 0; border: 1px solid var(--line); text-align: center; }
+.note-grid thead th,
+.note-grid tbody th { background: var(--surface2); color: var(--muted); font-weight: 500; padding: 2px 6px; }
+.note-grid thead th { position: sticky; top: 0; z-index: 2; }
+.note-grid tbody th { position: sticky; left: 0; z-index: 1; white-space: nowrap; text-align: left; }
+.note-cell {
+  width: 38px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+}
+.note-cell.on { background: var(--mint); color: #0d1f1b; }
+.note-cell.held { background: #2b4a45; }
+.note-list { border-collapse: collapse; margin-top: 8px; }
+.note-list th,
+.note-list td { padding: 4px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+@media (max-width: 700px) {
+  .composition-suite { padding: 12px; }
+  .composition-suite input[data-comp-field=name] { width: 100%; }
+  .note-grid-wrap { max-height: 320px; }
+}
+
+/* HexBoard connection */
+.hexboard-status {
+  max-width: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 13px;
+}
+.hexboard-status:empty { display: none; }
+
+/* Fingering practice */
+.fingering-game {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 14px 0;
+}
+.fingering-game h3 { margin: 0 0 8px; font-size: 16px; }
+.fingering-game progress { width: 100%; height: 10px; accent-color: var(--mint); }
+.fingering-game output { font-family: var(--font-mono); color: var(--mint); }
+.fingering-note { color: var(--b); margin: 6px 0; }
+
+/* Harmonies with a key */
+.key-harmonies {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 14px 0;
+}
+.key-harmonies h3 { margin: 0 0 6px; font-size: 16px; }
+.harmony-summary { margin: 4px 0; color: var(--muted); }
+.harmony-summary button { margin-left: 10px; }
+.harmony-list { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 6px; max-height: 420px; overflow: auto; }
+.harmony-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  background: var(--inset-bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+}
+.harmony-row span { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
+.harmony-row[aria-pressed=true] { border-color: var(--a); outline: 1px solid var(--a); }
+.harmony-nav { margin: 6px 0 2px 10px; }
