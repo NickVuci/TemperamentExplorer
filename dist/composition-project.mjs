@@ -217,10 +217,25 @@ export const setLoop=(project,loop)=>commit(project,p=>{p.loop={enabled:!!loop.e
 export const setWave=(project,wave)=>commit(project,p=>{p.sound={...p.sound,wave};});
 export const setClipLength=(project,clipId,lengthTick)=>commit(project,p=>{clipOf(p,clipId).lengthTick=lengthTick;});
 
-/** Last tick used by any clip (arrangement end), rounded up to a whole bar. */
+/** Resize the arrangement without removing notes or changing repeated clip content. */
+export const setProjectBars=(project,bars)=>commit(project,p=>{
+  if(!Number.isSafeInteger(bars)||bars<1)throw new Error('Bars must be a positive whole number');
+  const end=bars*barTicks(p.meter);
+  for(const c of p.clips){
+    const length=(end-c.startTick)/c.repeat;
+    const notesEnd=Math.max(0,...c.events.map(e=>e.startTick+e.durationTick));
+    if(length<notesEnd)throw new Error('Move or delete notes beyond the new project end before reducing bars');
+    if(!Number.isSafeInteger(length)||length<1)throw new Error('This bar count cannot fit the clip starts and repeats');
+    c.lengthTick=length;
+  }
+  if(p.loop.startTick>=end)p.loop={enabled:p.loop.enabled,startTick:0,endTick:null};
+  else if(p.loop.endTick!==null)p.loop.endTick=Math.min(end,p.loop.endTick);
+});
+
+/** Arrangement end including trailing rests and clip repetitions, rounded to a bar. */
 export function contentEndTick(project){
   const bar=barTicks(project.meter);
-  const end=Math.max(0,...project.clips.map(c=>c.startTick+Math.max(0,...c.events.map(e=>e.startTick+e.durationTick))));
+  const end=Math.max(0,...project.clips.map(c=>c.startTick+c.lengthTick*c.repeat));
   return Math.max(bar,Math.ceil(end/bar)*bar);
 }
 

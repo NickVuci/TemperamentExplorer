@@ -98,7 +98,7 @@ assert.deepEqual(dup.tones.map(t=>t.coordinate),a.tones.map(t=>t.coordinate));as
 const lenBefore=chordClip().events.length;press('chord-rest',{event:a.id});
 assert.equal(chordClip().events.length,lenBefore);
 press('chord-hear',{event:a.id});
-assert.deepEqual(audioLog.previews.at(-1)[1],{tonic:220,wave:'triangle'},'audition uses the composition, not the app, tuning reference');
+assert.deepEqual(audioLog.previews.at(-1)[1],undefined,'audition uses central engine settings');
 assert.ok(Math.abs(audioLog.previews.at(-1)[0][1]-(-2*1200+4*696.6512))<1e-9);
 press('chord-delete',{event:dup.id});assert.equal(chordClip().events.length,2);
 
@@ -118,7 +118,7 @@ press('note-cell',{tick:STEP_TICKS*4,a:degree2[0],b:degree2[1]});
 assert.equal(melodyClip().events.length,1);
 const n1=melodyClip().events[0];
 assert.equal(n1.startTick,STEP_TICKS*4);assert.equal(n1.durationTick,STEP_TICKS*2);assert.deepEqual(n1.tones[0].coordinate,degree2);assert.equal(n1.velocity,90);
-assert.deepEqual(audioLog.previews.at(-1)[1],{tonic:220,wave:'triangle'});
+assert.equal(audioLog.previews.at(-1)[1],undefined);
 const model=gridModel(P(),melodyClip(),gridRows(P(),[0]),0);
 const rowIndex=gridRows(P(),[0]).findIndex(r=>r.coordinate[0]===degree2[0]&&r.coordinate[1]===degree2[1]);
 assert.equal(model.cells[rowIndex][4].start.id,n1.id);assert.equal(model.cells[rowIndex][5].sustained,true,'a two-step note is shown sustained');
@@ -136,7 +136,10 @@ set('noteLength',480,{dataset:{compField:'noteLength',event:note.id}});assert.eq
 const farTick=P().meter.numerator*PPQ*10;
 press('note-cell',{tick:farTick-(farTick%STEP_TICKS),a:0,b:0});
 assert.ok(melodyClip().lengthTick>=farTick);
-press('page-next');assert.match(html(),/Page 2 of/);press('page-prev');assert.match(html(),/Page 1 of/);
+assert.doesNotMatch(html(),/Page \d+ of|page-next/);
+set('bars',16);assert.equal(melodyClip().lengthTick,16*P().meter.numerator*PPQ);
+const longProject=JSON.stringify(P());set('bars',1);assert.equal(JSON.stringify(P()),longProject);assert.match(html(),/Move or delete notes/);
+press('undo');assert.ok(melodyClip().lengthTick<16*P().meter.numerator*PPQ);
 // outside-scale notes stay visible and are never dropped
 press('note-cell',{tick:STEP_TICKS,a:30,b:50});
 assert.match(html(),/outside scale/);
@@ -147,7 +150,7 @@ assert.ok(!melodyClip().events.some(e=>e.tones[0].coordinate[0]===30));
 set('tempo',120);assert.equal(P().tempo,120);set('tempo',999);assert.equal(P().tempo,120,'out-of-range tempo is refused');
 fields.meterNum.value='3';fields.meterDen.value='4';set('meterNum',3);assert.deepEqual(P().meter,{numerator:3,denominator:4});
 fields.meterNum.value='4';set('meterNum',4);
-set('wave','sine');assert.equal(P().sound.wave,'sine');
+assert.doesNotMatch(html(),/data-comp-field="wave"/);
 set('loop','on',{checked:true});assert.equal(P().loop.enabled,true);set('loop','off',{checked:false});assert.equal(P().loop.enabled,false);
 await ws.click(el({comp:'play'}));await new Promise(r=>setImmediate(r));
 assert.equal(ws.transport.state,'playing');
@@ -170,6 +173,20 @@ press('stop');assert.equal(ws.transport.state,'stopped');
 clock.state='suspended';await ws.click(el({comp:'play'}));await new Promise(r=>setImmediate(r));
 assert.equal(ws.transport.state,'stopped','audio that cannot run leaves the transport stopped');
 assert.match(notices.at(-1),/Audio could not start/);clock.state='running';
+
+// Space controls only Compose, leaves editing and shortcuts alone, and ignores repeat.
+const space=(overrides={})=>({key:' ',code:'Space',target:{closest:()=>null},prevented:false,preventDefault(){this.prevented=true;},...overrides});
+let key=space();assert.equal(ws.keydown(key,false),false);assert.equal(key.prevented,false);
+for(const overrides of [{ctrlKey:true},{metaKey:true},{altKey:true},{defaultPrevented:true},{target:{isContentEditable:true}},{target:{closest:()=>({tagName:'INPUT'})}}]){
+ key=space(overrides);assert.equal(ws.keydown(key,true),false);assert.equal(key.prevented,false);
+}
+key=space();assert.equal(ws.keydown(key,true),true);assert.equal(key.prevented,true);await new Promise(r=>setImmediate(r));
+assert.equal(ws.transport.state,'playing');
+key=space({repeat:true});assert.equal(ws.keydown(key,true),true);assert.equal(key.prevented,true);assert.equal(ws.transport.state,'playing');
+key=space();assert.equal(ws.keydown(key,true),true);assert.equal(ws.transport.state,'paused');
+const pausedPosition=ws.transport.position();key=space();ws.keydown(key,true);await new Promise(r=>setImmediate(r));assert.equal(ws.transport.state,'playing');assert.ok(ws.transport.position()>=pausedPosition);
+ws.stop();
+assert.doesNotMatch(html(),/Your tuning, your timeline/);
 
 // ---- save, open, close ----
 press('save');
@@ -209,7 +226,7 @@ set('matchMode','bogus');press('export-targets');assert.equal(JSON.parse(downloa
 const out=ws.serialize();assert.equal(out,P());
 ws.restore(structuredClone(out));assert.deepEqual(P(),out);assert.equal(ws.transport.state,'stopped');
 assert.throws(()=>ws.restore({format:'nope'}),/format/);assert.deepEqual(P(),out,'a failed restore keeps the open project');
-ws.restore(null);assert.equal(ws.open,false);assert.equal(ws.serialize(),null);
+ws.restore(null);assert.equal(ws.open,false);assert.equal(ws.serialize(),null);key=space();assert.equal(ws.keydown(key,true),false);assert.equal(key.prevented,false);
 
 // ---- view helpers ----
 assert.equal(formatPosition({tempo:100,meter:{numerator:4,denominator:4}},3840*2+960),'bar 3 · beat 2 · 0:05.4');

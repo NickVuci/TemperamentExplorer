@@ -757,3 +757,6 @@ firmware advertises avoids sending SysEx to unrelated MIDI devices.
 view the board falls back to sounding the key directly; that path has no selection or chord
 recognition. LED colours cannot exceed what the layout already defines. A port picker, several boards
 and device-side layout editing are not provided.
+
+## Central audio controls (October 2026)
+All UI playback, composition transport and connected HexBoard auditions use the shared audio engine's live tonic and waveform. The header Audio menu is their single control surface. Saved composition tuning and coordinate identity stay frozen; legacy project sound fields are retained for file compatibility and do not control playback.

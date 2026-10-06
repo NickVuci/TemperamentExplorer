@@ -40,7 +40,7 @@ export function createLiveChordRecognizer(){
    if(projection.basisStatus!=='mapped'||!settings.familyRecognition&&projection.qualityStatus!=='within-tolerance')continue;
    const shape=normalizeLiveChordShape(projection.notes.map(note=>note.coordinate),state);
    if(shape.length!==identity.cardinality)continue;
-   const record={id:identity.fingerprint,label:candidate.label,form:candidate.form,maxErrorCents:projection.maxErrorCents,rmsErrorCents:projection.rmsErrorCents,pairwiseMaxErrorCents:projection.pairwiseMaxErrorCents,qualityStatus:projection.qualityStatus,shape};
+   const record={members:projection.notes.map((note,i)=>({coordinate:note.coordinate,ratio:identity.aliases.otonal.split(':')[i]})),id:identity.fingerprint,label:candidate.label,form:candidate.form,maxErrorCents:projection.maxErrorCents,rmsErrorCents:projection.rmsErrorCents,pairwiseMaxErrorCents:projection.pairwiseMaxErrorCents,qualityStatus:projection.qualityStatus,shape};
    const shapeKey=JSON.stringify(shape),group=byShape.get(shapeKey)||[];
    group.push(record);byShape.set(shapeKey,group);
    if(settings.familyRecognition){const family=harmonicIdentity(identity,policy.kind),id=familyShapeKey(policy,projection.notes.map(note=>note.coordinate)),records=byFamily.get(id)??[];

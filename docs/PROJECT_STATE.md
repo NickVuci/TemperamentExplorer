@@ -628,6 +628,25 @@ workflow structure.
 
 ## Composition suite (MVP)
 
+The Compose tab uses the approved **Compose and practise** layout: one four-bar
+chord/melody time ruler above three responsive panels (saved HexBoard, selected
+chord and compact exact fingerings, practice). Melody bars can be selected, moved
+between degrees or resized on a sixteenth-note grid; each drag is one undoable
+command. Chord inversion raises the lowest sounding voice by the actual
+temperament period and preserves its tone identity. Missing exact fingerings are
+shown explicitly. The note list keeps outside-scale notes editable.
+
+Practice supports phrase stepping, visible-bar / selected-chord / whole-project
+loops and 25–100% playback speed. Speed is runtime UI state: it does not rewrite
+the saved tempo or context. Playback paints the playhead and sounding notes in
+place. The composition board and the physical HexBoard read the composition's
+saved geometry and tuning while Compose is active; mouse/device auditions use
+the app's central tonic and sound through the shared audio engine. The header Audio menu controls all tabs; legacy project sound fields remain readable but do not override playback. Follow lights highlights
+exact-coordinate matches. This remains guided playback without performance
+judging. `composition-board.mjs` reuses `buildBoard`, `chordPlacements` and the
+existing colour engine; it does not define another pitch or fingering engine.
+
+
 Create opens one composition at a time: a chord progression built from collected
 chords, a scale-degree melody grid, a looping tuned transport, and a game-ready cue
 timeline. The authoritative plan, frozen limits and action log are in

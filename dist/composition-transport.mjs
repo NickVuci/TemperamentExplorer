@@ -117,7 +117,7 @@ export function createTransport({getProject,audio,timer={set:(fn,ms)=>setInterva
           onsetAudioSeconds:onset,releaseAudioSeconds:release,velocity:v.velocity,chordSize:v.tones.length,
         });
       }
-      if(list.length)audio.scheduleVoices(list,{groupId:GROUP,settings:{tonic:ctx.tonicHz,wave:project.sound.wave}});
+      if(list.length)audio.scheduleVoices(list,{groupId:GROUP});
     }
     scheduledV=Math.max(scheduledV,hiV);
     if(resynced)emit('resync',{skippedTo:floor});

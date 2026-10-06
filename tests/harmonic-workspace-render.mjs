@@ -26,7 +26,7 @@ add('labels',add('matrix-label-controls')).value='ratios';
 const document={activeElement:null,querySelector:selector=>root.querySelector(selector),querySelectorAll:()=>[]};
 const context=vm.createContext({compositionWorkspace:{pause(){},stop(){},refresh(){},click:()=>false,change:()=>false},document,$:document.querySelector,states:[makeState('meantone')],view:'chords',harmonicMode:'b',manualChordInspector:false,renderingWorkspace:false,selected:null,manualTolerance:null,liveChordContext:null,
  parsePrimeFilterInput,primeFilterForBasis,targets,validateJILimits,automaticTolerance:()=>20,
- placeDiamondTolerance:()=>{},populateLimitOptions:()=>{},syncCoverageDefaults:()=>{},syncNavigation:()=>{},scaleControls:()=>'',
+ syncAudioControls:()=>{},placeDiamondTolerance:()=>{},populateLimitOptions:()=>{},syncCoverageDefaults:()=>{},syncNavigation:()=>{},scaleControls:()=>'',
  sectionFor:v=>v==='composition'?'create':'discover',scaleDetails:()=>'<section>Scale view</section>',materialWorkspace:{render:()=>''},hexWorkspace:{prepareForTemperament:()=>{}},hexPlayer:null,diamondPlayer:null,
  placeMatrixControls:()=>{},placeTargetControls:()=>{},chordWorkspace:{render:()=>'<section>Manual chord inspector</section>'}});
 const app=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8');

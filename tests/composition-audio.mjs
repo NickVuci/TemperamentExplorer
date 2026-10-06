@@ -168,3 +168,11 @@ const voice=(id,cents,onset,release,extra={})=>({voiceId:id,cents,onsetAudioSeco
 }
 
 console.log('composition-audio: ok');
+
+// Composition scheduling without overrides follows changes to the central controls.
+{
+ const f=fixture();await f.engine.prepare();
+ f.engine.scheduleVoices([voice('central',1200,11,12)],{groupId:'composition'});
+ assert.equal(f.oscillators[0].frequency.value,440);
+ assert.equal(f.oscillators[0].type,'triangle');
+}

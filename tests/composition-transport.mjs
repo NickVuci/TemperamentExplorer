@@ -103,7 +103,7 @@ const make=(project,f)=>createTransport({getProject:()=>project,audio:f.audio,ti
   assert.equal(first.chordSize,3);assert.equal(first.velocity,92);
   const note=f.scheduled.find(v=>v.voiceId.startsWith('melody-bar-02-beat-03#0'));
   assert.ok(Math.abs(note.onsetAudioSeconds-(anchor+(3840+1920)*60/(100*960)))<1e-12);
-  assert.deepEqual(f.scheduled[0].settings,{tonic:220,wave:'triangle'},'project sound settings, not app settings');
+  assert.deepEqual(f.scheduled[0].settings,undefined,'transport uses central engine settings');
   assert.equal(t.state,'stopped','stops itself after the last bar');
   assert.ok(f.events.some(e=>e[0]==='ended'));
   assert.equal(t.position(),0,'rewinds after ending');

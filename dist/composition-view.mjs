@@ -1,7 +1,8 @@
 // Composition workspace markup. Pure: (project, UI state) -> HTML / models. No DOM access.
 import {esc,option} from './ui.mjs';
-import {PPQ,ticksToSeconds,barTicks,WAVES} from './composition-project.mjs';
+import {PPQ,ticksToSeconds,barTicks,contentEndTick} from './composition-project.mjs';
 import {resolveTone,degreeOf} from './composition-context.mjs';
+import {boardMarkup} from './composition-board.mjs';
 
 export const STEP_TICKS=PPQ/4;          // melody grid resolution: one sixteenth note
 export const PAGE_STEPS=16;             // columns per grid page
@@ -51,97 +52,58 @@ export const outsideScale=(project,clip)=>clip.events.filter(e=>e.tones.some(t=>
 const quarter=ticks=>Number((ticks/PPQ).toFixed(4));
 const chordLabel=(e,i)=>e.source?.label?String(e.source.label):`Chord ${i+1}`;
 
+
+export function rollWindow(v){
+ const bar=barTicks(v.project.meter),end=contentEndTick(v.project);
+ return {bar,span:end,start:0,end,bars:Math.round(end/bar)};
+}
+const btn=(action,text,disabled=false,extra='')=>`<button data-comp="${action}" ${disabled?'disabled':''} ${extra}>${text}</button>`;
 function projectBar(v){
-  const p=v.project;
-  if(!p)return `<div class="composition-start"><p>Write chord progressions and melodies in the tuning and scale you are exploring. A composition keeps the tuning it was started with.</p>
-   <button data-comp="new">New composition from the current Play setup</button>
-   <button data-comp="open">Open composition…</button>
-   <p class="viewnote">Current setup: ${esc(v.appSummary)}</p></div>`;
-  return `<div class="composition-bar">
-   <label>Name <input data-comp-field="name" value="${esc(p.name)}" maxlength="80"></label>
-   <button data-comp="undo" ${v.canUndo?'':'disabled'}>Undo</button><button data-comp="redo" ${v.canRedo?'':'disabled'}>Redo</button>
-   <button data-comp="save">Save…</button><button data-comp="open">Open…</button><button data-comp="close">Close</button>
-  </div>
-  <p class="composition-context" data-comp-context>${esc(p.context.name)} · ${p.context.scale.n} notes, mode ${p.context.scale.mode+1} · tonic ${esc(p.context.tonicHz)} Hz · ${esc(p.context.tuning.method??'manual tuning')}</p>
-  ${v.matchesApp?'':`<p class="composition-notice" role="status">The app is set to a different tuning or scale than this composition. The composition keeps its own. <button data-comp="load-context">Load the composition’s setup into the app</button></p>`}`;
+ const p=v.project;
+ if(!p)return `<div class="composition-start"><p>Build a chord progression, write a melody and see how to play it on your HexBoard.</p>${btn('new','New composition from the current Play setup')}${btn('open','Open composition…')}<p class="viewnote">Current setup: ${esc(v.appSummary)}</p></div>`;
+ return `<details class="composition-project-menu"><summary>${esc(p.name)} · Project</summary><div class="composition-bar"><label class="composition-name"><span>Name</span><input data-comp-field="name" value="${esc(p.name)}" maxlength="80"></label><div class="composition-meter" role="group" aria-labelledby="composition-meter-label"><span id="composition-meter-label">Meter</span><div class="composition-meter-fields"><input type="number" data-comp-field="meterNum" min="1" max="32" value="${p.meter.numerator}" aria-label="Beats per bar"><span aria-hidden="true">/</span><select data-comp-field="meterDen" aria-label="Beat unit">${[1,2,4,8,16,32].map(d=>option(d,d,p.meter.denominator)).join('')}</select></div></div><div class="composition-project-actions" role="group" aria-label="Project actions">${btn('save','Save composition…')}${btn('open','Open…')}${btn('new','New composition')}${btn('close','Close')}</div></div></details>
+ <p class="composition-context" data-comp-context>${esc(p.context.name)} · ${p.context.scale.n} notes · mode ${p.context.scale.mode+1} · ${esc(p.context.tuning.method??'manual tuning')}</p>
+ ${v.matchesApp?'':`<p class="composition-notice" role="status">The app is set to a different tuning or scale than this composition. The composition keeps its own. ${btn('load-context','Load the composition’s setup into the app')}</p>`}`;
 }
-
 function transportBar(v){
-  const p=v.project,idle=v.transportState!=='playing';
-  return `<div class="composition-transport" role="group" aria-label="Transport">
-   <button data-comp="${idle?'play':'pause'}" aria-pressed="${!idle}">${idle?'Play':'Pause'}</button>
-   <button data-comp="stop">Stop</button>
-   <label><input type="checkbox" data-comp-field="loop" ${p.loop.enabled?'checked':''}> Loop</label>
-   <label>Tempo <input type="number" data-comp-field="tempo" min="20" max="400" step="1" value="${esc(p.tempo)}" ${idle?'':'disabled'}> quarter notes/min</label>
-   <label>Meter <input type="number" data-comp-field="meterNum" min="1" max="32" value="${esc(p.meter.numerator)}" ${idle?'':'disabled'} aria-label="Beats per bar"> /
-    <select data-comp-field="meterDen" ${idle?'':'disabled'} aria-label="Beat unit">${[1,2,4,8,16,32].map(d=>option(d,d,p.meter.denominator)).join('')}</select></label>
-   <label>Sound <select data-comp-field="wave">${WAVES.map(w=>option(w,w,p.sound.wave)).join('')}</select></label>
-   <output data-comp-position aria-live="off">${esc(formatPosition(p,v.position))}</output>
-  </div>`;
+ const p=v.project,idle=v.transportState!=='playing';
+ return `<div class="composition-header"><h2>Compose and practise</h2><div class="composition-transport" role="group" aria-label="Transport">${btn(idle?'play':'pause',idle?'▶ Play':'Ⅱ Pause',false,`class="comp-primary" aria-pressed="${!idle}"`)}${btn('stop','■ Stop')}<label class="comp-loop"><input type="checkbox" data-comp-field="loop" ${p.loop.enabled?'checked':''}><span class="comp-loop-track" aria-hidden="true"></span><span>Loop</span><span class="comp-loop-state" aria-hidden="true">${p.loop.enabled?'On':'Off'}</span></label><label><input type="number" data-comp-field="tempo" min="20" max="400" value="${p.tempo}" aria-label="Tempo" ${idle?'':'disabled'}> BPM</label></div><div class="comp-mode" role="group" aria-label="Workspace mode">${btn('mode-compose','Compose',false,`aria-pressed="${v.mode!=='practice'}"`)}${btn('mode-practice','Practice',false,`aria-pressed="${v.mode==='practice'}"`)}</div></div>`;
 }
-
-function chordSection(v){
-  const p=v.project,clip=v.chordClip,total=Math.max(1,clip.lengthTick),events=[...clip.events].sort((a,b)=>a.startTick-b.startTick);
-  const parts=[];let cursor=0;
-  events.forEach((e,i)=>{
-    if(e.startTick>cursor)parts.push(`<span class="chord-rest" style="flex:${e.startTick-cursor}" title="Rest"></span>`);
-    const cents=e.tones.map(t=>resolveTone(p.context,t.coordinate).cents.toFixed(1)).join(', ');
-    parts.push(`<button class="chord-block" data-comp="chord-select" data-event="${esc(e.id)}" data-start="${e.startTick}" data-end="${e.startTick+e.durationTick}" style="flex:${e.durationTick}" aria-pressed="${v.selectedChord===e.id}" title="${esc(cents)} ¢">${esc(chordLabel(e,i))}</button>`);
-    cursor=e.startTick+e.durationTick;
-  });
-  if(cursor<total)parts.push(`<span class="chord-rest" style="flex:${total-cursor}" title="Rest"></span>`);
-  const sel=events.find(e=>e.id===v.selectedChord),idx=sel?events.indexOf(sel):-1;
-  const editor=sel?`<div class="chord-editor"><b>${esc(chordLabel(sel,idx))}</b> · ${sel.tones.length} notes · ${esc(formatPosition(p,sel.startTick))}
-    <label>Length <input type="number" data-comp-field="chordLength" data-event="${esc(sel.id)}" min="0.25" step="0.25" value="${quarter(sel.durationTick)}"> quarter notes</label>
-    <button data-comp="chord-hear" data-event="${esc(sel.id)}">Hear</button>
-    <button data-comp="chord-earlier" data-event="${esc(sel.id)}" ${idx>0?'':'disabled'}>Move earlier</button>
-    <button data-comp="chord-later" data-event="${esc(sel.id)}" ${idx<events.length-1?'':'disabled'}>Move later</button>
-    <button data-comp="chord-duplicate" data-event="${esc(sel.id)}">Duplicate after</button>
-    <button data-comp="chord-rest" data-event="${esc(sel.id)}">Rest after (1 quarter)</button>
-    <button data-comp="chord-delete" data-event="${esc(sel.id)}">Delete</button></div>`:'<p class="viewnote">Select a chord to edit its length, order or notes.</p>';
-  const items=v.collection;
-  return `<section class="composition-chords" aria-label="Chord progression"><h3>Chord progression</h3>
-   <div class="chord-strip" role="group" aria-label="Chords on a timeline">${parts.join('')||'<span class="viewnote">No chords yet.</span>'}</div>${editor}
-   <div class="chord-add"><label>Add a collected chord <select data-comp-field="collection">${items.length?items.map((it,i)=>`<option value="${i}" ${it.compatible?'':'disabled'}>${esc(it.label)}${it.compatible?'':' (other tuning)'}</option>`).join(''):'<option value="">Collect chords in Discover to add them here</option>'}</select></label>
-   <label>Length <select data-comp-field="addLength">${[1,2,4,8].map(n=>option(n,`${n} quarter note${n>1?'s':''}`,v.addLength)).join('')}</select></label>
-   <button data-comp="chord-add" ${items.some(i=>i.compatible)?'':'disabled'}>Add to end</button></div></section>`;
+function timelineSection(v){
+ const p=v.project,w=rollWindow(v),reg=REGISTER_CHOICES.find(r=>r[0]===v.registers)??REGISTER_CHOICES[1],rows=gridRows(p,reg[2]);
+ const steps=Math.round(w.span/STEP_TICKS),pct=t=>100*(t-w.start)/w.span;
+ const chords=v.chordClip.events.filter(e=>e.startTick<w.end&&e.startTick+e.durationTick>w.start);
+ const events=v.melodyClip.events,head=Array.from({length:w.bars},(_,i)=>`<button data-comp="seek" data-tick="${w.start+i*w.bar}" style="left:${i*100/w.bars}%;width:${100/w.bars}%" aria-label="Seek to bar ${i+1}">${i+1}</button>`).join('');
+ const chordBlocks=chords.map((e,i)=>{const lo=Math.max(w.start,e.startTick),hi=Math.min(w.end,e.startTick+e.durationTick);return `<button class="chord-block" data-comp="chord-select" data-event="${esc(e.id)}" data-start="${e.startTick}" data-end="${e.startTick+e.durationTick}" style="left:${pct(lo)}%;width:${100*(hi-lo)/w.span}%" aria-pressed="${v.selectedChord===e.id}" title="${esc(chordLabel(e,i))}">${esc(chordLabel(e,i))}<small>${quarter(e.durationTick)} beats</small></button>`;}).join('');
+ const body=rows.map(row=>{
+  const notes=events.filter(e=>e.startTick<w.end&&e.startTick+e.durationTick>w.start&&e.tones.some(t=>t.coordinate[0]===row.coordinate[0]&&t.coordinate[1]===row.coordinate[1]));
+  return `<div class="roll-row"><div class="roll-degree" title="${row.cents.toFixed(1)} cents · ${row.hz.toFixed(2)} Hz">${row.degree}${row.register?`<sup>${row.register>0?'+':''}${row.register}</sup>`:''}<small>${Math.round(row.cents)}¢</small></div><div class="roll-row-grid" data-a="${row.coordinate[0]}" data-b="${row.coordinate[1]}" style="--roll-steps:${steps}"><button class="roll-surface" data-tick="0" data-a="${row.coordinate[0]}" data-b="${row.coordinate[1]}" aria-label="Add degree ${row.degree} at the beginning of the project" ${v.mode==='practice'?'disabled':''}></button>${notes.map(e=>{
+   const lo=Math.max(w.start,e.startTick),hi=Math.min(w.end,e.startTick+e.durationTick);
+   return `<button class="roll-note ${v.selectedNote===e.id?'is-selected':''}" data-comp="note-select" data-event="${esc(e.id)}" data-start="${e.startTick}" data-end="${e.startTick+e.durationTick}" data-a="${row.coordinate[0]}" data-b="${row.coordinate[1]}" style="left:${pct(lo)}%;width:${100*(hi-lo)/w.span}%" aria-pressed="${v.selectedNote===e.id}" aria-label="Degree ${row.degree}, ${esc(formatPosition(p,e.startTick))}, ${quarter(e.durationTick)} beats"><span class="roll-note-grip" data-comp-resize="">▏</span></button>`;
+  }).join('')}</div></div>`;
+ }).join('');
+ const outside=outsideScale(p,v.melodyClip).length;
+ return `<section class="composition-timeline" aria-label="Chord and melody sequencer"><div class="roll-toolbar"><label class="roll-bars">Bars <input type="number" data-comp-field="bars" min="1" step="1" value="${w.bars}" aria-label="Number of project bars"></label><label>Note length <select data-comp-field="noteDuration">${NOTE_LENGTHS.map(([n,t])=>option(t,n,v.noteDuration)).join('')}</select></label><label>Show <select data-comp-field="registers">${REGISTER_CHOICES.map(([k,n])=>option(k,n,reg[0])).join('')}</select></label><span class="roll-snap">Snap 1/16</span>${btn('undo','Undo',!v.canUndo)}${btn('redo','Redo',!v.canRedo)}</div>
+ <div class="roll-scroll"><div class="roll-canvas" data-comp-roll data-start="${w.start}" data-span="${w.span}" style="--roll-steps:${steps};--bar-width:${100/w.bars}%;width:${104+steps*20}px"><div class="roll-ruler"><span>Bar</span><div>${head}</div></div><div class="roll-chord-lane"><b>Chords</b><div>${chordBlocks||'<span class="roll-empty">Add a collected chord below</span>'}</div></div><div class="roll-rows">${body}</div><div class="roll-playhead" data-comp-playhead aria-hidden="true"><i></i></div></div></div>
+ <div class="roll-status"><output data-comp-position>${esc(formatPosition(p,v.position))}</output>${outside?`<span>${outside} note${outside===1?'':'s'} outside scale · edit in Notes list</span>`:''}</div></section>`;
 }
-
-function melodySection(v){
-  const p=v.project,clip=v.melodyClip,reg=REGISTER_CHOICES.find(r=>r[0]===v.registers)??REGISTER_CHOICES[1];
-  const rows=gridRows(p,reg[2]),pages=Math.max(1,Math.ceil(clip.lengthTick/(PAGE_STEPS*STEP_TICKS))),page=Math.min(v.page,pages-1);
-  const model=gridModel(p,clip,rows,page);
-  const head=model.columns.map(t=>`<th scope="col" title="${esc(formatPosition(p,t))}">${(t%barTicks(p.meter))===0?`<b>${Math.floor(t/barTicks(p.meter))+1}</b>`:(t%PPQ===0?'·':'')}</th>`).join('');
-  const body=rows.map((row,r)=>`<tr><th scope="row" title="coordinate ${esc(coordText(row.coordinate))} · ${row.hz.toFixed(2)} Hz">${row.degree}${row.register?` ${row.register>0?'+':''}${row.register}`:''} <small>${Math.round(row.cents)}¢</small></th>${
-    model.cells[r].map(c=>`<td><button class="note-cell ${c.start?'on':c.sustained?'held':''}" data-comp="note-cell" data-tick="${c.tick}" data-a="${row.coordinate[0]}" data-b="${row.coordinate[1]}" aria-pressed="${!!c.start}" aria-label="degree ${row.degree}, ${esc(formatPosition(p,c.tick))}">${c.start?'●':c.sustained?'▬':''}</button></td>`).join('')}</tr>`).join('');
-  const events=[...clip.events].sort((a,b)=>a.startTick-b.startTick);
-  const list=events.length?`<table class="note-list"><thead><tr><th>Start</th><th>Degree</th><th>¢</th><th>Length (ticks)</th><th>Velocity</th><th></th></tr></thead><tbody>${events.map(e=>{
-    const t=e.tones[0],d=degreeOf(p.context,t.coordinate),r=resolveTone(p.context,t.coordinate);
-    return `<tr><td>${esc(formatPosition(p,e.startTick))}</td><td>${d?`${d.degree}${d.register?` (${d.register>0?'+':''}${d.register})`:''}`:'<em>outside scale</em>'} <small>[${esc(coordText(t.coordinate))}]</small></td><td>${r.cents.toFixed(1)}</td>
-     <td><input type="number" data-comp-field="noteLength" data-event="${esc(e.id)}" min="1" value="${e.durationTick}"></td><td><input type="number" data-comp-field="noteVelocity" data-event="${esc(e.id)}" min="1" max="127" value="${e.velocity}"></td>
-     <td><button data-comp="note-delete" data-event="${esc(e.id)}">Delete</button></td></tr>`;}).join('')}</tbody></table>`:'<p class="viewnote">No melody notes yet.</p>';
-  const outside=outsideScale(p,clip).length;
-  return `<section class="composition-melody" aria-label="Melody"><h3>Melody</h3>
-   <div class="melody-controls">
-    <label>Note length <select data-comp-field="noteDuration">${NOTE_LENGTHS.map(([n,t])=>option(t,n,v.noteDuration)).join('')}</select></label>
-    <label>Show <select data-comp-field="registers">${REGISTER_CHOICES.map(([k,n])=>option(k,n,reg[0])).join('')}</select></label>
-    <button data-comp="page-prev" ${page>0?'':'disabled'}>Earlier</button> <span>Page ${page+1} of ${pages}</span> <button data-comp="page-next" ${page<pages-1?'':'disabled'}>Later</button>
-   </div>
-   <div class="note-grid-wrap"><table class="note-grid" role="grid"><thead><tr><th scope="col">Degree</th>${head}</tr></thead><tbody>${body}</tbody></table></div>
-   <p class="viewnote">Rows are degrees of the composition’s scale (not piano keys); each cell is one sixteenth note. Click a cell to add or remove a note.${outside?` ${outside} note${outside>1?'s are':' is'} outside the scale and listed below.`:''}</p>
-   <details><summary>Notes as a list</summary>${list}</details></section>`;
+function noteList(v){
+ const p=v.project,events=v.melodyClip.events;
+ return `<details class="composition-note-list"><summary>Notes as a list</summary><div class="comp-table-scroll"><table class="note-list"><thead><tr><th>Start</th><th>Degree</th><th>Cents</th><th>Length (ticks)</th><th>Velocity</th><th></th></tr></thead><tbody>${events.map(e=>{const t=e.tones[0],d=degreeOf(p.context,t.coordinate),r=resolveTone(p.context,t.coordinate);return `<tr><td>${esc(formatPosition(p,e.startTick))}</td><td>${d?d.degree:'<em>outside scale</em>'}</td><td>${r.cents.toFixed(1)}</td><td><input type="number" data-comp-field="noteLength" data-event="${esc(e.id)}" min="1" value="${e.durationTick}"></td><td><input type="number" data-comp-field="noteVelocity" data-event="${esc(e.id)}" min="1" max="127" value="${e.velocity}"></td><td>${btn('note-delete','Delete',false,`data-event="${esc(e.id)}"`)}</td></tr>`;}).join('')}</tbody></table></div></details>`;
 }
-
-function cueSection(v){
-  return `<section class="composition-cues" aria-label="Practice targets"><h3>Practice targets</h3>
-   <p data-comp-cues>${esc(v.cueText)}</p>
-   <label>Match <select data-comp-field="matchMode">${[['exact-coordinate','Exact pitch and register'],['any-degree','Any octave of the degree'],['button','A specific button']].map(([k,n])=>option(k,n,v.matchMode)).join('')}</select></label>
-   <button data-comp="export-targets">Export practice targets…</button>
-   <p class="viewnote">A versioned file of what to play, when, and on which keys of this layout, for practice and rhythm modes. Nothing is scored here.</p></section>`;
+export function renderSelectionPanel(v){
+ const p=v.project,clip=v.chordClip,events=[...clip.events].sort((a,b)=>a.startTick-b.startTick),sel=events.find(e=>e.id===v.selectedChord),idx=sel?events.indexOf(sel):-1;
+ const note=v.melodyClip.events.find(e=>e.id===v.selectedNote);
+ const add=`<details class="composition-add" ${events.length?'':'open'}><summary>Add a collected chord</summary><div class="chord-add"><label>Chord <select data-comp-field="collection">${v.collection.length?v.collection.map((it,i)=>`<option value="${i}" ${v.collectionIndex===i?'selected':''} ${it.compatible?'':'disabled'}>${esc(it.label)}${it.compatible?'':' (other tuning)'}</option>`).join(''):'<option>Collect chords in Discover to add them here</option>'}</select></label><label>Length <select data-comp-field="addLength">${[1,2,4,8].map(n=>option(n,`${n} quarter notes`,v.addLength)).join('')}</select></label>${btn('chord-add','Add to end',!v.collection.some(i=>i.compatible))}</div></details>`;
+ const chord=sel?`<h4>${esc(chordLabel(sel,idx))}</h4><div class="comp-fingerings">${v.fingerings.slice(0,3).map((f,i)=>`<button class="comp-fingering" data-comp="fingering" data-index="${i}" aria-pressed="${v.fingering===i}"><b>${i===0?'Compact':`Alternate ${i}`}</b><span>${f.keys.map(k=>v.board.keys[k].degree).join(' · ')}</span><small>${f.reach} hex steps · keys ${f.keys.join(', ')}</small></button>`).join('')||'<p class="viewnote">No complete fingering for these exact pitches on the saved layout.</p>'}</div><div class="chord-editor">${btn('chord-hear','Hear chord',false,`data-event="${esc(sel.id)}"`)}${btn('chord-invert','Raise lowest note',false,`data-event="${esc(sel.id)}"`)}<label>Length <input type="number" data-comp-field="chordLength" data-event="${esc(sel.id)}" min="0.25" step="0.25" value="${quarter(sel.durationTick)}"> beats</label></div><details><summary>Arrange chord</summary><div class="chord-editor">${btn('chord-earlier','Move earlier',idx===0,`data-event="${esc(sel.id)}"`)}${btn('chord-later','Move later',idx===events.length-1,`data-event="${esc(sel.id)}"`)}${btn('chord-duplicate','Duplicate after',false,`data-event="${esc(sel.id)}"`)}${btn('chord-rest','Rest after (1 quarter)',false,`data-event="${esc(sel.id)}"`)}${btn('chord-delete','Delete',false,`data-event="${esc(sel.id)}"`)}</div></details>`:'<p class="viewnote">Select a chord in the timeline to explore its fingerings.</p>';
+ const selectedNote=note?`<div class="comp-note-inspector"><h4>Selected note</h4><label>Length <select data-comp-field="noteLength" data-event="${esc(note.id)}">${[...new Set([...NOTE_LENGTHS.map(x=>x[1]),note.durationTick])].sort((a,b)=>a-b).map(t=>option(t,`${quarter(t)} beats`,note.durationTick)).join('')}</select></label><label>Velocity <input type="number" data-comp-field="noteVelocity" data-event="${esc(note.id)}" min="1" max="127" value="${note.velocity}"></label>${btn('note-hear','Hear',false,`data-event="${esc(note.id)}"`)}${btn('note-delete','Delete note',false,`data-event="${esc(note.id)}"`)}</div>`:'';
+ return `<section class="comp-panel comp-selection"><h3>Selected chord</h3>${chord}${selectedNote}${add}</section>`;
 }
-
+function practicePanel(v){
+ const p=v.project,selected=v.chordClip.events.find(e=>e.id===v.selectedChord);
+ return `<section class="comp-panel comp-practice"><h3>Practice</h3><div class="practice-card"><b>Learn this phrase</b><p>Step through the sounding notes and see where to play them.</p><div class="practice-actions">${btn('practice-start','Start phrase')}${btn('practice-prev','Previous')}${btn('practice-next','Next note')}</div><p data-comp-cues>${esc(v.cueText)}</p></div><div class="practice-card"><label><b>Slow playback</b><input type="range" data-comp-field="practiceSpeed" min="25" max="100" step="5" value="${v.practiceSpeed}" aria-label="Practice playback speed"><span>${v.practiceSpeed}%</span></label></div><div class="practice-card"><b>Loop a phrase</b><div class="practice-actions">${btn('loop-off','Off')}${btn('loop-selected','Selected chord',!selected)}${btn('loop-all','All')}</div><p>${p.loop.enabled?(p.loop.endTick!==null?`Loop: ${formatPosition(p,p.loop.startTick)} to ${formatPosition(p,p.loop.endTick)}`:'Whole composition loops'):'Loop is off'}</p></div><div class="practice-card"><label><b>Follow lights</b><input type="checkbox" data-comp-field="follow" ${v.follow?'checked':''}></label><p>Sounding notes highlight on this board and a connected HexBoard.</p></div><details><summary>Export practice targets</summary><label>Match <select data-comp-field="matchMode">${[['exact-coordinate','Exact pitch and register'],['any-degree','Any octave of the degree'],['button','A specific button']].map(([k,n])=>option(k,n,v.matchMode)).join('')}</select></label>${btn('export-targets','Export practice targets…')}</details></section>`;
+}
 export function renderComposition(v){
-  const p=v.project;
-  return `<h2>Composition suite</h2>${projectBar(v)}${p?`${transportBar(v)}${chordSection(v)}${melodySection(v)}${cueSection(v)}`:''}${v.message?`<p class="composition-message" role="status">${esc(v.message)}</p>`:''}<input type="file" data-comp-file accept=".json,application/json" hidden>`;
+ const p=v.project;
+ return `${p?transportBar(v):'<h2>Compose and practise</h2>'}${projectBar(v)}${p?`${timelineSection(v)}<div class="composition-lower"><section class="comp-panel comp-board-panel"><div class="comp-panel-heading"><h3>HexBoard</h3><label>Degrees <input type="checkbox" data-comp-field="boardLabels" ${v.boardLabels?'checked':''}></label><span>${p.context.scale.n}-note scale</span></div>${v.board?boardMarkup(p,v.board,v.selectedKeys,v.follow,v.boardLabels):`<p class="viewnote">${esc(v.boardReason)}</p>`}<p class="viewnote">Saved composition layout · click a key to hear it.</p></section>${renderSelectionPanel(v)}${practicePanel(v)}</div>${noteList(v)}`:''}${v.message?`<p class="composition-message" role="status">${esc(v.message)}</p>`:''}<input type="file" data-comp-file accept=".json,application/json" hidden>`;
 }
-

@@ -135,7 +135,7 @@ export function createAudioEngine({
   /**
    * Schedules timed voices for a group. Each voice is {voiceId, cents, onsetAudioSeconds,
    * releaseAudioSeconds, velocity, chordSize?}. Pitch comes from the caller's tonic/wave
-   * (project settings), never the app's live settings. Returns one cancelable token per
+   * overrides when supplied, otherwise the app's central audio settings. Returns one cancelable token per
    * voice that was started; voices already past, inaudible, or from a stale revision are skipped.
    */
   function scheduleVoices(list,{groupId,revision:wanted,settings}={}){
@@ -169,9 +169,9 @@ export function createAudioEngine({
     };
   }
 
-  function startVoice(cents){
+  function startVoice(cents,settingsOverride){
     let cancelled=false,voice;
-    const request=revision,settings={...getSettings()};
+    const request=revision,settings={...getSettings(),...settingsOverride};
     ready().then(()=>{
       if(cancelled||request!==revision)return;
       // A small scheduling lead prevents an attack from starting in the past

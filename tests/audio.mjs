@@ -100,3 +100,7 @@ for(const state of [makeState('meantone'),fromCommas('128/125','2.3.5'),fromComm
 }
 console.log('Mouse-to-layout-to-audio integration passed for ordinary, divided-octave, and tritave periods, with wrapping on/off, dragging and Shift sustain.');
 
+
+// Composition-held keys can use their frozen tonic without changing app settings.
+const ownTonic=fixture();const releaseOwn=ownTonic.engine.startVoice(1200,{tonic:330,wave:'sine'});await tick();
+assert.equal(ownTonic.oscillators[0].frequency.value,660);releaseOwn();
