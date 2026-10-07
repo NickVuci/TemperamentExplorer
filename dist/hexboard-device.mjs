@@ -1,7 +1,7 @@
 // Web MIDI connection to a physical HexBoard in delegated-control mode (Chrome/Edge).
 // Owns only the port, entering/leaving host mode and LED traffic; what keys mean and
 // what the LEDs show is decided by hexboard-sync.mjs.
-import {encodeEnter,encodeExit,encodeLeds,decodeKey,decodeEncoder,BUTTON_COUNT} from './hexboard-protocol.mjs';
+import {encodeEnter,encodeExit,encodeNoteMapReset,encodeLeds,decodeKey,decodeEncoder,BUTTON_COUNT} from './hexboard-protocol.mjs';
 
 const NAME=/hexboard/i;
 
@@ -12,14 +12,32 @@ export function createHexboardDevice({
   // painting starts only after it has settled. LEDs go out in small paced messages so
   // none is lost to a long SysEx frame.
   settleMs=300,paceMs=4,chunk=32,
+  // Holding the encoder for 5 s makes the board leave host mode by itself and report only a
+  // release, so a release this long after its press means the board is back in normal play.
+  forcedExitMs=4800,now=()=>globalThis.performance?.now?.()??Date.now(),
 }={}){
-  let access=null,input=null,output=null,state='disconnected',sent=new Map();
+  let access=null,input=null,output=null,state='disconnected',sent=new Map(),pressedAt=null;
   const set=(next,detail={})=>{state=next;onStatus(next,detail);};
+
+  // The board is in normal mode now: its notes are no longer key indices and it ignores
+  // LED messages, so stop listening without sending anything back.
+  function boardExited(){
+    if(state!=='connected'&&state!=='connecting')return;
+    release();set('disconnected',{reason:'board'});
+  }
 
   function handle(event){
     const data=event.data;
     if(!data)return;
-    if(data[0]===0xf0){const e=decodeEncoder(data);if(e)onEncoder(e);return;}
+    if(data[0]===0xf0){
+      const e=decodeEncoder(data);
+      if(!e)return;
+      const heldMs=e==='release'&&pressedAt!==null?now()-pressedAt:0;
+      pressedAt=e==='press'?now():e==='release'?null:pressedAt;
+      onEncoder(e);
+      if(heldMs>=forcedExitMs)boardExited();
+      return;
+    }
     const key=decodeKey(data);
     if(key)onKey(key.index,key.down,event.timeStamp);
   }
@@ -27,7 +45,7 @@ export function createHexboardDevice({
   function release(){
     if(input)input.onmidimessage=null;
     if(access)access.onstatechange=null;
-    input=output=access=null;sent=new Map();
+    input=output=access=null;sent=new Map();pressedAt=null;
   }
 
   /** Opens MIDI (with SysEx permission), finds the HexBoard by name and takes over its surface. */
@@ -54,6 +72,7 @@ export function createHexboardDevice({
     sent=new Map();
     if(settleMs>0)await new Promise(resolve=>setTimeout(resolve,settleMs));
     if(state!=='connecting'||output!==port)return false; // disconnected or unplugged while settling
+    port.send(encodeNoteMapReset());
     set('connected',{name:input.name});
     return true;
   }

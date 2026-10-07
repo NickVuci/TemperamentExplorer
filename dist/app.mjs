@@ -251,7 +251,7 @@ const hexboardSync=createHexboardSync({document,device:hexboardDevice,getSnapsho
 function showHexboardStatus(state,detail={}){
  const button=$('#hexboard-connect'),text=$('#hexboard-status');
  button.textContent=state==='connected'?'Disconnect HexBoard':'Connect HexBoard';button.disabled=state==='connecting';
- const message=state==='connected'?`HexBoard connected${detail.name?': '+detail.name:''}`:state==='connecting'?'Connecting…':state==='error'?detail.message:detail.reason==='unplugged'?'HexBoard unplugged':'';
+ const message=state==='connected'?`HexBoard connected${detail.name?': '+detail.name:''}`:state==='connecting'?'Connecting…':state==='error'?detail.message:detail.reason==='unplugged'?'HexBoard unplugged':detail.reason==='board'?'HexBoard returned to normal play':'';
  text.textContent=message;text.title=message;
  if(state==='connected')hexboardSync.start();
  else{hexboardSync.stop();if(state==='disconnected')hexboardSync.releaseAll();if(state==='error')toast(message);}

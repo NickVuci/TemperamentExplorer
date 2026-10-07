@@ -22,8 +22,9 @@ const harness=(opts,device={})=>{
   assert.equal(d.state,'connected');assert.equal(d.connected,true);assert.equal(d.name,'HexBoard');
   assert.deepEqual(m.sent[0].slice(0,3),[0xf0,0x7d,0x01],'enter delegated mode');
   assert.equal(String.fromCharCode(...m.sent[0].slice(3,-1)),'Temperament Lab');
+  assert.deepEqual(m.sent[1],[0xf0,0x7d,0x05,0xf7],'the default key encoding is restored after entering');
   assert.deepEqual(status.map(s=>s[0]),['connecting','connected']);
-  assert.equal(await d.connect(),true,'connecting twice does nothing');assert.equal(m.sent.length,1);
+  assert.equal(await d.connect(),true,'connecting twice does nothing');assert.equal(m.sent.length,2);
 }
 
 // Port choice: only a port named HexBoard is taken; other MIDI devices are never touched.
@@ -129,6 +130,7 @@ const harness=(opts,device={})=>{
   assert.deepEqual(m.sent.map(b=>b[2]),[1],'only the enter message has been sent so far');
   assert.equal(await pendingConnect,true);
   assert.ok(performance.now()-started>=55,'connect resolves after the settle time');
+  assert.deepEqual(m.sent.map(b=>b[2]),[1,5],'the note map is reset once the board has settled');
   assert.equal(d.setLeds(new Map([[1,{h:1,s:1,v:1}]])),1);
 }
 // Disconnecting while settling still hands the board back, and the attempt reports failure.
@@ -172,6 +174,32 @@ const harness=(opts,device={})=>{
   assert.equal(d.setLeds(frame),50);assert.equal(d.setLeds(frame),0);
   assert.equal(d.setLeds(frame,{force:true}),50,'a forced refresh repairs LEDs the board may have missed');
   assert.equal(d.setLeds(frame),0,'and normal updates go back to changes only');
+}
+
+// The board leaving host mode by itself (encoder held 5 s) reports only a release 5 s after the
+// press. The connection ends without sending anything back, so the board's normal notes are
+// never read as key indices.
+{
+  let clock=0;
+  const {m,d,status,encoders}=harness({},{now:()=>clock});await d.connect();m.sent.length=0;
+  const fire=data=>m.portIn[0].onmidimessage({data});
+  fire([0xf0,0x7d,0x06,3,0xf7]);clock+=1200;fire([0xf0,0x7d,0x06,4,0xf7]);
+  assert.equal(d.state,'connected','an ordinary click keeps the connection');
+  fire([0xf0,0x7d,0x06,3,0xf7]);clock+=4700;fire([0xf0,0x7d,0x06,4,0xf7]);
+  assert.equal(d.state,'connected','a long deliberate hold short of the exit keeps the connection');
+  fire([0xf0,0x7d,0x06,3,0xf7]);fire([0xf0,0x7d,0x06,1,0xf7]);clock+=5000;fire([0xf0,0x7d,0x06,4,0xf7]);
+  assert.deepEqual(encoders.slice(-3),['press','up','release'],'the release is still reported');
+  assert.equal(d.state,'disconnected');assert.equal(status.at(-1)[1].reason,'board');assert.equal(m.sent.length,0);
+  assert.equal(m.portIn[0].onmidimessage,null,'later notes are not decoded');
+  assert.equal(d.setLeds(new Map([[1,{h:1,s:1,v:1}]])),0);
+  d.disconnect();assert.equal(m.sent.length,0);
+  assert.equal(await d.connect(),true,'the board can be taken over again');
+}
+{
+  let clock=0;
+  const {m,d}=harness({},{now:()=>clock});await d.connect();
+  clock+=9000;m.portIn[0].onmidimessage({data:[0xf0,0x7d,0x06,4,0xf7]});
+  assert.equal(d.state,'connected','a release without a press seen by this connection is not an exit');
 }
 
 console.log('hexboard-device: ok');
