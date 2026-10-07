@@ -5,7 +5,7 @@
 import {hexToHSV} from './hexboard-colors.mjs';
 
 const START=0xf0,END=0xf7,MANUFACTURER=0x7d;
-const CMD_ENTER=0x01,CMD_EXIT=0x02,CMD_LED=0x03,CMD_ENCODER=0x06;
+const CMD_ENTER=0x01,CMD_EXIT=0x02,CMD_LED=0x03,CMD_NOTE_MAP_RESET=0x05,CMD_ENCODER=0x06,CMD_EXITED=0x07;
 export const BUTTON_COUNT=140,APP_NAME='Temperament Lab';
 const ENCODER={1:'up',2:'down',3:'press',4:'release'};
 
@@ -18,6 +18,10 @@ export function encodeEnter(name=APP_NAME){
   return frame(CMD_ENTER,bytes);
 }
 export const encodeExit=()=>frame(CMD_EXIT);
+/** Restores the default key encoding; the board keeps any note map another host left behind. */
+export const encodeNoteMapReset=()=>frame(CMD_NOTE_MAP_RESET);
+/** The board's notice that it has left host mode (sent by firmware that supports it). */
+export const isExitNotice=data=>data?.length===4&&data[0]===START&&data[1]===MANUFACTURER&&data[2]===CMD_EXITED&&data[3]===END;
 
 /** One frame carrying every record: {led 0..139, h,s,v each 0..127}. */
 export function encodeLeds(records){

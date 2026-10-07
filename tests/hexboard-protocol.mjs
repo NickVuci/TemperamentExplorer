@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict';
-import {encodeEnter,encodeExit,encodeLeds,decodeKey,decodeEncoder,hexToLed,BUTTON_COUNT} from '../dist/hexboard-protocol.mjs';
+import {encodeEnter,encodeExit,encodeNoteMapReset,isExitNotice,encodeLeds,decodeKey,decodeEncoder,hexToLed,BUTTON_COUNT} from '../dist/hexboard-protocol.mjs';
 
 // Byte examples are the ones documented in HexBoard docs/delegated-control.md.
 assert.deepEqual(encodeEnter(''),[0xf0,0x7d,0x01,0xf7]);
 assert.deepEqual(encodeEnter('Hi'),[0xf0,0x7d,0x01,0x48,0x69,0xf7]);
 assert.equal(encodeEnter().length,4+'Temperament Lab'.length,'default app name is sent');
 assert.deepEqual(encodeExit(),[0xf0,0x7d,0x02,0xf7]);
+assert.deepEqual(encodeNoteMapReset(),[0xf0,0x7d,0x05,0xf7]);
+assert.equal(isExitNotice([0xf0,0x7d,0x07,0xf7]),true);
+assert.equal(isExitNotice([0xf0,0x7d,0x02,0xf7]),false,'the host exit command is not a notice');
+assert.equal(isExitNotice([0xf0,0x7d,0x07,0,0xf7]),false);assert.equal(isExitNotice(null),false);
 assert.throws(()=>encodeEnter('x'.repeat(21)),RangeError);
 assert.throws(()=>encodeEnter('é'),RangeError);
 

@@ -701,8 +701,9 @@ use are unverified.
 
 The header's **Connect HexBoard** button opens Web MIDI (Chrome/Edge, SysEx permission), finds the
 port named "HexBoard", puts the board in delegated-control mode and takes over its keys and LEDs;
-Disconnect (or closing the page) blanks the LEDs and returns the board to normal. Nothing is
-persisted and the board always starts disconnected.
+Disconnect (or closing the page) blanks the LEDs and returns the board to normal. Holding the
+board's encoder for 5 seconds also returns it to normal; the app then shows it as disconnected and
+stops reading its notes. Nothing is persisted and the board always starts disconnected.
 
 | Concern | Owner |
 | --- | --- |
@@ -712,7 +713,10 @@ persisted and the board always starts disconnected.
 | What the board should show (colours, highlights, dimming) | `hexboard-ui.mjs#deviceSnapshot` |
 | Wiring and header status | `app.mjs` |
 
-Keys. Button index equals the layout's key index (`0..139`). On the Play view a board press is
+Keys. Button index equals the layout's key index (`0..139`); after entering host mode the app
+resets the board's delegated note map so another host's mapping cannot change that encoding. The
+board's exit notice (`F0 7D 07 F7`) ends the connection; for firmware without the notice, an encoder
+release at least 4.8 s after its press is treated the same way. On the Play view a board press is
 dispatched as a pointer press on that key's SVG node with its own pointer id, so sound, selection,
 chord picking, the live chord readout and Shift-free release behave exactly as for a mouse. When the
 Play board is not on screen the key sounds directly at its layout pitch. Command keys and disabled
