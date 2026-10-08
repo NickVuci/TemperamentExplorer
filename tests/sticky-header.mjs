@@ -17,8 +17,8 @@ const zIndexes=[...css.matchAll(/z-index:\s*(\d+)/g)].map(m=>Number(m[1]));
 assert.equal(Math.max(...zIndexes),200,'the header is the topmost layer');
 assert.ok(html.includes('<header class="app-header">'));
 
-// Sticky side panes stop below the header and use the measured height.
-assert.match(media('min-width:1251px'),/\.unified-directory,\s*\.unified-analysis\s*\{[^}]*top:\s*calc\(var\(--header-h,\s*0px\)\s*\+\s*12px\);[^}]*max-height:\s*calc\(100vh\s*-\s*var\(--header-h,\s*0px\)\s*-\s*24px\)/);
+// Discover panels move with the page rather than sticking below the header.
+assert.doesNotMatch(css,/\.unified-directory,\s*\.unified-analysis\s*\{[^}]*position:\s*sticky/);
 assert.match(app,/\.style\.setProperty\('--header-h',header\.offsetHeight\+'px'\)[^\n]*ResizeObserver\(setHeaderHeight\)\.observe\(header\)/,'the header height is measured and tracked');
 
 // In a stacked phone header the row flex-bases must not become heights.

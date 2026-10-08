@@ -31,7 +31,7 @@ options (comma search and direct mapping input; tuning-method settings and Optim
 period) open as panels below the header and close when the page is clicked elsewhere.
 There is no separate Scale/Mode row: Discover's scale module owns those controls.
 The header floats at the top of the window while the page scrolls (above phone width; on
-phones it scrolls away), and Discover's side panes stick below it.
+phones it scrolls away). All Discover panes scroll with the page. The directory and analysis match the centre panel’s measured height and scroll their content internally; they are not sticky.
 
 - **Discover** is one screen with no sub-tabs (`discover-unified.mjs`, layout only):
   the harmony catalogue's directory on the left, the tonality diamond or interval
