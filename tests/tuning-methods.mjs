@@ -3,6 +3,9 @@ import {makeState,purePeriod,mapRatio} from '../dist/engine.mjs';
 import {tuningMethods,tuningMethod,tuningConfig,applyTuningMethod} from '../dist/tuning-methods.mjs';
 import {weilTune,fromCommas} from '../dist/tuning.mjs';
 import {presetSnapshot} from '../dist/preset-data.mjs';
+import {canonicalHarmonicJSON} from '../dist/harmonic-types.mjs';
+import {validateState} from '../dist/state.mjs';
+import {mappingContext} from '../dist/harmonic-context.mjs';
 const close=(a,b,t=1e-6)=>assert.ok(Math.abs(a-b)<t,`${a} != ${b}`),s=makeState('meantone');
 assert.equal(tuningMethods.length,5);
 for(const method of tuningMethods){const r=applyTuningMethod({...s,g:690},{method});assert.equal(r.tuning,method);assert.ok(Number.isFinite(r.g));assert.notEqual(r.g,690);if(method!=='EDO')close(r.p,1200);}
@@ -51,5 +54,18 @@ assert.equal(tuningConfig(live[0]).fixed,true);close(live[0].p,1200);
 assert.ok(!source.slice(source.indexOf('function tuningControls('),source.indexOf('function applyPanelTuning(')).includes('data-optimize-period'));
 assert.ok(source.includes('class="period-summary"'));
 const panelMarkup=source.slice(source.indexOf('function renderPanel('),source.indexOf('function scaleControls(')),advancedTuning=panelMarkup.indexOf('class="advanced-tuning-options"');assert.match(panelMarkup,/<div class="tuning-choice"><label>Tuning<select[\s\S]*?<\/label><div class="tuning-summary"/,'the tuning menu and vertically stacked tuning values share the two-column primary row');assert.ok(advancedTuning>panelMarkup.indexOf('class="tuning-summary"'));assert.doesNotMatch(panelMarkup.slice(0,advancedTuning),/>Optimize period</);assert.match(panelMarkup.slice(advancedTuning),/<summary>Advanced tuning options<\/summary>[\s\S]*>Optimize period<\/label>/,'period optimization is inside its collapsed advanced section at the module bottom');
-assert.match(panelMarkup,/<summary>Advanced tuning options<\/summary>\$\{tuningOptions\}/,'method-specific controls render inside Advanced tuning options');
+assert.match(panelMarkup,/<summary>Advanced tuning options<\/summary><div class="header-popover-panel">\$\{tuningOptions\}/,'method-specific controls render inside the Advanced tuning options panel');
+// Harmonic jobs serialize the whole temperament state and reject undefined values, so every tuning
+// method must leave a state that has never explored a target without an `explore` key at all.
+for(const start of [makeState('meantone'),validateState(makeState('meantone')),makeState('miracle11')])
+ for(const method of tuningMethods){
+  let tuned;try{tuned=applyTuningMethod(start,{method});}catch(e){continue;}
+  assert.ok(!Object.values(tuned).includes(undefined),`${method}: no field of the tuned state is undefined`);
+  assert.equal(Object.hasOwn(tuned,'explore'),method==='JI Target',`${method}: explore is present only when a target was explored`);
+  assert.doesNotThrow(()=>canonicalHarmonicJSON({state:tuned}),`${method}: the tuned state serializes for harmonic jobs`);
+  assert.equal(mappingContext(tuned).id,mappingContext(start).id,`${method}: tuning does not change the mapping`);
+ }
+// An existing exploration survives retuning.
+{const explored=applyTuningMethod(s,{method:'JI Target',pure:'5/4'});assert.ok(explored.explore);
+ const retuned=applyTuningMethod(explored,{method:'Minimax'});assert.deepEqual(retuned.explore,explored.explore);assert.doesNotThrow(()=>canonicalHarmonicJSON({state:retuned}));}
 console.log('Visible period checkbox retunes immediately and restores the pure period.');

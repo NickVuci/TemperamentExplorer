@@ -25,5 +25,6 @@ export function applyTuningMethod(s,input={}){
   result=pureTune(working,list,cfg.fixed);explore={...s.explore,ratio:selected.label,m:[...selected.m],open:true,notice:''};cfg.pure=selected.label;
   report=`${list.map(t=>t.label).join(', ')} pure. ${cfg.fixed?'Period fixed.':'Period optimized; WE selects among underdetermined pure tunings.'} Mapping retained.`;
  }else{const ts=tuneTargets(working,cfg.targets,cfg.custom);result=optimize(working,ts,cfg.method==='Minimax'?'minimax':'ls',cfg.fixed);report=`${cfg.method} · ${ts.length} targets · max error ${result.max.toFixed(4)}¢ · RMS ${result.rms.toFixed(4)}¢. ${cfg.fixed?'Period fixed.':'Period optimized.'}`;}
- return validateState({...s,p:result.p,g:result.g,tuning:cfg.method,tuneConfig:cfg,explore,tuningReport:report});
+ // A state that never explored a target must not gain an explicit `explore: undefined`: harmonic job requests serialize the whole state and reject undefined values.
+ return validateState({...s,p:result.p,g:result.g,tuning:cfg.method,tuneConfig:cfg,...(explore===undefined?{}:{explore}),tuningReport:report});
 }

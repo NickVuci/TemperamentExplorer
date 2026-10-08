@@ -76,12 +76,13 @@ workspace.restore({harmonics:'4:5:6',fold:false,interaction:'select',selected:[]
 const diamondMarkup=workspace.render(cfg,'');
 assert.match(diamondMarkup,/data-diamond-chord/,'the diamond has a live JI chord readout');
 assert.ok(diamondMarkup.indexOf('diamond-detail-0')<diamondMarkup.indexOf('class="diamond-scroll"'),'selected interval details appear at the upper left of the canvas');
-assert.ok(diamondMarkup.indexOf('diamond-pointer-controls')<diamondMarkup.indexOf('<svg'),'pointer controls appear above the canvas');
+assert.ok(diamondMarkup.indexOf('diamond-pointer-controls')>diamondMarkup.indexOf('</svg>'),'pointer controls follow the canvas, at its bottom right');
+assert.ok(diamondMarkup.indexOf('diamond-pointer-controls')>diamondMarkup.indexOf('class="diamond-scroll"'),'and are no longer part of the toolbar above it');
 assert.match(diamondMarkup,/data-diamond-setting="interaction"/);
 assert.doesNotMatch(diamondMarkup,/diamond-pointer-help|Click, hold and drag/,'play instructions are hidden in cell-selection mode');
 assert.doesNotMatch(diamondMarkup,/aria-describedby="diamond-pointer-help"/,'selection mode does not reference the hidden instructions');
 assert.ok(diamondMarkup.indexOf('</label>')<diamondMarkup.indexOf('diamond-selection-actions'),'selection actions follow the pointer selector');
-assert.ok(diamondMarkup.indexOf('diamond-selection-actions')<diamondMarkup.indexOf('<svg'),'selection actions sit above the diamond with the pointer selector');
+assert.ok(diamondMarkup.indexOf('diamond-selection-actions')>diamondMarkup.indexOf('</svg>'),'selection actions sit with the pointer selector at the bottom right of the diamond');
 assert.doesNotMatch(diamondMarkup,/Pure · 0¢/,'the error legend no longer labels zero separately');
 assert.doesNotMatch(diamondMarkup,/Select cells or a line, then play/,'remove the helper sentence');
 for(const diamondKey of ['0:0','1:0','2:0'])assert.deepEqual(workspace.press({dataset:{diamondKey}}),{enabled:false,track:true});

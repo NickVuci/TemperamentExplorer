@@ -4,14 +4,14 @@ import vm from 'node:vm';
 
 const html=readFileSync('dist/index.html','utf8');
 const app=readFileSync('dist/app.mjs','utf8');
-const style=readFileSync('dist/style.css','utf8');
+const style=readFileSync('dist/style.css','utf8').split(String.fromCharCode(13,10)).join(String.fromCharCode(10));
 
 assert.equal((html.match(/id="target-controls"/g)||[]).length,1);
 assert.equal((html.match(/id="targetfilter"/g)||[]).length,1);
 assert.match(html,/id="approximation-module" class="approximation-module"/);
 assert.match(html,/<details id="ji-controls" class="advanced-approximation-options">/);
 assert.match(html,/<details id="matrix-controls" class="matrix-controls advanced-approximation-options"><summary>Advanced matrix options<\/summary>/);
-assert.match(html,/<button data-view="targets">Tonality Diamond<\/button>/);
+assert.doesNotMatch(html,/data-view=/,'Discover has no sub-tab buttons; the diamond is the centre pane of the unified screen');
 assert.doesNotMatch(html,/<button data-view="targets">JI targets<\/button>/);
 const matrixAdvanced=html.match(/<details id="matrix-controls" class="matrix-controls advanced-approximation-options">[\s\S]*?<\/details>/)?.[0]??'';
 assert.match(matrixAdvanced,/<div class="matrix-option-fields"><label>Arrangement<select id="layout">/);
@@ -29,7 +29,7 @@ assert.doesNotMatch(advanced,/id="tolerance"|Tolerance · cents/);assert.match(h
 assert.doesNotMatch(advanced,/\bopen\b/);
 
 assert.ok(html.includes('<section class="analysis-workspace" id="analysis-explore">'));
-assert.match(html,/<div class="tabs workspace-tabs"[\s\S]*?<\/div><section id="approximation-module"[\s\S]*?<div id="diamond-tolerance-host" class="diamond-tolerance-host" hidden><\/div>/,'tolerance control host follows the analysis tabs');
+assert.match(html,/<section id="approximation-module"[\s\S]*?<div id="diamond-tolerance-host" class="diamond-tolerance-host" hidden><\/div>/,'tolerance control host lives in the approximation module');
 const tolerancePlacement=app.split('\n').find(line=>line.startsWith('function placeDiamondTolerance('));assert.ok(tolerancePlacement);
 let hasToleranceClass=false;const toleranceHost={hidden:true,innerHTML:'',parentElement:{classList:{toggle:(name,value)=>{if(name==='has-diamond-tolerance')hasToleranceClass=value;}}}},placement=vm.createContext({$:()=>toleranceHost,renderDiamondTolerance:cfg=>`tolerance ${cfg.tol}`});vm.runInContext(tolerancePlacement,placement);
 for(const view of ['matrices','targets','scales','chords']){placement.placeDiamondTolerance(view,{tol:7.25});assert.equal(toleranceHost.hidden,false,`${view} keeps the tolerance control visible`);assert.equal(hasToleranceClass,true);assert.equal(toleranceHost.innerHTML,'tolerance 7.25');}
@@ -38,7 +38,7 @@ assert.ok(app.includes("function settings(s=states[0]){const cfg=coverageSetting
 assert.equal((app.match(/getJI:settings/g)||[]).length,2,'both chord and HexBoard workspaces use the shared JI settings getter');assert.match(readFileSync(new URL('../dist/hexboard-ui.mjs',import.meta.url),'utf8'),/getSettings:s=>getJI\?getJI\(s\)/,'HexBoard chord search uses the shared JI settings getter');
 assert.doesNotMatch(style,/#play-view \.sectionhead\.has-diamond-tolerance/,'the Play tab has no tolerance-control layout rule');
 assert.ok(app.includes('placeDiamondTolerance(null);'),'tolerance control hides before view changes, including Create');
-assert.ok(app.includes('placeDiamondTolerance(v,cfg);'),'tolerance control is rendered for the active diamond view');
+assert.ok(app.includes('placeDiamondTolerance(c,cfg);'),'tolerance control is rendered for the active centre view');
 assert.match(style,/\.diamond-tolerance-host\s*\{[^}]*margin-left:\s*auto;/,'tolerance control aligns to the right of the analysis tabs');
 assert.doesNotMatch(html,/tab-compare|compare-view|compare-chooser|data-view="compare-/);
 assert.doesNotMatch(html,/class="toolbar"/);
@@ -56,7 +56,7 @@ assert.ok(app.includes("const labels=$('#matrix-label-controls');if(labels)$('#m
 assert.ok(app.includes('diamondWorkspace.mountOptions();'));
 assert.ok(app.includes("if(controls&&v==='targets'){const panel=document.querySelector('.diamond-pair .diamond-panel');panel?.appendChild(controls);diamondWorkspace.mountOptions();const host=$('#diamond-span-controls');if(host)host.innerHTML=spanControl(states[0],0,'Target span')||'';const source=$('#diamond-scope')?.closest('label'),canvas=panel?.querySelector('.diamond-canvas');if(source&&canvas){source.classList.add('diamond-source-control');canvas.appendChild(source);updateDiamondScopeHelp();}}}"));
 assert.doesNotMatch(app,/querySelector\('\.harmony-heading'\)/,'diamond controls no longer mount in the chord header');
-assert.ok(app.includes("placeMatrixControls(v);placeTargetControls(v);placeJIControls(v);"));
+assert.ok(app.includes("placeMatrixControls(c);placeTargetControls(c);placeJIControls(c);"),'controls follow the unified centre view');
 assert.equal(app.includes('.toolbar'),false);
 
 const diamond=readFileSync('dist/diamond-workspace.mjs','utf8');
@@ -73,13 +73,15 @@ assert.match(style,/\.diamond-source-control \.viewnote\.is-empty\s*\{[^}]*visib
 assert.match(style,/\.diamond-source-control\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*auto auto 14px 0;[^}]*z-index:\s*3;[^}]*border:\s*0;[^}]*background:\s*transparent;[^}]*box-shadow:\s*none;/);
 assert.match(style,/\.diamond-canvas-tools\s*\{[^}]*position:\s*static;[^}]*flex-wrap:\s*wrap;[^}]*pointer-events:\s*auto;/,'readout occupies normal flow and cannot cover the diamond');
 assert.match(style,/\.diamond-detail\s*\{[^}]*width:\s*max-content;[^}]*max-width:\s*100%;[^}]*overflow-x:\s*auto;[^}]*background:\s*transparent;/,'readout shrinks to its data and scrolls inside its own transparent area');
-assert.match(style,/@media \(min-width:901px\)\s*\{\s*\.diamond-canvas-tools\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) minmax\(180px, 300px\);[^}]*height:\s*180px;/,'a stable desktop band prevents live chord updates from moving the keys under the pointer');
+assert.match(style,/@media \(min-width:901px\)\s*\{\s*\.diamond-canvas-tools\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\);[^}]*height:\s*180px;/,'a stable desktop band prevents live chord updates from moving the keys under the pointer');
 assert.match(style,/@media \(max-width:900px\)[\s\S]*?\.diamond-canvas-tools\s*\{[^}]*position:\s*static;[^}]*order:\s*1;/);
 assert.match(style,/@media \(max-width:900px\)[\s\S]*?\.diamond-scroll\s*\{[^}]*order:\s*0;/);
 assert.match(style,/@media \(max-width:900px\)[\s\S]*?\.diamond-source-control\s*\{[^}]*position:\s*static;[^}]*order:\s*2;/);
-assert.match(style,/\.diamond-pointer-controls\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/);
-assert.match(style,/\.diamond-pointer-controls\s*\{[^}]*grid-column:\s*-2 \/ -1;/,'pointer controls keep the last column even when the readout is hidden, including single-column mobile layouts');
-assert.match(style,/\.diamond-pointer-controls \.diamond-selection-actions\s*\{[^}]*flex-direction:\s*column;/);
+assert.doesNotMatch(style,/\.diamond-detail,\s*(\/\*[\s\S]*?\*\/\s*)?\.diamond-pointer-controls\s*\{/,'the readout is never grouped with the pointer controls, whose margin and width would move it');
+assert.match(style,/\.diamond-detail\s*\{[^}]*min-height:\s*0;[^}]*overflow-y:\s*auto;[^}]*pointer-events:\s*auto;/,'the readout keeps its own scroll and pointer rule');
+assert.match(style,/\.diamond-pointer-controls\s*\{[^}]*position:\s*relative;[^}]*display:\s*flex;[^}]*flex-direction:\s*column;[^}]*min-height:\s*104px;[^}]*margin:\s*12px 0 0 auto;[^}]*padding-bottom:\s*14px;[^}]*background:\s*transparent;/,'pointer action sits at the bottom right in flow below the diamond, so it cannot cover cells, and is tall enough to hold the source control beside it');
+assert.match(style,/@media \(max-width:900px\)[\s\S]*?\.diamond-pointer-controls\s*\{[^}]*position:\s*static;[^}]*order:\s*3;/);
+assert.match(style,/\.diamond-pointer-controls \.diamond-selection-actions\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\);/,'select-mode actions are compact so they stay clear of the diamond');
 assert.match(style,/\.diamond-chord-heading\s*\{[^}]*height:\s*20px;[^}]*overflow:\s*hidden;[^}]*white-space:\s*nowrap;/,'the chord notation has a fixed reserved row that cannot push interval data down');
 assert.match(app,/function diamondIntervalTable\(/,'single intervals and chords share the table renderer');
 assert.doesNotMatch(app,/diamondIntervalHeading|diamondApproximationMetrics|approximationMarkup/,'the separate interval layout is removed');
