@@ -30,3 +30,16 @@ export function renderUnified({center,centerMarkup,directory,detail,scaleControl
 <section class="unified-pane unified-scale" aria-label="Scale"><h3 class="unified-pane-title">Scale</h3><div class="discover-scale unified-scale-controls" aria-label="Scale and mode">${scaleControls}</div>${scaleMarkup}</section>
 </div>`;
 }
+
+// Measure the centre's natural height without letting long side content grow its row.
+let observedCenter=null,panelSizeObserver=null;
+export function syncUnifiedPanelHeights(doc=globalThis.document,Observer=globalThis.ResizeObserver){
+ const center=doc?.querySelector('.unified-center');
+ if(center===observedCenter)return;
+ panelSizeObserver?.disconnect();panelSizeObserver=null;observedCenter=center??null;
+ if(!center)return;
+ const wrapper=center.closest('.unified-workspace');
+ const update=()=>{const height=center.getBoundingClientRect().height;if(height>0)wrapper.style.setProperty('--unified-center-height',height+'px');};
+ update();
+ if(typeof Observer==='function'){panelSizeObserver=new Observer(update);panelSizeObserver.observe(center);}
+}

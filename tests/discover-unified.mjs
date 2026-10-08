@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {renderUnified,unifiedCenterToggle,unifiedCenterView,normalizeUnifiedCenter,unifiedDirectory,unifiedDetail} from '../dist/discover-unified.mjs';
+import {syncUnifiedPanelHeights,renderUnified,unifiedCenterToggle,unifiedCenterView,normalizeUnifiedCenter,unifiedDirectory,unifiedDetail} from '../dist/discover-unified.mjs';
 
 // The centre pane shows the diamond by default and borrows the single views' behaviour.
 assert.equal(normalizeUnifiedCenter('matrix'),'matrix');
@@ -37,18 +37,26 @@ assert.match(app,/inDiscover=section==='discover';\$\('#approximation-settings'\
 assert.match(app,/if\(sectionFor\(view\)==='discover'\)view='unified';/,'any Discover view name renders the unified screen');
 assert.match(app,/detail:manualChordInspector\?chordWorkspace\.render\(\):unifiedDetail\(parts\)/,'the manual note inspector opens in the analysis pane');
 assert.match(catalogue,/function render\(\)\{const parts=renderParts\(\);/,'the Chords tab and Unified share one renderer');
-assert.match(app,/function refreshHarmony\(\)\{.*view!=='unified'.*parts=harmonicWorkspace\.renderParts\(\).*if\(!manualChordInspector\)detail\.innerHTML=unifiedDetail\(parts\)/,'a catalogue refresh rewrites only the directory, and the analysis unless the note inspector is open');
+assert.match(app,/function refreshHarmony\(\)\{.*view!=='unified'.*parts=harmonicWorkspace\.renderParts\(\{directory:true\}\).*if\(!manualChordInspector\)detail\.innerHTML=unifiedDetail\(parts\)/,'a catalogue refresh rewrites only the directory, and the analysis unless the note inspector is open');
 assert.match(app,/onShowDiamond:value=>\{unifiedCenter='diamond';view='unified';/,'Show in diamond switches the centre pane to the diamond');
 assert.match(app,/settings:\{[^}]*unifiedCenter,/,'the centre choice is saved with the session');
 
 assert.doesNotMatch(app,/explore-scale-controls/,'the scale pane holds the only scale and mode controls');
 assert.match(app,/scaleControls:scaleControls\(\),scaleMarkup:scaleDetails\(\)/);
 
-// The scale pane sits outside the wrapper that holds the sticky side panes, so they cannot slide over it.
+// The scale pane follows the three main modules.
 assert.match(html,/<div class="unified-main">[^]*unified-directory[^]*unified-center[^]*unified-analysis[^]*<\/div>\s*<section class="unified-pane unified-scale"/,'directory, centre and analysis share one wrapper that closes before the scale pane');
 const css=readFileSync(new URL('../dist/style.css',import.meta.url),'utf8');
 assert.match(css,/\.unified-main\s*\{[^}]*grid-template-areas:\s*"directory center analysis";/);
-assert.doesNotMatch(css,/\.unified-workspace\s*\{[^}]*grid-template-areas/,'the scale row is not part of the grid the sticky panes live in');
-assert.match(css,/\.unified-directory, \.unified-analysis \{ position: sticky;/);
+assert.doesNotMatch(css,/\.unified-workspace\s*\{[^}]*grid-template-areas/,'the scale row follows the main grid');
+assert.match(css,/\.unified-directory, \.unified-analysis \{ position: static; height: var\(--unified-center-height,auto\); min-height: 0; overflow-y: auto;/);
 
 console.log('discover-unified: ok');
+
+let height=480,callback,disconnected=0;const props={};
+const wrapper={style:{setProperty:(key,value)=>props[key]=value}};
+const center={closest:()=>wrapper,getBoundingClientRect:()=>({height})};
+class Observer{constructor(fn){callback=fn;}observe(node){assert.equal(node,center);}disconnect(){disconnected++;}}
+syncUnifiedPanelHeights({querySelector:()=>center},Observer);assert.equal(props['--unified-center-height'],'480px');
+height=640;callback();assert.equal(props['--unified-center-height'],'640px');
+syncUnifiedPanelHeights({querySelector:()=>null},Observer);assert.equal(disconnected,1);
