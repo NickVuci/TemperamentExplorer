@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {withDefaultDiamondScale} from '../dist/default-scale.mjs';
+import {normalizeUnifiedCenter} from '../dist/discover-unified.mjs';
 import {scaleDefaultKey,scaleCoverageTarget} from '../dist/scale-milestones.mjs';
 import {makeState,scale} from '../dist/engine.mjs';
 import {validateState} from '../dist/state.mjs';
@@ -46,7 +47,7 @@ const handoff=vm.createContext({compositionWorkspace:{click:()=>false,change:()=
  hexWorkspace:hex,getLayoutStates:boardStates,
  materialWorkspace:{click:()=>false},presetWorkspace:{click:()=>false},
  renderWorkspace:()=>{renderedPlay=true;},$:()=>({scrollIntoView:()=>{scrolled=true;}}),
- document:{addEventListener:(name,fn)=>{if(name==='click')useScaleHandler=fn;}}});
+ document:{addEventListener:(name,fn)=>{if(name==='click')useScaleHandler=fn;},querySelectorAll:()=>[]}});
 vm.runInContext(source.split('\n').find(line=>line.startsWith("document.addEventListener('click',")),handoff);
 const useScaleButton={dataset:{hexOpen:'0'},closest:selector=>selector==='button'?useScaleButton:null};
 useScaleHandler({target:useScaleButton,shiftKey:false});
@@ -66,24 +67,29 @@ const htmlSource=readFileSync(new URL('../dist/index.html',import.meta.url),'utf
 assert.ok(!source.slice(source.indexOf('function renderPanel('),source.indexOf('function scaleControls(')).includes('data-field="n"'));
 console.log('Discover/Play/Create routing; independent layout scale; collection naming, playback, source checks, persistence; 7-note highlight on 31-note board; voiced chord placement; unchanged exports passed.');
 
-// Older sessions reopen their last analysis tool inside Discover.
-const restoreNavigation=source.slice(source.indexOf('const previousDiscover='),source.indexOf('materialWorkspace.restore(data.material'));
-for(const [settings,want] of [
- [{view:'choose',lastViews:{explore:'targets'}},'targets'],
- [{view:'matrices',lastViews:{explore:'scales'}},'matrices'],
- [{view:'chords',lastViews:{discover:'chords'}},'chords'],
- [{view:'hexboard',lastViews:{create:'hexboard'}},'hexboard'],
- [{view:'composition',lastViews:{create:'composition'}},'composition'],[{view:'compare-matrices',lastViews:{discover:'targets'}},'targets'],[{},'scales']
+// Discover is one unified screen: every older Discover view restores into it, and the old
+// matrix view keeps the matrix in the centre.
+const restoreStart=source.indexOf("lastViews.discover='unified';lastViews.play='hexboard';lastViews.create='composition';unifiedCenter=normalizeUnifiedCenter(data");
+assert.ok(restoreStart>=0);
+const restoreNavigation=source.slice(restoreStart,source.indexOf('materialWorkspace.restore(data.material',restoreStart));
+for(const [settings,want,center] of [
+ [{view:'choose',lastViews:{explore:'targets'}},'unified','diamond'],
+ [{view:'matrices',lastViews:{explore:'scales'}},'unified','matrix'],
+ [{view:'chords',lastViews:{discover:'chords'}},'unified','diamond'],[{view:'unified',unifiedCenter:'matrix'},'unified','matrix'],
+ [{view:'hexboard',lastViews:{create:'hexboard'}},'hexboard','diamond'],
+ [{view:'composition',lastViews:{create:'composition'}},'composition','diamond'],[{view:'compare-matrices',lastViews:{discover:'targets'}},'unified','diamond'],[{},'unified','diamond']
 ]){
- const c=vm.createContext({data:{settings},lastViews:{discover:'matrices',play:'hexboard',create:'composition'},view:''});vm.runInContext(restoreNavigation,c);assert.equal(c.view,want);assert.equal(c.lastViews.play,'hexboard');assert.equal(c.lastViews.create,'composition');assert.equal(Object.hasOwn(c.lastViews,'compare'),false);
+ const c=vm.createContext({normalizeUnifiedCenter,data:{settings},lastViews:{discover:'matrices',play:'hexboard',create:'composition'},view:'',unifiedCenter:'diamond'});vm.runInContext(restoreNavigation,c);assert.equal(c.view,want);assert.equal(c.unifiedCenter,center);assert.equal(c.lastViews.discover,'unified');assert.equal(c.lastViews.play,'hexboard');assert.equal(c.lastViews.create,'composition');assert.equal(Object.hasOwn(c.lastViews,'compare'),false);
 }
-// Shared setup precedes all top-level panels, so switching tabs never hides it.
-const setup=htmlSource.slice(htmlSource.indexOf('<div class="discover-setup"'),htmlSource.indexOf('<div id="discover-view"'));
-for(const id of ['temperament-section','tuning-section','explore-scale-controls'])assert.ok(setup.includes(`id="${id}"`));
-assert.ok(setup.indexOf('tuning-section')<setup.indexOf('explore-scale-controls'));
+// Temperament and tuning live in the header on every page; there is no setup row or top scale control.
+const header=htmlSource.slice(htmlSource.indexOf('<header class="app-header">'),htmlSource.indexOf('</header>'));
+const headerSetup=header.slice(header.indexOf('<div class="header-setup"'),header.indexOf('<div class="header-actions">'));
+for(const id of ['temperament-section','tuning-section'])assert.ok(headerSetup.includes(`id="${id}"`),id);
+assert.ok(header.indexOf('class="main-tabs"')<header.indexOf('class="header-setup"')&&headerSetup.indexOf('temperament-section')<headerSetup.indexOf('tuning-section'));
+assert.ok(!htmlSource.includes('explore-scale-controls')&&!htmlSource.includes('discover-setup'));
+assert.match(headerSetup,/<details id="advanced-temperament-options"[^>]*><summary>Advanced temperament options<\/summary><div class="header-popover-panel">/,'advanced temperament options open as a panel below the header');
 const discover=htmlSource.slice(htmlSource.indexOf('<div id="discover-view"'),htmlSource.indexOf('<div id="play-view"'));
 assert.ok(discover.includes('id="analysis-explore"'));
-assert.ok(!discover.includes('class="discover-setup"'));
 assert.ok(!htmlSource.includes('id="choose-view"')&&!htmlSource.includes('id="explore-view"'));
 const temperamentOptionsStart=htmlSource.indexOf('<details id="advanced-temperament-options"'),temperamentSearchStart=htmlSource.indexOf('<details id="advanced-temperament"',temperamentOptionsStart),temperamentOptionsEnd=htmlSource.indexOf('</details></section>',temperamentOptionsStart);assert.ok(temperamentOptionsStart>=0&&temperamentSearchStart>temperamentOptionsStart&&temperamentOptionsEnd>temperamentSearchStart);assert.ok(htmlSource.slice(temperamentOptionsStart,temperamentOptionsEnd).includes('id="advanced-temperament-editor"'));assert.ok(htmlSource.slice(temperamentOptionsStart,temperamentOptionsEnd).includes('Advanced temperament options'));
 const presetMove=source.slice(source.indexOf('function renderPresetControls('),source.indexOf('function renderPanel('));assert.match(presetMove,/target\.replaceChildren\(editor\)/,'only one preset editor remains inside Advanced temperament options after rerender');

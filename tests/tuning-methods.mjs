@@ -54,7 +54,7 @@ assert.equal(tuningConfig(live[0]).fixed,true);close(live[0].p,1200);
 assert.ok(!source.slice(source.indexOf('function tuningControls('),source.indexOf('function applyPanelTuning(')).includes('data-optimize-period'));
 assert.ok(source.includes('class="period-summary"'));
 const panelMarkup=source.slice(source.indexOf('function renderPanel('),source.indexOf('function scaleControls(')),advancedTuning=panelMarkup.indexOf('class="advanced-tuning-options"');assert.match(panelMarkup,/<div class="tuning-choice"><label>Tuning<select[\s\S]*?<\/label><div class="tuning-summary"/,'the tuning menu and vertically stacked tuning values share the two-column primary row');assert.ok(advancedTuning>panelMarkup.indexOf('class="tuning-summary"'));assert.doesNotMatch(panelMarkup.slice(0,advancedTuning),/>Optimize period</);assert.match(panelMarkup.slice(advancedTuning),/<summary>Advanced tuning options<\/summary>[\s\S]*>Optimize period<\/label>/,'period optimization is inside its collapsed advanced section at the module bottom');
-assert.match(panelMarkup,/<summary>Advanced tuning options<\/summary>\$\{tuningOptions\}/,'method-specific controls render inside Advanced tuning options');
+assert.match(panelMarkup,/<summary>Advanced tuning options<\/summary><div class="header-popover-panel">\$\{tuningOptions\}/,'method-specific controls render inside the Advanced tuning options panel');
 // Harmonic jobs serialize the whole temperament state and reject undefined values, so every tuning
 // method must leave a state that has never explored a target without an `explore` key at all.
 for(const start of [makeState('meantone'),validateState(makeState('meantone')),makeState('miracle11')])

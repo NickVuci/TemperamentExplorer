@@ -26,14 +26,30 @@ interval/JI, chord, and HexBoard-layout application.
 
 The top-level tabs are **Discover**, **Play**, and **Create**.
 
-A compact Temperament, Tuning, and Scale/Mode setup row sits outside the tab
-panels and remains available on Discover, Play, and Create. Advanced temperament
-controls contain comma search and direct mapping input.
+Temperament and Tuning controls sit in the app header on every tab; their advanced
+options (comma search and direct mapping input; tuning-method settings and Optimize
+period) open as panels below the header and close when the page is clicked elsewhere.
+There is no separate Scale/Mode row: Discover's scale module owns those controls.
+The header floats at the top of the window while the page scrolls (above phone width; on
+phones it scrolls away), and Discover's side panes stick below it.
 
-- **Discover** owns the analysis workspace.
-  Analysis opens on Interval Matrix and also provides JI-target tonality diamonds
-  and generated-scale details. A manual chord-inspection view remains reachable
-  from interval workflows but is not a primary tab.
+- **Discover** is one screen with no sub-tabs (`discover-unified.mjs`, layout only):
+  the harmony catalogue's directory on the left, the tonality diamond or interval
+  matrix (toggle) in the centre, chord analysis on the right, and the scale module
+  (Scale/Mode, advanced scale options, coverage milestones and scale details) along
+  the bottom. Approximation settings (odd limit, prime limit/basis, approximation
+  source, maximum error) sit in a collapsible section below the workspace; Play
+  shows the same controls in its header. The catalogue's `renderParts` supplies
+  the directory and analysis, and a catalogue refresh replaces only those two panes.
+  The analysis pane shows the selected catalogue harmony, or the manual note
+  inspector when it is opened from the directory, a matrix interval or collected
+  material; choosing a harmony or "Back to harmonic catalogue" returns to the
+  catalogue analysis. The centre borrows the diamond or matrix view's controls.
+  Every handoff that used to open a Discover sub-view (Show in diamond, diamond
+  chord transfer, coverage milestones, tuning-target exploration, Browse harmony
+  from Play) opens this screen. Saved sessions with any older Discover view restore
+  into it, an old matrix view with the matrix centre; the centre choice is saved in
+  session settings.
 - **Play** owns the HexBoard target scale/mode, layout settings, the v2 Scale
   Chords catalogue, chord realizations/fingerings, temporary scale/chord highlights,
   playback, and HexBoard export.
@@ -106,7 +122,7 @@ extensions unresolved, and can preview a whole chord under one candidate
 context without changing active state. It also enumerates bounded one-prime
 extensions from generator coefficients −16 through +16 by default (with
 explicit 32/64 bounds), ranks them using target tuning error, and returns at
-most 20 fully validated contexts. B Discover → Chords previews these contexts and requires explicit adoption.
+most 20 fully validated contexts. The Discover harmony directory previews these contexts and requires explicit adoption.
 Adoption preserves every existing mapping column and the current period/generator tuning.
 `harmonic-approximations.mjs` searches a bounded temperament lattice for
 incidental interval approximations without changing canonical mappings. It
@@ -126,7 +142,7 @@ no aggregate improvement score. Candidate shapes preserve exact interpretation
 and dual-family links, tuning errors, and optional exact target-set collision
 records. The default search uses generator bound ±32, eight candidates per
 member, a 10,000-combination cap, a 250,000-dyad-derivation cap, and returns at
-most 12 shapes. Shortlist/cap exhaustion is reported as partial. B Discover → Chords compares both interval and whole-chord alternatives
+most 12 shapes. Shortlist/cap exhaustion is reported as partial. The Discover harmony directory compares both interval and whole-chord alternatives
 against the canonical mapping without adopting incidental coordinates into that map.
 
 `harmonic-dyad-graph.mjs#buildDyadIndex` indexes every mapped target
@@ -372,13 +388,14 @@ tooltip, while visible deviations contain only signed cents.
 
 ## Chord system
 
-Discover → Chords always opens B · Harmonic discovery. The former classic-view
-selector and local preference are removed; legacy A/B session values are ignored
-when loading. The manual inspector remains available for direct coordinate
-inspection, and `chord-session-v2-adapter.mjs` continues migrating compatible
-saved sessions.
+Discover's harmony directory and analysis pane are always B · Harmonic discovery.
+The former classic-view selector and local preference are removed; legacy A/B
+session values are ignored when loading. The manual inspector remains available for
+direct coordinate inspection, and `chord-session-v2-adapter.mjs` continues migrating
+compatible saved sessions.
 
-`harmonic-catalogue-ui.mjs` owns B Discover → Chords, independently of the board.
+`harmonic-catalogue-ui.mjs` owns Discover's harmony directory and analysis,
+independently of the board.
 It browses mapped JI chords, intervals, target-relative ET assessments, compatible
 mapping extensions and better approximations. Shared JI limits remain one state
 owner. Search can inspect exact 2–8-voice spellings outside browse limits.

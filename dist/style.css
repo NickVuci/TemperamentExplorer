@@ -1903,15 +1903,6 @@ footer {
   margin-top: 18px;
 }
 /* Discover setup: temperament, tuning and scale. */
-.discover-setup {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: stretch;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  --accent:var(--a);
-}
 .discover-module {
   min-width: 0;
   padding: 8px 12px;
@@ -2110,9 +2101,6 @@ footer {
   margin-top: 20px;
 }
 @media (max-width:900px) {
-  .discover-setup {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .discover-module {
     padding: 8px 12px;
   }
@@ -2343,22 +2331,26 @@ footer {
   margin-bottom: 8px;
   pointer-events: auto;
 }
-.diamond-detail,
-.diamond-pointer-controls {
+.diamond-detail {
   min-height: 0;
   overflow-y: auto;
   pointer-events: auto;
 }
+/* Pointer action sits at the bottom right of the diamond module, in flow below the diamond so it can never cover cells.
+   The approximation source is anchored at the bottom left of the same band. */
 .diamond-pointer-controls {
-  background: var(--surface);
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 8px;
-  flex: 0 0 min(30%, 300px);
   width: min(30%, 300px);
-  max-height: clamp(110px, calc(40vw - 300px), 300px);
-  margin-left: auto;
+  min-width: 220px;
+  min-height: 104px;
+  margin: 12px 0 0 auto;
+  padding-bottom: 14px;
+  background: transparent;
+  pointer-events: auto;
 }
 .diamond-pointer-controls label {
   display: flex;
@@ -2379,13 +2371,14 @@ footer {
   font-size: 13px;
 }
 .diamond-pointer-controls .diamond-selection-actions {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
   gap: 6px;
   width: 100%;
   margin: 2px 0 0;
 }
+.diamond-pointer-controls .diamond-selection-actions > span { grid-column: 1 / -1; }
 .diamond-pointer-controls .diamond-selection-actions button {
   width: 100%;
   padding: 7px 10px;
@@ -2485,7 +2478,7 @@ footer {
     position: static;
     order: 1;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     margin-top: 12px;
     pointer-events: auto;
   }
@@ -2498,17 +2491,18 @@ footer {
     max-height: none;
   }
   .diamond-pointer-controls {
-    width: 100%;
-    max-height: 200px;
-    margin-left: 0;
+    position: static;
+    order: 3;
+    width: min(100%, 320px);
+    min-width: 0;
+    margin: 12px 0 0;
   }
 }
 @media (max-width:620px) {
   .diamond-canvas-tools {
     grid-template-columns: minmax(0, 1fr);
   }
-  .diamond-detail,
-  .diamond-pointer-controls {
+  .diamond-detail {
     max-height: none;
     overflow-y: visible;
   }
@@ -3431,23 +3425,15 @@ footer {
 .diamond-interval-table tbody td {
   color: var(--approximation-color);
 }
-/* Keep pointer controls in the last column when the readout is hidden. */
-.diamond-pointer-controls {
-  grid-column: -2 / -1;
-}
 /* Live readout updates must not move keys underneath a held pointer. */
 @media (min-width:901px) {
   .diamond-canvas-tools {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(180px, 300px);
+    grid-template-columns: minmax(0, 1fr);
     height: 180px;
   }
-  .diamond-detail,
-  .diamond-pointer-controls {
+  .diamond-detail {
     max-height: 180px;
-  }
-  .diamond-pointer-controls {
-    width: 100%;
   }
 }
 
@@ -3520,9 +3506,6 @@ footer {
 .approximation-module .diamond-tolerance-control input { width: 72px; }
 
 /* Full-width shared setup joins the app header. */
-body > .discover-setup { width: calc(100% - 7vw); max-width: calc(1640px - 7vw); margin: 0 auto; box-sizing: border-box; border-width: 0 1px 1px; border-radius: 0 0 10px 10px; }
-body > .discover-setup > .discover-module { padding-top: 8px; padding-bottom: 8px; }
-body > .discover-setup + main { padding-top: 24px; }
 
 /* Composition suite */
 .composition-suite {
@@ -3813,3 +3796,88 @@ body > .discover-setup + main { padding-top: 24px; }
 .hex-chord-panel .hex-live-chord-readout{display:block;min-height:0}.live-note-columns{display:flex;overflow-x:auto;gap:0;padding-bottom:8px}.live-note-column{display:grid;flex:1 0 112px;gap:5px;text-align:center;padding:0 10px;border-right:1px solid var(--line);font-size:14px;white-space:nowrap}.live-note-column:last-child{border-right:0}.live-note-column strong{font-size:22px;line-height:1.2}.live-note-label{color:var(--muted);font-size:11px;margin-top:7px}.live-note-chord{border-top:1px solid var(--line);padding-top:12px;margin-top:8px;text-align:center}.live-note-chord>strong{font-size:24px}.live-note-chord>small{display:block;color:var(--muted);margin-top:4px}.live-note-chord details{text-align:left;font-size:13px;margin-top:10px}.live-notes-empty{color:var(--muted);margin:8px 0;font-size:14px}
 
 .live-note-columns{gap:0;padding:0}.live-note-column{flex:1 0 0;min-width:0;padding:0 3px;gap:4px;border:0;font-size:clamp(10px,1vw,12px);line-height:1.25}.live-ratio-member{position:relative;font-size:24px!important;padding-bottom:7px;margin-bottom:3px;border-bottom:1px solid var(--line)}.live-ratio-member[data-ratio-colon]::before{content:':';position:absolute;left:-5px;top:0;font-weight:400;color:var(--muted)}.live-note-chord{border:0;padding:0;margin:0 0 8px}.live-note-columns+.live-note-chord{margin:8px 0 0}.live-note-chord>small{font-size:11px}.live-note-chord details{font-size:11px}
+
+/* ---------- Discover → Unified ---------- */
+/* Directory left, harmonic space centre, analysis right, scale along the bottom. */
+/* The scale pane sits outside .unified-main so the sticky side panes can never slide over it. */
+.unified-workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.unified-main {
+  display: grid;
+  grid-template-columns: minmax(250px, 1fr) minmax(0, 2.4fr) minmax(280px, 1.2fr);
+  grid-template-areas: "directory center analysis";
+  gap: 12px;
+  align-items: start;
+}
+.unified-pane { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.unified-directory { grid-area: directory; }
+.unified-center { grid-area: center; }
+.unified-analysis { grid-area: analysis; }
+.unified-pane-title { margin: 0 0 10px; font-size: .75rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.unified-center-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.unified-center-head .unified-pane-title { margin: 0; }
+/* Side panes scroll on their own so the centre stays in view while browsing. */
+.unified-directory, .unified-analysis { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto; scrollbar-gutter: stable; }
+.unified-directory .harmony-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.unified-directory .harmony-controls label, .unified-directory .harmony-controls select, .unified-directory .harmony-controls input { width: 100%; }
+.unified-directory .harmony-list { grid-template-columns: minmax(0, 1fr); }
+.unified-directory-list { margin-top: 10px; }
+.unified-analysis .harmony-detail { border-left: 0; padding-left: 0; }
+.unified-center .diamond-pair, .unified-center .matrixpair { margin: 0; }
+/* The manual note inspector stacks its builder and discovery panels in the narrow analysis pane. */
+.unified-analysis .chord-workspace { padding: 0; border: 0; background: none; }
+.unified-analysis .chord-layout { grid-template-columns: minmax(0, 1fr); }
+.unified-analysis .chord-keys { flex-wrap: wrap; }
+.unified-analysis .chord-workspace table { display: block; overflow-x: auto; }
+/* Discover keeps approximation settings in a collapsible section below the workspace. */
+.approximation-settings { margin-top: 12px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.approximation-settings > summary { padding: 10px 0; cursor: pointer; font-size: .875rem; color: var(--muted); }
+.approximation-settings[open] > summary { color: var(--text); border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+.approximation-settings .approximation-module { margin: 0 0 12px; }
+.approximation-settings .approximation-title { display: none; }
+/* Discover's scale controls live in its scale pane. */
+.unified-scale-controls { padding: 0 0 12px; margin-bottom: 12px; border-bottom: 1px solid var(--line); }
+.unified-scale-controls .formrow { max-width: 640px; }
+@media (max-width:1250px) {
+  .unified-main { grid-template-columns: minmax(240px, 1fr) minmax(0, 1.3fr); grid-template-areas: "center center" "directory analysis"; }
+  .unified-directory, .unified-analysis { position: static; max-height: 70vh; }
+}
+@media (max-width:760px) {
+  .unified-main { grid-template-columns: minmax(0, 1fr); grid-template-areas: "center" "analysis" "directory"; }
+  .unified-pane { padding: 10px; }
+}
+
+/* ---------- Header temperament and tuning ---------- */
+/* Temperament and tuning sit in the header on every page; their advanced options open as panels below it. */
+.app-header .header-setup { display: flex; align-items: flex-start; flex: 1 1 auto; min-width: 0; gap: 0; }
+.header-setup .discover-module { padding: 0 16px; }
+.header-setup .discover-module:first-child { padding-left: 0; }
+.header-setup .discover-module + .discover-module { border-top: 0; border-left: 1px solid var(--line); }
+.header-setup #temperament-section { flex: 1 1 220px; max-width: 320px; }
+.header-setup #tuning-section { flex: 1 1 340px; max-width: 460px; }
+.header-setup .temperament-choice > label, .header-setup .tuning-choice > label { font-size: 12px; color: var(--muted); }
+.header-setup .tuning-summary { font-size: 12px; }
+.header-setup .advanced-temperament-options, .header-setup .advanced-tuning-options { position: relative; margin: 2px 0 0; }
+.header-setup .advanced-temperament-options > summary, .header-setup .advanced-tuning-options > summary { padding: 2px 0; font-size: 12px; line-height: 16px; }
+.header-setup .advanced-temperament-options[open] > summary, .header-setup .advanced-tuning-options[open] > summary { margin-bottom: 0; }
+.header-setup .advanced-temperament-options[open], .header-setup .advanced-tuning-options[open] { padding-bottom: 0; }
+.header-setup .header-popover-panel { position: absolute; left: 0; top: calc(100% + 8px); z-index: 110; width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 140px); overflow: auto; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: 0 8px 24px #0005; }
+@media (max-width:1100px) {
+  .app-header .header-setup { order: 3; flex-basis: 100%; }
+}
+@media (max-width:640px) {
+  .app-header .header-setup { flex-direction: column; gap: 8px; }
+  .header-setup .discover-module, .header-setup .discover-module + .discover-module { padding: 0; border-left: 0; max-width: none; width: 100%; }
+  /* In a column the row flex-bases would become heights. */
+  .header-setup #temperament-section, .header-setup #tuning-section { flex: none; max-width: none; width: 100%; }
+}
+
+/* ---------- Floating header ---------- */
+/* The header stays at the top while the page scrolls. On phones it is several rows tall, so it scrolls away there. */
+@media (min-width:641px) {
+  .app-header { position: sticky; top: 0; z-index: 200; background: var(--bg); box-shadow: 0 6px 18px #0006; }
+  html { scroll-padding-top: calc(var(--header-h, 0px) + 12px); }
+}
+/* Sticky side panes stop below the header, not under it. */
+@media (min-width:1251px) {
+  .unified-directory, .unified-analysis { top: calc(var(--header-h, 0px) + 12px); max-height: calc(100vh - var(--header-h, 0px) - 24px); }
+}
