@@ -92,6 +92,10 @@ const fills=markup=>[...markup.matchAll(/data-hex-key="(\d+)"[^>]*>[^]*?<polygon
 const lit=markup=>(markup.match(/class="[^"]*is-lit[^"]*"/g)||[]).length,highlightedMarkup=ui.render();
 assert.ok(lit(highlightedMarkup)>1,'highlighted keys shine brighter');assert.doesNotMatch(highlightedMarkup,/opacity="/,'no key is faded');
 ui.clearHighlight();const plainMarkup=ui.render();
+const primaryLabels=html=>[...html.matchAll(/class="hex-key-label"[^>]*>([^<]*)<\/text>/g)].map(m=>m[1]);
+assert.deepEqual(primaryLabels(highlightedMarkup),primaryLabels(plainMarkup),'a chord overlay preserves every original key number');
+assert.match(highlightedMarkup,/class="hex-chord-tone-label"[^>]*font-size="7"[^>]*>1<\/text>/,'the chord order appears as a separate smaller label');
+assert.doesNotMatch(plainMarkup,/class="hex-chord-tone-label"/,'clearing the overlay removes the secondary labels');
 assert.equal(fills(highlightedMarkup),fills(plainMarkup),'every key keeps its fill and outline with and without the highlight');assert.ok(lit(plainMarkup)<lit(highlightedMarkup));
 assert.equal(ui.serialize().configs[0].keyColors[selectedKey.index],'#0000ff','changing the layer palette preserves custom button colors');
 ui.click({closest:()=>({dataset:{hexAction:'reset-colors'}})});

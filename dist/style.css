@@ -16,6 +16,8 @@
   --board-bg:#121a26;
   --detail-text:#aab7c9;
   --border-strong:#526178;
+  --harmony-outline:#11151c;
+  --harmony-outline-width:2px;
   --font-mono:"IBM Plex Mono",monospace;
   --font-ui:"DM Sans",system-ui,sans-serif;
 }
@@ -2408,6 +2410,7 @@ footer {
   stroke: none;
   stroke-width: 2;
   stroke-linejoin: miter;
+  vector-effect: non-scaling-stroke;
   pointer-events: none;
 }
 .diamond-grid {
@@ -2445,7 +2448,8 @@ footer {
 .diamond-cell.selected > .diamond-cell-active-divider,
 .diamond-cell.is-playing > .diamond-cell-active-divider,
 .diamond-cell.focus-highlight > .diamond-cell-active-divider {
-  stroke: var(--diamond-border);
+  stroke: var(--harmony-outline);
+  stroke-width: var(--harmony-outline-width);
 }
 .matrix .cell .target-chip {
   color: #11151c;
@@ -3930,15 +3934,29 @@ footer {
 .dyad-table td:last-child{line-height:1.7}.dyad-reading{display:inline-block;margin-right:8px;white-space:nowrap}.dyad-reading small{color:var(--muted)}.dyad-reading.dyad-used{font-weight:600;color:var(--accent)}.dyad-ambiguous td:first-child{box-shadow:inset 2px 0 0 #c07ad9}
 .directory-more{display:block;width:100%;margin-top:4px;padding:4px 6px;font-size:11px;min-height:26px}
 /* JI / Temperament switch: a compact switch at the top left of the diamond module. */
-.diamond-tuning-toggle.unified-center-toggle{flex:0 0 auto;width:auto;gap:4px}.diamond-tuning-toggle.unified-center-toggle button{flex:0 0 auto;padding:4px 10px;min-height:26px;font-size:12px;white-space:nowrap}
-/* The focused harmony: an accent outline on diamond cells and matrix cells, distinct from selection and playing. */
-.diamond-cell.focus-highlight > .diamond-cell-active-divider{stroke:var(--accent);stroke-width:3}
-.matrix .cell.focus-cell{outline:2px solid var(--accent);outline-offset:-2px;font-weight:700}
+.diamond-tuning-toggle.unified-center-toggle{display:inline-flex;flex:0 0 auto;width:fit-content;max-width:100%;align-self:flex-start;justify-self:start;gap:4px}.diamond-tuning-toggle.unified-center-toggle button{flex:0 0 auto;padding:4px 10px;min-height:26px;font-size:12px;white-space:nowrap}
+/* One harmony outline across the diamond, scale matrix and chord matrix. */
+.diamond-cell:is(.selected,.is-playing,.focus-highlight) > .diamond-cell-highlight {
+  stroke: var(--harmony-outline);
+  stroke-width: var(--harmony-outline-width);
+}
+.matrix .cell:is(.selected,.focus-cell,.chord-pick),
+.chord-interval-matrix tr.is-active-rotation .cell {
+  outline: var(--harmony-outline-width) solid var(--harmony-outline);
+  outline-offset: calc(-1 * var(--harmony-outline-width));
+  box-shadow: none;
+  font-weight: 700;
+}
 .form-badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:600;vertical-align:middle;border:1px solid var(--line);color:var(--text)}.form-badge.otonal{border-color:#e5a251}.form-badge.utonal{border-color:#73a3f7}.form-badge.ambitonal{border-color:var(--mint)}.form-badge.et{border-color:#c07ad9}
 .harmony-rotations{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 8px}.harmony-rotations button{min-height:26px;padding:3px 9px;font-size:12px}.harmony-rotations button[aria-pressed=true]{border-color:var(--a);background:var(--surface2)}
 .harmony-focus-note{color:var(--muted);font-size:12px}
-.matrix .cell.chord-pick{box-shadow:inset 0 0 0 3px var(--mint)}
 .matrix-chord-hint{margin:2px 0 6px;font-size:12px}
 .harmony-follow{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:0 0 6px}
 /* A highlighted Play-board key keeps its layout colour and shines a level brighter. */
 .hex-board g.is-lit polygon{filter:brightness(1.35) saturate(1.1)}
+
+/* Chord analysis: tone alignment and directed interval matrix. */
+ .chord-line-diagram{width:100%;min-width:0;max-width:100%;margin-bottom:12px}.chord-line-diagram svg{display:block;width:100%;min-width:0;max-width:100%;height:auto;color:var(--text)}.chord-line-diagram text{fill:currentColor;font-size:12px;font-family:var(--font-mono)}.chord-line-diagram .chord-line-heading{font-family:var(--font-ui);fill:var(--muted);font-size:12px}.chord-line-rail{stroke:var(--border-strong);stroke-width:1.5}.chord-line-tempered{stroke:var(--a);stroke-width:2}.chord-line-ideal{stroke:var(--b);stroke-width:2}.unified-workspace .chord-interval-matrix td{padding:0;vertical-align:middle}.chord-interval-matrix .cell{font:12px var(--font-mono)}.chord-interval-matrix .dyad-reading{margin:0;color:inherit}.chord-interval-matrix .target-more{color:inherit}.chord-matrix-wrap{width:max-content;max-width:100%;overflow:auto;margin-bottom:12px}
+
+/* Chord rows begin at unison, using the scale matrix's ascending layout. */
+.matrix.chord-interval-matrix{--matrix-cell-height:28px;width:calc(var(--matrix-columns)*52px);min-width:calc(var(--matrix-columns)*52px)}

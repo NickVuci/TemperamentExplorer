@@ -24,7 +24,7 @@ export function renderUnified({center,centerMarkup,directory,detail,scaleControl
   return `<div class="unified-workspace" data-unified-center-view="${normalizeUnifiedCenter(center)}">
 <div class="unified-main">
 <section class="unified-pane unified-directory harmony-workspace" aria-label="Harmony directory"><h3 class="unified-pane-title">Harmony directory</h3><div data-unified-pane="directory">${directory}</div></section>
-<section class="unified-pane unified-center" aria-label="Harmonic space"><div class="unified-center-head"><h3 class="unified-pane-title">Harmonic space</h3>${unifiedCenterToggle(center)}</div>${centerMarkup}</section>
+<section class="unified-pane unified-center" aria-label="Harmonic space"><div class="unified-center-head">${unifiedCenterToggle(center)}</div>${centerMarkup}</section>
 <section class="unified-pane unified-analysis harmony-workspace" aria-label="Chord analysis"><h3 class="unified-pane-title">Chord analysis</h3><article class="harmony-detail" data-unified-pane="detail" aria-label="Selected harmony">${detail}</article></section>
 </div>
 <section class="unified-pane unified-scale" aria-label="Scale"><h3 class="unified-pane-title">Scale</h3><div class="discover-scale unified-scale-controls" aria-label="Scale and mode">${scaleControls}</div>${scaleMarkup}</section>

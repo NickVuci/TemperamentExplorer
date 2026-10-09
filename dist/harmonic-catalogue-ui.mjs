@@ -11,11 +11,12 @@ import {equivalencePolicy,harmonicIdentity,quotientCoordinate,shapeKey} from './
 import {mapRatio} from './engine.mjs';
 import {mappingContext} from './harmonic-context.mjs';
 import {buildDyadIndex} from './harmonic-dyad-graph.mjs';
-import {CHORD_SPACE_MAX_SIZE,chordDyads} from './harmonic-chord-space.mjs';
+import {CHORD_SPACE_MAX_SIZE} from './harmonic-chord-space.mjs';
 import {projectChord} from './chord-projection-v2.mjs';
 import {targetSet} from './ji-limit-engine.mjs';
 import {validateHarmonicSelection} from './harmonic-types.mjs';
-import {coordinateCents} from './pitch.mjs';
+import {coordinateCents,mod} from './pitch.mjs';
+import {errorColor} from './ji-error-color.mjs';
 import {BoundedCache} from './cache.mjs';
 import {esc,option} from './ui.mjs';
 
@@ -158,16 +159,34 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
  }
  // Each pair of members: its tempered interval and every JI interval of the target set mapped to it.
  function dyadIndex(s){const ji=getSettings(getState());return buildDyadIndex(targetSet({oddLimit:ji.limit??15,primeFilter:ji.primeLimit??null,mappingSubgroup:s.basis,representationPolicy:s.basis.includes(2)?'octave':'native-exact'}),mappingContext(s));}
- function dyadTable(m){const s=m.state;let dyads;
-  try{const index=dyadIndex(s);
-   dyads=chordDyads({coordinates:m.geometry.shape.coordinates,mappingId:index.mappingId,equivalence:index.equivalence},index);}catch{return '';}
-  const octave=s.basis.includes(2),wrap=c=>octave?((c%1200)+1200)%1200:c,same=(a,b)=>Math.abs(wrap(a-b+600)-600)<1e-6||!octave&&Math.abs(a-b)<1e-6;
-  const tones=m.geometry.tones,labels=tones?tones.map(tone=>tone.label):[ '1/1',...dyads.filter(dyad=>dyad.fromMember===0).map(dyad=>dyad.interpretations[0]?.ratio??'?')];
-  const rows=dyads.map(dyad=>{const used=tones?wrap(tones[dyad.toMember].c-tones[dyad.fromMember].c):null;
-   const readings=dyad.interpretations.map(item=>{const error=coordinateCents(s,item.coordinate)-item.idealCents,mark=used!=null&&same(item.idealCents,used);
-    return `<span class="${mark?'dyad-reading dyad-used':'dyad-reading'}">${esc(item.ratio)} <small>${error>=0?'+':''}${number(error)}¢</small></span>`;}).join(' ');
-   return `<tr${dyad.interpretations.length>1?' class="dyad-ambiguous"':''}><td>${esc(labels[dyad.fromMember])} → ${esc(labels[dyad.toMember])}</td><td>${number(wrap(coordinateCents(s,dyad.coordinate)))}</td><td>${readings}</td></tr>`;}).join('');
-  return `<h5>Intervals</h5><div class="tablewrap"><table class="dyad-table"><thead><tr><th>Pair</th><th>Tempered ¢</th><th>JI readings · error</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+ function chordIntervalMatrix(m){
+  const s=m.state,coords=m.geometry.shape.coordinates,tones=m.geometry.tones,cfg=getSettings(getState());
+  let index;try{index=dyadIndex(s);}catch{return '';}
+  const octave=s.basis.includes(2),octaveCoord=octave?mapRatio(2,1,s):null,span=octaveCoord?coordinateCents(s,octaveCoord):null;
+  const wrap=c=>span>0?((c%span)+span)%span:c,idealWrap=c=>octave?((c%1200)+1200)%1200:c;
+  const labels=coords.map((_,i)=>tones?.[i]?.label??`Tone ${i+1}`),activeRow=rotations(m)[rotation]?.index??0;
+  const rows=coords.map((from,i)=>{
+   const ordered=coords.map((to,j)=>({to,j,c:wrap(coordinateCents(s,to.map((v,k)=>v-from[k])))})).sort((a,b)=>a.j===i?-1:b.j===i?1:a.c-b.c||a.j-b.j);
+   return `<tr data-chord-row="${i}" aria-label="Intervals from ${esc(labels[i])}"${i===activeRow?' class="is-active-rotation" aria-current="true"':''}>${ordered.map(({to,j})=>{
+   if(i===j)return '<td><span class="cell ratio-cell chord-matrix-unison" style="background:#fff;color:#11151c" title="Unison · 0.000 cents">1/1</span></td>';
+   const delta=to.map((v,k)=>v-from[k]),readings=index.byClassKey[quotientCoordinate(index.policy,delta).key]??[],cents=wrap(coordinateCents(s,delta)),used=tones?idealWrap(tones[j].c-tones[i].c):null;
+   const values=readings.map(item=>{const diff=used==null?null:idealWrap(item.idealCents)-used;return {...item,error:coordinateCents(s,item.coordinate)-item.idealCents,used:diff!=null&&(Math.abs(diff)<1e-6||octave&&Math.abs(Math.abs(diff)-1200)<1e-6)};});
+   const first=values.find(item=>item.used)??values[0],title=`${number(cents)} cents${values.map(item=>` · ${item.ratio}: ${item.error>=0?'+':''}${number(item.error)} cents`).join('')}`,color=first?errorColor(first.error,cfg.maxError??cfg.tol??10):'#1c2531';
+   return `<td><span class="cell ratio-cell" style="background:${color}${first?';color:#11151c':''}" title="${esc(title)}" aria-label="${esc(labels[i])} to ${esc(labels[j])}: ${esc(title)}"><span class="target-cell-content">${first?`<span class="target-chip dyad-reading${first.used?' dyad-used':''}">${esc(first.ratio)}</span>${values.length>1?`<small class="target-more">+${values.length-1}</small>`:''}`:'—'}</span></span></td>`;
+  }).join('')}</tr>`;}).join('');
+  return `<div class="tablewrap chord-matrix-wrap"><table class="matrix chord-interval-matrix" aria-label="Chord interval matrix" style="--matrix-columns:${coords.length}"><tbody>${rows}</tbody></table></div>`;
+ }
+ function chordLineDiagram(m){
+  const coords=m.geometry.shape.coordinates,tones=m.geometry.tones,current=rotations(m)[rotation],root=current?.index??0,base=coordinateCents(m.state,coords[root]),idealBase=tones?.[root]?.c??0;
+  const octave=m.state.basis.includes(2)?mapRatio(2,1,m.state):null,span=entry.kind==='tempered'?m.state.p:octave?coordinateCents(m.state,octave):null;
+  const notes=coords.map((point,i)=>({label:`Tone ${i+1}`,actual:span>0?mod(coordinateCents(m.state,point)-base,span):coordinateCents(m.state,point)-base,ideal:tones?.[i]?.c==null?null:octave?mod(tones[i].c-idealBase,1200):tones[i].c-idealBase}));
+  if(current?.ratios)[...notes].sort((a,b)=>a.ideal-b.ideal).forEach((note,i)=>{note.label=current.ratios[i]??note.label;});
+  notes.sort((a,b)=>a.actual-b.actual);
+  const values=notes.flatMap(n=>n.ideal==null?[n.actual]:[n.actual,n.ideal]),lo=Math.min(0,...values),hi=Math.max(1,...values),width=Math.max(400,notes.length*90),x=c=>36+(c-lo)/(hi-lo)*(width-72),hasIdeal=notes.every(n=>n.ideal!=null);
+  // Stagger labels only where neighbouring ticks are close; the pitch positions remain exact.
+  const lanes=field=>{const ends=[],lanes=[];notes.map((n,i)=>({i,x:x(n[field])})).sort((a,b)=>a.x-b.x).forEach(n=>{let lane=ends.findIndex(end=>end<n.x-30);if(lane<0)lane=ends.length;ends[lane]=n.x+30;lanes[n.i]=lane;});return lanes;};
+  const actualLanes=lanes('actual'),idealLanes=hasIdeal?lanes('ideal'):[],top=hasIdeal?38+Math.max(...idealLanes)*16:16,railY=top+26,height=railY+58+Math.max(...actualLanes)*16;
+  return `<div class="chord-line-diagram"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Chord tones: JI ticks above and tempered ticks below one pitch line">${hasIdeal?'<text x="8" y="14" class="chord-line-heading">JI</text>':''}<text x="8" y="${height-4}" class="chord-line-heading">Tempered</text><line x1="36" x2="${width-36}" y1="${railY}" y2="${railY}" class="chord-line-rail"/>${notes.map((n,i)=>`<g><title>${esc(n.label)} · tempered ${number(n.actual)} cents${hasIdeal?` · JI ${number(n.ideal)} cents`:''}</title><line x1="${x(n.actual)}" x2="${x(n.actual)}" y1="${railY}" y2="${railY+14}" class="chord-line-tempered"/><text x="${x(n.actual)}" y="${railY+30+actualLanes[i]*16}" text-anchor="middle">${n.actual.toFixed(1)}¢</text>${hasIdeal?`<line x1="${x(n.ideal)}" x2="${x(n.ideal)}" y1="${railY-14}" y2="${railY}" class="chord-line-ideal"/><text x="${x(n.ideal)}" y="${railY-22-idealLanes[i]*16}" text-anchor="middle">${n.ideal.toFixed(1)}¢</text>`:''}</g>`).join('')}</svg></div>`;
  }
  function otherReadings(){const ids=(result?.shapeGroups?.[entry.shapeId]??[]).filter(id=>id!==entry.id),rows=ids.map(id=>result.items.find(row=>row.id===id)).filter(row=>row?.kind==='ji'&&row.mappingStatus==='mapped'&&row.dyads?.dyadic);
   return rows.length?`<p>Other JI chords on this shape: ${rows.map(row=>button('select',esc(rowLabel(row)),`data-id="${esc(row.id)}"`)).join(' ')}</p>`:'';}
@@ -178,7 +197,7 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
   if(!entry||!m.geometry)return [];
   const s=m.state,octave=s.basis.includes(2);
   return rotationCache.get(JSON.stringify([entry.id,s.basis,s.rows]),()=>{
-   if(entry.kind==='ji')return chordRotations(entry.interpretation.identity,octave).map(r=>({index:r.index,label:r.label,ratios:r.ratios}));
+   if(entry.kind==='ji')return chordRotations(entry.interpretation.identity,octave).map(r=>({index:r.index,label:r.label,ratios:r.ratios,utonal:'1/'+[...r.dualTerms].reverse().join(':')}));
    let index;try{index=dyadIndex(s);}catch{return [];}
    const coords=m.geometry.shape.coordinates,simplest=items=>[...items].sort((a,b)=>a.ratio.split('/').reduce((p,v)=>p*Number(v),1)-b.ratio.split('/').reduce((p,v)=>p*Number(v),1))[0];
    return coords.map((root,k)=>{const members=coords.map((point,i)=>{if(i===k)return {ratio:'1/1',cents:0};const item=simplest(index.byClassKey[quotientCoordinate(index.policy,[point[0]-root[0],point[1]-root[1]]).key]??[]);return item?{ratio:item.ratio,cents:item.idealCents}:{ratio:'?',cents:0};}).sort((a,b)=>a.cents-b.cents);
@@ -197,23 +216,25 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
    classKeys:entry.kind==='tempered'?coords.map(point=>quotientCoordinate(policy,[point[0]-root[0],point[1]-root[1]]).key):null,
    degrees:scope.startsWith('play')?null:focusOccurrence(m)?.degrees??null};
  }
- // Sound a rotation: its bass first, every other member raised into the octave above it.
+ // Audition every rotation at the central tonic, in the same register. Raw mapping
+ // representatives can be several octaves below it and must not set the preview bass.
  function playRotation(m,k){
   const s=m.state,coords=m.geometry.shape.coordinates,cents=coords.map(point=>coordinateCents(s,point)),base=cents[k];
   const octave=s.basis.includes(2)?mapRatio(2,1,s):null,span=octave?coordinateCents(s,octave):null;
-  play(cents.map(c=>span?base+(((c-base)%span)+span)%span:c).sort((a,b)=>a-b));
+  play(cents.map(c=>span>0?mod(c-base,span):c-Math.min(...cents)).sort((a,b)=>a-b));
  }
  const commaCache=new BoundedCache(32);
  function etCommas(){
   if(entry?.kind!=='tempered'||entry.status!=='essentially-tempered')return [];
   return commaCache.get(entry.id,()=>{try{const result=assessET(entry.shape,dyadIndex(getState()));return [...new Set((result.obstruction?.representativeCycles??[]).map(cycle=>cycle.commaRatio))];}catch{return [];}});
  }
- function spellings(){
+ function spellings(m){
   if(entry?.kind!=='ji')return '';
-  const identity=entry.interpretation.identity;let utonal='';
-  try{utonal=chordIdentity(entry.interpretation.exactDual.originalInput).aliases.reciprocal;}catch{}
+  const identity=entry.interpretation.identity,current=rotations(m)[rotation];
+  const fallback=current?null:chordRotations(identity,getState().basis.includes(2))[0];
+  const otonal=current?.label??fallback.label,utonal=current?.utonal??'1/'+[...fallback.dualTerms].reverse().join(':');
   const others=(entry.aliases??[]).filter(alias=>alias!==rowLabel(entry));
-  return `<p class="harmony-forms">Otonal spelling <b>${esc(identity.aliases.otonal)}</b>${utonal?` · utonal spelling <b>${esc(utonal)}</b>`:''} · pitch classes ${esc(identity.canonicalRatios.map(q=>q.label).join(' · '))}</p>
+  return `<p class="harmony-forms">Otonal <b>${esc(otonal)}</b> · Utonal <b>${esc(utonal)}</b></p>
    ${others.length?`<details class="harmony-aliases"><summary>Also written as (${others.length})</summary><p>${others.map(esc).join(' · ')}</p></details>`:''}`;
  }
  function rotationButtons(m){
@@ -260,22 +281,16 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
  }
  function details(){if(!entry)return `<p class="harmony-empty">Select a harmony, or select or play a chord on the diamond or matrix, to inspect it.</p><label class="checklabel harmony-follow"><input type="checkbox" data-harmony-field="follow" ${followPlaying?'checked':''}> Follow what I play</label>`;
   const m=detailModel(),geometry=m.geometry;
-  const quality=entry.kind==='ji'?`Worst mapped pair error ${number(entry.tuning?.pairwiseMaxErrorCents)}¢`:'';
   const followSwitch=`<label class="checklabel harmony-follow"><input type="checkbox" data-harmony-field="follow" ${followPlaying?'checked':''}> Follow what I play</label>`;
-  const form=formOf(entry),note=['ji','tempered'].includes(entry.kind)?describeFocus(focus()):'',commas=etCommas();
-  return `${followSwitch}<h4>${esc(rowLabel(entry))}${['ji','tempered'].includes(entry.kind)?` <span class="form-badge ${form}">${FORM_LABELS[form]}</span>`:''}</h4>${spellings()}${entry.kind==='ji'?`<div class="panelactions">${button('dual','Open reciprocal chord')}</div>`:''}
-   ${geometry?rotationButtons(m):''}${note?`<p class="harmony-focus-note">${esc(note)}</p>`:''}
+  const form=formOf(entry),commas=etCommas();
+  return `${followSwitch}<h4>${esc(rowLabel(entry))}${['ji','tempered'].includes(entry.kind)?` <span class="form-badge ${form}">${FORM_LABELS[form]}</span>`:''}</h4>${geometry?`${chordLineDiagram(m)}${rotationButtons(m)}${chordIntervalMatrix(m)}`:''}${spellings(m)}${entry.kind==='ji'||geometry?`<div class="panelactions">${entry.kind==='ji'?button('dual','Open reciprocal chord'):''}${geometry?`${button('hear',m.voice?'Hear voicing':'Hear mapped notes')}${button('collect','Add to collection',occurrenceShape(m.state,geometry.shape).members.length<2?'disabled':'')}${button('send','Send to Play')}`:''}</div>`:''}
    ${entry.kind==='source'?'<p>Source sounding coordinates and voices are preserved.</p>':''}
-   ${entry.kind==='tempered'?`<p><b>${entry.status==='essentially-tempered'?'Essentially tempered':'Unresolved'}</b> at odd limit ${getSettings(getState()).limit??15}. ${entry.status==='essentially-tempered'?'Every pair is a JI interval of the limit, but no single JI chord maps onto this shape; the temperament\'s commas let these intervals coexist.':'The JI chord list reached its bound before this shape was resolved; it is not shown as ET.'}</p>`:''}
-   ${quality?`<p>${quality}. ${Number.isFinite(entry.tuning?.pairwiseMaxErrorCents)&&entry.tuning.pairwiseMaxErrorCents>tolerance()?'Above the current tolerance; still mapped.':''}</p>`:''}
    ${entry.kind==='ji'?otherReadings():''}
    ${!geometry?`<p>Outside the mapping subgroup · missing primes ${entry.missingPrimes?.join(', ')??'unknown'}. No sounding coordinates are available.</p>`:`
-    <div class="tablewrap"><table><thead><tr><th>Member</th><th>(P,G)</th><th>Sounding ¢</th></tr></thead><tbody>${occurrenceShape(m.state,geometry.shape).members.map((member,i)=>`<tr><td>${esc(geometry.tones?.[i]?.label??`Voice ${i+1}`)}</td><td>${member.sourceCoordinate.join(', ')}</td><td>${number(coordinateCents(m.state,member.sourceCoordinate))}</td></tr>`).join('')}</tbody></table></div>
-    ${dyadTable(m)}${commas.length?`<p>Commas joining these intervals: ${commas.map(esc).join(', ')}</p>`:''}
-    <p>${scope.startsWith('play')?'Play':'Discover'} scale: ${m.state.n} notes, mode ${m.state.mode+1} · ${m.occurrences.anywhereCount} complete occurrences · ${m.occurrences.tonicMemberOccurrences.length} using the tonic.</p>
+    ${commas.length?`<p>Commas joining these intervals: ${commas.map(esc).join(', ')}</p>`:''}
     ${m.occurrences.completeOccurrences.length?`<label>Occurrence<select data-harmony-field="root"><option value="">Choose a root for voicing</option>${m.occurrences.completeOccurrences.map(root=>option(root.id,`Degree ${root.root}${root.tonicAnchored?' · tonic':''}`,selectedRoot)).join('')}</select></label>`:`<p>Mapped harmony is absent from this scale. Generator span ${m.occurrences.generatorSpan}; at least ${m.occurrences.minimumChainSize} consecutive generator positions are needed.</p>`}
     ${m.voice?`<div class="harmony-controls">${select('inversion','Bass / inversion',inversion,m.voice.variants.map(v=>[v.id,v.label]))}${select('style','Spacing',style,[['original','Original spelling'],['compact','Compact'],['open','Open']])}<label>Shift · periods<input type="number" data-harmony-field="periodShift" min="-8" max="8" value="${periodShift}"></label></div><p>${m.voice.voices.length} voices · ${esc(m.voice.reference.label)} · ${m.voice.ratios?.map(esc).join(' : ')??'Coordinate-only voicing'}${m.voice.maxErrorCents==null?'':` · worst voiced pair ${number(m.voice.maxErrorCents)}¢`}</p>`:''}
-    <div class="panelactions">${button('hear',m.voice?'Hear voicing':'Hear mapped notes')}${button('collect','Add to collection',occurrenceShape(m.state,geometry.shape).members.length<2?'disabled':'')}${button('send','Send to Play')}</div>`}`;
+`}`;
  }
  // The browse controls, status and list form the harmony directory; the selected harmony's
  // analysis is a separate part so a layout can place the two apart over one shared state.

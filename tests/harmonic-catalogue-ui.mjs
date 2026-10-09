@@ -4,6 +4,7 @@ import {fromCommas} from '../dist/tuning.mjs';
 import {createHarmonicCatalogueWorkspace,renderCatalogueList,catalogueListGroups,renderDirectoryTree} from '../dist/harmonic-catalogue-ui.mjs';
 import {curatedJIChords} from '../dist/harmonic-ji-chords.mjs';
 import {chordIdentity} from '../dist/chord-identity-v2.mjs';
+import {coordinateCents,mod} from '../dist/pitch.mjs';
 // Pair by exact reciprocal identity before paging, independently of the ranking
 // order or which half survives a search/scale filter.
 const cards=curatedJIChords().map(seed=>({id:seed.identity.fingerprint,kind:'ji',interpretationId:seed.interpretation.id,exactDualId:seed.exactDualId,interpretation:seed.interpretation,preferredLabel:seed.label}));
@@ -31,7 +32,7 @@ assert.match(ui.render(),/Harmonic discovery/);assert.equal(ui.model().result,nu
 ui.setEnabled(true);await ready();
 assert.match(ui.render(),/\d+ chords · complete/);
 await ui.openInput('4:5:6');assert.ok(ui.model().entry.mergedInterpretationIds.includes(chordIdentity('4:5:6').fingerprint),'a looked-up rotation opens its merged chord');assert.equal(ui.model().entry.preferredLabel,'4:5:6');
-assert.match(ui.render(),/Above the current tolerance; still mapped/);assert.equal(ui.model().detail.occurrences.anywhereCount,3);
+assert.doesNotMatch(ui.render(),/Worst mapped pair error|harmony-focus-note|Discover scale:/);assert.equal(ui.model().detail.occurrences.anywhereCount,3);
 const majorId=ui.model().entry.shapeId,family=ui.model().entry.familyId,root=ui.model().detail.occurrences.tonicMemberOccurrences[0];
 assert.ok(root.degrees.includes(0),'the tonic scope lists occurrences that use the tonic as a member');
 change('root',root.id);change('inversion',1);assert.deepEqual(ui.selection().voicing.ratios,['5/4','3/2','2/1']);
@@ -70,8 +71,29 @@ ui.input({dataset:{harmonyField:'search'},value:'<img src=x onerror=alert(1)>'})
 change('scope','temperament');
 ui.input({dataset:{harmonyField:'search'},value:''});
 const tempered=ui.model().result.items.find(row=>row.kind==='tempered'&&row.status==='essentially-tempered');assert.ok(tempered,'ET chords are listed without a manual search');
-click('select',{id:tempered.id});assert.match(ui.render(),/Essentially tempered<\/b> at odd limit 15/);assert.match(ui.render(),/class="dyad-table"/);assert.equal(ui.selection().voicing.voices.length,tempered.shape.coordinates.length);
-await ui.openInput('4:5:6');assert.match(ui.render(),/dyad-used/,'a JI chord marks the JI readings it uses');
+click('select',{id:tempered.id});assert.doesNotMatch(ui.render(),/Every pair is a JI interval of the limit/);assert.match(ui.render(),/class="matrix chord-interval-matrix"/);assert.equal(ui.selection().voicing.voices.length,tempered.shape.coordinates.length);
+const lineCents=kind=>[...ui.render().match(/class="chord-line-diagram"[^]*?<\/svg>/)[0].matchAll(new RegExp(kind+' (-?[\\d.]+) cents','g'))].map(m=>Number(m[1]));
+for(let i=0;i<tempered.shape.coordinates.length;i++){
+ click('rotation',{index:String(i)});assert.equal(heard.length,tempered.shape.coordinates.length);assert.equal(heard[0],0,'every ET rotation auditions with the same tonic bass');assert.ok(heard.every(c=>c>=0&&c<state.p),'raw ET mapping representatives cannot move the preview into a low register');
+ const pitches=tempered.shape.coordinates.map(point=>coordinateCents(state,point)),expected=pitches.map(c=>mod(c-pitches[i],state.p)).sort((a,b)=>a-b).map(c=>Number(c.toFixed(3)));
+ assert.deepEqual(lineCents('tempered'),expected,'ET diagram follows the selected root');
+}
+click('rotation',{index:'0'});
+const etLine=ui.render().match(/class="chord-line-diagram"[^]*?<\/svg>/)[0],etCents=[...etLine.matchAll(/tempered (-?[\d.]+) cents/g)].map(m=>Number(m[1]));
+assert.equal(etCents.length,tempered.shape.coordinates.length);assert.equal(etCents[0],0);assert.ok(etCents.every(c=>c>=0&&c<state.p),'ET diagram uses positive cents modulo the temperament period');
+
+await ui.openInput('4:5:6');assert.match(ui.render(),/chord-line-diagram/);const matrixRows=ui.render().match(/class="matrix chord-interval-matrix"[^]*?<tbody>([^]*?)<\/tbody>/)[1].match(/<tr[^>]*>[^]*?<\/tr>/g);assert.equal(matrixRows.length,3);for(const row of matrixRows)assert.match(row,/<tr[^>]*><td><span class="cell ratio-cell chord-matrix-unison"/,'every row begins with unison');assert.doesNotMatch(ui.render(),/<th>Member<\/th>|<th>Pair<\/th>/);assert.match(ui.render(),/dyad-used/,'a JI chord marks the JI readings it uses');
+const spellings=()=>ui.render().match(/<p class="harmony-forms">([^]*?)<\/p>/)[1];
+assert.equal(spellings(),'Otonal <b>4:5:6</b> · Utonal <b>1/15:12:10</b>');
+const analysisMarkup=ui.renderParts({directory:true}).detail;
+const innerMatrix=analysisMarkup.match(/class="matrix chord-interval-matrix"[^]*?<\/table>/)[0];assert.doesNotMatch(innerMatrix,/<th\b|<thead\b/,'the matrix has only interval cells');assert.doesNotMatch(analysisMarkup,/<h5>Interval matrix<\/h5>/);
+assert.ok(analysisMarkup.indexOf('chord-line-diagram')<analysisMarkup.indexOf('harmony-rotations')&&analysisMarkup.indexOf('harmony-rotations')<analysisMarkup.indexOf('chord-interval-matrix'),'tone diagram, rotations, then interval matrix');
+click('rotation',{index:'1'});assert.equal(heard[0],0,'JI rotations also use the central tonic');assert.match(ui.render(),/data-chord-row="1"[^>]*class="is-active-rotation" aria-current="true"/);assert.equal((ui.render().match(/class="is-active-rotation"/g)??[]).length,1);
+assert.equal(spellings(),'Otonal <b>5:6:8</b> · Utonal <b>1/24:20:15</b>');
+assert.deepEqual(lineCents('JI'),[0,1200*Math.log2(6/5),1200*Math.log2(8/5)].map(c=>Number(c.toFixed(3))),'JI ticks follow the rotated ratios');assert.deepEqual(lineCents('tempered'),heard.map(c=>Number(c.toFixed(3))),'tempered ticks follow rotation playback');
+click('rotation',{index:'2'});assert.match(ui.render(),/data-chord-row="2"[^>]*class="is-active-rotation" aria-current="true"/);
+assert.equal(spellings(),'Otonal <b>3:4:5</b> · Utonal <b>1/20:15:12</b>');
+click('rotation',{index:'0'});assert.doesNotMatch(ui.renderParts({directory:true}).detail,/pitch classes/);
 click('directory-star',{input:tempered.spelling,label:tempered.preferredLabel});assert.ok(ui.serialize().favourites.some(r=>r.input===tempered.spelling),'ET chords can be starred');
 ui.input({dataset:{harmonyField:'search'},value:''});const etSize=tempered.shape.coordinates.length;click('directory-group',{group:`size-${etSize}`});click('directory-group',{group:`size-${etSize}-et`});
 assert.match(ui.renderParts({directory:true}).list,new RegExp(`data-input="${tempered.spelling}"[^>]*aria-pressed="true"`));
@@ -79,7 +101,7 @@ await ui.openInput('4:5:6');await ui.openInput(tempered.spelling);assert.equal(u
 const before=ui.model().result.targetSetId;limit=27;ui.sync();assert.equal(ui.model().status,'loading','a changed odd limit relists chords automatically');await ready();assert.notEqual(ui.model().result.targetSetId,before);
 ui.setEnabled(false);ui.destroy();
 state={...fromCommas('245/243','3.5.7','Computed CWE'),n:7,mode:0};
-const native=createHarmonicCatalogueWorkspace({getState:()=>state,getSettings:()=>({limit:15,primeLimit:state.basis,tol:10})});native.setEnabled(true);await native.openInput('1:3');assert.equal(native.selection().voicing.voices.length,2);assert.doesNotMatch(native.render(),/class="harmony-heading"/);assert.match(native.render(),/pitch classes 1\/1 · 3\/1/);native.destroy();
+const native=createHarmonicCatalogueWorkspace({getState:()=>state,getSettings:()=>({limit:15,primeLimit:state.basis,tol:10})});native.setEnabled(true);await native.openInput('1:3');assert.equal(native.selection().voicing.voices.length,2);assert.doesNotMatch(native.render(),/class="harmony-heading"/);assert.match(native.render(),/Otonal <b>1:3<\/b> · Utonal <b>1\/3:1<\/b>/);native.destroy();
 assert.doesNotMatch(renderCatalogueList([{id:'x',preferredLabel:'<script>',kind:'assessment',status:'unknown',shape:{coordinates:[[0,0],[1,0]]}}],''),/<script>/);
 // Large groups render a bounded first page; collapsed groups render no chords.
 const many=Array.from({length:150},(_,i)=>({id:'t'+i,kind:'tempered',status:'essentially-tempered',preferredLabel:'ET '+i,spelling:'1/1:'+(i+2)+'/'+(i+1),shape:{coordinates:[[0,0],[0,1],[0,2]]}}));
