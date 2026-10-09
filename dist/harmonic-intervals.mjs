@@ -1,9 +1,11 @@
-import {immutable} from './cache.mjs';
+import {BoundedCache,immutable} from './cache.mjs';
 import {mappingContext} from './harmonic-context.mjs';
 import {equivalencePolicy,quotientCoordinate} from './harmonic-equivalence.mjs';
 import {mapMonzo,ratioMonzo} from './ji-monzo.mjs';
 
 const EQUIVALENCES=['exact','period','octave'];
+// Factorization depends only on the target set and basis; a projection also on the mapping.
+const factorCache=new BoundedCache(16),projectionCache=new BoundedCache(24);
 const pairKey=coordinate=>JSON.stringify(coordinate);
 function targetRatio(target){
  const n=target?.ratio?.n??target?.n,d=target?.ratio?.d??target?.d;
@@ -24,7 +26,8 @@ export function mappedIntervals(targetSet,mapping,{equivalences=EQUIVALENCES}={}
  if(!targetSet||!Array.isArray(targetSet.targets)||!targetSet.spec||!targetSet.id)throw Error('Use a validated JI target set.');
  const context=mappingContext(mapping),basis=[...context.basis];
  if(!samePrimeSet(targetSet.spec.mappingSubgroup,basis))throw Error('Target-set subgroup does not match the mapping basis.');
- return projectTargets(targetSet.targets,context,targetSet.id,equivalences);
+ return projectionCache.get(JSON.stringify([targetSet.id,context.id,equivalences]),()=>projectTargets(targetSet.targets,context,targetSet.id,equivalences,
+  factorCache.get(JSON.stringify([targetSet.id,basis]),()=>targetSet.targets.map(target=>{const ratio=targetRatio(target);return ratioMonzo([ratio.n,ratio.d],basis);}))));
 }
 
 /** Compatibility projection for caller-supplied target rows; uses the same exact mapper/index. */
@@ -38,15 +41,15 @@ export function mappedIntervalsFromTargets(targets,mapping,{targetSetId='explici
  return projectTargets(records,context,targetSetId,equivalences);
 }
 
-function projectTargets(targets,context,targetSetId,equivalences){
+function projectTargets(targets,context,targetSetId,equivalences,factorizations=null){
  const basis=[...context.basis];
  if(!Array.isArray(equivalences)||equivalences.some(kind=>!EQUIVALENCES.includes(kind)))throw Error('Request exact, period, or octave equivalence.');
  const policies={};
  for(const kind of new Set(['exact','period',...equivalences])){
   try{policies[kind]=equivalencePolicy(context,kind);}catch(error){if(kind!=='octave')throw error;}
  }
- return immutable(targets.map(target=>{
-  const ratio=targetRatio(target),factorization=ratioMonzo([ratio.n,ratio.d],basis);
+ return immutable(targets.map((target,index)=>{
+  const ratio=targetRatio(target),factorization=factorizations?.[index]??ratioMonzo([ratio.n,ratio.d],basis);
   const coordinate=factorization.withinBasis?mapMonzo(context.rows,factorization.basisMonzo):null;
   const classKeys={};
   for(const kind of equivalences){

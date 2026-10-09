@@ -1,15 +1,12 @@
-import {searchCheckpoint,finishSearch,finishSearchAsync} from './harmonic-cooperative.mjs';
+import {finishSearch,finishSearchAsync} from './harmonic-cooperative.mjs';
 import {immutable} from './cache.mjs';
-import {chordIdentity} from './chord-identity-v2.mjs';
-import {domainsForShape,enumerateDyadicShapes,enumerateDyadicShapeSteps} from './harmonic-dyad-graph.mjs';
-import {harmonicIdentity} from './harmonic-equivalence.mjs';
+import {domainsForShape} from './harmonic-dyad-graph.mjs';
 import {isKernelVector,validateKernelWitness} from './harmonic-context.mjs';
 import {mapMonzo} from './ji-monzo.mjs';
 import {canonicalHarmonicJSON,validateAssessment} from './harmonic-types.mjs';
 import {findCoherentJILift,coherentJILiftSteps,JI_LIFT_ALGORITHM_VERSION,jiMonzoClassKey,liftJIIntervalInterpretation} from './harmonic-ji-lift.mjs';
 
 export const ET_ALGORITHM_VERSION='et-assessment-v1';
-export const ET_DISCOVERY_ALGORITHM_VERSION='et-discovery-v1';
 const subtract=(a,b)=>a.map((value,index)=>value-b[index]);
 const add=(a,b)=>a.map((value,index)=>value+b[index]);
 const zero=vector=>vector.every(value=>value===0);
@@ -187,156 +184,6 @@ export function verifyETEvidence(assessment,shape,index){
   }
   return immutable({valid:false,proofComplete:false,status:assessment.status,reason:'unsupported-assessment-status'});
  }catch(error){return immutable({valid:false,proofComplete:false,status:assessment?.status??null,reason:'invalid-evidence',detail:error.message});}
-}
-
-const DISCOVERY_DEFAULTS=Object.freeze({batchSize:16,maxStatesPerShape:100_000,maxCompatibilityChecksPerShape:1_000_000,
- maxTotalStates:500_000,maxTotalCompatibilityChecks:2_000_000});
-const DISCOVERY_CAPS=Object.freeze({batchSize:100,maxStatesPerShape:1_000_000,maxCompatibilityChecksPerShape:10_000_000,
- maxTotalStates:5_000_000,maxTotalCompatibilityChecks:10_000_000});
-const DISCOVERY_SLICE_MILLISECONDS=8;
-const ENUMERATION_OPTION_NAMES=['sizes','maxNeighborVertices','maxCandidateShapes','maxSearchNodes','maxDomainChecks'];
-const DISCOVERY_OPTION_NAMES=[...ENUMERATION_OPTION_NAMES,...Object.keys(DISCOVERY_DEFAULTS),'signal','shouldCancel'];
-
-function discoveryOptions(options={}){
- if(!options||typeof options!=='object'||Array.isArray(options))throw Error('Dyadic harmony discovery options must be an object.');
- for(const name of Object.keys(options))if(!DISCOVERY_OPTION_NAMES.includes(name))throw Error(`Unknown dyadic harmony discovery option: ${name}.`);
- const normalized={};
- for(const [name,fallback]of Object.entries(DISCOVERY_DEFAULTS)){
-  const value=options[name]??fallback;
-  if(!Number.isSafeInteger(value)||value<1||value>DISCOVERY_CAPS[name])throw Error(`${name} must be an integer from 1 through ${DISCOVERY_CAPS[name]}.`);
-  normalized[name]=value;
- }
- if(options.signal!==undefined&&(!options.signal||typeof options.signal.aborted!=='boolean'))throw Error('Discovery signal must be an AbortSignal.');
- if(options.shouldCancel!==undefined&&typeof options.shouldCancel!=='function')throw Error('Discovery shouldCancel must be a function.');
- const enumeration=Object.fromEntries(ENUMERATION_OPTION_NAMES.filter(name=>options[name]!==undefined).map(name=>[name,options[name]]));
- normalized.signal=options.signal??null;normalized.shouldCancel=options.shouldCancel??null;
- return {normalized,enumeration};
-}
-
-function canonicalBasisOrder(index){return index.basis.map((prime,column)=>({prime,column})).sort((a,b)=>a.prime-b.prime);}
-
-function canonicalMonzo(monzo,index,{octaveClass=false}={}){
- const order=canonicalBasisOrder(index);
- return order.map(({prime,column})=>octaveClass&&prime===2?0:monzo[column]);
-}
-
-function jiChordIdentityId(vertices,index){
- const exact=chordIdentity(vertices.map(vertex=>vertex.ratio).join(':'));
- return harmonicIdentity(exact,index.equivalence).familyId;
-}
-
-function jiInterpretation(shape,index,assessment){
- const witness=assessment.liftWitness,identityId=jiChordIdentityId(witness.vertices,index);
- const order=canonicalBasisOrder(index),registeredMonzos=witness.vertices.map(vertex=>canonicalMonzo(vertex.monzo,index));
- const members=witness.vertices.map(vertex=>({memberIndex:vertex.memberIndex,coordinate:[...shape.coordinates[vertex.memberIndex]],
-  targetId:vertex.targetId,targetRatio:vertex.ratio,monzo:[...vertex.monzo],
-  pitchClassMonzo:canonicalMonzo(vertex.monzo,index,{octaveClass:index.equivalence==='octave'}),registerLift:vertex.registerLift}));
- const id=`ji-interpretation-v1:${canonicalHarmonicJSON({identityId,shapeId:shape.id,mappingId:index.mappingId,targetSetId:index.targetSetId,
-  members:members.map(({memberIndex,registerLift},index)=>({memberIndex,monzo:registeredMonzos[index],registerLift}))})}`;
- return immutable({id,identityId,type:'ji-chord-interpretation',shapeId:shape.id,mappingId:index.mappingId,targetSetId:index.targetSetId,
-  basis:[...index.basis],pitchClassBasis:order.map(item=>item.prime),
-  equivalence:index.equivalence,rootMember:witness.rootMember,form:'generic-ji',members,
-  dyads:witness.edgeAssignments.map(edge=>({fromMember:edge.fromMember,toMember:edge.toMember,targetId:edge.targetId,
-   targetRatio:edge.ratio,monzo:[...edge.monzo],liftedMonzo:[...edge.liftedMonzo],coordinate:[...edge.coordinate],registerLift:edge.registerLift}))});
-}
-
-function discoverySnapshot(state,iterator){
- const enumeration=iterator.progress;
- return immutable({algorithmVersion:ET_DISCOVERY_ALGORITHM_VERSION,mappingId:state.mappingId,targetSetId:state.targetSetId,equivalence:state.equivalence,
-  status:state.status,complete:state.complete,partial:!state.complete,reason:state.reason,bounds:state.bounds,
-  counts:{candidateShapesChecked:enumeration.candidateShapesChecked,shapesAssessed:state.shapesAssessed,
-   jiInterpretations:state.jiInterpretations,essentiallyTempered:state.essentiallyTempered,unknown:state.unknown,notDyadic:state.notDyadic,
-   knownUnassessedCandidates:state.knownUnassessedCandidates,unassessedCandidateCount:state.unassessedCandidateCount},
-  work:{states:state.states,compatibilityChecks:state.compatibilityChecks},enumeration});
-}
-
-const eventLoopBoundary=()=>new Promise(resolve=>setTimeout(resolve,0));
-
-/**
- * Discover bounded dyadic harmony as immutable batches followed by one final
- * completeness envelope. There is deliberately no result cache: jobs are
- * cheap to identify but potentially partial, so a future cache must key every
- * mapping, target-set, equivalence, enumeration bound, solver bound and
- * algorithm version rather than reusing these streamed rows implicitly.
- */
-export function discoverDyadicHarmony(index,options={}){
- const {normalized,enumeration}=discoveryOptions(options),shapes=enumerateDyadicShapeSteps(index,{...enumeration,
-  ...(normalized.signal?{signal:normalized.signal}:{}),...(normalized.shouldCancel?{shouldCancel:normalized.shouldCancel}:{})});
- const state={mappingId:index.mappingId,targetSetId:index.targetSetId,equivalence:index.equivalence,status:'idle',complete:false,reason:null,
-  bounds:{batchSize:normalized.batchSize,perShape:{maxStates:normalized.maxStatesPerShape,maxCompatibilityChecks:normalized.maxCompatibilityChecksPerShape},
-   total:{maxStates:normalized.maxTotalStates,maxCompatibilityChecks:normalized.maxTotalCompatibilityChecks}},
-  shapesAssessed:0,jiInterpretations:0,essentiallyTempered:0,unknown:0,notDyadic:0,knownUnassessedCandidates:0,
-  unassessedCandidateCount:null,states:0,compatibilityChecks:0};
- let terminal=false;
- const cancelled=()=>Boolean(normalized.signal?.aborted||normalized.shouldCancel?.());
- const job=(async function*(){
-  state.status='running';
-  let batchNumber=0,records={jiInterpretations:[],essentiallyTempered:[],unknown:[],notDyadic:[]},enumerationFinished=false,stopReason=null,lastTaskYield=Date.now();
-  const emitBatch=()=>{
-   const batch=immutable({type:'batch',batchNumber:++batchNumber,mappingId:index.mappingId,targetSetId:index.targetSetId,equivalence:index.equivalence,
-    algorithmVersion:ET_DISCOVERY_ALGORITHM_VERSION,records,progress:discoverySnapshot(state,shapes)});
-   records={jiInterpretations:[],essentiallyTempered:[],unknown:[],notDyadic:[]};
-   return batch;
-  };
-  try{
-   while(!stopReason){
-    if(cancelled()){stopReason='cancelled';break;}
-    const next=shapes.next();
-    if(next.done){enumerationFinished=true;break;}
-    if(next.value===searchCheckpoint){await eventLoopBoundary();continue;}
-    const shape=next.value,remainingStates=normalized.maxTotalStates-state.states,
-     remainingChecks=normalized.maxTotalCompatibilityChecks-state.compatibilityChecks;
-    if(remainingStates<1||remainingChecks<1){
-     state.knownUnassessedCandidates++;stopReason=remainingStates<1?'total-state-budget':'total-compatibility-budget';
-     break;
-    }
-    const assessment=await assessETAsync(shape,index,{maxStates:Math.min(normalized.maxStatesPerShape,remainingStates),
-     maxCompatibilityChecks:Math.min(normalized.maxCompatibilityChecksPerShape,remainingChecks),
-     ...(normalized.signal?{signal:normalized.signal}:{}),...(normalized.shouldCancel?{shouldCancel:normalized.shouldCancel}:{})});
-    const compatibilityChecks=assessment.search?.stats?.compatibilityChecks??0;
-    state.states+=assessment.exploredStates;state.compatibilityChecks+=compatibilityChecks;state.shapesAssessed++;
-    if(state.states>normalized.maxTotalStates||state.compatibilityChecks>normalized.maxTotalCompatibilityChecks)throw Error('Discovery total budget accounting exceeded its configured bound.');
-    const row={shape,assessment};
-    if(assessment.status==='ji-liftable'){
-     records.jiInterpretations.push(immutable({...row,interpretation:jiInterpretation(shape,index,assessment)}));state.jiInterpretations++;
-    }else if(assessment.status==='essentially-tempered'){
-     records.essentiallyTempered.push(immutable(row));state.essentiallyTempered++;
-    }else if(assessment.status==='unknown'){
-     records.unknown.push(immutable(row));state.unknown++;
-     if(assessment.reason==='cancelled'){stopReason='cancelled';break;}
-    }else if(assessment.status==='not-dyadic'){
-     records.notDyadic.push(immutable(row));state.notDyadic++;
-    }else throw Error(`Unexpected ET discovery status: ${assessment.status}.`);
-    if(Object.values(records).reduce((sum,items)=>sum+items.length,0)>=normalized.batchSize){
-     yield emitBatch();await eventLoopBoundary();
-     lastTaskYield=Date.now();
-    }else if(Date.now()-lastTaskYield>=DISCOVERY_SLICE_MILLISECONDS){
-     await eventLoopBoundary();lastTaskYield=Date.now();
-    }
-   }
-   if(stopReason&&!enumerationFinished)shapes.return();
-   const enumerationProgress=shapes.progress;
-   if(enumerationProgress.reason==='cancelled')stopReason='cancelled';
-   if(!stopReason&&!enumerationFinished&&enumerationProgress.complete)enumerationFinished=true;
-   if(Object.values(records).some(items=>items.length))yield emitBatch();
-   if(!stopReason&&!enumerationProgress.complete)stopReason=enumerationProgress.reason??'enumeration-incomplete';
-   if(!stopReason&&state.unknown>0)stopReason='shape-assessment-unknown';
-   const complete=!stopReason&&enumerationFinished&&enumerationProgress.complete&&state.unknown===0&&state.knownUnassessedCandidates===0;
-   const cancelledJob=stopReason==='cancelled',status=cancelledJob?'cancelled':complete?
-    (state.jiInterpretations===0&&state.essentiallyTempered===0?'complete-empty':'complete'):'incomplete';
-   state.status=status;state.complete=complete;state.reason=complete?null:stopReason??'incomplete';
-   state.unassessedCandidateCount=enumerationFinished&&enumerationProgress.complete?0:null;
-   const summary=discoverySnapshot(state,shapes);terminal=true;yield immutable({type:'complete',...summary});
-  }finally{
-   if(!terminal){
-    try{shapes.return();}catch{}
-    state.status='incomplete';state.complete=false;state.reason='consumer-stopped';
-    state.unassessedCandidateCount=null;
-   }
-  }
- })();
- Object.defineProperty(job,'progress',{enumerable:true,get:()=>discoverySnapshot(state,shapes)});
- return job;
 }
 
 export function assessET(shape,index,budget={}){return finishSearch(assessETSteps(shape,index,budget));}

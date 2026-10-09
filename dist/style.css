@@ -2433,7 +2433,7 @@ footer {
 .diamond-cell:hover text,
 .diamond-cell.selected text,
 .diamond-cell.is-playing text,
-.diamond-cell.catalogue-highlight text {
+.diamond-cell.focus-highlight text {
   font-weight: 800;
 }
 .diamond-cell > .diamond-cell-active-divider {
@@ -2444,7 +2444,7 @@ footer {
 }
 .diamond-cell.selected > .diamond-cell-active-divider,
 .diamond-cell.is-playing > .diamond-cell-active-divider,
-.diamond-cell.catalogue-highlight > .diamond-cell-active-divider {
+.diamond-cell.focus-highlight > .diamond-cell-active-divider {
   stroke: var(--diamond-border);
 }
 .matrix .cell .target-chip {
@@ -3925,12 +3925,12 @@ footer {
 }
 
 /* Discover harmony library: compact folders and chord rows. */
-.unified-directory .directory-tabs{display:flex;gap:3px;margin:0 0 12px}.unified-directory .directory-tabs button{flex:1;min-width:0;padding:5px 3px;font-size:11px;min-height:28px;white-space:nowrap}.unified-directory .directory-tabs button[aria-pressed=true]{background:rgba(130,156,255,.2);border-color:var(--a)}
+.unified-directory .directory-size-range{display:flex;align-items:center;gap:6px;margin:0 0 12px;font-size:12px;color:var(--muted)}.unified-directory .directory-size-range label{margin:0}.unified-directory .directory-size-range select{min-height:28px;padding:3px 6px;font-size:12px}
 .directory-search{display:flex;gap:4px;margin-bottom:12px;align-items:center}.directory-search label{flex:1}.directory-search input{width:100%}.directory-search .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .directory-filter-heading{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:600}.unified-directory .directory-filter-heading button{border:0;background:none;padding:0;min-height:24px;font-size:11px;color:var(--a)}
 .directory-quick-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:6px 0 10px}.unified-directory .directory-quick-filters label{font-size:11px}.unified-directory .directory-quick-filters select{font-size:11px;padding:4px}
 .directory-form-filters{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}.unified-directory .directory-form-filters button{display:flex;align-items:center;gap:4px;border-radius:16px;padding:4px 7px;min-height:26px;font-size:11px}.unified-directory .directory-form-filters button[aria-pressed=true]{border-color:var(--a);background:var(--surface2)}.directory-form-filters small{font-size:10px;color:var(--muted)}
-.directory-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0}.directory-dot.otonal{background:#e5a251}.directory-dot.utonal{background:#73a3f7}.directory-dot.shared{background:var(--mint)}
+.directory-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0}.directory-dot.otonal{background:#e5a251}.directory-dot.utonal{background:#73a3f7}.directory-dot.ambitonal{background:var(--mint)}.directory-dot.other{background:var(--muted)}
 .unified-directory .directory-folder,.unified-directory .directory-family{margin:0}.unified-directory .directory-folder>summary,.unified-directory .directory-family>summary{display:flex;gap:6px;align-items:center;padding:7px 0;margin:0;font-size:12px;list-style:none}.directory-folder>summary::-webkit-details-marker,.directory-family>summary::-webkit-details-marker{display:none}.directory-folder>summary::before,.directory-family>summary::before{content:'›';color:var(--muted);width:8px}.directory-folder[open]>summary::before,.directory-family[open]>summary::before{content:'⌄'}.directory-folder>summary small,.directory-family>summary small{margin-left:auto;color:var(--muted);font-size:11px}.directory-folder-icon{color:var(--a)}.directory-family{padding-left:12px}.directory-chords{border-left:1px solid var(--line);padding-left:8px;margin-left:3px}
 .unified-directory .directory-chord{display:block;width:100%;text-align:left;border:1px solid transparent;border-radius:4px;background:transparent;font-size:13px;padding:5px 8px;min-height:28px;margin:1px 0;overflow-wrap:anywhere}.unified-directory .directory-chord:hover{background:var(--surface2)}.unified-directory .directory-chord[aria-pressed=true]{border-color:var(--a);box-shadow:inset 3px 0 var(--a);background:rgba(130,156,255,.14)}
 .directory-recent{border-top:1px solid var(--line);padding-top:12px;margin-top:16px}.unified-directory .directory-recent h4{font-size:12px;margin:0 0 6px;color:var(--muted)}.unified-directory .directory-recent p{font-size:12px;color:var(--muted)}.directory-recent button span{color:var(--muted);margin-right:6px}.unified-directory .harmony-status{font-size:11px;padding:4px 0 8px}.unified-directory .unified-directory-list{margin-top:0}
@@ -3938,3 +3938,17 @@ footer {
 .directory-chord-row{display:flex;align-items:center;gap:3px;min-width:0}.unified-directory .directory-chord-row .directory-chord{flex:1;min-width:0;width:auto}.unified-directory .directory-star{border:0;background:transparent;box-shadow:none;flex:none;width:28px;min-height:28px;padding:2px;font-size:18px;color:var(--muted)}.unified-directory .directory-star:hover{color:var(--b);background:var(--surface2)}.unified-directory .directory-star[aria-pressed=true]{color:var(--b)}.directory-favourites{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}.unified-directory .directory-favourites h4{font-size:12px;margin:0 0 6px;color:var(--muted)}.unified-directory .directory-favourites p{font-size:12px;color:var(--muted)}
 
 .unified-directory .directory-recent,.unified-directory .directory-favourites{margin-bottom:0}.unified-directory .directory-recent>summary,.unified-directory .directory-favourites>summary{font-size:12px;font-weight:600;color:var(--muted);margin:0;padding:0;cursor:pointer}.unified-directory .directory-recent[open]>summary,.unified-directory .directory-favourites[open]>summary{margin-bottom:6px}
+.directory-dot.et{background:#c07ad9}.directory-dot.unknown{background:transparent;box-shadow:inset 0 0 0 1px var(--muted)}
+.dyad-table td:last-child{line-height:1.7}.dyad-reading{display:inline-block;margin-right:8px;white-space:nowrap}.dyad-reading small{color:var(--muted)}.dyad-reading.dyad-used{font-weight:600;color:var(--accent)}.dyad-ambiguous td:first-child{box-shadow:inset 2px 0 0 #c07ad9}
+.directory-more{display:block;width:100%;margin-top:4px;padding:4px 6px;font-size:11px;min-height:26px}
+/* JI / Temperament switch: a compact switch at the top left of the diamond module. */
+.diamond-tuning-toggle.unified-center-toggle{flex:0 0 auto;width:auto;gap:4px}.diamond-tuning-toggle.unified-center-toggle button{flex:0 0 auto;padding:4px 10px;min-height:26px;font-size:12px;white-space:nowrap}
+/* The focused harmony: an accent outline on diamond cells and matrix cells, distinct from selection and playing. */
+.diamond-cell.focus-highlight > .diamond-cell-active-divider{stroke:var(--accent);stroke-width:3}
+.matrix .cell.focus-cell{outline:2px solid var(--accent);outline-offset:-2px;font-weight:700}
+.form-badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:600;vertical-align:middle;border:1px solid var(--line);color:var(--text)}.form-badge.otonal{border-color:#e5a251}.form-badge.utonal{border-color:#73a3f7}.form-badge.ambitonal{border-color:var(--mint)}.form-badge.et{border-color:#c07ad9}
+.harmony-rotations{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 8px}.harmony-rotations button{min-height:26px;padding:3px 9px;font-size:12px}.harmony-rotations button[aria-pressed=true]{border-color:var(--a);background:var(--surface2)}
+.harmony-focus-note{color:var(--muted);font-size:12px}
+.matrix .cell.chord-pick{box-shadow:inset 0 0 0 3px var(--mint)}
+.matrix-chord-hint{margin:2px 0 6px;font-size:12px}
+.harmony-follow{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:0 0 6px}

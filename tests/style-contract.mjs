@@ -21,8 +21,8 @@ if (process.argv[2]) {
   assert.equal(current,baseline,'Retained rules must match the pre-refactor cascade.');
   console.log(createHash('sha256').update(baseline).digest('hex'));
 } else {
-  // Updated for the canonical shared diamond grid and cell styles, , the removed setup row and the relocated pointer controls.
-  const expected='bb19387fd167b340c585a1c013ffd4098333e34e20ccde1e6159eb1958b45a8d';
+  // Updated for the canonical shared diamond grid and cell styles, the removed setup row, the relocated pointer controls and the focused-harmony highlight.
+  const expected='c47c069b603c7f0426f9fb7259c69f75c3678f6ed6f0b62d2c375b5b730e69fa';
   assert.equal(createHash('sha256').update(current).digest('hex'),expected);
 }
 assert.ok(source.includes('--matrix-cell-height'));

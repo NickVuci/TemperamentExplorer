@@ -37,5 +37,7 @@ export function createHexboardPlayer({document:doc,window:win,press,startVoice,o
  doc.addEventListener('keydown',e=>{if(e.key==='Shift'){pedal(true);publishActiveNotes();}if(e.key==='Escape')reset();if(keyboard&&['Enter',' '].includes(e.key)&&keyAt(e.target)){e.preventDefault();if(!e.repeat){pointers.set('keyboard:'+e.code,play(keyAt(e.target),'keyboard:'+e.code,e.timeStamp));publishActiveNotes();}}});
  doc.addEventListener('keyup',e=>{if(e.key==='Shift'){pedal(false);publishActiveNotes();}if(keyboard&&['Enter',' '].includes(e.key)){pointers.delete('keyboard:'+e.code);releaseUnused(e.timeStamp);publishActiveNotes();}});
  win.addEventListener('blur',reset);doc.addEventListener('visibilitychange',()=>{if(doc.hidden)reset();});
- return {reset};
+ // Retune held notes to the cents centsFor(keyId) gives; notes it returns no number for are left alone.
+ function retune(centsFor){for(const [id,v] of held){const cents=centsFor(id);if(!Number.isFinite(cents)||cents===v.cents)continue;v.release.retune?.(cents);v.cents=cents;}publishActiveNotes();}
+ return {reset,retune};
 }

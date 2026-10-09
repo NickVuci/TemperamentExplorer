@@ -211,6 +211,8 @@ comma search, and the first HexBoard layout still migrate normally.
 
 ## Diamond coverage determines scale, mode, and layout defaults
 
+**Superseded by D-035** for the Discover and layout target scale and mode.
+
 **Decision.** The central `scale-milestones.mjs` analysis supplies all four coverage
 properties and every default. Use the first generated scale with a completing mode
 as the Discover and layout target, and its first completing mode in pitch order.
@@ -563,6 +565,8 @@ cycles. Tuning quality and scale occurrence remain independent overlays.
 
 ## D-026 — Stream bounded harmony discovery without merging identities
 
+**Superseded by D-034.**
+
 **Decision.** `discoverDyadicHarmony` consumes the rooted dyadic-shape iterator
 and classifies each yielded shape under one explicit mapping, JI target set and
 equivalence policy. It emits immutable batches with separate ordinary JI,
@@ -760,3 +764,44 @@ and device-side layout editing are not provided.
 
 ## Central audio controls (October 2026)
 All UI playback, composition transport and connected HexBoard auditions use the shared audio engine's live tonic and waveform. The header Audio menu is their single control surface. Saved composition tuning and coordinate identity stay frozen; legacy project sound fields are retained for file compatibility and do not control playback.
+
+## D-034 — Chord space replaces per-shape ET discovery
+
+**Decision.** The harmony directory classifies chords from the finite JI chord space
+of the target set rather than searching each tempered shape for a coherent JI lift.
+`harmonic-chord-space.mjs` enumerates every JI chord whose dyads lie in the target
+set (2–8 members, per transposition class), maps them into the temperament, and
+labels each tempered dyadic shape JI when it is some chord's image and essentially
+tempered otherwise. The directory lists both automatically for every context.
+
+**Rationale.** A shape has a coherent JI lift exactly when some JI clique of the
+target set maps onto it, so image lookup decides the same predicate as the lift
+proof, provided the JI enumeration is complete. That enumeration is independent of
+the temperament and small (about 6,000 hexads at the 27-limit), so classification
+became 10–20× faster than per-shape backtracking, needs no per-shape budgets, and
+yields every JI reading of a shape rather than one witness.
+
+**Consequences.** Do not reintroduce a per-shape search for directory listing.
+Correctness depends on JI enumeration completeness: if its node bound is reached,
+unmatched shapes are `unknown`, never ET. Tempered-enumeration bounds only shorten
+the list. `assessET` remains for single-shape inspection, and
+`tests/harmonic-chord-space.mjs` checks classification against it.
+
+## D-035 — Default scale is the first interval-complete MOS
+
+**Decision.** Choosing a temperament, preset, comma mapping or new JI limits opens
+the first interval-complete strict MOS from `scale-milestones.mjs`, on mode 1. A
+temperament with no interval-complete MOS through 256 notes opens on the first
+7–9-note MOS with a warning that it approximates the selected limit poorly, or keeps
+its scale if it has none.
+
+**Rationale.** A MOS that holds every diamond interval somewhere is a more useful
+starting scale than the larger, often non-MOS scale needed to hold the whole diamond
+above one tonic; diamond-complete scales and modes remain one click away in the
+coverage results. Interval completeness does not depend on the mode, so mode 1 is
+the natural start. Lacking any such MOS within the size bound means the temperament
+fits the limit badly, so a familiar mid-sized MOS with a warning is more helpful than
+keeping an arbitrary scale.
+
+**Consequences.** Retuning, saved sessions and explicit loads still keep their
+scale and mode. The layout base subset already used the first interval-complete MOS.

@@ -1,7 +1,7 @@
 import {chordIdentity} from './chord-identity-v2.mjs';
 import {harmonicIdentity} from './harmonic-equivalence.mjs';
 import {BoundedCache,immutable} from './cache.mjs';
-import {targetId,targetSet as buildTargetSet,targetSetIdentity,ratioWithinJILimits} from './ji-limit-engine.mjs';
+import {targetIdFactory,targetSet as buildTargetSet,targetSetIdentity,ratioWithinJILimits} from './ji-limit-engine.mjs';
 import {mappedIntervals} from './harmonic-intervals.mjs';
 import {mappingContext} from './harmonic-context.mjs';
 import {mapMonzo,ratioMonzo} from './ji-monzo.mjs';
@@ -44,18 +44,71 @@ function seedSources(){
  return sources;
 }
 
+// Keep this deterministic orientation only as presentation metadata. It is not
+// evidence that a general rational chord is intrinsically otonal.
+function orientPair(base,dual){
+ const score=identity=>identity.aliases.otonal.split(':').map(Number).reduce((sum,value)=>sum+value,0),a=score(base),b=score(dual);
+ return a<b||a===b&&base.fingerprint<dual.fingerprint?[base,dual]:[dual,base];
+}
+
+/** Present any exact chord with the curated seeds' otonal/utonal orientation and labels. */
+export function orientedJIInterpretation(input,provenance){
+ const base=chordIdentity(input),dual=chordIdentity(base.aliases.reciprocal),[otonal,utonal]=orientPair(base,dual);
+ const form=otonal.fingerprint===utonal.fingerprint?'self':base.fingerprint===otonal.fingerprint?'otonal':'utonal';
+ return makeJIInterpretation(base,{preferredLabel:form==='utonal'?otonal.aliases.reciprocal:base.aliases.otonal,legacyForm:form,provenance});
+}
+
+// Pitch-class form of a chord: octave doublings merge and every rotation (choice of root) is one
+// chord. A rotation whose integer form (or exact reciprocal's) is a run of consecutive harmonics on
+// an even number, 2n:2n+1:2n+2…, is preferred (4:5:6 over 3:4:5, 6:7:8 over 4:6:7); otherwise the
+// smallest terms win. Both tests read the otonal side of the rotation's exact otonal/utonal pair, so a
+// chord and its reciprocal choose matching rotations (major 4:5:6, minor 1/6:5:4).
+const gcdBig=(a,b)=>{while(b){[a,b]=[b,a%b];}return a<0n?-a:a;};
+const foldOctave=(n,d)=>{while(n>=2n*d)d*=2n;while(n<d)n*=2n;const g=gcdBig(n,d);return [n/g,d/g];};
+const compareRatio=(a,b)=>{const x=a[0]*b[1],y=b[0]*a[1];return x<y?-1:x>y?1:0;};
+function rotationTerms(classes,root,fold){
+ const rel=classes.map(([n,d])=>{const g=gcdBig(n*root[1],d*root[0]);const r=[n*root[1]/g,d*root[0]/g];return fold?foldOctave(r[0],r[1]):r;});
+ rel.sort(compareRatio);
+ let lcm=1n;for(const [,d] of rel)lcm=lcm/gcdBig(lcm,d)*d;
+ let terms=rel.map(([n,d])=>n*(lcm/d));const g=terms.reduce(gcdBig,0n);terms=terms.map(t=>t/g);
+ return {ratios:rel,terms};
+}
+// Integer form of a rotation's exact reciprocal (unfolded), as the otonal/utonal orientation reads it.
+function reciprocalTerms(ratios){
+ const flipped=ratios.map(([n,d])=>[d,n]).sort(compareRatio);
+ let lcm=1n;for(const [,d] of flipped)lcm=lcm/gcdBig(lcm,d)*d;
+ const terms=flipped.map(([n,d])=>n*(lcm/d)),g=terms.reduce(gcdBig,0n);
+ return terms.map(t=>t/g);
+}
+/** Every rotation of a chord's pitch-class set, in canonical member order: rotation k is rooted on member k. */
+export function chordRotations(identity,octave){
+ const seen=new Set(),classes=[];
+ for(const q of identity.canonicalRatios.map(q=>[BigInt(q.n),BigInt(q.d)])){const r=octave?foldOctave(q[0],q[1]):(()=>{const g=gcdBig(q[0],q[1]);return [q[0]/g,q[1]/g];})(),key=r.join('/');if(!seen.has(key)){seen.add(key);classes.push(r);}}
+ return classes.map((root,index)=>{const own=rotationTerms(classes,root,octave);
+  return {index,root:`${root[0]}/${root[1]}`,ratios:own.ratios.map(([n,d])=>`${n}/${d}`),terms:own.terms,dualTerms:reciprocalTerms(own.ratios),label:own.terms.join(':')};});
+}
+export function simplestRotation(identity,octave){
+ const rotations=chordRotations(identity,octave);
+ if(rotations.length<2)return null;
+ const sum=terms=>terms.reduce((a,b)=>a+b,0n),run=terms=>terms[0]%2n===0n&&terms.every((t,i)=>i===0||t-terms[i-1]===1n);
+ let best=null;
+ for(const rotation of rotations){
+  const own=rotation.terms,dual=rotation.dualTerms;
+  const rank=[run(own)||run(dual)?0n:1n,sum(own)<sum(dual)?sum(own):sum(dual),own.at(-1),sum(own)];
+  const spelling=rotation.ratios.join(':');
+  const order=best?rank.reduce((d,v,i)=>d||(v<best.rank[i]?-1:v>best.rank[i]?1:0),0)||(spelling<best.spelling?-1:spelling>best.spelling?1:0):-1;
+  if(order<0)best={rank,spelling,classCount:rotations.length,index:rotation.index};
+ }
+ return best;
+}
+
 let seedCandidates,legacyCandidates,curated;
 const harmonicLineCache=new BoundedCache(24);
 function generatedSeedCandidates(){
  if(seedCandidates)return seedCandidates;
  const records=new Map();
  for(const {input,provenance}of seedSources()){
-  const base=chordIdentity(input),dual=chordIdentity(base.aliases.reciprocal);
-  // Keep this deterministic legacy orientation only as presentation metadata.
-  // It is not evidence that a general rational chord is intrinsically otonal.
-  const a=base.aliases.otonal.split(':').map(Number),b=dual.aliases.otonal.split(':').map(Number);
-  const aScore=a.reduce((sum,value)=>sum+value,0),bScore=b.reduce((sum,value)=>sum+value,0);
-  const [otonal,utonal]=aScore<bScore||aScore===bScore&&base.fingerprint<dual.fingerprint?[base,dual]:[dual,base];
+  const base=chordIdentity(input),dual=chordIdentity(base.aliases.reciprocal),[otonal,utonal]=orientPair(base,dual);
   const pairId=[otonal.fingerprint,utonal.fingerprint].sort().join('|');
   for(const [identity,form,label]of [[otonal,'otonal',otonal.aliases.otonal],[utonal,'utonal',otonal.aliases.reciprocal]]){
    if(records.has(identity.fingerprint)||records.size>=MAX_CURATED)continue;
@@ -121,9 +174,9 @@ function makeTargetResolver(targetSet,mapping){
  const context=mappingContext(mapping);
  if(targetSet.spec.representationPolicy==='octave'&&!context.basis.includes(2))throw Error('Use a native-exact target set when the mapping subgroup does not contain prime 2.');
  const intervalRecords=mappedIntervals(targetSet,context),targetById=new Map(targetSet.targets.map(target=>[target.id,target]));
- const intervalByTargetId=new Map(intervalRecords.map(record=>[record.targetId,record]));
+ const intervalByTargetId=new Map(intervalRecords.map(record=>[record.targetId,record])),idFor=targetIdFactory(targetSet.spec);
  const resolve=value=>{
-  const ratio=ratioValue(value),[n,d]=ratio,id=targetId(targetSet.spec,{n:safeRatioNumber(n,'Target numerator'),d:safeRatioNumber(d,'Target denominator')}),target=targetById.get(id);
+  const ratio=ratioValue(value),[n,d]=ratio,id=idFor({n:safeRatioNumber(n,'Target numerator'),d:safeRatioNumber(d,'Target denominator')}),target=targetById.get(id);
   if(!target)return {status:'limit-failure',failureKind:'limit',reason:targetLimitReason(targetSet,id),ratio:ratioText(ratio),targetId:id,coordinate:null,canonicalCoordinate:null,missingPrimes:[],sourcePairs:[]};
   const interval=intervalByTargetId.get(target.id),factorization=ratioMonzo(ratio,context.basis);
   if(!interval||!interval.coordinate||factorization.missingPrimes.length||!target.inMappingSubgroup){
@@ -152,8 +205,11 @@ function analyzeRatioMembers(ratios,targetSet,resolver){
 }
 
 /** Check every unordered JI dyad and keep target-limit failures distinct from unmapped dyads. */
+// One resolver per target set and mapping: building it maps every target interval.
+const resolverCache=new BoundedCache(8);
 export function analyzeJIDyads(input,targetSpec,mapping){
- const identity=normalizeIdentity(input),set=asTargetSet(targetSpec),resolver=makeTargetResolver(set,mapping);
+ const identity=normalizeIdentity(input),set=asTargetSet(targetSpec);
+ const resolver=resolverCache.get(JSON.stringify([set.id,mappingContext(mapping).id]),()=>makeTargetResolver(set,mapping));
  const ratios=identity.canonicalRatios.map(ratio=>[BigInt(ratio.n),BigInt(ratio.d)]);
  return analyzeRatioMembers(ratios,set,resolver);
 }

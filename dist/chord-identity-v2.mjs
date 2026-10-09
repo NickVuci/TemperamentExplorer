@@ -2,6 +2,7 @@
 // worker messages and saved sessions require no BigInt serialization policy.
 import {rational,div,bigintGcd} from './rational.mjs';
 import {ratioMonzo} from './ji-monzo.mjs';
+import {BoundedCache} from './cache.mjs';
 export const CHORD_INPUT_BOUNDS=Object.freeze({characters:300,tones:8,integer:1000000});
 export const MAX_CHORD_TONES=CHORD_INPUT_BOUNDS.tones;
 export const compareExactRatios=(a,b)=>a[0]*b[1]<b[0]*a[1]?-1:a[0]*b[1]>b[0]*a[1]?1:0;
@@ -23,7 +24,9 @@ export function chordIdentity(input){
  const otonal=ints.join(':'),reciprocal='1/'+[...ints].reverse().join(':');
  return {version:2,originalInput,orderedInput:tokens,orderedRatios:normalized.map(key),canonicalRatios,cardinality:ratios.length,inputCardinality:tokens.length,repeatedMembers:tokens.length-ratios.length,fingerprint:'ji2:'+canonicalRatios.map(q=>q.label).join(':'),displayLabel:compact?trim:originalInput.trim(),aliases:{otonal,reciprocal},primeSupport:[...new Set(canonicalRatios.flatMap(q=>Object.keys(q.exponents).map(Number)))].sort((a,b)=>a-b)};
 }
-export function chordMonzos(identity,basis){return identity.canonicalRatios.map(q=>{const result=ratioMonzo(q,basis);return {monzo:result.basisMonzo,missingPrimes:result.missingPrimes};});}
+// Factorization depends only on the ratios and basis; temperament changes reuse it.
+const monzoCache=new BoundedCache(4096);
+export function chordMonzos(identity,basis){return monzoCache.get(JSON.stringify([identity.canonicalRatios.map(q=>q.label??`${q.n}/${q.d}`),basis]),()=>Object.freeze(identity.canonicalRatios.map(q=>{const result=ratioMonzo(q,basis);return Object.freeze({monzo:Object.freeze(result.basisMonzo),missingPrimes:Object.freeze(result.missingPrimes)});})));}
 // Proportional subsets: test each possible common scale factor exactly.
 export function jiSubset(a,b){
  if(a.cardinality>b.cardinality)return false;

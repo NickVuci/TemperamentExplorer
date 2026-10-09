@@ -64,6 +64,8 @@ export function searchShapeOccurrences(s,input,{membership=scaleMembership(s),pa
  }
  partial.sort((a,b)=>b.matchedCardinality-a.matchedCardinality||a.generatorSpan-b.generatorSpan||a.root-b.root);
  result.tonicOccurrences=result.completeOccurrences.filter(occurrence=>occurrence.tonicAnchored);
+ // A merged chord has no fixed root, so scope "tonic" also needs the occurrences that use the tonic as any member.
+ result.tonicMemberOccurrences=result.completeOccurrences.filter(occurrence=>occurrence.assignments.some(a=>a.degree===0));
  result.anywhereCount=result.completeOccurrences.length;
  if(tonicOnly)result.completeOccurrences=result.tonicOccurrences;
  result.bestPartialOccurrences=(tonicOnly?partial.filter(occurrence=>occurrence.tonicAnchored):partial).slice(0,bounds.partialLimit);
@@ -82,7 +84,7 @@ export function searchOccurrences(s,projection,{membership=scaleMembership(s),pa
   id:'occ2:'+JSON.stringify([projection.identity.fingerprint,s.basis,s.rows,membership.n,occurrence.rootGenerator-minGenerator]),
   chordId:projection.identity.fingerprint,assignments:occurrence.assignments.map((member,index)=>({...member,ratio:projection.notes[index].ratio})),
   missingCoordinates:occurrence.missingCoordinates.map(member=>({...member,ratio:projection.notes[member.member].ratio}))});
- return {...shared,searchBounds:bounds,completeOccurrences:shared.completeOccurrences.map(adapt),bestPartialOccurrences:shared.bestPartialOccurrences.map(adapt),tonicOccurrences:shared.tonicOccurrences.map(adapt)};
+ return {...shared,searchBounds:bounds,completeOccurrences:shared.completeOccurrences.map(adapt),bestPartialOccurrences:shared.bestPartialOccurrences.map(adapt),tonicOccurrences:shared.tonicOccurrences.map(adapt),tonicMemberOccurrences:shared.tonicMemberOccurrences.map(adapt)};
 }
 export function largerScaleDiagnostics(s,projection,{count=4}={}){
  if(projection.basisStatus!=='mapped')return [];

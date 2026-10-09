@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import * as engine from '../dist/engine.mjs';
 import * as matrices from '../dist/matrix.mjs';
 import * as assignments from '../dist/assignments.mjs';
-import {renderDiamond,maximumDiamondError} from '../dist/tonality-diamond.mjs';
+import {renderDiamond,maximumDiamondError,diamondApproximation} from '../dist/tonality-diamond.mjs';
 import {errorColor,maximumMappedTargetError} from '../dist/ji-error-color.mjs';
 import {validateState} from '../dist/state.mjs';
 import {fromCommas} from '../dist/tuning.mjs';
@@ -14,7 +14,7 @@ const source=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8');
 const html=readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');
 const controls={'#limit':{value:'13'},'#primeLimit':{value:'basis'},'#layout':{value:'distance'},'#labels':{value:'ratios'},'#tolerance':{value:'10'},'#targetfilter':{value:'all'}};
 const state=engine.makeState('meantone');
-const context=vm.createContext({parsePrimeFilterInput,...engine,...matrices,...assignments,assert,states:[state],matrixPages:[[0,0]],diamondScope:'mapping',manualTolerance:null,$:id=>controls[id],esc:String,errorColor,maximumMappedTargetError,maximumDiamondError:maximumDiamondError,renderDiamond,fmt:(v,n=2)=>Number(v).toFixed(n),sign:v=>(v>=0?'+':'')+Number(v).toFixed(2),option:(value,label,selected)=>`<option value="${value}"${selected===value?' selected':''}>${label}</option>`});
+const context=vm.createContext({harmonicMode:'a',parsePrimeFilterInput,...engine,...matrices,...assignments,assert,states:[state],matrixPages:[[0,0]],diamondScope:'mapping',manualTolerance:null,$:id=>controls[id],esc:String,errorColor,maximumMappedTargetError,maximumDiamondError:maximumDiamondError,renderDiamond,fmt:(v,n=2)=>Number(v).toFixed(n),sign:v=>(v>=0?'+':'')+Number(v).toFixed(2),option:(value,label,selected)=>`<option value="${value}"${selected===value?' selected':''}>${label}</option>`});
 context.playPitches=pitches=>{context.playedPitches=pitches;};
 context.diamondWorkspace={layout:()=>({}),render:(cfg,header)=>renderDiamond(context.states[0],0,cfg,'1/1',header)};
 vm.runInContext(source.slice(source.indexOf('function near('),source.indexOf('function syncNavigation(){')),context);
@@ -32,7 +32,9 @@ assert.match(advanced,/id="diamond-span-controls"/);
 assert.match(advanced,/data-diamond-settings/);
 assert.match(source,/\$\('#approximation-module'\).insertBefore/);
 assert.equal(context.errorColor(0,10),'#fff');
-const jiDetails=context.diamondDetails('3/2');
+// A cell as the diamond builds it: its status is the one approximation it sounds.
+const cellFor=(ratio,scope=context.diamondScope)=>{const target=assignments.target(ratio);return {...target,label:ratio,c:1200*Math.log2(target.n/target.d),status:diamondApproximation(context.states[0],target,{...context.settings(),scope})};};
+const jiDetails=context.diamondDetails(cellFor('3/2'));
 assert.match(jiDetails,/<th scope="col" title="JI interval">3\/2<\/th>/);
 assert.match(jiDetails,/<td title="JI cents">701\.955¢<\/td>/);
 assert.doesNotMatch(jiDetails,/data-ji-target|Play JI interval|<button|¢ error|approximation-heading-row|Mapped · best|<small>/);
@@ -46,13 +48,16 @@ for(const s of [state,engine.makeState('porkypine'),fromCommas('128/125','2.3.5'
  for(const octave of [false,true])for(const scope of ['mapping','scale','mode'])for(const filter of ['all','mapped','hits']){
   s.matrixOctave=octave;context.diamondScope=scope;controls['#targetfilter'].value=filter;
   for(const ratio of ['3/2','5/3']){
-   const details=context.diamondDetails(ratio);
+   const details=context.diamondDetails(cellFor(ratio,scope));
    assert.ok(details.includes(ratio));assert.doesNotMatch(details,/data-ji-target|Play JI interval|undefined|NaN/);
   }
  }
 }
 context.diamondScope='mapping';controls['#targetfilter'].value='all';
 controls['#limit'].value='15';
+// A mapped interval absent from the scale shows only the reading the cell sounds, not a second candidate.
+context.states[0]={...engine.makeState('meantone'),n:5,mode:0};{const cell=cellFor('16/15'),single=context.diamondDetails(cell);
+ assert.equal((single.match(/title="Tempered cents"/g)||[]).length,1,'one reading per cell');assert.match(single,new RegExp(cell.status.approximation.c.toFixed(3)));}
 controls['#labels'].value='cents';
 const porkypine=engine.makeState('porkypine');context.states[0]=porkypine;
 vm.runInContext(`settings=(()=>{const basis=states[0].basis,limit=Number($('#limit').value),primeLimit=$('#primeLimit').value==='basis'?primeFilterForBasis(basis):null;return {limit,primeLimit,layout:$('#layout').value,labels:$('#labels').value,ts:targets(limit,primeLimit),tol:10,maxError:10,filter:$('#targetfilter').value,outside:true};});assert.equal(settings().primeLimit.join('.'),'2.3.5.11');assert.ok(!targets(settings().limit,settings().primeLimit).some(t=>t.label==='7/4'));assert.ok(targets(settings().limit,settings().primeLimit).some(t=>t.label==='11/8'));`,context);
@@ -101,7 +106,7 @@ assert.equal((chordDetail.innerHTML.match(/scope="col"/g)||[]).length,3,'each di
 const rows=[...chordDetail.innerHTML.matchAll(/<tr>(.*?)<\/tr>/g)].map(match=>[...match[1].matchAll(/<(?:th|td)[^>]*>(.*?)<\/(?:th|td)>/g)].map(cell=>cell[1]));assert.equal(rows.length,4);
 liveDiamond.chordDisplay().tuning.intervals.forEach((interval,index)=>{assert.equal(rows[0][index],interval.ratio);assert.equal(rows[1][index],`${interval.idealCents.toFixed(3)}¢`);assert.equal(rows[2][index],`${interval.temperedCents.toFixed(3)}¢`);assert.equal(rows[3][index],`${interval.errorCents>=0?'+':''}${interval.errorCents.toFixed(2)}¢`);});
 for(const [index,interval] of liveDiamond.chordDisplay().tuning.intervals.entries()){
- const single=context.diamondDetails(interval.ratio);
+ const single=context.diamondDetails(liveDiamond.displayCells().find(cell=>cell.label===interval.ratio));
  const singleRows=[...single.matchAll(/<tr>(.*?)<\/tr>/g)].map(match=>[...match[1].matchAll(/<(?:th|td)[^>]*>(.*?)<\/(?:th|td)>/g)].map(cell=>cell[1]));
  assert.equal(singleRows.length,4,'single intervals have exactly the same four rows as chords');
  for(let row=0;row<4;row++)assert.equal(singleRows[row][0],rows[row][index],'the single interval and chord column display the same data');

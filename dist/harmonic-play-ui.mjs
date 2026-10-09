@@ -25,7 +25,11 @@ export function createHarmonicPlayWorkspace({getState,getBoard,getNear=()=>65,re
    if(voicing.withinScale!==false){const placed=placeRealization(s,voicing,board,getNear());placements=placed.placements;placementLimited=placed.limited;}
   }catch(e){voicing=null;error=e.message;}
  }
- function accept(value){selection=validateHarmonicSelection(value);rootId='';showMore=false;reset();sync();refresh();}
+ function accept(value){selection=validateHarmonicSelection(value);rootId='';showMore=false;reset();sync();
+  // A chord has no fixed root once rotations are merged, so source notes that fall outside the Play scale
+  // start from the chord's first occurrence there, preferring one that uses the tonic.
+  if(voicing&&voicing.withinScale===false&&occurrences?.completeOccurrences.length){rootId=(occurrences.tonicMemberOccurrences?.[0]??occurrences.completeOccurrences[0]).id;sync();}
+  refresh();}
  function render(){sync();return `<section class="catalogue-panel harmony-play" aria-label="Selected harmonic realization"><h3>Selected harmony</h3><div class="panelactions"><button data-harmony-play="browse">Browse in Discover</button>${selection?'<button data-harmony-play="clear">Clear</button>':''}</div>
   ${!selection?'<p>Select a mapped JI chord, interval or ET shape in Discover, then send it to Play.</p>':`<h4>${esc(selection.label??'Coordinate harmony')}</h4>${error?`<p role="alert">${esc(error)}</p>`:''}
   ${voicing?`<p>${voicing.voices.length} voices · ${esc(voicing.reference?.label??'Preserved source voicing')}</p><p>${voicing.pitches.map(p=>p.toFixed(3)).join(' · ')} ¢</p>

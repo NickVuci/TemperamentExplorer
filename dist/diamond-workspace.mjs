@@ -1,9 +1,10 @@
 import {diamondLayout,parseDiamondHarmonics,selectedDiamondCoordinates,selectedDiamondChord,selectedDiamondChordTuning} from './diamond-layout.mjs';
 import {diamondApproximation,renderDiamond} from './tonality-diamond.mjs';
 import {esc,option} from './ui.mjs';
-import {diamondHarmonicSelection,diamondCellsForSelection} from './diamond-harmonic-selection.mjs';
-export function createDiamondWorkspace({document:doc,getState,refresh,notify,play,onInspect,onCollect,onPlace,onChord,onChordChange=()=>{},getHarmonicMode=()=>false}){
- let layout={harmonics:'',fold:false},interaction='play',selection=new Set(),playing=new Set(),geometry=null,signature='',layoutOptionsOpen=false,auditioning=false,auditionTimer=null;
+import {diamondHarmonicSelection} from './diamond-harmonic-selection.mjs';
+export function createDiamondWorkspace({document:doc,getState,refresh,notify,play,onInspect,onCollect,onPlace,onChord,onChordChange=()=>{},onTuningChange=()=>{},getHarmonicMode=()=>false}){
+ // tuning: 'ji' sounds each cell's exact ratio; 'tempered' sounds its approximation in the temperament.
+ let layout={harmonics:'',fold:false},interaction='play',tuning='tempered',selection=new Set(),playing=new Set(),geometry=null,signature='',layoutOptionsOpen=false,auditioning=false,auditionTimer=null;
  function clearAudition(){if(auditionTimer!==null)clearTimeout(auditionTimer);auditionTimer=null;auditioning=false;}
  function displayCells(){const ids=interaction==='play'&&playing.size>0?playing:selection;return (geometry?.cells??[]).filter(cell=>ids.has(cell.id));}
  function chordDisplay(){
@@ -25,8 +26,9 @@ export function createDiamondWorkspace({document:doc,getState,refresh,notify,pla
   const actions=interaction==='select'?`<div class="panelactions diamond-selection-actions"><span data-diamond-selection aria-live="polite">${selection.size} cells selected</span><button data-diamond-action="clear">Clear selection</button><button data-diamond-action="hear" ${selection.size?'':'disabled'}>▶ Play selection</button><button data-diamond-action="collect" ${selection.size?'':'disabled'}>Add to collection</button><button data-diamond-action="chord" ${selection.size?'':'disabled'}>Open in Chords</button><button data-diamond-action="place" ${selection.size?'':'disabled'}>Map to HexBoard</button></div>`:'';
   const playHelp=interaction==='play'?`<span class="viewnote" id="diamond-pointer-help">Click, hold and drag to play. Hold Shift to sustain. Escape stops sound.</span>`:'';
   const describedBy=interaction==='play'?' aria-describedby="diamond-pointer-help"':'';
+  const canvasTop=tuningToggle();
   const canvasControls=`<div class="diamond-pointer-controls"><label>Pointer action<select data-diamond-setting="interaction"${describedBy}>${option('play','Play notes',interaction)}${option('select','Select cells',interaction)}</select></label>${playHelp}${actions}</div>`;
-  return renderDiamond(s,0,{...cfg,geometry,canvasControls,selectedIds:[...selection]},'',header);
+  return renderDiamond(s,0,{...cfg,geometry,canvasTop,canvasControls,selectedIds:[...selection]},'',header);
  }
  function optionsMarkup(){
   if(!geometry)return '';
@@ -38,9 +40,17 @@ export function createDiamondWorkspace({document:doc,getState,refresh,notify,pla
   const t=geometry?.cells.find(t=>t.id===node.dataset.diamondKey);if(!t)return null;
   onInspect(t.label);
   if(interaction==='select'){clearAudition();if(selection.has(t.id))selection.delete(t.id);else selection.add(t.id);paint();return {enabled:false,track:true};}
-  const v=t.status.approximation;if(!v){notify('No sounding approximation for this cell under the current source and display filter.');return {enabled:false,track:true};}
-  return {enabled:true,c:v.c};
+  const c=soundingCents(t);if(c===null){notify('No sounding approximation for this cell in the temperament; switch the diamond to Just intonation to hear its ratio.');return {enabled:false,track:true};}
+  return {enabled:true,c};
  }
+ // A cell sounds its exact ratio in JI, or its approximation in the temperament (none: not playable).
+ function soundingCents(t){return tuning==='ji'?t.c:t?.status?.approximation?.c??null;}
+ const TUNINGS=[['ji','Just intonation'],['tempered','Temperament']];
+ function tuningToggle(){return `<div class="tabs unified-center-toggle diamond-tuning-toggle" role="group" aria-label="Diamond tuning">${TUNINGS.map(([value,label])=>`<button type="button" data-diamond-action="tuning" data-value="${value}" aria-pressed="${tuning===value}" class="${tuning===value?'active':''}">${label}</button>`).join('')}</div>`;}
+ // Switching tuning updates the toggle in place and retunes held notes, without redrawing the diamond.
+ function setTuning(value){tuning=value==='ji'?'ji':'tempered';
+  doc.querySelectorAll('[data-diamond-action="tuning"]').forEach(button=>{const on=button.dataset.value===tuning;button.classList.toggle('active',on);button.setAttribute('aria-pressed',String(on));});
+  onTuningChange(id=>{const t=geometry?.cells.find(cell=>cell.id===id);return t?soundingCents(t):null;});}
  function item(){
   const targets=geometry.cells.filter(t=>selection.has(t.id)),alternative=targets.some(t=>!t.status?.approximation?.mapped);
   const coords=getHarmonicMode()?targets.map(t=>{if(!t.status?.approximation?.m)throw Error('Some selected cells have no available approximation.');return [...t.status.approximation.m];}):selectedDiamondCoordinates(geometry?.cells??[],selection);
@@ -59,25 +69,31 @@ export function createDiamondWorkspace({document:doc,getState,refresh,notify,pla
   const b=el.closest?.('[data-diamond-action], [data-diamond-preset]');if(!b)return false;
   try{
    const action=b.dataset.diamondAction;
+   if(action==='tuning'){setTuning(b.dataset.value);return true;}
    if(b.dataset.diamondPreset){layout={harmonics:parseDiamondHarmonics(b.dataset.diamondPreset).join(':'),fold:false};refresh();return true;}
    if(action==='apply'){const text=doc.querySelector('[data-diamond-harmonics]').value;layout={...layout,harmonics:parseDiamondHarmonics(text).join(':')};refresh();}
    if(action==='default'){layout={harmonics:'',fold:false};refresh();}
    if(action==='reverse'){layout.harmonics=parseDiamondHarmonics([...geometry.harmonics].reverse().join(':')).join(':');layout.fold=geometry.fold;refresh();}
    if(action==='clear'){clearAudition();selection.clear();paint();}
    if(action==='otonal'||action==='utonal'){clearAudition();const index=Number(doc.querySelector(`[data-diamond-line="${action}"]`).value);selection=new Set(geometry.cells.filter(t=>action==='otonal'?t.j===index:t.i===index).map(t=>t.id));paint();}
-   if(['hear','collect','place','chord'].includes(action)){
+   const audition=pitches=>{clearAudition();play(pitches);auditioning=true;paint();auditionTimer=setTimeout(()=>{auditioning=false;auditionTimer=null;paint();},720);};
+   // In JI the audition sounds each selected ratio once, exactly; collecting and placing still use the temperament.
+   if(action==='hear'&&tuning==='ji'){const pitches=[...new Map(geometry.cells.filter(t=>selection.has(t.id)).map(t=>[t.label,soundingCents(t)])).values()].filter(c=>c!==null).sort((a,b)=>a-b);if(pitches.length)audition(pitches);}
+   else if(['hear','collect','place','chord'].includes(action)){
     const material=item();if(action==='hear'){clearAudition();play(material.coords.map(m=>m[0]*getState().p+m[1]*getState().g));auditioning=true;paint();auditionTimer=setTimeout(()=>{auditioning=false;auditionTimer=null;paint();},720);}
     if(action==='collect')onCollect(material);if(action==='place')onPlace(material);if(action==='chord')onChord(material);
    }
   }catch(e){notify(e.message);}return true;
  }
  function restore(data){
-  if(!data){layout={harmonics:'',fold:false};selection.clear();playing.clear();clearAudition();interaction='play';signature='';return;}
+  if(!data){layout={harmonics:'',fold:false};selection.clear();playing.clear();clearAudition();interaction='play';tuning='tempered';signature='';return;}
   if(typeof data.harmonics!=='string'||typeof data.fold!=='boolean'||!['play','select'].includes(data.interaction)||!Array.isArray(data.selected)||data.selected.length>2401||data.selected.some(id=>typeof id!=='string'||!/^\d{1,2}:\d{1,2}$/.test(id)))throw Error('Invalid saved diamond layout.');
-  layout={harmonics:data.harmonics?parseDiamondHarmonics(data.harmonics).join(':'):'',fold:data.fold};selection=new Set(data.selected);playing.clear();clearAudition();interaction=data.interaction;signature='';
+  layout={harmonics:data.harmonics?parseDiamondHarmonics(data.harmonics).join(':'):'',fold:data.fold};selection=new Set(data.selected);playing.clear();clearAudition();interaction=data.interaction;tuning=data.tuning==='ji'?'ji':'tempered';signature='';
  }
  function updatePlaying(notes){playing=new Set((Array.isArray(notes)?notes:[]).map(note=>note?.id).filter(id=>typeof id==='string'));const active=geometry?.cells.filter(cell=>playing.has(cell.id))??[];if(active.length&&new Set(active.map(cell=>cell.label)).size===1)onInspect(active[0].label);paint();}
- return {render,press,click,change,mountOptions,restore,updatePlaying,chordDisplay,displayCells,
-  highlightCatalogueInterpretation(value){const ids=diamondCellsForSelection(geometry?.cells??[],value);doc.querySelectorAll('[data-diamond-key]').forEach(el=>el.classList.toggle('catalogue-highlight',ids.includes(el.dataset.diamondKey)));return ids.length;},
-  layout:()=>({...layout}),serialize:()=>({...layout,interaction,selected:[...selection]})};
+ return {render,press,click,change,mountOptions,restore,updatePlaying,chordDisplay,displayCells,tuning:()=>tuning,
+  // The focused harmony is a highlight of its own, never a change to the cell selection.
+  cells:()=>geometry?.cells??[],harmonics:()=>geometry?.harmonics??[],
+  showFocus(ids){const wanted=new Set(ids??[]);doc.querySelectorAll('[data-diamond-key]').forEach(el=>el.classList.toggle('focus-highlight',wanted.has(el.dataset.diamondKey)));return wanted.size;},
+  layout:()=>({...layout}),serialize:()=>({...layout,interaction,tuning,selected:[...selection]})};
 }

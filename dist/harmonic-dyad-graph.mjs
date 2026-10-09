@@ -206,14 +206,23 @@ export function enumerateDyadicShapeSteps(index,options={}){
      adjacency[a][b]=adjacency[b][a]=compatible;
     }
    }
+   // Class of every vertex difference. A shape found rooted at each of its members appears once
+   // per rooting; only the rooting whose class list is least is yielded, so shapeKey runs once per
+   // shape. A truncated neighbourhood can omit that rooting, so it keeps the identity check instead.
+   const classIds=new Map(),classId=point=>{const key=quotientCoordinate(index.policy,point).key;let id=classIds.get(key);if(id===undefined){id=classIds.size;classIds.set(key,id);}return id;};
+   const difference=neighborLimit?null:vertices.map(a=>vertices.map(b=>classId([b.coordinate[0]-a.coordinate[0],b.coordinate[1]-a.coordinate[1]])));
+   const rootingList=(anchor,members)=>members.map(member=>difference[anchor][member]).sort((x,y)=>x-y);
+   const lessList=(a,b)=>{for(let i=0;i<a.length;i++)if(a[i]!==b[i])return a[i]<b[i];return false;};
+   const canonicalRooting=members=>{const own=rootingList(members[0],members);for(let i=1;i<members.length;i++)if(lessList(rootingList(members[i],members),own))return false;return true;};
    const seenShapeIds=new Set();
    for(const size of normalized.sizes){
     if(size>vertices.length)continue;
-    function* walk(chosen,candidateIndices){
+    function* walk(chosen,candidateIndices,chosenIndices){
      if(stopped())return;
      if(chosen.length===size){
       if(state.candidateShapesChecked>=state.bounds.maxCandidateShapes){state.reason=state.reason??'candidate-cap';return;}
       state.candidateShapesChecked++;
+      if(difference&&!canonicalRooting(chosenIndices)){state.duplicateShapes++;return;}
       const coordinates=chosen.map(vertex=>vertex.coordinate),id=shapeKey(index.policy,coordinates);
       if(seenShapeIds.has(id)){state.duplicateShapes++;return;}
       seenShapeIds.add(id);state.uniqueShapesYielded++;
@@ -230,11 +239,11 @@ export function enumerateDyadicShapeSteps(index,options={}){
       const candidateIndex=candidateIndices[position],candidate=vertices[candidateIndex];
       const rest=candidateIndices.slice(position+1).filter(other=>adjacency[candidateIndex][other]);
       if(rest.length<needed-1)continue;
-      yield* walk([...chosen,candidate],rest);
+      yield* walk([...chosen,candidate],rest,[...chosenIndices,candidateIndex]);
       if(state.reason)return;
      }
     }
-    yield* walk([root],selected.map((_,position)=>position+1));
+    yield* walk([root],selected.map((_,position)=>position+1),[0]);
     if(state.reason)break;
    }
    naturallyFinished=!state.reason;

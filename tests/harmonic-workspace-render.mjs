@@ -27,7 +27,7 @@ add('labels',add('matrix-label-controls')).value='ratios';
 const document={activeElement:null,querySelector:selector=>root.querySelector(selector),querySelectorAll:()=>[]};
 const context=vm.createContext({compositionWorkspace:{pause(){},stop(){},refresh(){},click:()=>false,change:()=>false},document,$:document.querySelector,states:[makeState('meantone')],view:'unified',unifiedCenter:'diamond',unifiedCenterView,renderUnified,unifiedDirectory,unifiedDetail,targetTable:()=>'<div>Diamond</div>',matrix:()=>'',diamondWorkspace:{mountOptions(){}},fillDiamondDetails:()=>{},harmonicMode:'b',manualChordInspector:false,renderingWorkspace:false,selected:null,manualTolerance:null,liveChordContext:null,
  parsePrimeFilterInput,primeFilterForBasis,targets,validateJILimits,automaticTolerance:()=>20,
- syncUnifiedPanelHeights:()=>{},syncAudioControls:()=>{},placeDiamondTolerance:()=>{},populateLimitOptions:()=>{},syncCoverageDefaults:()=>{},syncNavigation:()=>{},scaleControls:()=>'',
+ syncUnifiedPanelHeights:()=>{},applyHarmonicFocus:()=>{},revealDirectoryRow:()=>{},syncAudioControls:()=>{},placeDiamondTolerance:()=>{},populateLimitOptions:()=>{},syncCoverageDefaults:()=>{},syncNavigation:()=>{},scaleControls:()=>'',
  sectionFor:v=>v==='composition'?'create':'discover',scaleDetails:()=>'<section>Scale view</section>',materialWorkspace:{render:()=>''},hexWorkspace:{prepareForTemperament:()=>{}},hexPlayer:null,diamondPlayer:null,
  placeMatrixControls:()=>{},placeTargetControls:()=>{},chordWorkspace:{render:()=>'<section>Manual chord inspector</section>'}});
 const app=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8');
@@ -54,7 +54,7 @@ async function ready(){
  while(ui.model().status==='loading'){assert.ok(Date.now()<deadline,'discovery completes');await new Promise(resolve=>setTimeout(resolve,5));}
  controlsSurvive();assert.equal(ui.model().error,'');assert.ok(ui.model().result?.complete);assert.ok(ui.layoutEntries().length);
  // A catalogue refresh rewrites only the directory pane; a full redraw rewrites the workspace.
- assert.match(host.querySelector('[data-unified-pane="directory"]')?.innerHTML||host.innerHTML,/matching rows · catalogue search complete/);
+ assert.match(host.querySelector('[data-unified-pane="directory"]')?.innerHTML||host.innerHTML,/\d+ chords · complete/);
 }
 try{
  // Use the real application redraw and real catalogue callbacks, rather than a
@@ -79,10 +79,10 @@ try{
  const querySelector=host.querySelector.bind(host);let focusCount=0,caret=null;
  const replacement={value:'',type:'search',focus:()=>{focusCount++;},setSelectionRange:(start,end)=>{caret=[start,end];}};
  host.querySelector=selector=>selector.startsWith('[data-harmony-field=')?replacement:querySelector(selector);
- document.activeElement={tagName:'SELECT',dataset:{harmonyField:'category'},value:'et'};
+ document.activeElement={tagName:'SELECT',dataset:{harmonyField:'scope'},value:'discover'};
  assert.equal(ui.change(document.activeElement),true);
- assert.equal(ui.model().category,'et');assert.equal(focusCount,0,'Browse selection does not reopen its native picker during redraw');
- document.activeElement={tagName:'SELECT',dataset:{harmonyField:'category'},value:'ji'};
+ assert.equal(ui.model().scope,'discover');assert.equal(focusCount,0,'Browse selection does not reopen its native picker during redraw');
+ document.activeElement={tagName:'SELECT',dataset:{harmonyField:'scope'},value:'temperament'};
  ui.change(document.activeElement);await ready();
  assert.equal(focusCount,0,'catalogue loading and completion do not refocus the selected dropdown');
  document.activeElement={tagName:'INPUT',dataset:{harmonyField:'search'},value:'4:5:6',selectionStart:3,selectionEnd:3};

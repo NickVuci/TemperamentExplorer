@@ -23,13 +23,13 @@ await dispatcher.dispatch(envelope(4,{...small,targetSpec:{oddLimit:9,primeFilte
 assert.equal(messages.at(-1).cached,false);assert.equal(dispatcher.metrics.entries,2);
 await dispatcher.dispatch(envelope(5,{state,categories:[]}));assert.equal(messages.at(-1).result.status,'complete-empty');
 await dispatcher.dispatch({...envelope(6),contextId:'wrong'});assert.equal(messages.at(-1).type,'error');
-const capped=createHarmonicJobDispatcher({emit:event=>messages.push(event),maxCacheBytes:1});
-await capped.dispatch(envelope(1));await capped.dispatch(envelope(2));assert.equal(capped.metrics.hits,0);assert.equal(capped.metrics.skippedLarge,2);
+const capped=createHarmonicJobDispatcher({emit:event=>messages.push(event),maxCacheRows:1});
+const pair={...small,directInputs:['4:5:6','4:6:7']};await capped.dispatch(envelope(1,pair));await capped.dispatch(envelope(2,pair));assert.equal(capped.metrics.hits,0);assert.equal(capped.metrics.skippedLarge,2);
 assert.equal(capped.metrics.entries,0,'oversized results do not occupy empty LRU slots');
-const partial={state,categories:['et'],et:{maxCandidateShapes:1}};
+const partial={state,categories:['chords'],maxRecords:1};
 await dispatcher.dispatch(envelope(7,partial));await dispatcher.dispatch(envelope(8,partial));
 assert.equal(messages.at(-1).result.status,'incomplete');assert.equal(messages.at(-1).cached,false);
-const before=messages.length,old=dispatcher.dispatch(envelope(9,{state,categories:['et'],et:{sizes:[3,4]}}));
+const before=messages.length,old=dispatcher.dispatch(envelope(9,{state,categories:['chords']}));
 await dispatcher.dispatch(envelope(10));await old;
 assert.equal(messages.slice(before).some(event=>event.requestId===9&&event.type==='complete'),false);
 dispatcher.destroy();await dispatcher.dispatch(envelope(11));assert.equal(messages.at(-1).requestId,10);
@@ -56,11 +56,11 @@ function nativeWorker(){
  node.on('message',data=>wrapper.onmessage?.({data}));node.on('error',error=>wrapper.onerror?.(error));return wrapper;
 }
 const worker=createHarmonicCatalogueJobs({workerFactory:nativeWorker});
-for(const [kind,payload]of [['query',small],['et',{state,et:{sizes:[3],maxCandidateShapes:12}}],['approximations',{state,approximationChords:['1:7/4'],approximationOptions:{generatorBound:1,memberCandidateLimit:8,combinationCap:100,cancellationCap:1000,minimumImprovementCents:0}}]]){
+for(const [kind,payload]of [['query',small],['query',{state,categories:['chords'],chordSizes:[3]}],['approximations',{state,approximationChords:['1:7/4'],approximationOptions:{generatorBound:1,memberCandidateLimit:8,combinationCap:100,cancellationCap:1000,minimumImprovementCents:0}}]]){
  const a=await worker.run(kind,payload).promise,b=await fallback.run(kind,payload).promise;
  assert.equal(a.type,'complete');assert.deepEqual(a.result,b.result,`${kind} actual Worker/fallback parity`);
 }
-const pending=fallback.run('et',{state,et:{sizes:[3,4]}});fallback.destroy();assert.equal((await pending.promise).status,'cancelled');worker.destroy();
+const pending=fallback.run('query',{state,categories:['chords']});fallback.destroy();assert.equal((await pending.promise).status,'cancelled');worker.destroy();
 
 const targets=targetSet({oddLimit:27,primeFilter:state.basis,mappingSubgroup:state.basis,representationPolicy:'octave'}),index=buildDyadIndex(targets,state);
 const shape=projectChord(state,chordIdentity('1:9/8:3/2:5/3')).shapeIdentities.octave;

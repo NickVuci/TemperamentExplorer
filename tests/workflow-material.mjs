@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {withDefaultDiamondScale} from '../dist/default-scale.mjs';
+import {withDefaultScale} from '../dist/default-scale.mjs';
 import {normalizeUnifiedCenter} from '../dist/discover-unified.mjs';
 import {scaleDefaultKey,scaleCoverageTarget} from '../dist/scale-milestones.mjs';
 import {makeState,scale} from '../dist/engine.mjs';
@@ -24,11 +24,11 @@ assert.match(page,/<div id="inspector"[^>]*\shidden><\/div>/,'the empty interval
 const jiPlacementSource=source.slice(source.indexOf('function placeJIControls('),source.indexOf('function placeMatrixControls('));
 assert.doesNotMatch(jiPlacementSource,/hexboard/,'Create does not render the shared JI controls; its search inherits them.');
 const states=[makeState('meantone')];let placed,heard,notice,loaded;
-const context=vm.createContext({states,structuredClone,tuningIdentity,withDefaultDiamondScale,scaleDefaultKey,coverageSettings:scaleCoverageTarget});
+const context=vm.createContext({states,structuredClone,tuningIdentity,withDefaultScale,scaleDefaultKey,coverageSettings:scaleCoverageTarget});
 vm.runInContext('let layoutState=null;'+source.split('\n').find(x=>x.startsWith('function getLayoutStates(')),context);
 const boardStates=()=>context.getLayoutStates();
 boardStates()[0].n=31;states[0].n=7;states[0].mode=2;
-assert.equal(boardStates()[0].n,31);assert.equal(boardStates()[0].mode,10);
+assert.equal(boardStates()[0].n,31);assert.equal(boardStates()[0].mode,0,'the Play layout keeps its own default mode');
 const collection=createMaterialWorkspace({getState:()=>states[0],play:(p,k)=>heard={p,k},place:x=>placed=x,load:x=>loaded=x,refresh:()=>{},notify:x=>notice=x,validate:validateState});
 collection.addScale();const scaleItem=collection.serialize()[0];assert.equal(scaleItem.state.n,7);assert.equal(scaleItem.coords.length,7);
 const coords=chordCoordinates(states[0],[0,2,4],{2:1});collection.add('chord',states[0],coords,'Test chord');

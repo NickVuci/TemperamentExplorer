@@ -1,9 +1,9 @@
 import {chordMonzos} from './chord-identity-v2.mjs';
-import {mapRatio} from './engine.mjs';
 import {coordinateCents} from './pitch.mjs';
 import {equivalencePolicy,shapeKey,quotientCoordinate,harmonicIdentity} from './harmonic-equivalence.mjs';
 import {mappingContext} from './harmonic-context.mjs';
 import {immutable} from './cache.mjs';
+import {mapMonzo} from './ji-monzo.mjs';
 
 // Compatibility identity used by existing occurrence and voicing adapters.
 export const periodClass=m=>String(m[1]);
@@ -30,22 +30,23 @@ function unavailableShape(kind,context,reason,coordinateCount){
 }
 
 /** Project coordinate-only structures into distinct exact, period and octave identities. */
-export function projectCoordinateShape(stateOrMapping,coordinates){
+export function projectCoordinateShape(stateOrMapping,coordinates,{kinds=POLICY_KINDS}={}){
  if(!Array.isArray(coordinates)||coordinates.length<1)throw Error('A tempered shape needs at least one coordinate.');
  if(coordinates.some(point=>!Array.isArray(point)||point.length!==2||!point.every(Number.isSafeInteger)))throw Error('Shape coordinates must be safe integer [period, generator] pairs.');
- const context=mappingContext(stateOrMapping),policies={};
- for(const kind of POLICY_KINDS){try{policies[kind]=equivalencePolicy(context,kind);}catch(error){if(kind!=='octave')throw error;}}
+ // Unrequested kinds are omitted; callers that need one identity skip the others' work.
+ const wanted=POLICY_KINDS.filter(kind=>kinds.includes(kind)),context=mappingContext(stateOrMapping),policies={};
+ for(const kind of wanted){try{policies[kind]=equivalencePolicy(context,kind);}catch(error){if(kind!=='octave')throw error;}}
  const identities={};
- for(const kind of POLICY_KINDS){
+ for(const kind of wanted){
   if(policies[kind])identities[kind]=summarizeShape(policies[kind],coordinates,kind);
   else identities[kind]=unavailableShape(kind,context,'Mapped octave equivalence is unavailable for this subgroup.',coordinates.length);
  }
  const exact=identities.exact;
- identities.native={...exact,equivalence:'native-exact',identityPolicy:'exact'};
+ if(exact)identities.native={...exact,equivalence:'native-exact',identityPolicy:'exact'};
  return immutable({mappingId:context.id,coordinateCount:coordinates.length,identities,
-  memberLinks:exact.memberLinks.map(member=>({memberIndex:member.memberIndex,coordinate:member.coordinate,
-   exactClassIndex:member.classIndex,periodClassIndex:identities.period.memberLinks[member.memberIndex]?.classIndex??null,
-   octaveClassIndex:identities.octave.memberLinks[member.memberIndex]?.classIndex??null,
+  memberLinks:(exact?.memberLinks??[]).map(member=>({memberIndex:member.memberIndex,coordinate:member.coordinate,
+   exactClassIndex:member.classIndex,periodClassIndex:identities.period?.memberLinks[member.memberIndex]?.classIndex??null,
+   octaveClassIndex:identities.octave?.memberLinks[member.memberIndex]?.classIndex??null,
    nativeClassIndex:member.classIndex}))});
 }
 
@@ -55,10 +56,10 @@ function unavailableCoordinateShape(stateOrMapping,coordinateCount){
  return immutable({mappingId:context.id,coordinateCount,identities,memberLinks:[]});
 }
 
-export function projectChord(s,identity,{tolerance=10}={}){
+export function projectChord(s,identity,{tolerance=10,shapeKinds=POLICY_KINDS}={}){
  if(!Number.isFinite(tolerance)||tolerance<0||tolerance>100)throw Error('Tolerance must be between 0 and 100 cents.');
  const monzos=chordMonzos(identity,s.basis);
- const notes=identity.canonicalRatios.map((q,i)=>{const {monzo,missingPrimes}=monzos[i],coordinate=missingPrimes.length?null:mapRatio(Number(q.n),Number(q.d),s),idealCents=1200*Math.log2(Number(q.n)/Number(q.d)),tunedCents=coordinate?coordinateCents(s,coordinate):null,errorCents=coordinate?tunedCents-idealCents:null;return {index:i,ratio:q.label,monzo,missingPrimes,coordinate,periodClass:coordinate?periodClass(coordinate):null,idealCents,tunedCents,errorCents,absoluteErrorCents:errorCents===null?null:Math.abs(errorCents)};});
+ const notes=identity.canonicalRatios.map((q,i)=>{const {monzo,missingPrimes}=monzos[i],coordinate=missingPrimes.length?null:mapMonzo(s.rows,monzo),idealCents=1200*Math.log2(Number(q.n)/Number(q.d)),tunedCents=coordinate?coordinateCents(s,coordinate):null,errorCents=coordinate?tunedCents-idealCents:null;return {index:i,ratio:q.label,monzo,missingPrimes,coordinate,periodClass:coordinate?periodClass(coordinate):null,idealCents,tunedCents,errorCents,absoluteErrorCents:errorCents===null?null:Math.abs(errorCents)};});
  const mapped=notes.every(n=>n.coordinate),missingPrimes=[...new Set(notes.flatMap(n=>n.missingPrimes))].sort((a,b)=>a-b);
  const groups=new Map();for(const n of notes)if(n.coordinate){const k=n.periodClass;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(n.index);}
  const errors=notes.map(n=>n.errorCents),maxErrorCents=mapped?Math.max(...errors.map(Math.abs)):null,rmsErrorCents=mapped?Math.sqrt(errors.reduce((a,e)=>a+e*e,0)/errors.length):null;
@@ -67,7 +68,7 @@ export function projectChord(s,identity,{tolerance=10}={}){
  const gens=[...groups.keys()].map(Number).sort((a,b)=>a-b);
  // Retain the exact v2 period-class fingerprint until occurrence consumers migrate.
  const temperedFingerprint=mapped?'temp2:'+JSON.stringify([s.basis,s.rows,gens.map(g=>g-gens[0])]):null;
- const shapeProjection=mapped?projectCoordinateShape(s,notes.map(note=>note.coordinate)):unavailableCoordinateShape(s,notes.length);
+ const shapeProjection=mapped?projectCoordinateShape(s,notes.map(note=>note.coordinate),{kinds:shapeKinds}):unavailableCoordinateShape(s,notes.length);
  const family=harmonicIdentity(identity,'octave');
  return {version:2,identity,harmonicIdentity:family,dualFamilyId:family.dualFamilyId,shapeIdentities:shapeProjection.identities,memberLinks:shapeProjection.memberLinks,
   legacyCardinalityEquivalence:'period',notes,basisStatus:mapped?'mapped':'outside-basis',missingPrimes,tolerance,maxErrorCents,rmsErrorCents,pairwiseMaxErrorCents,pairwiseRmsErrorCents,qualityStatus:!mapped?'unavailable':maxErrorCents<=tolerance?'within-tolerance':'above-tolerance',originalCardinality:identity.cardinality,temperedCardinality:mapped?groups.size:null,cardinalityStatus:!mapped?'unavailable':groups.size<identity.cardinality?'collapsed':'preserved',collisionGroups:[...groups].filter(([,v])=>v.length>1).map(([coordinate,members])=>({periodClass:coordinate,members})),temperedFingerprint,generatorSpan:mapped?gens.at(-1)-gens[0]:null};

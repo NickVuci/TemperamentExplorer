@@ -69,7 +69,8 @@ assert.ok(customError>=Math.max(...cells.map(t=>Math.abs(t.status.approximation.
 let state=s,notice='',played,placed,chordItem,chordReadout,refreshed=0;
 const doc={querySelectorAll:()=>[],querySelector:()=>null};
 const collection=createMaterialWorkspace({getState:()=>state,play(){},place(){},load(){},refresh(){},notify(){},validate:validateState});
-const workspace=createDiamondWorkspace({document:doc,getState:()=>state,refresh:()=>refreshed++,notify:s=>notice=s,play:x=>played=x,onInspect(){},onCollect:item=>collection.add(item.kind,state,item.coords,item.label,{exact:true}),onPlace:item=>placed=item,onChord:item=>chordItem=item,onChordChange:info=>chordReadout=info});
+let retuned=null;
+const workspace=createDiamondWorkspace({document:doc,getState:()=>state,refresh:()=>refreshed++,notify:s=>notice=s,play:x=>played=x,onInspect(){},onCollect:item=>collection.add(item.kind,state,item.coords,item.label,{exact:true}),onPlace:item=>placed=item,onChord:item=>chordItem=item,onTuningChange:centsFor=>retuned=centsFor,onChordChange:info=>chordReadout=info});
 const workspaceSource=readFileSync(new URL('../dist/diamond-workspace.mjs',import.meta.url),'utf8');const optionsMarkup=workspaceSource.slice(workspaceSource.indexOf('function optionsMarkup(){'),workspaceSource.indexOf('function mountOptions()'));assert.doesNotMatch(optionsMarkup,/Pointer action/,'pointer action belongs on the canvas, not in advanced options');assert.match(workspaceSource,/interaction==='select'\?/,'selection actions render only in cell-selection mode');
 const appSource=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8');assert.match(appSource,/onActiveNotesChange:notes=>diamondWorkspace\.updatePlaying\(notes\)/,'diamond playback forwards its held notes to chord display');
 workspace.restore({harmonics:'4:5:6',fold:false,interaction:'select',selected:[]});
@@ -91,11 +92,19 @@ assert.deepEqual(chordReadout.tuning,tuning,'workspace readout follows the selec
 assert.equal(refreshed,0,'cell selection must not replace the live SVG');
 const click=action=>workspace.click({closest:()=>({dataset:{diamondAction:action}})});
 click('hear');assert.deepEqual(played,coords.map(m=>m[0]*s.p+m[1]*s.g));assert.equal(chordReadout.source,'playing','Play selection marks the selected JI chord as playing');click('collect');click('place');click('chord');
+// The JI / Temperament switch retunes in place; collections still take the tempered coordinates.
+const tune=value=>workspace.click({closest:()=>({dataset:{diamondAction:'tuning',value}})});
+assert.equal(tune('ji'),true);assert.equal(refreshed,0,'switching tuning never redraws the diamond');
+click('hear');assert.deepEqual(played,[...new Map(workspace.displayCells().map(t=>[t.label,t.c])).values()].sort((a,b)=>a-b));assert.equal(workspace.serialize().tuning,'ji');
+{const cell=workspace.displayCells()[1];assert.equal(retuned(cell.id),cell.c,'held notes move to JI');tune('tempered');assert.equal(retuned(cell.id),cell.status.approximation.c,'and back to the temperament');}
 assert.deepEqual(collection.serialize()[0].coords,coords);assert.equal(collection.serialize()[0].exact,true);assert.deepEqual(placed.coords,coords);assert.deepEqual(chordItem.coords,coords);
 const saved=workspace.serialize();workspace.restore(null);workspace.restore(JSON.parse(JSON.stringify(saved)));workspace.render(cfg,'');assert.deepEqual(workspace.serialize(),saved);
 workspace.render({...cfg,scope:'mode'},'');assert.equal(workspace.serialize().selected.length,0,'new approximation source must invalidate old selections');
 workspace.restore({harmonics:'4:5:7',fold:false,interaction:'select',selected:['0:0','2:0']});workspace.render(cfg,'');click('collect');assert.match(notice,/no available approximation/);assert.equal(collection.serialize().length,1);
-workspace.restore({...workspace.serialize(),interaction:'play'});const playModeMarkup=workspace.render(cfg,'');assert.doesNotMatch(playModeMarkup,/diamond-selection-actions/,'selection actions stay hidden while notes are played');assert.match(playModeMarkup,/diamond-pointer-controls/,'the pointer action selector remains on the canvas');assert.match(playModeMarkup,/id="diamond-pointer-help"/,'play instructions remain visible in note-play mode');assert.equal(workspace.chordDisplay().source,'selected','a multi-cell selection remains labeled when switching to play mode');
+workspace.restore({...workspace.serialize(),interaction:'play'});const playModeMarkup=workspace.render(cfg,'');
+assert.match(playModeMarkup,/data-diamond-action="tuning" data-value="tempered" aria-pressed="true"/);assert.ok(playModeMarkup.indexOf('diamond-tuning-toggle')<playModeMarkup.indexOf('<svg'),'the switch sits above the diamond');
+{const cell=workspace.displayCells()[0];assert.equal(workspace.press({dataset:{diamondKey:cell.id}}).c,cell.status.approximation.c,'temperament sound by default');
+ tune('ji');assert.equal(workspace.press({dataset:{diamondKey:cell.id}}).c,cell.c,'just intonation sounds the exact ratio');tune('tempered');}assert.doesNotMatch(playModeMarkup,/diamond-selection-actions/,'selection actions stay hidden while notes are played');assert.match(playModeMarkup,/diamond-pointer-controls/,'the pointer action selector remains on the canvas');assert.match(playModeMarkup,/id="diamond-pointer-help"/,'play instructions remain visible in note-play mode');assert.equal(workspace.chordDisplay().source,'selected','a multi-cell selection remains labeled when switching to play mode');
 workspace.updatePlaying([{id:'0:0'},{id:'0:1'},{id:'0:2'}]);assert.equal(chordReadout.source,'playing');assert.equal(chordReadout.form,'utonal');assert.equal(chordReadout.utonal,'1/7:5:4');
 workspace.updatePlaying([]);assert.equal(workspace.chordDisplay().source,'selected','the selected chord remains visible after playback ends');
 workspace.updatePlaying([{id:'0:0'}]);assert.equal(workspace.chordDisplay(),null,'one playing pitch takes priority over a previous chord selection');

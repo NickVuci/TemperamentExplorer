@@ -116,14 +116,20 @@ export function targetSetIdentity(spec){
 function exactRatio(n,d){const common=gcd(BigInt(n),BigInt(d));const numerator=Number(BigInt(n)/common),denominator=Number(BigInt(d)/common);return {n:numerator,d:denominator,label:`${numerator}/${denominator}`};}
 const compareRatio=(a,b)=>BigInt(a.n)*BigInt(b.d)<BigInt(b.n)*BigInt(a.d)?-1:BigInt(a.n)*BigInt(b.d)>BigInt(b.n)*BigInt(a.d)?1:0;
 
-/** Stable versioned identity for one reduced ratio inside a specific target set. */
-export function targetId(spec,ratio){
- const normalized=normalizeTargetSetSpec(spec),value=typeof ratio==='string'?ratio.split('/').map(Number):[ratio?.n,ratio?.d];
- if(value.length!==2||!value.every(Number.isSafeInteger)||value.some(n=>n<=0))throw Error('Target identity needs a positive integer ratio.');
- const [n,d]=value,common=gcd(BigInt(n),BigInt(d)),reduced={n:Number(BigInt(n)/common),d:Number(BigInt(d)/common)};
- const canonical=normalized.representationPolicy==='octave'?foldOctave(reduced.n,reduced.d):{n:reduced.n,d:reduced.d};
- return `${targetSetIdentity(normalized)}:ratio:${canonical.n}/${canonical.d}`;
+/** Target identities for one target set, normalizing the spec once for repeated lookups. */
+export function targetIdFactory(spec){
+ const normalized=normalizeTargetSetSpec(spec),prefix=`${targetSetIdentity(normalized)}:ratio:`,octave=normalized.representationPolicy==='octave';
+ return ratio=>{
+  const value=typeof ratio==='string'?ratio.split('/').map(Number):[ratio?.n,ratio?.d];
+  if(value.length!==2||!value.every(Number.isSafeInteger)||value.some(n=>n<=0))throw Error('Target identity needs a positive integer ratio.');
+  const [n,d]=value,common=gcd(BigInt(n),BigInt(d)),reduced={n:Number(BigInt(n)/common),d:Number(BigInt(d)/common)};
+  const canonical=octave?foldOctave(reduced.n,reduced.d):reduced;
+  return `${prefix}${canonical.n}/${canonical.d}`;
+ };
 }
+
+/** Stable versioned identity for one reduced ratio inside a specific target set. */
+export function targetId(spec,ratio){return targetIdFactory(spec)(ratio);}
 
 function computeTargetSet(normalized){
  const id=targetSetIdentity(normalized),byRatio=new Map();

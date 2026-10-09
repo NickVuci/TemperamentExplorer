@@ -16,6 +16,8 @@ const slug=name=>String(name).trim().replace(/[^\w.-]+/g,'-').replace(/^-+|-+$/g
 
 export function createCompositionWorkspace({
   document:doc,audio,getState,getLayout,getTonic,getMaterial,loadState,getHost,notify=()=>{},download=()=>{},
+  // The chord focused in Discover, as a collected-chord item, and a hook told which chord is selected here.
+  getFocusedChord=()=>null,onChordFocus=()=>{},
   raf=globalThis.requestAnimationFrame?.bind(globalThis),timer,
 }){
   let history=null,message='',cache=null,frame=null,boardCache=null,placementCache=null,suppressClick=false;
@@ -78,6 +80,7 @@ export function createCompositionWorkspace({
       mode:ui.mode,practiceSpeed:ui.practiceSpeed,follow:ui.follow,boardLabels:ui.boardLabels,fingering:ui.fingering,
       board:boardModel().board,boardReason:boardModel().reason,fingerings:fingerings(),selectedKeys:selectedKeys(),
       collection:items.map(x=>({label:x.item.label,compatible:!!p&&tuningKey(x.item.state)===tuningKey(p.context)})),
+      focused:(()=>{const item=getFocusedChord();return item?{label:item.label,compatible:!!p&&tuningKey(item.state)===tuningKey(p.context)}:null;})(),
       noteDuration:ui.noteDuration,registers:ui.registers,matchMode:ui.matchMode,
       cueText:cueText(tick),message,
     };
@@ -146,7 +149,7 @@ export function createCompositionWorkspace({
   function chordAction(action,el){
     const p=project(),clip=clipOf(p,'chords'),id=el.dataset.event,e=id?find(clip,id):null,end=e?e.startTick+e.durationTick:0;
     switch(action){
-      case 'chord-select':ui.selectedChord=id;ui.fingering=0;refresh();return;
+      case 'chord-select':ui.selectedChord=id;ui.fingering=0;if(e)onChordFocus(e.tones.map(tone=>[...tone.coordinate]));refresh();return;
       case 'chord-invert':{
         if(!e)return;
         const low=e.tones.reduce((a,b)=>resolveTone(p.context,a.coordinate).cents<=resolveTone(p.context,b.coordinate).cents?a:b);
@@ -158,10 +161,10 @@ export function createCompositionWorkspace({
         });return;
       }
       case 'chord-hear':audio.previewChord(centsOf(p,e));return;
-      case 'chord-add':{
+      case 'chord-add':case 'chord-add-focus':{
         const list=getMaterial().filter(i=>i.kind==='chord');
-        const item=list[ui.collection];
-        if(!item){say('Choose a collected chord first.');return;}
+        const item=action==='chord-add-focus'?getFocusedChord():list[ui.collection];
+        if(!item){say(action==='chord-add-focus'?'Select a chord in Discover first.':'Choose a collected chord first.');return;}
         const start=Math.max(0,...clip.events.map(x=>x.startTick+x.durationTick));
         let newId=null;
         const ok=edit('Add chord',pr=>{

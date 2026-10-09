@@ -2,17 +2,17 @@ import {BoundedCache,immutable} from './cache.mjs';
 import {catalogueContext,queryCatalogue} from './harmonic-catalogue.mjs';
 import {canonicalHarmonicJSON} from './harmonic-types.mjs';
 
-const kinds=new Set(['query','et','approximations']);
+const kinds=new Set(['query','approximations']);
 function jobQuery(kind,payload){
  if(!kinds.has(kind))throw Error('Unknown harmonic job kind.');
  if(!payload||typeof payload!=='object'||Array.isArray(payload))throw Error('Harmonic job needs a query payload.');
- return kind==='query'?payload:{...payload,categories:kind==='et'?['et']:['approximations']};
+ return kind==='query'?payload:{...payload,categories:['approximations']};
 }
 export function harmonicJobContextId(kind,payload){return catalogueContext(jobQuery(kind,payload)).id;}
 
 /** One dispatcher per Worker/workspace; no shared mutable result list. */
-export function createHarmonicJobDispatcher({emit=()=>{},cacheEntries=8,maxCacheBytes=2_000_000}={}){
- if(!Number.isInteger(cacheEntries)||cacheEntries<1||cacheEntries>16||!Number.isInteger(maxCacheBytes)||maxCacheBytes<1||maxCacheBytes>4_000_000)throw Error('Invalid harmonic cache bounds.');
+export function createHarmonicJobDispatcher({emit=()=>{},cacheEntries=8,maxCacheRows=5000}={}){
+ if(!Number.isInteger(cacheEntries)||cacheEntries<1||cacheEntries>16||!Number.isInteger(maxCacheRows)||maxCacheRows<1||maxCacheRows>20000)throw Error('Invalid harmonic cache bounds.');
  const cache=new BoundedCache(cacheEntries);let current=null,destroyed=false;
  const metrics={hits:0,misses:0,stored:0,skippedLarge:0};
  const cancel=()=>{if(current)current.cancelled=true;};
@@ -31,13 +31,12 @@ export function createHarmonicJobDispatcher({emit=()=>{},cacheEntries=8,maxCache
    const result=await queryCatalogue(query,{shouldCancel:()=>destroyed||current!==job||job.cancelled,
     onProgress:progress=>send('progress',{progress})});
    if(destroyed||current!==job||job.cancelled)return;
-   if(result.complete){const bytes=new TextEncoder().encode(JSON.stringify(result)).byteLength;
-    if(bytes<=maxCacheBytes){cache.get(key,()=>result);metrics.stored++;}else metrics.skippedLarge++;}
+   if(result.complete){if(result.items.length<=maxCacheRows){cache.get(key,()=>result);metrics.stored++;}else metrics.skippedLarge++;}
    send('complete',{result,cached:false});
   }catch(error){send('error',{message:error.message});}
  }
  return {dispatch,cancel,destroy(){destroyed=true;cancel();cache.entries.clear();},
-  get metrics(){return {...metrics,entries:cache.entries.size,maxCacheBytes,cacheEntries};}};
+  get metrics(){return {...metrics,entries:cache.entries.size,maxCacheRows,cacheEntries};}};
 }
 
 /** Latest-job controller, used identically with a browser Worker or fallback. */

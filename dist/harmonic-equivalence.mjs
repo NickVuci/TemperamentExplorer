@@ -1,4 +1,4 @@
-import {immutable} from './cache.mjs';
+import {BoundedCache,immutable} from './cache.mjs';
 import {mapMonzo} from './ji-monzo.mjs';
 import {mappingContext} from './harmonic-context.mjs';
 import {compareExactRatios} from './chord-identity-v2.mjs';
@@ -31,6 +31,11 @@ function bezout(a,b){
  return {g:oldR,u:oldU,v:oldV};
 }
 const mod=(value,period)=>((value%period)+period)%period;
+// Quotient arithmetic in Numbers is exact while every input stays below 2^20: products stay below
+// 2^40 and sums far below 2^53. Larger values take the BigInt path, which gives the same results.
+const SMALL=2**20;
+const smallPolicy=policy=>Math.abs(policy.modulus)<=SMALL&&policy.transform.every(row=>row.every(value=>Math.abs(value)<=SMALL))&&policy.inverse.every(row=>row.every(value=>Math.abs(value)<=SMALL));
+const smallPoint=point=>Math.abs(point[0])<=SMALL&&Math.abs(point[1])<=SMALL;
 
 /** Exact, period, or mapped-octave coordinate equivalence for one mapping. */
 export function equivalencePolicy(stateOrContext,kind='exact'){
@@ -65,6 +70,12 @@ export function quotientCoordinate(policy,coordinate){
  const x=pair(coordinate);
  if(policy.kind==='exact')return immutable({classCoordinate:coordinate.slice(),key:JSON.stringify(coordinate),
   representative:coordinate.slice(),lift:0,removed:[0,0]});
+ if(smallPoint(coordinate)&&smallPolicy(policy)){
+  const [[u,v],[w,z]]=policy.transform,[[i,j],[k,l]]=policy.inverse,h=policy.modulus,y0=u*coordinate[0]+v*coordinate[1],y1=w*coordinate[0]+z*coordinate[1];
+  const residue=mod(y0,h)+0,representative=[i*residue+j*y1+0,k*residue+l*y1+0],classCoordinate=[residue,y1+0];
+  return immutable({classCoordinate,key:JSON.stringify(classCoordinate),representative,lift:(y0-residue)/h+0,
+   removed:[coordinate[0]-representative[0]+0,coordinate[1]-representative[1]+0]});
+ }
  const [[u,v],[w,z]]=policy.transform.map(row=>row.map(BigInt));
  const [[i,j],[k,l]]=policy.inverse.map(row=>row.map(BigInt));
  const h=BigInt(policy.modulus),y0=u*x[0]+v*x[1],y1=w*x[0]+z*x[1];
@@ -77,16 +88,29 @@ export function quotientCoordinate(policy,coordinate){
   lift:safeNumber(lift,'Quotient lift'),removed});
 }
 
+// The class coordinate of quotientCoordinate alone, for a BigInt pair. shapeKey runs this for
+// every member pair of every enumerated shape and needs no representative or lift.
+function quotientClass(policy,x,small=false){
+ if(policy.kind==='exact')return small?x:x.map(value=>safeNumber(value,'Quotient class'));
+ if(small){const [[u,v],[w,z]]=policy.transform;return [mod(u*x[0]+v*x[1],policy.modulus)+0,w*x[0]+z*x[1]+0];}
+ const [[u,v],[w,z]]=policy.transform,h=BigInt(policy.modulus);
+ const y0=BigInt(u)*x[0]+BigInt(v)*x[1],y1=BigInt(w)*x[0]+BigInt(z)*x[1];
+ return [safeNumber(mod(y0,h),'Quotient residue'),safeNumber(y1,'Quotient class')];
+}
+
 const compareTuple=(a,b)=>a[0]-b[0]||a[1]-b[1];
 
 /** Canonical set key modulo common translation, permutation, and the policy. */
 export function shapeKey(policy,coordinates){
  if(!Array.isArray(coordinates)||coordinates.length===0)throw Error('A shape needs at least one coordinate.');
- const points=coordinates.map(point=>pair(point));
- const candidates=points.map(anchor=>{
-  const classes=points.map(point=>{
-   const difference=point.map((value,index)=>safeNumber(value-anchor[index],'Shape displacement'));
-   return quotientCoordinate(policy,difference).classCoordinate;
+ if(policy?.schemaVersion!==VERSION||!['exact','period','octave'].includes(policy.kind))throw Error('Use a valid coordinate equivalence policy.');
+ const points=coordinates.map(point=>pair(point)),small=coordinates.every(point=>Math.abs(point[0])<=SMALL/2&&Math.abs(point[1])<=SMALL/2)&&(policy.kind==='exact'||smallPolicy(policy));
+ const numeric=small?coordinates.map(point=>[point[0],point[1]]):null;
+ const candidates=(small?numeric:points).map(anchor=>{
+  const classes=(small?numeric:points).map(point=>{
+   const difference=point.map((value,index)=>value-anchor[index]);
+   if(!small)difference.forEach(value=>safeNumber(value,'Shape displacement'));
+   return quotientClass(policy,difference,small);
   });
   const distinct=[...new Map(classes.map(value=>[JSON.stringify(value),value])).values()];
   return JSON.stringify(distinct.sort(compareTuple));
@@ -143,9 +167,14 @@ function invertedFamily(source,kind){
  * Member records retain source order, exact spelling, doublings and the octave
  * lifts needed to reconstruct every original normalized ratio.
  */
+// Families depend only on the exact identity, so repeated projections across temperaments reuse them.
+const familyCache=new BoundedCache(4096);
 export function harmonicIdentity(exactIdentity,policy){
  const kind=familyPolicy(policy);
  if(exactIdentity?.version!==2||!Array.isArray(exactIdentity.canonicalRatios)||!Array.isArray(exactIdentity.orderedRatios)||typeof exactIdentity.fingerprint!=='string')throw Error('Use a chordIdentity record.');
+ return familyCache.get(JSON.stringify([kind,exactIdentity.fingerprint,exactIdentity.orderedRatios,exactIdentity.repeatedMembers??null,exactIdentity.inputCardinality??null,exactIdentity.cardinality??null]),()=>computeHarmonicIdentity(exactIdentity,kind));
+}
+function computeHarmonicIdentity(exactIdentity,kind){
  const canonical=exactIdentity.canonicalRatios.map(ratio=>rational(BigInt(ratio.n),BigInt(ratio.d)));
  const family=familyFromRatios(canonical,kind),anchorLabel=ratioLabel(family.anchor);
  const familyIndices=new Map(family.familyRatios.map((label,index)=>[label,index]));

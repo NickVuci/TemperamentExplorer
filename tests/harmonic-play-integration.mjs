@@ -13,7 +13,8 @@ const entry=await getHarmonicEntry({state},'4:5:6'),selected=harmonicSelection(s
 const board=()=>buildBoard(state,{base:7,style:'bosanquet',center:65,offset:0,rotation:0,register:0,outside:false,periodWrapping:true});
 const ui=createHarmonicPlayWorkspace({getState:()=>state,getBoard:board,onHighlight:value=>highlight=value,onFitScale:value=>fit=value,play:notes=>heard=notes});
 const click=(action,extra={})=>ui.click({dataset:{harmonyPlay:action,...extra}});
-ui.accept(selected);assert.deepEqual(state,before,'sending to Play never changes its scale');assert.deepEqual(ui.model().realization.coords,coords);assert.equal(ui.model().fingering,-1,'no silent fingering choice');assert.ok(ui.model().placements.length);
+ui.accept(selected);assert.deepEqual(state,before,'sending to Play never changes its scale');// The merged chord's source notes (rooted on its simplest rotation) fall outside this 19-note scale, so Play starts from its first occurrence.
+assert.equal(ui.model().realization.withinScale,true);assert.equal(ui.model().realization.coords.length,coords.length);assert.equal(ui.model().fingering,-1,'no silent fingering choice');assert.ok(ui.model().placements.length);
 assert.equal((ui.render().match(/data-harmony-play="fingering"/g)??[]).length,Math.min(3,ui.model().placements.length));click('fingering',{index:0});assert.ok(highlight);click('hear');assert.deepEqual(heard,ui.model().placements[0].pitches);
 ui.suspend();assert.equal(highlight,null);assert.equal(ui.model().fingering,-1,'returning from A does not show a selected fingering without its highlight');
 state={...state,n:2};ui.sync();assert.equal(ui.model().realization.withinScale,false);assert.deepEqual(ui.model().realization.coords,coords);assert.match(ui.render(),/Fit Play scale/);click('fit');assert.deepEqual(fit,coords);assert.equal(state.n,2);

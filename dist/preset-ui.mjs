@@ -1,11 +1,11 @@
-import {withDefaultDiamondScale} from './default-scale.mjs';
+import {withDefaultScale} from './default-scale.mjs';
 import {presetSnapshot,createPresetId} from './preset-data.mjs';
 import {presets,makeState} from './engine.mjs';
 import {temperamentFromInput} from './temperament-input.mjs';
 import {esc} from './ui.mjs';
 const commaText=s=>s.commas==='custom mapping'?'':s.commas||'';
 export function createPresetWorkspace({getStates,apply,refresh,notify,getJI=()=>undefined,request=fetch}){
- const chooseDefault=s=>withDefaultDiamondScale(s,notify,getJI(s));
+ const chooseDefault=s=>withDefaultScale(s,notify,getJI(s));
  let items=[],status='loading',error='',busy=false,drafts=[null,null],deleteId=null;
  function draft(idx){const s=getStates()[idx];if(drafts[idx]?.source!==s&&drafts[idx]&&JSON.stringify([drafts[idx].source.name,drafts[idx].source.commas,drafts[idx].source.basis,drafts[idx].source.rows,drafts[idx].source.savedPresetId])===JSON.stringify([s.name,s.commas,s.basis,s.rows,s.savedPresetId]))drafts[idx].source=s;if(drafts[idx]?.source!==s)drafts[idx]={source:s,name:s.name,basis:s.basis.join('.'),commas:commaText(s),isNew:false,open:false};return drafts[idx];}
  async function api(url,options){const r=await request(url,options);let data;try{data=await r.json();}catch{throw Error('Preset storage is unavailable. Please retry.');}if(!r.ok)throw Error(data.error||'Could not access presets.');return data;}

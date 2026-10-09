@@ -45,7 +45,7 @@ phones it scrolls away). All Discover panes scroll with the page. The directory 
   inspector when it is opened from the directory, a matrix interval or collected
   material; choosing a harmony or "Back to harmonic catalogue" returns to the
   catalogue analysis. The centre borrows the diamond or matrix view's controls.
-  Every handoff that used to open a Discover sub-view (Show in diamond, diamond
+  Every handoff that used to open a Discover sub-view (diamond
   chord transfer, coverage milestones, tuning-target exploration, Browse harmony
   from Play) opens this screen. Saved sessions with any older Discover view restore
   into it, an old matrix view with the matrix centre; the centre choice is saved in
@@ -155,7 +155,9 @@ dyad domains for a supplied coordinate shape and distinguishes empty-edge
 non-dyadic shapes from degenerate repeated vertices. This layer is tuning
 independent and applies no cent threshold. `enumerateDyadicShapes` now emits
 deduplicated rooted compatible cliques from that finite vertex graph, defaulting
-to triangles and tetrads. It reports per-query neighbor, domain-check,
+to triangles and tetrads. Each transposition class is yielded once, from the
+rooting whose vertex-difference class list is least; a truncated neighbourhood,
+which can omit that rooting, deduplicates by shape identity instead. It reports per-query neighbor, domain-check,
 candidate-shape and search-node bounds through its live progress envelope;
 neighbor truncation or any early stop is marked partial. Candidate generation
 does not run JI lifting or ET assessment and does not depend on a selected
@@ -170,33 +172,44 @@ divided-octave period vectors) for every vertex and dyad. Exhaustive failure,
 cancellation, state exhaustion and compatibility-check exhaustion are
 separate outcomes; the latter three return `unknown`, never a negative proof.
 `harmonic-et.mjs#assessET` converts complete solver results into target-set-relative assessments: `not-dyadic`, `ji-liftable`, `essentially-tempered`, or `unknown`. ET records include per-edge domain counts, a replayable bounded-search certificate, and representative cycle conflicts. `cycleWitness` restores exact interval lifts before summing monzos; a raw cycle that maps to an octave is corrected by the recorded prime-2 lift before kernel validation. `verifyETEvidence` recomputes kernel cycles and replays complete negative searches under the recorded context and bounds. Changing JI limits rebuilds the assessment context while leaving the shape identity alone.
-`harmonic-et.mjs#discoverDyadicHarmony` now joins bounded shape enumeration and
-assessment in an async, immutable batch stream. A JI-liftable shape carries a
-generic exact interpretation with its existing `harmonicIdentity` family ID,
-basis-order monzos, root-relative dyads and register lifts; shape identity stays
-separate from JI identity. ET and solver-unknown rows remain separate. Search
-totals, candidate counts, enumeration coverage, cancellation and incompleteness
-are reported in each progress snapshot and the final envelope; only a fully
-searched empty result is `complete-empty`. Defaults cap per-shape work at
-100,000 states / 1,000,000 compatibility checks and total work at 500,000 /
-2,000,000, in addition to the enumerator's finite bounds. The job checks
-cancellation at shape and batch boundaries, polls the synchronous solver's
-cancellation callback, and yields to the event loop between batches and during
-8 ms time slices. It does not cache streamed results. This producer feeds the shared Worker adapter and the explicit B ET search. One
-deterministic coherent lift is retained per candidate shape, not every possible
-JI labeling; the catalogue query preserves other JI chord identities
-from their existing producer.
+`harmonic-chord-space.mjs` classifies harmony by combinatorics instead of per-shape
+search. Rooted on any member, a JI chord whose dyads all lie in the target set is the
+unison plus a subset of the target classes, so `enumerateJIChordSpace` lists every
+such chord (2–8 members, one per transposition class) as a clique enumeration over
+the finite target set. It reads only the target set, subgroup basis and equivalence,
+so temperaments sharing them share one cached enumeration, and a complete enumeration
+up to a larger size serves every smaller size range. `classifyChordSpace`
+maps each JI chord through the mapping (`temperedImage`; chords whose members merge
+are degenerate and have no image), takes every tempered dyadic shape from the shared
+rooted-shape enumerator, and labels a shape `ji` when some JI chord maps onto it
+(all such chords attached) or `essentially-tempered` otherwise. This is the same
+predicate as a coherent JI lift, verified shape-by-shape against `assessET` in
+`tests/harmonic-chord-space.mjs`. If the JI enumeration reaches its node bound,
+unmatched shapes are `unknown`, never ET; tempered-enumeration bounds make the list
+incomplete without changing any listed status. `chordDyads` gives each member pair's
+tempered class and every JI interval mapped to it. `assessET` remains the per-shape
+proof used by the manual note inspector.
 
-`harmonic-catalogue.mjs` now joins interval, curated/line/subset JI, bounded ET,
+`harmonic-catalogue.mjs` now joins interval, curated/line/subset JI, chord-space JI/ET,
 mapping-extension and approximation producers through `queryCatalogue`,
 `getHarmonicEntry` and `resolveSelection`. Exact JI labels remain separate rows
-within shared shape/family groups. Custom lookup precedes browse caps. Catalogue
+within shared shape/family groups. Custom lookup precedes browse caps. The temperament-independent
+part of JI rows (family, labels, dyadic status and chord-space orientation) is cached
+per target set and subgroup basis, so a temperament change that keeps both only
+projects existing JI chords into the new mapping; `mappedIntervals` likewise reuses
+each target set's factorization per basis and each projection per mapping. Rows carry
+only the dyadic status, not full dyad analyses, a slim interpretation (exact identity,
+exact-dual input, presentation and provenance) and a slim shape; shape and family
+groups list only shared shapes and families. The JI-row cache is keyed by spelling and
+presentation as well as fingerprint, because repeated-member or reordered spellings
+share a fingerprint. `projectChord` accepts `shapeKinds` so the catalogue projects
+only the active equivalence. Catalogue
 records have no scale-occurrence or board-placement dependency; target eligibility,
 mapping and tuning quality remain separate fields. Pagination binds to the full
 query context, and bounds/unknown/cancellation remain visible.
-`harmonic-catalogue-jobs.mjs` owns query/ET/approximation request envelopes,
+`harmonic-catalogue-jobs.mjs` owns query/approximation request envelopes,
 latest-request rejection, Worker/fallback dispatch and a per-workspace bounded
-LRU. Only complete results within the byte cap are cached. Tuning, target sets,
+LRU. Only complete results within the row cap (5,000) are cached. Tuning, target sets,
 equivalence and producer bounds enter the context; scale/mode/layout do not.
 `harmonic-cooperative.mjs` drives the same generator algorithms synchronously
 for compatibility or asynchronously for jobs. Graph traversal, CSP states/
@@ -256,17 +269,17 @@ contains differences -(n-1) through n-1; tonic generator r covers a required ran
 [min,max] precisely when r+min >= 0 and r+max < n. This computes all four properties
 in a single pass through generated sizes without constructing four UI searches.
 
-`default-scale.mjs` projects the first diamond-complete scale and completing mode
-from that analysis. Startup/reset, built-in/saved preset selection, new comma
+`default-scale.mjs` projects the first interval-complete MOS from that analysis, on
+mode 1 (interval completeness is mode independent). A temperament with no such MOS
+through 256 notes opens on the first 7–9-note MOS with a warning that it approximates
+the selected limit poorly, or keeps its scale if it has none. Startup/reset, built-in/saved preset selection, new comma
 mapping, and changes to shared JI limits use that default. Retuning preserves
 both Discover and Play scale sizes and modes while refreshing analysis. The layout
 initializes its independent target scale/mode from the same result; its base subset
 defaults to the first interval-complete MOS when that MOS fits the target. Manual
 scale/mode/base edits survive ordinary redraws; a changed mapping/target context applies
 new defaults. Saved sessions and explicit material/chord loads retain their chosen
-scale/mode, and saved HexBoard base settings are retained on restoration. If no
-qualifying scale exists through 256 notes before pitch collisions, retain the
-existing selection and report no result. A base MOS must still fit the target and
+scale/mode, and saved HexBoard base settings are retained on restoration. A base MOS must still fit the target and
 existing layout constraints; ordinary fallback handles absent/unusable results.
 
 Discover presents all four results as selectable buttons and appends IC/DC markers
@@ -361,6 +374,11 @@ or an alternative approximation. Reverse links require exact sounded ratios
 and coordinates; an unavailable current display is reported explicitly.
 No-fit and unavailable-note states remain explicit; handoff does not imply a
 physical fingering exists.
+A Just intonation / Temperament switch above the diamond (saved with it) plays cells at
+their exact ratios or at their displayed approximations. Switching retunes held and
+sustained notes in place (`startVoice(...).retune`, `createHexboardPlayer().retune`)
+without redrawing; the Play selection audition follows it, while collecting, placing
+and chord handoffs always use the tempered coordinates.
 Selecting or simultaneously playing distinct diamond pitches replaces the single
 interval details with the JI chord label and one column per distinct cell interval.
 The readout uses the current playing cells or selection and clears when both are
@@ -396,14 +414,64 @@ compatible saved sessions.
 
 `harmonic-catalogue-ui.mjs` owns Discover's harmony directory and analysis,
 independently of the board.
-It browses mapped JI chords, intervals, target-relative ET assessments, compatible
-mapping extensions and better approximations. Shared JI limits remain one state
-owner. Search can inspect exact 2–8-voice spellings outside browse limits.
+It lists one directory of JI and essentially tempered (ET) chords, relisted
+automatically whenever the temperament, JI limits or size range change. A JI chord
+is its octave-reduced pitch-class set: octave doublings and rotations (inversions)
+merge into one row (`simplestRotation`). A rotation whose integer form is a run of
+consecutive harmonics on an even number (2n:2n+1:2n+2…) is preferred, so major is `4:5:6`
+and `6:7:8` beats `4:6:7`; otherwise the smallest integer terms win. Both rules read the
+otonal side of the rotation's exact otonal/utonal pair, so minor is `1/6:5:4`, and size counts distinct pitch classes. The row lists every merged spelling
+as an alias and in `mergedInterpretationIds` (matched by `hasInterpretation`), so a
+lookup, favourite or saved selection of any spelling opens or stars the merged chord;
+chords outside the mapping subgroup, or whose rotation exceeds the exact-chord bound,
+keep their typed spelling. Inversion and voicing belong to the chord panel. Because a
+merged chord has no fixed root, the tonic scope lists occurrences that use the tonic as
+any member (`tonicMemberOccurrences`), and sending a chord to Play whose source notes
+fall outside the Play scale starts from its first occurrence there. JI
+rows come from the curated/line producers plus chord-space chords, oriented otonal/utonal as the curated seeds are; ET rows are
+the chord-space shapes no JI chord maps onto. A notes-from/to range (3–8, default
+3–6) sets which sizes are listed. Size and type groups start collapsed; type
+filters select JI, otonal, utonal, ambitonal (self-reciprocal chords that read the
+same otonally and utonally), ET or custom lookups. Favourites and recents store exact spellings; an ET row stores the
+simplest root-relative JI spelling that maps onto its shape, so recalling it
+returns that shape in the active temperament. The analysis shows a form badge (otonal, utonal, ambitonal, other JI,
+essentially tempered, unresolved), the otonal and utonal spellings, pitch classes and
+merged spellings, and the chord's rotations; choosing a rotation re-roots the focus and
+sounds it bass-first within an octave. It lists, for every member pair, the tempered
+interval and each JI interval mapped to it with its tempering error, marking the readings a
+JI chord uses, the commas closing an ET chord's conflicting cycles (`assessET`), and other
+JI chords on the same shape.
+
+The harmony workspace owns the focused harmony: its selected row, rotation and scale
+occurrence (`focus()`). `harmonic-focus.mjs` projects it without changing other selections:
+`diamondFocus` highlights a JI chord's chosen rotation, written from 1/1, on every diamond
+row (otonal), column (utonal) or both (ambitonal and other) that holds it, or the line
+holding most of it as a partial placement, and highlights every cell whose approximation
+sounds a note of a tempered chord; `matrixFocusDegrees` marks interval-matrix cells
+between the focused occurrence's scale degrees. The app reapplies both after every redraw
+and directory refresh, and the analysis states where the diamond shows the chord.
+
+Other views set the focus through `focusExternal`: a JI chord by family (any rotation or
+doubling, keeping the picked rotation), otherwise a tempered shape (preferring a JI row that
+maps onto it). The row is revealed: its size and type become visible, its groups open, and
+the directory list scrolls to it. Selecting three or more diamond pitch classes focuses
+them at once; a held chord does so after 250 ms while "Follow what I play" (saved, on by
+default) is on. Shift-clicking interval-matrix cells collects their scale degrees, and
+three or more focus that chord; a plain click clears them and inspects the interval.
+
+The focus is shared with Play and Compose. Without a chosen voicing the selection sounds the
+focused rotation (root lowest, the rest within the octave above). Entering Play with a newly
+focused chord hands it to Play's harmony panel once; Send to Play does the same at once.
+Held Play notes (screen or HexBoard), three or more and held 250 ms, focus their chord in
+Discover while following is on, and a chord focused from Play is not handed back. Compose
+offers "Add focused chord" beside the collected chords, and selecting a composition chord
+focuses it in Discover. Shared JI limits remain one
+state owner. Search can inspect exact 2–8-voice spellings outside browse limits.
 Scope filters compare whole-temperament availability, Discover/Play anywhere
 occurrence and tonic anchoring. Occurrences/voicings are resolved lazily through
-the Stage 8 engine; tuning tolerance never removes a mapped B identity. ET
-requires Start and retains explicit bounds, completeness and unknown evidence.
-Changed contexts disable stale actions immediately.
+the Stage 8 engine; tuning tolerance never removes a mapped B identity. Bounds,
+completeness and unresolved shapes stay visible. Changed contexts disable stale
+actions immediately.
 
 `harmonic-selection.mjs` adapts these records into validated selections containing
 full voice coordinates and optional JI metadata. `harmonic-play-ui.mjs` preserves
@@ -617,6 +685,8 @@ Compatibility aliases and narrow session migrations are intentional.
   engine powers all JI target and candidate searches, and duplicate Play controls
   were removed. Basis-diamond default-scale and milestone searches deliberately
   remain independent of the optional prime-limit filter.
+- Chord-space classification replaced streamed per-shape ET discovery
+  (`discoverDyadicHarmony`) and the manual, bounded ET search in the directory.
 
 ## Current boundaries and architectural issues
 
@@ -798,4 +868,8 @@ Harmonies with a key) therefore update in the same event as the tab switch (a do
 after the app's own handlers), with a 250 ms poll only as a fallback for changes that do not come from a click or
 key press. The read-only polls (LED sync, fingering game, harmonies panel) share one cached board
 (`hexboard-ui.mjs#boardFor`, rebuilt only when the layout signature changes), so idle cost stays near zero.
+
+The harmony directory renders no chords inside collapsed groups and at most 100 per
+open group until "Show all" is chosen, and memoizes its whole-temperament filtering
+per result, so redraws stay small at high odd limits.
 

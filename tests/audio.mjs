@@ -50,6 +50,8 @@ assert.ok(f.oscillators.slice(0,2).every(o=>o.stops.at(-1)===5),'Future audition
 assert.deepEqual(f.oscillators.slice(2).map(o=>o.starts[0]),[5.03,5.18,5.33]);
 f.settings({tonic:440,wave:'sawtooth'});const release=f.engine.startVoice(0);await tick();
 const held=f.oscillators.at(-1);assert.equal(held.type,'sawtooth');assert.equal(held.frequency.value,440);
+// A held voice glides to a new pitch in place.
+held.frequency.setTargetAtTime=(value,at,constant)=>held.glide=[value,at,constant];release.retune(1200);assert.equal(held.glide[0],880);assert.ok(held.glide[2]>0&&held.glide[2]<.05);
 assert.equal(held.envelope.gain.events[1][1],.018);assert.equal(held.stops.length,0);
 release();release();assert.equal(curves(held).length,1);assert.ok(Math.abs(held.stops[0]-5.135)<1e-9);
 f.context.currentTime=5.01;f.engine.stop();
@@ -59,6 +61,8 @@ const stoppingCount=held.stops.length;f.engine.stop();assert.equal(held.stops.le
 for(const o of f.oscillators)o.end();
 assert.ok(f.oscillators.every(o=>o.disconnected&&o.envelope.disconnected&&o.envelope.target.disconnected));
 await f.engine.playChord([NaN,Infinity,-Infinity,1e9]);assert.equal(f.oscillators.length,6);
+// Retuning before the context starts begins the voice at the latest pitch.
+const early=fixture({pending:true});early.engine.startVoice(0).retune(1200);early.resume();await tick();assert.equal(early.oscillators[0].frequency.value,440);
 const pending=fixture({pending:true});const earlyRelease=pending.engine.startVoice(0);earlyRelease();pending.resume();await tick();assert.equal(pending.oscillators.length,0);
 const waiting=pending.engine.playChord([0]);pending.engine.stop();pending.resume();assert.equal(await waiting,false);
 const obsolete=pending.engine.playSequence([0,100]),current=pending.engine.playChord([1200]);pending.resume();

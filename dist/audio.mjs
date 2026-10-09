@@ -170,18 +170,25 @@ export function createAudioEngine({
   }
 
   function startVoice(cents,settingsOverride){
-    let cancelled=false,voice;
+    let cancelled=false,voice,target=cents;
     const request=revision,settings={...getSettings(),...settingsOverride};
     ready().then(()=>{
       if(cancelled||request!==revision)return;
       // A small scheduling lead prevents an attack from starting in the past
       // if UI work and node construction cross an audio render quantum.
-      voice=createVoice(cents,settings,context.currentTime+.005,settings.wave==='sawtooth'?.018:.035,.012);
+      voice=createVoice(target,settings,context.currentTime+.005,settings.wave==='sawtooth'?.018:.035,.012);
     }).catch(error=>{if(!cancelled&&request===revision)onError(error);});
-    return ()=>{
+    const release=()=>{
       cancelled=true;
       if(voice)fadeVoice(voice,Math.max(context.currentTime,voice.startedAt+.06));
     };
+    // Glide a held voice to a new pitch without restarting it; a short time constant avoids clicks.
+    release.retune=next=>{
+      if(!Number.isFinite(next))return;target=next;
+      const frequency=frequencyFor(next,settings.tonic);
+      if(voice&&!voice.ended&&isAudibleFrequency(frequency))voice.oscillator.frequency.setTargetAtTime(frequency,context.currentTime,.008);
+    };
+    return release;
   }
 
   return {

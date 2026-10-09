@@ -34,9 +34,9 @@ const items=[
   {kind:'scale',state:structuredClone(meantone),coords:[[0,0],[-1,2]],label:'a scale'},
   {kind:'chord',state:structuredClone(meantone),coords:[[1,-1],[-1,3],[1,0]],label:'IV'},
 ];
-const downloads=[],notices=[],loaded=[];let rafCallback=null;
+const downloads=[],notices=[],loaded=[],focusCalls=[];let rafCallback=null,focusedChord=null;
 const ws=createCompositionWorkspace({document:doc,audio,getState:()=>appState,getLayout:()=>structuredClone(demo.layout),getTonic:()=>tonic,
-  getMaterial:()=>items,loadState:s=>loaded.push(s),getHost:()=>hostProxy,notify:m=>notices.push(m),download:(n,t,type)=>downloads.push({n,t,type}),
+  getMaterial:()=>items,getFocusedChord:()=>focusedChord,onChordFocus:coordinates=>focusCalls.push(coordinates),loadState:s=>loaded.push(s),getHost:()=>hostProxy,notify:m=>notices.push(m),download:(n,t,type)=>downloads.push({n,t,type}),
   raf:cb=>{rafCallback=cb;return 1;},timer:{set:()=>1,clear(){}}});
 const el=(dataset={},extra={})=>({dataset,closest(sel){return sel==='[data-comp]'&&dataset.comp!==undefined?this:null;},...extra});
 const press=(comp,dataset={})=>ws.click(el({comp,...dataset}));
@@ -221,6 +221,13 @@ const targets=JSON.parse(downloads.at(-1).t);
 assert.equal(targets.format,PRACTICE_FORMAT);assert.equal(targets.matchMode,'any-degree');
 assert.equal(targets.targets.length,ws.timeline().length);assert.ok(targets.targets.length>6);
 set('matchMode','bogus');press('export-targets');assert.equal(JSON.parse(downloads.at(-1).t).matchMode,'any-degree','unknown modes are ignored');
+
+// ---- Discover's focused chord ----
+const before2=chordClip().events.length;press('chord-add-focus');assert.equal(chordClip().events.length,before2);assert.match(notices.at(-1),/Select a chord in Discover first/);
+focusedChord={...structuredClone(items[0]),label:'focused 4:5:6'};press('chord-add-focus');
+assert.equal(chordClip().events.length,before2+1,'the focused chord is added to the end');const focusedEvent=chordClip().events.at(-1);
+assert.deepEqual(focusedEvent.tones.map(t=>t.coordinate),[[0,0],[-2,4],[0,1]]);assert.match(html(),/Add focused chord focused 4:5:6/);
+press('chord-select',{event:focusedEvent.id});assert.deepEqual(focusCalls.at(-1),[[0,0],[-2,4],[0,1]],'selecting a composition chord focuses it in Discover');
 
 // ---- whole-app session hooks ----
 const out=ws.serialize();assert.equal(out,P());

@@ -38,7 +38,7 @@ assert.match(app,/if\(sectionFor\(view\)==='discover'\)view='unified';/,'any Dis
 assert.match(app,/detail:manualChordInspector\?chordWorkspace\.render\(\):unifiedDetail\(parts\)/,'the manual note inspector opens in the analysis pane');
 assert.match(catalogue,/function render\(\)\{const parts=renderParts\(\);/,'the Chords tab and Unified share one renderer');
 assert.match(app,/function refreshHarmony\(\)\{.*view!=='unified'.*parts=harmonicWorkspace\.renderParts\(\{directory:true\}\).*if\(!manualChordInspector\)detail\.innerHTML=unifiedDetail\(parts\)/,'a catalogue refresh rewrites only the directory, and the analysis unless the note inspector is open');
-assert.match(app,/onShowDiamond:value=>\{unifiedCenter='diamond';view='unified';/,'Show in diamond switches the centre pane to the diamond');
+assert.match(app,/syncUnifiedPanelHeights\(\);applyHarmonicFocus\(\);/,'every redraw shows the focused harmony on the diamond and matrix');
 assert.match(app,/settings:\{[^}]*unifiedCenter,/,'the centre choice is saved with the session');
 
 assert.doesNotMatch(app,/explore-scale-controls/,'the scale pane holds the only scale and mode controls');
