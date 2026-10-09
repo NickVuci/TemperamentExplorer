@@ -6,6 +6,8 @@ export const frequencyFor = (cents, tonic = 220) => tonic * 2 ** (cents / 1200);
 export const isAudibleFrequency = frequency => Number.isFinite(frequency) && frequency >= MIN_FREQUENCY && frequency <= MAX_FREQUENCY;
 
 const RELEASE = .06, STOP_MARGIN = .01;
+// Live notes reach full level quickly; the output soft-clipper keeps the short ramp click-free.
+const LIVE_ATTACK = .004;
 // Smooth endpoints avoid a sudden change in envelope slope at note-off.
 const fadeOut = Float32Array.from({length:129},(_,i)=>(1+Math.cos(Math.PI*i/128))/2);
 // Input attenuation expands the shaper's input range to +/-4. Ordinary signals
@@ -172,12 +174,11 @@ export function createAudioEngine({
   function startVoice(cents,settingsOverride){
     let cancelled=false,voice,target=cents;
     const request=revision,settings={...getSettings(),...settingsOverride};
-    ready().then(()=>{
-      if(cancelled||request!==revision)return;
-      // A small scheduling lead prevents an attack from starting in the past
-      // if UI work and node construction cross an audio render quantum.
-      voice=createVoice(target,settings,context.currentTime+.005,settings.wave==='sawtooth'?.018:.035,.012);
-    }).catch(error=>{if(!cancelled&&request===revision)onError(error);});
+    const begin=lead=>{if(cancelled||request!==revision)return;voice=createVoice(target,settings,context.currentTime+lead,settings.wave==='sawtooth'?.018:.035,LIVE_ATTACK);};
+    // A running context starts the voice in this call, at once; only a new or suspended context
+    // waits for resume, with a small lead so its attack cannot start in the past.
+    if(context&&context.state==='running')begin(0);
+    else ready().then(()=>begin(.005)).catch(error=>{if(!cancelled&&request===revision)onError(error);});
     const release=()=>{
       cancelled=true;
       if(voice)fadeVoice(voice,Math.max(context.currentTime,voice.startedAt+.06));
@@ -193,6 +194,8 @@ export function createAudioEngine({
 
   return {
     stop,startVoice,prepare,scheduleVoices,cancelGroup,cancelRevision,getClockSnapshot,
+    /** The audio device's buffering, in ms (null before audio starts). */
+    outputLatency:()=>context&&context.state!=='closed'?((context.baseLatency??0)+(context.outputLatency??0))*1000:null,
     // Audition that leaves a playing composition alone.
     // `settings` ({tonic, wave}) lets a composition audition in its own tuning reference.
     previewChord:(pitches,settings)=>playEvents([{pitches,offset:.02,duration:.7}],'preview',settings),

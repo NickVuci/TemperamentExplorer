@@ -278,6 +278,8 @@ both surfaces rather than introducing a second audio or sustain implementation.
 
 ## Ranked layouts preserve canonical board and chord semantics
 
+*The ranking, search and harmony-scoring parts are superseded by D-036; the persistence rules stand.*
+
 **Decision.** Generate a bounded set (at most 133 before deduplication) using up to
 five valid MOS bases, existing layout families, rotations and reflections. Reuse
 `buildBoard`, `hexDistance`, `chordPlacements` and `placeRealization`. Present every
@@ -805,3 +807,22 @@ keeping an arbitrary scale.
 
 **Consequences.** Retuning, saved sessions and explicit loads still keep their
 scale and mode. The layout base subset already used the first interval-complete MOS.
+
+## D-036 — Fixed built-in layouts replace the ranked layout search
+
+**Decision.** Each built-in temperament preset ships read-only layouts in
+`builtin-layouts.mjs`: a Recommended layout, applied on entering that temperament
+when it has no saved default, plus conventional Bosanquet and, where the temperament's
+whole-tone-sized step and fifth reach every note, Wicki-Hayden layouts. The ranked layout search, its scoring, chord-target adapters and worker
+are removed. Built-ins are ordinary layout records, so they load, validate and copy
+through the saved-layout path; they cannot be updated, deleted or made the default.
+
+**Rationale.** A search the user had to start and then judge from scores was slower
+and less predictable than a good layout that is simply there. Built-in temperaments
+are a small fixed set, so each can carry a chosen layout. The Recommended layouts
+were picked once, offline, at each preset's default scale; the conventional ones
+give players the isomorphic boards they already know.
+
+**Consequences.** Temperaments that are not built-in presets open on the current
+board settings until the user saves a layout. A saved default always wins over the
+built-in, and built-ins still apply when saved layouts are unavailable.

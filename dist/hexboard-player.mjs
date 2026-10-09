@@ -39,5 +39,14 @@ export function createHexboardPlayer({document:doc,window:win,press,startVoice,o
  win.addEventListener('blur',reset);doc.addEventListener('visibilitychange',()=>{if(doc.hidden)reset();});
  // Retune held notes to the cents centsFor(keyId) gives; notes it returns no number for are left alone.
  function retune(centsFor){for(const [id,v] of held){const cents=centsFor(id);if(!Number.isFinite(cents)||cents===v.cents)continue;v.release.retune?.(cents);v.cents=cents;}publishActiveNotes();}
- return {reset,retune};
+ // A board key (physical HexBoard) plays exactly as a pointer press on its on-screen key, without a
+ // synthetic DOM event. It keeps the current Shift sustain. Returns false when that key is not on
+ // screen, so the caller can sound it directly.
+ function pressKey(id,t){
+  const node=doc.querySelector?.(`${selector.slice(0,-1)}="${id}"]`);
+  if(!node||node.closest?.('[hidden]'))return false;
+  const pointer='board:'+id;pointers.set(pointer,play(node,pointer,t));publishActiveNotes();return true;
+ }
+ function releaseKey(id,t){const pointer='board:'+id;if(!pointers.has(pointer))return false;pointers.delete(pointer);releaseUnused(t);publishActiveNotes();return true;}
+ return {reset,retune,pressKey,releaseKey};
 }

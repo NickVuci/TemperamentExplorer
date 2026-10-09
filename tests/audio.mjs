@@ -53,7 +53,8 @@ const held=f.oscillators.at(-1);assert.equal(held.type,'sawtooth');assert.equal(
 // A held voice glides to a new pitch in place.
 held.frequency.setTargetAtTime=(value,at,constant)=>held.glide=[value,at,constant];release.retune(1200);assert.equal(held.glide[0],880);assert.ok(held.glide[2]>0&&held.glide[2]<.05);
 assert.equal(held.envelope.gain.events[1][1],.018);assert.equal(held.stops.length,0);
-release();release();assert.equal(curves(held).length,1);assert.ok(Math.abs(held.stops[0]-5.135)<1e-9);
+assert.deepEqual(held.starts,[5],'a running context starts a live voice at once, with no scheduling lead');assert.ok(Math.abs(held.envelope.gain.events[1][2]-5.004)<1e-9,'live notes use a short attack');
+release();release();assert.equal(curves(held).length,1);assert.ok(Math.abs(held.stops[0]-5.13)<1e-9);
 f.context.currentTime=5.01;f.engine.stop();
 assert.ok(Math.abs(curves(held).at(-1)[2]-5.01)<1e-9,'Stop overrides the future short-tap gate.');
 assert.ok(Math.abs(held.stops.at(-1)-5.08)<1e-9);

@@ -14,44 +14,43 @@ const frame=ledFrame(snap);
 assert.equal(frame.size,BUTTON_COUNT,'every LED is described');
 assert.deepEqual(frame.get(0),{h:0,s:0,v:0},'command keys stay dark');
 assert.deepEqual(frame.get(5),hexToLed('#5686df',LEVEL.normal),'a normal key shows its layout colour');
-const lit=ledFrame({keys:keys.map(k=>k.index===5?{...k,lit:true,marked:true,color:'#f5c76e'}:k.index===6?{...k,dim:true}:k.index===7?{...k,enabled:false}:k)});
+const lit=ledFrame({keys:keys.map(k=>k.index===5?{...k,lit:true,marked:true,color:'#f5c76e'}:k.index===7?{...k,enabled:false}:k)});
 assert.ok(lit.get(5).v>frame.get(5).v,'a highlighted key is brighter');
 assert.deepEqual(lit.get(5),hexToLed('#5686df',LEVEL.lit),'a highlighted key keeps its layout colour, at full brightness (not the screen highlight colour)');
-assert.ok(lit.get(6).v<frame.get(5).v,'a dimmed key recedes behind a highlight');
-assert.equal(lit.get(6).h,frame.get(5).h,'dimming keeps the hue');
+assert.deepEqual(lit.get(6),frame.get(6),'other keys are unchanged by a highlight');
 assert.deepEqual(lit.get(7),{h:0,s:0,v:0},'a disabled key is dark');
 assert.deepEqual(ledFrame(snap,new Set([5])).get(5),{h:0,s:0,v:127},'a sounding key is white');
 assert.ok(ledFrame(null).get(10).v===0,'no snapshot means a dark board');
-assert.ok(LEVEL.dim<LEVEL.normal&&LEVEL.normal<LEVEL.lit);
-assert.ok(hexToLed('#5686df',LEVEL.dim).v>=20,'receded keys stay clearly visible, so the layout never disappears');
+assert.ok(LEVEL.normal<LEVEL.lit);assert.deepEqual(Object.keys(LEVEL),['normal','lit'],'there is no receded level');
 
 // ---------- controller with fakes ----------
 function setup({withNode=true,hiddenNode=false}={}){
-  const events=[],voices=[],released=[],sentFrames=[],device={connected:true,setLeds:f=>sentFrames.push(f)};
-  const nodes=new Map();
-  const mkNode=i=>({dataset:{hexKey:String(i)},closest:sel=>sel==='[hidden]'&&hiddenNode?{}:null,dispatchEvent:e=>events.push(['node',e.type,e.pointerId,i])});
-  const doc={querySelector:s=>{const i=Number(s.match(/"(\d+)"/)?.[1]);return withNode?(nodes.get(i)??nodes.set(i,mkNode(i)).get(i)):null;},dispatchEvent:e=>events.push(['doc',e.type,e.pointerId])};
-  let snapshot=snap;
-  const sync=createHexboardSync({document:doc,device,getSnapshot:()=>snapshot,startVoice:c=>{voices.push(c);return ()=>released.push(c);},createEvent:(type,pointerId)=>({type,pointerId})});
-  return {sync,events,voices,released,sentFrames,device,set snapshot(v){snapshot=v;}};
+  const events=[],voices=[],released=[],sentFrames=[],queued=[],device={connected:true,setLeds:f=>sentFrames.push(f)};
+  const shown=withNode&&!hiddenNode;let snapshot=snap;
+  const sync=createHexboardSync({device,getSnapshot:()=>snapshot,startVoice:c=>{voices.push(c);return ()=>released.push(c);},
+    pressKey:(i,t)=>{if(!shown)return false;events.push(['press',i,t]);return true;},releaseKey:i=>events.push(['release',i]),
+    queue:fn=>queued.push(fn),now:()=>10});
+  const flush=()=>{while(queued.length)queued.shift()();};
+  return {sync,events,voices,released,sentFrames,queued,flush,device,set snapshot(v){snapshot=v;}};
 }
 
-// On the Play view a board press is a pointer press on the real key, with a pointer id of its own.
+// On the Play view a board press plays the real on-screen key through the board player.
 {
   const t=setup();
-  t.sync.keyDown(65);t.sync.keyDown(65);
-  assert.deepEqual(t.events,[['node','pointerdown',1065,65]],'a repeated down is ignored');
+  t.sync.keyDown(65,4);t.sync.keyDown(65,4);
+  assert.deepEqual(t.events,[['press',65,4]],'a repeated down is ignored');
   assert.equal(t.voices.length,0,'sound comes from the board player, not from this module');
   assert.deepEqual([...t.sync.held],[65]);
-  assert.deepEqual(t.sentFrames.at(-1).get(65),{h:0,s:0,v:127},'the pressed key lights white on the board');
-  t.sync.keyDown(66);
-  assert.equal(new Set(t.events.map(e=>e[2])).size,2,'two held keys use two pointers, so chords work');
-  t.sync.keyUp(65);
-  assert.deepEqual(t.events.at(-1),['doc','pointerup',1065],'release is a pointer up for that same pointer');
+  assert.equal(t.sentFrames.length,0,'the LEDs wait until the sound has started');assert.equal(t.queued.length,1);
+  t.flush();assert.deepEqual(t.sentFrames.at(-1).get(65),{h:0,s:0,v:127},'the pressed key lights white on the board');
+  assert.equal(t.sync.inputDelay(),6,'the probe reports MIDI arrival to sound');
+  t.sync.keyDown(66);t.sync.keyDown(67);assert.equal(t.queued.length,1,'changes within one event share one LED update');t.flush();
+  t.sync.keyUp(67);t.sync.keyUp(65);
+  assert.deepEqual(t.events.at(-1),['release',65],'release goes to that same key');
   assert.deepEqual([...t.sync.held],[66]);
-  assert.notDeepEqual(t.sentFrames.at(-1).get(65),{h:0,s:0,v:127},'the light returns to its colour');
-  t.sync.keyUp(65);assert.equal(t.events.filter(e=>e[1]==='pointerup').length,1,'releasing an unheld key does nothing');
-  t.sync.releaseAll();assert.equal(t.sync.held.size,0);assert.equal(t.events.filter(e=>e[1]==='pointerup').length,2);
+  t.flush();assert.notDeepEqual(t.sentFrames.at(-1).get(65),{h:0,s:0,v:127},'the light returns to its colour');
+  t.sync.keyUp(65);assert.equal(t.events.filter(e=>e[0]==='release').length,2,'releasing an unheld key does nothing');
+  t.sync.releaseAll();assert.equal(t.sync.held.size,0);assert.equal(t.events.filter(e=>e[0]==='release').length,3);
 }
 
 // Off the Play view (key not on screen) the key sounds directly in the layout's tuning.
@@ -72,7 +71,7 @@ for(const opts of [{withNode:false},{hiddenNode:true}]){
   const t=setup();
   t.sync.setActive([{id:'7'},{id:'8'}]);
   assert.deepEqual([...t.sync.held].sort(),[7,8]);
-  assert.deepEqual(t.sentFrames.at(-1).get(7),{h:0,s:0,v:127});
+  t.flush();assert.deepEqual(t.sentFrames.at(-1).get(7),{h:0,s:0,v:127});
   t.sync.keyDown(9);assert.deepEqual([...t.sync.held].sort((a,b)=>a-b),[7,8,9]);
   t.sync.setActive([{id:'x'},{id:'7'}]);assert.deepEqual([...t.sync.held].sort((a,b)=>a-b),[7,9],'non-key ids are ignored');
 }
@@ -120,25 +119,25 @@ for(const opts of [{withNode:false},{hiddenNode:true}]){
     const b=board.keys[k.index];
     assert.equal(k.command,!!b.command);assert.equal(k.enabled,!!b.enabled);
     if(!b.command){assert.deepEqual(k.m,b.m);assert.equal(k.c,b.c);assert.equal(k.color,keyColor(b,colors),`key ${k.index} shows the layout colour`);}
-    assert.equal(k.dim,false,'nothing is dimmed without a highlight');
+    assert.equal(k.lit,false,'nothing is lit without a highlight');
   }
   assert.ok(snapshot.keys.filter(k=>k.enabled).length>20);
-  // A scale highlight dims the rest and colours its tones, exactly as the screen does.
+  // A scale highlight lights its tones, exactly as the screen does; nothing is recoloured and nothing recedes.
   const scaleCoords=[[0,0],[-1,2],[-2,4],[1,-1],[0,1],[-1,3],[-2,5]];
   assert.ok(ws.showScale(scaleCoords,'test scale')>0);
   const lit=ws.deviceSnapshot();
-  const tones=lit.keys.filter(k=>k.enabled&&k.color==='#83cebe'),others=lit.keys.filter(k=>k.enabled&&k.color!=='#83cebe');
+  const tones=lit.keys.filter(k=>k.enabled&&k.lit),others=lit.keys.filter(k=>k.enabled&&!k.lit);
+  assert.ok(lit.keys.filter(k=>k.enabled).every(k=>k.layoutColor===snapshot.keys[k.index].layoutColor),'a scale highlight keeps every layout colour');
   assert.ok(tones.length>0&&others.length>0);
-  assert.ok(tones.every(k=>!k.dim)&&others.every(k=>k.dim),'scale tones stand out, other keys recede');
+  assert.ok(lit.keys.filter(k=>k.enabled).every(k=>k.color===k.layoutColor),'scale tones keep their colour');
   const frameLit=ledFrame(lit);
-  assert.ok(frameLit.get(tones[0].index).v>frameLit.get(others[0].index).v);
-  // A chord highlight marks its keys: root gold, other tones purple.
+  const framePlain=ledFrame(snapshot);assert.ok(frameLit.get(tones[0].index).v>framePlain.get(tones[0].index).v,'scale tones shine brighter');assert.deepEqual(frameLit.get(others[0].index),framePlain.get(others[0].index),'other keys are unchanged');
+  // A chord highlight lights its keys in their own colour and leaves the rest alone.
   ws.clearHighlight();
   ws.showChord([[0,0],[-2,4],[0,1]],'major triad',{exact:true});
   const chord=ws.deviceSnapshot(),marked=chord.keys.filter(k=>k.marked);
   assert.ok(marked.length>=3,`chord keys are marked (${marked.length})`);
-  assert.ok(marked.some(k=>k.color==='#f5c76e')&&marked.some(k=>k.color==='#a855ca'),'root gold and other tones purple');
-  assert.ok(chord.keys.filter(k=>k.enabled&&!k.marked).every(k=>k.dim),'everything else recedes');
+  assert.ok(marked.every(k=>k.color===k.layoutColor&&k.lit),'chord keys keep their colour and are lit');
   // The physical board keeps the layout: every key has the same colour with and without the highlight, only brightness changes.
   const plain=(ws.clearHighlight(),ws.deviceSnapshot()),plainFrame=ledFrame(plain);
   ws.showChord([[0,0],[-2,4],[0,1]],'major triad',{exact:true});
@@ -148,17 +147,17 @@ for(const opts of [{withNode:false},{hiddenNode:true}]){
     assert.equal(chordFrame.get(k.index).h,plainFrame.get(k.index).h,`key ${k.index} keeps its hue on the LEDs`);
     assert.equal(chordFrame.get(k.index).s,plainFrame.get(k.index).s);
     if(k.lit)assert.ok(chordFrame.get(k.index).v>plainFrame.get(k.index).v,'chord keys are brighter than before');
-    else assert.ok(chordFrame.get(k.index).v<plainFrame.get(k.index).v&&chordFrame.get(k.index).v>0,'other keys are lower but still lit');
+    else assert.deepEqual(chordFrame.get(k.index),plainFrame.get(k.index),'other keys are exactly as before');
   }
   assert.ok(withChord.keys.filter(k=>k.lit).length>=3);
   ws.clearHighlight();ws.showScale(scaleCoords,'test scale');
   const withScale=ws.deviceSnapshot(),scaleFrame=ledFrame(withScale);
   for(const k of withScale.keys.filter(k=>k.enabled)){
     assert.equal(scaleFrame.get(k.index).h,plainFrame.get(k.index).h,`key ${k.index} keeps its hue under a scale`);
-    if(k.lit)assert.ok(scaleFrame.get(k.index).v>plainFrame.get(k.index).v);else assert.ok(scaleFrame.get(k.index).v<plainFrame.get(k.index).v&&scaleFrame.get(k.index).v>0);
+    if(k.lit)assert.ok(scaleFrame.get(k.index).v>plainFrame.get(k.index).v);else assert.deepEqual(scaleFrame.get(k.index),plainFrame.get(k.index),'other keys are exactly as before');
   }
   assert.ok(withScale.keys.some(k=>k.lit)&&withScale.keys.some(k=>k.enabled&&!k.lit));
-  ws.clearHighlight();assert.ok(ws.deviceSnapshot().keys.every(k=>!k.dim&&!k.marked&&!k.lit||k.command),'clearing the highlight restores the board');
+  ws.clearHighlight();assert.ok(ws.deviceSnapshot().keys.every(k=>!k.marked&&!k.lit||k.command),'clearing the highlight restores the board');
 }
 
 console.log('hexboard-sync: ok');

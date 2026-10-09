@@ -52,7 +52,7 @@ function controlsSurvive(){
 async function ready(){
  const deadline=Date.now()+10000;
  while(ui.model().status==='loading'){assert.ok(Date.now()<deadline,'discovery completes');await new Promise(resolve=>setTimeout(resolve,5));}
- controlsSurvive();assert.equal(ui.model().error,'');assert.ok(ui.model().result?.complete);assert.ok(ui.layoutEntries().length);
+ controlsSurvive();assert.equal(ui.model().error,'');assert.ok(ui.model().result?.complete);assert.ok(ui.model().result.items.length);
  // A catalogue refresh rewrites only the directory pane; a full redraw rewrites the workspace.
  assert.match(host.querySelector('[data-unified-pane="directory"]')?.innerHTML||host.innerHTML,/\d+ chords · complete/);
 }

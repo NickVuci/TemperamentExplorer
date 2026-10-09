@@ -133,7 +133,7 @@ function scheduleLiveChordUpdate(notes){
  });
 }
 const diamondWorkspace=createDiamondWorkspace({document,getState:()=>states[0],refresh:()=>renderWorkspace(),notify:toast,play:playPitches,onInspect:()=>fillDiamondDetails(),onChordChange:()=>{fillDiamondDetails();followDiamond();},onTuningChange:centsFor=>diamondPlayer?.retune(centsFor),getHarmonicMode:()=>harmonicMode==='b',onCollect:item=>materialWorkspace.add(item.kind,states[0],item.coords,item.label,{exact:true,harmonicSelection:item.harmonicSelection}),onPlace:placeMaterial,onChord:item=>{if(harmonicMode==='b'&&item.harmonicSelection){view='unified';manualChordInspector=false;harmonicWorkspace.openSelection(item.harmonicSelection);renderWorkspace();return;}const next=fitDiamondChord(states[0],item.coords),previous=states[0];try{states[0]=validate(next);chordWorkspace.fromCoordinates(item.coords,item.label);}catch(error){states[0]=previous;throw error;}view='chords';selected=null;stop();render();}});
-const hexWorkspace=createHexboardWorkspace({getJI:settings,setJI:patch=>{if(patch.tol!==undefined)manualTolerance=clampTolerance(patch.tol)??0;if(patch.limit!==undefined)$('#limit').value=String(patch.limit);if(patch.primeLimit!==undefined)$('#primeLimit').value=Array.isArray(patch.primeLimit)?patch.primeLimit.join('.'):patch.primeLimit==null?'':String(patch.primeLimit);if(patch.filter!==undefined)$('#targetfilter').value=patch.filter;},getStates:getLayoutStates,play:playPitches,refresh:full=>full?render():renderWorkspace(),onCatalogueRefresh:()=>{if(view==='hexboard')hexWorkspace.refreshCatalogue();},notify:toast,download,getHz:()=>audioSettings.tonic,getHarmonicMode:()=>harmonicMode==='b',getHarmonicEntries:()=>harmonicWorkspace.layoutEntries(),onBrowseHarmony:()=>{view='unified';manualChordInspector=false;renderWorkspace();},onFitHarmonicScale:fitPlayHarmony,onCollect:(s,coords,label,options)=>materialWorkspace.add('chord',s,coords,label,{exact:true,...options}),onInspect:(s,coords,label)=>{manualChordInspector=true;states[0]=validate(structuredClone(s));coverageSignature=scaleDefaultKey(states[0],coverageSettings(states[0]));chordWorkspace.fromCoordinates(coords,label);view='unified';selected=null;render();}});
+const hexWorkspace=createHexboardWorkspace({matchPlayed:coordinates=>harmonicMode==='b'?harmonicWorkspace.matchPlayed(coordinates):null,getJI:settings,setJI:patch=>{if(patch.tol!==undefined)manualTolerance=clampTolerance(patch.tol)??0;if(patch.limit!==undefined)$('#limit').value=String(patch.limit);if(patch.primeLimit!==undefined)$('#primeLimit').value=Array.isArray(patch.primeLimit)?patch.primeLimit.join('.'):patch.primeLimit==null?'':String(patch.primeLimit);if(patch.filter!==undefined)$('#targetfilter').value=patch.filter;},getStates:getLayoutStates,play:playPitches,refresh:full=>full?render():renderWorkspace(),onCatalogueRefresh:()=>{if(view==='hexboard')hexWorkspace.refreshCatalogue();},notify:toast,download,getHz:()=>audioSettings.tonic,getHarmonicMode:()=>harmonicMode==='b',onBrowseHarmony:()=>{view='unified';manualChordInspector=false;renderWorkspace();},onFitHarmonicScale:fitPlayHarmony,onCollect:(s,coords,label,options)=>materialWorkspace.add('chord',s,coords,label,{exact:true,...options}),onInspect:(s,coords,label)=>{manualChordInspector=true;states[0]=validate(structuredClone(s));coverageSignature=scaleDefaultKey(states[0],coverageSettings(states[0]));chordWorkspace.fromCoordinates(coords,label);view='unified';selected=null;render();}});
 const matrixPages=[[0,0]];
 const stateName=s=>`${s.name}[${s.n}]`,fmt=(x,n=2)=>Number(x).toFixed(n),sign=x=>`${x>=0?'+':''}${fmt(x)}`;
 function toast(t){$('#toast').textContent=t;$('#toast').style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').style.display='none',4500);}
@@ -302,14 +302,23 @@ const keyHarmoniesUi=createKeyHarmoniesUi({host:$('#key-harmonies'),api:{harmoni
 // Physical HexBoard (Web MIDI, delegated control): its keys play through the Play board's own
 // pointer path, and its lights follow the layout, highlights and held keys.
 const hexboardDevice=createHexboardDevice({
- onKey:(index,down)=>down?hexboardSync.keyDown(index):hexboardSync.keyUp(index),
+ onKey:(index,down,t)=>{if(down){hexboardSync.keyDown(index,t);scheduleHexboardProbe();}else hexboardSync.keyUp(index);},
  onEncoder:event=>{if(event==='press'){stop();if(view==='hexboard'){hexWorkspace.clearHighlight();renderWorkspace();}}},
  onStatus:(state,detail)=>showHexboardStatus(state,detail)});
-const hexboardSync=createHexboardSync({document,device:hexboardDevice,getSnapshot:()=>view==='composition'&&compositionWorkspace.open?compositionWorkspace.deviceSnapshot():hexWorkspace.deviceSnapshot(),startVoice:c=>audioEngine.startVoice(c)});
+const hexboardSync=createHexboardSync({device:hexboardDevice,pressKey:(index,t)=>hexPlayer?.pressKey(String(index),t)??false,releaseKey:index=>hexPlayer?.releaseKey(String(index)),getSnapshot:()=>view==='composition'&&compositionWorkspace.open?compositionWorkspace.deviceSnapshot():hexWorkspace.deviceSnapshot(),startVoice:c=>audioEngine.startVoice(c)});
+// Latency probe: the board's key-to-sound time inside the app, and the audio device's own buffering.
+let hexboardConnectedName='',hexboardProbeTimer=null;
+function hexboardConnectedText(){
+ const delay=hexboardSync.inputDelay(),output=audioEngine.outputLatency();
+ const probe=delay===null?'':` · key to sound ${delay.toFixed(1)} ms in the app${output===null?'':` + ${output.toFixed(0)} ms audio output`}`;
+ return `HexBoard connected${hexboardConnectedName?': '+hexboardConnectedName:''}${probe}`;
+}
+function scheduleHexboardProbe(){if(hexboardProbeTimer)return;hexboardProbeTimer=setTimeout(()=>{hexboardProbeTimer=null;if(!hexboardDevice.connected)return;const text=$('#hexboard-status');if(text){text.textContent=hexboardConnectedText();text.title=text.textContent;}},400);}
 function showHexboardStatus(state,detail={}){
  const button=$('#hexboard-connect'),text=$('#hexboard-status');
  button.textContent=state==='connected'?'Disconnect HexBoard':'Connect HexBoard';button.disabled=state==='connecting';
- const message=state==='connected'?`HexBoard connected${detail.name?': '+detail.name:''}`:state==='connecting'?'Connecting…':state==='error'?detail.message:detail.reason==='unplugged'?'HexBoard unplugged':'';
+ if(state==='connected')hexboardConnectedName=detail.name??'';
+ const message=state==='connected'?hexboardConnectedText():state==='connecting'?'Connecting…':state==='error'?detail.message:detail.reason==='unplugged'?'HexBoard unplugged':'';
  text.textContent=message;text.title=message;
  if(state==='connected')hexboardSync.start();
  else{hexboardSync.stop();if(state==='disconnected')hexboardSync.releaseAll();if(state==='error')toast(message);}

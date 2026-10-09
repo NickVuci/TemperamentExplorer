@@ -3206,30 +3206,18 @@ footer {
   }
 }
 
-/* Smart layout controls inherit the existing button and disclosure styling. */
+/* Layout chooser and named layouts inherit the existing button and disclosure styling. */
 .layout-recommendations{margin-bottom:14px;min-width:0}
 .layout-recommendation-heading{display:flex;align-items:center;gap:12px;margin-bottom:8px}
-.layout-recommendation-heading h3{margin:0;font-size:16px}
-.layout-recommendation-details{margin-top:8px;border:0;background:transparent;padding:0}
-.layout-recommendation-details summary{font-size:14px;color:var(--muted);padding:6px 0}
-.layout-recommendation-search{margin:6px 0 0}
-.layout-recommendation-search summary{font-size:14px;color:var(--muted);padding:6px 0}
-.layout-recommendation-search button{min-height:40px;font-size:14px}
-
-/* Ranked layout chooser and named presets. */
 .layout-recommendation-heading label{margin:0;font-size:16px;font-weight:600}
 #layout-recommendation-choice{display:block;width:100%;min-width:0;min-height:42px;font-size:14px}
-.layout-score-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:10px 0}
-.layout-score-details dt{font-weight:600;font-size:14px;display:flex;justify-content:space-between;gap:10px}
-.layout-score-details dt span{font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
-.layout-score-details dd{margin:4px 0 0;font-size:14px;color:var(--muted)}
 .layout-save{margin:6px 0 0;padding:0;border:0;background:transparent}
 .layout-save summary{font-size:14px;padding:6px 0;color:var(--muted)}
 .layout-save-fields{display:flex;align-items:flex-end;flex-wrap:wrap;gap:8px;margin-top:8px}
 .layout-save-fields label{flex:1 1 200px;margin:0}
 .layout-save-fields input{width:100%;min-width:0;font-size:14px}
 .layout-save-fields button{min-height:42px;font-size:14px}
-@media(max-width:600px){.layout-score-details{grid-template-columns:1fr}.layout-save-fields label{flex-basis:100%}}
+@media(max-width:600px){.layout-save-fields label{flex-basis:100%}}
 
 /* Live chord recognition readout. */
 .hex-live-chord-readout {
@@ -3952,3 +3940,5 @@ footer {
 .matrix .cell.chord-pick{box-shadow:inset 0 0 0 3px var(--mint)}
 .matrix-chord-hint{margin:2px 0 6px;font-size:12px}
 .harmony-follow{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:0 0 6px}
+/* A highlighted Play-board key keeps its layout colour and shines a level brighter. */
+.hex-board g.is-lit polygon{filter:brightness(1.35) saturate(1.1)}

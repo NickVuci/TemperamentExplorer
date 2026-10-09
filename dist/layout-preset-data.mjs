@@ -1,9 +1,12 @@
 import {validateState} from './state.mjs';
 import {buildBoard,commands} from './hexboard.mjs';
 import {validatePeriodPlacement,validateCopyPeriodStep} from './hexboard-wrapping.mjs';
-import {layoutConfig} from './layout-candidates.mjs';
 import {MAX_SCALE_SIZE} from './engine.mjs';
 import {palettes,validColor} from './hexboard-colors.mjs';
+// The fields that make up a layout's geometry; layoutKey identifies a layout by them.
+export const layoutFields=['base','offset','style','rotation','mirror','flipHorizontal','flipVertical','center','register','deviceRotation','outside','ap','ag','bp','bg','periodWrapping','periodPlacement','copyPeriodStep','registerAlignment'];
+export const layoutConfig=cfg=>Object.fromEntries(layoutFields.map(k=>[k,cfg[k]]));
+export const layoutKey=cfg=>JSON.stringify(layoutConfig(cfg));
 export const layoutContext=s=>Object.fromEntries(['name','basis','rows','p','g','n','mode'].map(k=>[k,structuredClone(s[k])]));
 export const mappingKey=s=>JSON.stringify([s.basis,s.rows]);
 export const layoutPresetConfigKey=source=>JSON.stringify([layoutConfig(source||{}),source?.palette??'spectrum',source?.layerGrowth??'balanced',source?.layerColors??{},source?.keyColors??{},source?.degreeColors??{}]);

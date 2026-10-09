@@ -73,6 +73,7 @@ sandbox.pickMatrixCell(0,2);assert.equal(calls.length,2);sandbox.pickMatrixCell(
 const m=matrixScale(state);assert.equal(JSON.stringify(calls.at(-1).coordinates),JSON.stringify([0,2,4].map(d=>noteCoordinate(state,m.notes[d]))));
 sandbox.pickMatrixCell(0,4);assert.equal(vm.runInContext('matrixChordCells.size',sandbox),1,'Shift-clicking a picked cell removes it');
 ui.sync();while(ui.model().status!=='complete')await new Promise(resolve=>setTimeout(resolve,5));
+assert.equal(ui.matchPlayed(et.shape.coordinates),ui.matchPlayed(et.shape.coordinates),'a held note set is matched once per directory result');
 // Without a chosen voicing, the handed-over selection sounds the focused rotation, root lowest.
 ui.focusExternal({ratios:['1/1','6/5','8/5']});
 {const pitches=ui.selection().voicing.pitches,low=Math.min(...pitches);

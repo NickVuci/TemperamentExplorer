@@ -21,4 +21,11 @@ let clickPrevented=false,clickStopped=false;fire('click',{preventDefault(){click
 fire('pointerdown',{shiftKey:true});windowHandlers.blur();assert.equal(playing.size,0);
 fire('pointerdown');fire('pointercancel');assert.equal(playing.size,0);player.reset();
 hit=nodes[0];const sameKeyStarts=started.length,sameKeyUpdates=activeChanges.length;fire('pointerdown',{pointerId:10});fire('pointerdown',{pointerId:11});assert.equal(started.length,sameKeyStarts+1);assert.equal(activeChanges.length,sameKeyUpdates+1,'two pointers on one key publish one active note');fire('pointerup',{pointerId:10});assert.equal(playing.size,1);assert.equal(activeChanges.length,sameKeyUpdates+1);fire('pointerup',{pointerId:11});assert.equal(playing.size,0);assert.deepEqual(activeChanges.at(-1),[]);
-console.log('Drag transitions, Shift latch/release, disabled keys, ignored Enter/Space, cancellation and blur cleanup passed.');
+// Board keys play directly, exactly like a pointer press, and keep any Shift sustain.
+player.reset();const boardStarts=started.length;for(const node of nodes)node.closest=sel=>sel==='[hidden]'?null:node;
+assert.equal(player.pressKey('1',12),true);assert.equal(started.at(-1),1);assert.equal(started.length,boardStarts+1);assert.deepEqual(activeChanges.at(-1).map(n=>n.id),['1']);
+assert.equal(player.pressKey('2'),true,'a disabled on-screen key is still handled here (silently)');assert.equal(started.length,boardStarts+1);
+assert.equal(player.releaseKey('1'),true);assert.deepEqual(activeChanges.at(-1),[]);assert.equal(player.releaseKey('1'),false,'an unheld key is not released twice');
+fire('keydown',{key:'Shift'});player.pressKey('0');player.releaseKey('0');assert.equal(playing.has(0),true,'Shift sustain holds a board key too');fire('keyup',{key:'Shift'});assert.equal(playing.has(0),false);
+nodes[1].closest=sel=>sel==='[hidden]'?{}:nodes[1];assert.equal(player.pressKey('1'),false,'a key that is not on screen is left to the caller');
+console.log('Drag transitions, Shift latch/release, disabled keys, ignored Enter/Space, cancellation, blur cleanup and direct board keys passed.');

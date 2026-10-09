@@ -5,6 +5,7 @@ import {searchShapeOccurrences,occurrenceShape} from './chord-occurrence-v2.mjs'
 import {realizeShape} from './chord-realization-v2.mjs';
 import {chordIdentity} from './chord-identity-v2.mjs';
 import {chordRotations} from './harmonic-ji-chords.mjs';
+import {matchPlayedChord,rowsByShape} from './played-chord.mjs';
 import {assessET} from './harmonic-et.mjs';
 import {equivalencePolicy,harmonicIdentity,quotientCoordinate,shapeKey} from './harmonic-equivalence.mjs';
 import {mapRatio} from './engine.mjs';
@@ -238,6 +239,14 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
   if(members.findIndex(item=>item.id===row.id)>=DIRECTORY_GROUP_PAGE)expandedGroups.add(group);
   reveal=row.id;
  }
+ // Played notes read against this directory: its rows by shape are built once per result.
+ let playedRows=null;
+ function matchPlayed(coordinates){
+  const s=getState();if(!result||result.mappingId!==mappingContext(s).id)return null;
+  if(playedRows?.result!==result)playedRows={result,byShape:rowsByShape(result.items),matches:new BoundedCache(64)};
+  let index;try{index=dyadIndex(s);}catch{return null;}
+  try{return playedRows.matches.get(JSON.stringify([index.targetSetId,coordinates]),()=>matchPlayedChord({state:s,coordinates,index,byShape:playedRows.byShape,geometry:row=>{const g=harmonicEntryGeometry(s,row);return g&&{coordinates:g.shape.coordinates,tones:g.tones};}}));}catch{return null;}
+ }
  /** Focus a chord chosen in another view: ratios (JI, relative to its lowest note) and/or tempered coordinates. */
  function focusExternal({ratios=null,coordinates=null}={}){
   if(!result||result.mappingId!==mappingContext(getState()).id)return false;
@@ -333,7 +342,7 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
   }catch(e){error=e.message;notify(e.message);refresh();}return true;
  }
  function setEnabled(value){if(enabled===value)return;enabled=!!value;if(!enabled){generation++;jobs.cancel();if(status==='loading'){stamp='';status='idle';}}else sync();}
- return {render,renderParts,change,click,sync,setEnabled,openInput,focus,focusExternal,followPlaying:()=>followPlaying,takeReveal(){const id=reveal;reveal=null;return id;},layoutEntries:()=>status==='loading'||status==='error'?[]:filtered(),
+ return {render,renderParts,change,click,sync,setEnabled,openInput,focus,focusExternal,matchPlayed,followPlaying:()=>followPlaying,takeReveal(){const id=reveal;reveal=null;return id;},
   input(el){const field=el?.dataset?.harmonyField;if(field!=='search')return false;query=String(el.value).slice(0,300);page=0;refresh();return true;},
   openSelection(value){value=validateHarmonicSelection(value);generation++;jobs.cancel();query='';pendingRestore=null;status='idle';error='';result=null;stamp=catalogueContext(payload()).id;selectedRoot='';sourceSelection=value;entry={id:'source:'+value.voicing.id,kind:'source',shape:value.shape,preferredLabel:value.label};selected=entry.id;refresh();},selection:currentSelection,model:()=>({scope,query,selected,entry,result,status,error,detail:detailModel()}),
   serialize:()=>({version:1,followPlaying,favourites,recent,sizeRange:[sizeMin,sizeMax],directoryFormFilter,scope,query,directInputs,selected,selectedInterpretation:entry?.interpretationId??null,selectedRoot,inversion,style,periodShift,selection:currentSelection()}),

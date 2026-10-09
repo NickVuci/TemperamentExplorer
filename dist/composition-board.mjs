@@ -31,7 +31,7 @@ export function compositionDeviceSnapshot(project,board,highlight=[]){
  if(!board)return null;
  const colors=mosLayers(project.context.state,project.layout,board),keys=board.keys.map(k=>{
   const color=keyColor(k,colors),lit=highlight.includes(k.index);
-  return {...k,c:resolveTone(project.context,k.m).cents,color,layoutColor:color,lit,marked:lit,dim:highlight.length>0&&!lit};
+  return {...k,c:resolveTone(project.context,k.m).cents,color,layoutColor:color,lit,marked:lit};
  });
  return {keys};
 }

@@ -547,6 +547,17 @@ and explicit occurrence/fingering choices. The live readout follows held and
 Shift-latched voices in both modes; label interpretation never changes playback
 or persistent selection.
 
+In B mode the live readout reads held keys (screen or HexBoard) against the harmony directory
+(`played-chord.mjs#matchPlayedChord`, via the harmony workspace's `matchPlayed`). Keys reduce to
+pitch classes through the mapping, so register, doublings and spacing never change the match; the
+lowest key sets the bass. A listed chord shows its directory name, form badge and the rotation
+played (for example `4:5:6` played as `5:6:8`), with every key labelled by its ratio from the bass;
+when several JI chords share the tempered shape the simplest integer form is named and the others
+listed. A dyadic shape the directory does not list (for example outside its size range) is
+classified on the spot (`assessET`). Two pitch classes show the interval's JI readings. Anything
+else names the pair outside the limit and the largest directory chords it contains. A mode keeps
+the curated recognizer.
+
 ## HexBoard layout and period wrapping
 
 `hexboard.mjs` owns the 140-button physical grid (seven command positions and 133
@@ -584,46 +595,33 @@ are optional and off by default. Horizontal and vertical physical-axis flips are
 independent and transform saved manual placement vectors consistently. Wrapped
 layouts are locally, not globally, isomorphic.
 
-## Ranked layouts and saved layout presets
+## Built-in and saved layouts
 
-Play opens with one Layout dropdown. Saved named layouts appear first. Ranked
-recommendations are searched only after the user opens the collapsed Search
-recommended layouts section and starts a search; results then appear in the same
-dropdown in descending score order. Changes to scale, harmony or board mapping
-clear stale results and require another explicit search. Each ranked option
-shows its rank, integer score, base size, family, orientation/reflection, and a
-chromatic direction when fully supported. Score details explain the current
-board's individual metrics. All manual geometry controls remain in collapsed
-Advanced Layout Options. Choosing a candidate retains chord targets and MOS
-palette/layer colors, while clearing per-button and per-degree overrides. Loading
-a saved preset restores its own button/degree colors.
+Play opens with one Layout dropdown listing the current mapping's saved layouts
+first, then its built-in layouts. Entering a temperament applies its saved default
+if it has one, otherwise its Recommended built-in layout, which is marked Default;
+built-ins also apply when saved layouts cannot be loaded. All manual geometry
+controls remain in collapsed Advanced Layout Options.
 
-`layout-targets.mjs` adapts canonical realizations, imported finder materials,
-and selected keys, plus the filtered catalogue after discovery finishes. In B,
-`layout-targets.mjs#harmonicCatalogueLayoutTargets` consumes shared JI/coordinate
-shapes and gives each abstract shape one type vote; aliases and compact inversions
-remain variants, so they cannot inflate desirability weight.
-Catalogue types use canonical compact inversions at all available roots; equivalent
-tempered types remain grouped by the catalogue. `layout-candidates.mjs` searches up to five usable MOS bases,
-six rotations, reflections, and automatic placement in the existing Bosanquet,
-compressed, and period/generator families (at most 133 before deduplication).
-`layout-direction.mjs` defines true chromatic motion: adjacent degrees along one
-physical hex axis with the correct ascending tuned scale step, including the
-period boundary. It reports the longest run, run from degree zero, transition
-coverage, and edge consistency. A generator axis alone does not count. MOS base
-quality favors 5–9 notes and a step-size ratio near basic L:s = 2:1.
+`builtin-layouts.mjs` holds fixed, read-only layouts for each built-in temperament
+preset, stored as ordinary layout records (mapping context, target size/mode and
+geometry, no custom colours):
 
-`layout-evaluation.mjs` also measures melodic step distance, chord coverage,
-complete voiced fingerings, best hex diameter, count of fingerings within four
-hex steps, pitch-direction consistency (prefer rising right/up), and repeated
-access. `layout-profiles.mjs` now owns one weighted ranking configuration; the
-old four-profile winner interface is removed. `layout-recommendations.mjs`
-returns the full ranked list. Worker/UI adapters preserve cached geometry across
-chord changes and reject stale results. Search preserves current orientation,
-wrapping mode, tuning and scale. Catalogue harmony scores average the desired
-chord types; when a chord is selected, its preserved voicing receives half the
-harmony/playability vote and the catalogue receives half. The details show how
-many desired types have complete and easy fingerings. Physical reach remains a heuristic.
+- Recommended (`builtin:<preset>`): mostly compressed or Bosanquet boards at the
+  preset's default interval-complete MOS, pitch rising to the right and upward.
+- Bosanquet (`builtin:<preset>:bosanquet`), every preset: key columns upright, the
+  base MOS's large step up-right, small step down-right, chroma straight up.
+- Wicki-Hayden (`builtin:<preset>:wicki-hayden`): rows level, a whole-tone-sized
+  step right, the fifth up-right, the fourth up-left. Only where that step and the
+  fifth reach every note: the meantone, dreamtone, porcupine, schismic and garibaldi
+  presets.
+
+Conventional layouts target the smallest MOS of at most 41 notes per octave that
+covers most of the board, let keys outside it play, and put the root where every
+degree is on the board. A built-in cannot be updated, renamed, deleted or made the default; saving it creates the
+user's own copy. There is no layout search or scoring. `layout-chooser.mjs` renders
+the dropdown and the save/name controls; `layout-preset-data.mjs` owns
+`layoutFields`, `layoutConfig` and `layoutKey`.
 
 `layout-preset-data.mjs` validates named configurations and source context;
 `layout-presets.mjs` manages async save/update/rename/delete. `/api/layout-presets`
@@ -796,20 +794,25 @@ persisted and the board always starts disconnected.
 | Delegated-control bytes, key/encoder decoding, colour to LED conversion | `hexboard-protocol.mjs` |
 | Web MIDI port, enter/exit, changed-LED sending, unplug detection | `hexboard-device.mjs` |
 | Key routing, the LED picture, the 100 ms follow and 1.5 s refresh timers | `hexboard-sync.mjs` |
-| What the board should show (colours, highlights, dimming) | `hexboard-ui.mjs#deviceSnapshot` |
+| What the board should show (colours, highlights, dimming) | `hexboard-ui.mjs#keyAppearance` (screen and `deviceSnapshot`) |
 | Wiring and header status | `app.mjs` |
 
-Keys. Button index equals the layout's key index (`0..139`). On the Play view a board press is
-dispatched as a pointer press on that key's SVG node with its own pointer id, so sound, selection,
-chord picking, the live chord readout and Shift-free release behave exactly as for a mouse. When the
+Keys. Button index equals the layout's key index (`0..139`). On the Play view a board press goes
+straight to the board player (`pressKey`/`releaseKey`, no synthetic DOM event), so sound, selection,
+chord picking and the live chord readout behave as for a mouse, and Shift sustain applies.
+Latency: the voice starts within the MIDI event (a running audio context schedules it at once, with a
+4 ms attack); the Play board's key classes, inspector and colour editor follow in the
+next frame; LEDs update once per input event, after the sound. The HexBoard status shows the median
+MIDI-arrival-to-sound time in the app and the audio device's own output latency. When the
 Play board is not on screen the key sounds directly at its layout pitch. Command keys and disabled
 keys are silent. A board encoder press acts like Escape (stop and clear highlights).
 
-Lights. Every enabled key always shows its own layout colour, so the layout stays visible whatever is
-highlighted. Ordinary keys are at half brightness; while a chord placement, selected chord keys or a scale
-highlight is active, its keys go to full brightness and the rest drop to 30% (still clearly lit). The
-screen's gold/purple/mint highlight colours are not used on the board. Keys being played, by the board or
-the mouse, are white. Disabled and command keys are dark.
+Lights. The screen board and the LEDs share one rule (`keyAppearance`): every enabled key always shows its
+own layout colour and outline. A chord placement, selected chord keys or a scale highlight changes no colour
+and leaves the other keys as they were; only its keys shine a level brighter (on screen a brightness filter,
+`.is-lit`; on the board full brightness instead of half). A highlighted key's number shows its place in the
+chord, 1 being the root. Keys being played, by the board or the mouse, are white on the board.
+Disabled and command keys are dark.
 
 Keeping the board current. After entering host mode the app waits 300 ms for the board to settle,
 then paints. LEDs travel in paced messages of at most 32 LEDs. While connected, the app is sampled every

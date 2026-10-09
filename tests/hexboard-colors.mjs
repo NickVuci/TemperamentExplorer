@@ -76,6 +76,7 @@ assert.throws(()=>ui.restore({...custom,configs:[{...custom.configs[0],degreeCol
 ui.restore(custom);
 let editorHTML='',inspectorHTML='';const previousDocument=globalThis.document;globalThis.document={querySelector:selector=>selector==='.hex-custom-color-host'?{set innerHTML(value){editorHTML=value;}}:selector==='.hex-inspector'?{set innerHTML(value){inspectorHTML=value;}}:null};
 ui.press({dataset:{hexKey:String(ui.serialize().configs[0].selected)},closest:()=>({querySelectorAll:()=>[]})});
+assert.equal(editorHTML,'','press writes no UI before the sound starts');await new Promise(resolve=>setTimeout(resolve,0));
 if(previousDocument===undefined)delete globalThis.document;else globalThis.document=previousDocument;
 assert.match(editorHTML,/<h4>Button \d+<\/h4>/);assert.match(editorHTML,/>Single button<\/option>/);assert.match(editorHTML,/>Scale degree<\/option>/);
 assert.match(editorHTML,/data-hex-action="root"/);assert.doesNotMatch(editorHTML,/data-hex-action="center"/);
@@ -86,8 +87,12 @@ ui.click({closest:()=>({dataset:{hexAction:'center'}})});assert.equal(ui.seriali
 ui.change({dataset:{hexField:'selectChord'},type:'checkbox',checked:true});ui.click({closest:()=>({dataset:{hexKey:'65'}})},true);
 ui.showChord([[0,0],[0,1]],'Test');
 ui.change({dataset:{hexField:'palette'},value:'ocean'});
-assert.deepEqual(ui.serialize().configs[0].chord,[65]);assert.match(ui.render(),/<polygon[^>]*fill="#f5c76e"/);
-ui.clearHighlight();assert.doesNotMatch(ui.render(),/<polygon[^>]*fill="#f5c76e"/);
+assert.deepEqual(ui.serialize().configs[0].chord,[65]);// A highlight changes no colour and leaves the other keys alone: only its keys shine brighter.
+const fills=markup=>[...markup.matchAll(/data-hex-key="(\d+)"[^>]*>[^]*?<polygon[^>]*fill="([^"]+)" stroke="([^"]+)"/g)].map(m=>m[1]+m[2]+m[3]).join();
+const lit=markup=>(markup.match(/class="[^"]*is-lit[^"]*"/g)||[]).length,highlightedMarkup=ui.render();
+assert.ok(lit(highlightedMarkup)>1,'highlighted keys shine brighter');assert.doesNotMatch(highlightedMarkup,/opacity="/,'no key is faded');
+ui.clearHighlight();const plainMarkup=ui.render();
+assert.equal(fills(highlightedMarkup),fills(plainMarkup),'every key keeps its fill and outline with and without the highlight');assert.ok(lit(plainMarkup)<lit(highlightedMarkup));
 assert.equal(ui.serialize().configs[0].keyColors[selectedKey.index],'#0000ff','changing the layer palette preserves custom button colors');
 ui.click({closest:()=>({dataset:{hexAction:'reset-colors'}})});
 assert.deepEqual(ui.serialize().configs[0].layerColors,{});
