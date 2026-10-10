@@ -50,7 +50,7 @@ assert.equal(mplayed.label,'8:9:10');assert.ok(mplayed.alternatives?.length,'oth
 const host={innerHTML:''},original=globalThis.document;
 try{
  globalThis.document={querySelector:selector=>selector==='[data-live-chord-readout]'?host:null};
- const hex=createHexboardWorkspace({getStates:()=>[state],getHarmonicMode:()=>true,getHz:()=>330,play:()=>{},refresh:()=>{},notify:()=>{},matchPlayed:coordinates=>match(coordinates)});
+ const hex=createHexboardWorkspace({getStates:()=>[state],getHz:()=>330,play:()=>{},refresh:()=>{},notify:()=>{},matchPlayed:coordinates=>match(coordinates)});
  hex.render();
  const keys=buildBoard(state,hex.serialize().configs[0]).keys.filter(k=>k.enabled),find=point=>keys.find(key=>key.m[0]===point[0]&&key.m[1]===point[1])??keys.find(key=>key.m[1]===point[1]);
  const triad=[E,G,at(1,1,1)].map(find);assert.ok(triad.every(Boolean));
@@ -59,7 +59,7 @@ try{
  assert.equal((host.innerHTML.match(/class="live-note-column"/g)||[]).length,3);assert.equal((host.innerHTML.match(/class="live-ratio-member"/g)||[]).length,3);
  const pair=[C,G].map(find);hex.updateLiveChord({status:'no-match',matches:[]},pair.map(key=>({id:String(key.index),coordinate:key.m,cents:key.c})));
  assert.match(host.innerHTML,/<strong>3\/2<\/strong><small>interval<\/small>/);
- const legacy=createHexboardWorkspace({getStates:()=>[state],getHarmonicMode:()=>false,getHz:()=>330,play:()=>{},refresh:()=>{},notify:()=>{}});legacy.render();
+ const legacy=createHexboardWorkspace({getStates:()=>[state],getHz:()=>330,play:()=>{},refresh:()=>{},notify:()=>{}});legacy.render();
  legacy.updateLiveChord({status:'no-match',matches:[]},triad.map(key=>({id:String(key.index),coordinate:key.m,cents:key.c})));assert.match(host.innerHTML,/No catalogue match/,'without a directory the curated reading is kept');
 }finally{globalThis.document=original;}
 console.log('Played chords: directory names, forms and rotations, doublings, intervals, ET and proved shapes, non-chords with contained chords, and the Play readout passed.');

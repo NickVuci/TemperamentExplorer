@@ -86,7 +86,7 @@ export function renderDirectoryTree(rows,selected,openGroups=new Set(),favourite
 }
 
 /** No board dependency: occurrence and voicing are selected lazily. */
-export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState,getSettings,refresh=()=>{},notify=()=>{},play=()=>{},onCollect=()=>{},onSendToHexBoard=()=>{},onInspect=()=>{},describeFocus=()=>'',workerFactory}={}){
+export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState,getSettings,refresh=()=>{},notify=()=>{},play=()=>{},onCollect=()=>{},onSendToHexBoard=()=>{},onInspect=()=>{},workerFactory}={}){
  // rotation: which member of the focused chord is its root, shared with the diamond and matrix.
  // followPlaying: chords held on the diamond move the focus; reveal: a row to scroll into view once.
  let rotation=0,followPlaying=true,reveal=null,scope='temperament',query='',page=0,selected='',entry=null,result=null,status='idle',error='',progress=null,stamp='',enabled=false,generation=0;

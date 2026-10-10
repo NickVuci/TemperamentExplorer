@@ -45,16 +45,6 @@ export function diamondFocus(cells,focus,{harmonics=[],octave=true,classKeyOf=nu
  return best?{ids:best.ids,placements:[best],partial:true}:none;
 }
 
-/** Plain-language summary of where the diamond shows the focus. */
-export function describeDiamondFocus(result,focus){
- if(!focus)return '';
- if(focus.kind==='tempered')return result.ids.length?`${result.ids.length} diamond cells sound these tempered notes.`:'No diamond cell sounds these tempered notes.';
- if(!result.placements.length)return 'Not shown in the current diamond.';
- const name=placement=>`${placement.axis==='row'?'otonal row over':'utonal column under'} ${placement.harmonic??placement.line}`;
- const lines=[...new Set(result.placements.map(name))];
- return result.partial?`Partly on the ${lines[0]} (${result.placements[0].matched} of ${focus.ratios.length} notes); not on one diamond line.`:`On the ${lines.join(', ')}.`;
-}
-
 /** Scale degrees (mod the scale size) of the focused occurrence, for the interval matrix. */
 export function matrixFocusDegrees(focus,size){
  if(!focus?.degrees?.length||!Number.isInteger(size)||size<1)return null;

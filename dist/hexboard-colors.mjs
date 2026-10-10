@@ -37,3 +37,12 @@ export function hexToHSV(hex){
  let h=0;if(d)h=60*(max===r?((g-b)/d+6)%6:max===g?(b-r)/d+2:(r-g)/d+4);
  return {hueTenthDegrees:Math.round(h*10)%3600,saturation:Math.round(max?d/max*255:0),value:Math.round(max*255)};
 }
+// One highlight rule for every HexBoard picture (Play's board, Compose's miniature and the physical LEDs):
+// a highlight changes no colour and leaves every other key as it was; only the highlighted keys shine a
+// level brighter (on screen a brightness filter, on the board the next LED level). tone is the key's place
+// in a highlighted chord (0 is its root), -1 otherwise.
+export function keyAppearance(k,i,{colors,overlay,scaleOn,chord=[]}){
+ const layoutColor=k.conflict?'#ad6262':keyColor(k,colors),tone=overlay?.keys.indexOf(i)??-1;
+ const scaleTone=!!(scaleOn&&k.enabled&&scaleOn.gens.includes(k.m[1]-scaleOn.shift)),marked=tone>=0||chord.includes(i);
+ return {layoutColor,fill:layoutColor,tone,scaleTone,marked,lit:marked||scaleTone};
+}

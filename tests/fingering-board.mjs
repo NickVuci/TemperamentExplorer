@@ -72,7 +72,7 @@ void frame;
 // The app runs with harmonic discovery on. A chord placed through the finder (a collected chord
 // without harmonic provenance) must still have its fingerings listed and lit.
 {
-  const wsH=createHexboardWorkspace({getStates:()=>[state],play:()=>{},refresh:()=>{},notify:m=>{throw Error(m);},getHz:()=>220,getHarmonicMode:()=>true});
+  const wsH=createHexboardWorkspace({getStates:()=>[state],play:()=>{},refresh:()=>{},notify:m=>{throw Error(m);},getHz:()=>220});
   assert.equal(wsH.fingerings(),null,'nothing placed yet');
   wsH.showChord([[0,0],[-2,4],[0,1]],'major triad',{exact:true});
   const fh=wsH.fingerings();

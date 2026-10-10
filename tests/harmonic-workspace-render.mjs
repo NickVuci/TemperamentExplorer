@@ -33,8 +33,8 @@ const context=vm.createContext({compositionWorkspace:{pause(){},stop(){},refresh
 const app=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8');
 const html=readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');
 assert.doesNotMatch(html,/harmonic-version|harmony-ab-selector|Classic view/,'the classic-view toggle is removed');
-assert.match(app,/const harmonicMode='b'/,'the discovery catalogue is the only saved mode');
-assert.doesNotMatch(app,/temperament-harmony-ab|setHarmonicMode/,'legacy browser preferences cannot restore classic mode');
+assert.doesNotMatch(app,/harmonicMode|temperament-harmony-ab|setHarmonicMode/,'the harmony directory is the only mode; neither sessions nor browser preferences can select another');
+assert.doesNotMatch(readFileSync(new URL('../dist/hexboard-ui.mjs',import.meta.url),'utf8'),/chord-catalog-ui|getHarmonicMode|layout alternatives/,'Play has no classic catalogue or layout-alternatives search');
 for(const name of ['coverageSettings','settings','parkJIControls','placeJIControls','refreshHarmony','unifiedWorkspace','renderWorkspace']){
  const source=app.split('\n').find(line=>line.startsWith(`function ${name}(`));assert.ok(source,name);vm.runInContext(source,context);
 }

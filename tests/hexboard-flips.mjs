@@ -56,5 +56,4 @@ assert.deepEqual(ui.serialize().configs[0].periodPlacement,before.configs[0].per
 const legacy=ui.serialize();for(const c of legacy.configs){delete c.flipHorizontal;delete c.flipVertical;c.mirror=true;}
 const old=buildBoard(s,legacy.configs[0]);ui.restore(legacy);
 assert.equal(JSON.stringify(buildBoard(s,ui.serialize().configs[0]).keys),JSON.stringify(old.keys));
-ui.destroy();
 console.log(`${checked} reflected button assignments verified across rotations and orientations; wrapped offsets, independent toggles, audio pitches, export and legacy sessions passed.`);

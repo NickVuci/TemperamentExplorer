@@ -29,7 +29,7 @@ assert.equal(recognizer.recognize(s,base.map(coordinate=>({coordinate})),{...cfg
 const originalDocument=globalThis.document,host={innerHTML:''};
 try{
  globalThis.document={querySelector:selector=>selector==='[data-live-chord-readout]'?host:null};
- const hex=createHexboardWorkspace({getStates:()=>[s],getHarmonicMode:()=>true,getHz:()=>330,play:()=>{},refresh:()=>{},notify:()=>{}});
+ const hex=createHexboardWorkspace({getStates:()=>[s],getHz:()=>330,play:()=>{},refresh:()=>{},notify:()=>{}});
  const markup=hex.render();assert.ok(markup.indexOf('hex-chord-panel')<markup.indexOf('data-live-chord-readout'));
  assert.doesNotMatch(markup,/live-chord-kicker/);
  const keys=buildBoard(s,hex.serialize().configs[0]).keys.filter(k=>k.enabled).slice(0,3);
@@ -48,7 +48,6 @@ try{
   assert.ok(host.innerHTML.includes(mod(pitch,s.p).toFixed(2)+' ¢'));assert.ok(host.innerHTML.includes((330*2**(pitch/1200)).toFixed(2)+' Hz'));
  }
  hex.updateLiveChord();assert.match(host.innerHTML,/Play keys/);assert.doesNotMatch(host.innerHTML,/live-note-column/);
- hex.destroy();
 }finally{if(originalDocument===undefined)delete globalThis.document;else globalThis.document=originalDocument;}
 const extra=recognizer.recognize(s,[...raised,[0,5]].map(coordinate=>({coordinate})),cfg);assert.ok(!extra.familyMatches.some(m=>m.label==='4:5:6'),'extra held note cannot produce a triad-only family match');
 assert.equal(recognizer.recognize(s,[[0,0],[3,0]].map(coordinate=>({coordinate})),cfg).status,'match','unseeded octave register still has two voices');

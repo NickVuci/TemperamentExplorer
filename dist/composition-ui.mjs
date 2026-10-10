@@ -10,12 +10,13 @@ import {createTransport} from './composition-transport.mjs';
 import {boardSnapshot,buildCueTimeline,activeCues,toPracticeTargets,MATCH_MODES} from './composition-cues.mjs';
 import {renderComposition,renderSelectionPanel,formatPosition,chordRoot,NOTE_LENGTHS,REGISTER_CHOICES,STEP_TICKS} from './composition-view.mjs';
 import {compositionBoard,compactFingerings,compositionDeviceSnapshot} from './composition-board.mjs';
+import {createHexboardPlayer} from './hexboard-player.mjs';
 
 const FOCUS_ATTRS=['data-comp','data-comp-field','data-event','data-tick','data-a','data-b'];
 const slug=name=>String(name).trim().replace(/[^\w.-]+/g,'-').replace(/^-+|-+$/g,'')||'composition';
 
 export function createCompositionWorkspace({
-  document:doc,audio,getState,getLayout,getTonic,getMaterial,loadState,getHost,notify=()=>{},download=()=>{},
+  document:doc,window:win=globalThis.window,audio,getState,getLayout,getTonic,getMaterial,loadState,getHost,notify=()=>{},download=()=>{},
   // The chord focused in Discover, as a collected-chord item, and a hook told which chord is selected here.
   getFocusedChord=()=>null,onChordFocus=()=>{},
   // The chord directory's chords built on a scale degree of the app's Play scale (bass entries); null while listing.
@@ -278,7 +279,6 @@ export function createCompositionWorkspace({
         case 'root-cancel':ui.rootPick=null;refresh();return true;
         case 'board-show':if(BOARD_SHOW.includes(el.dataset.value))ui.boardShow=el.dataset.value;refresh();return true;
         case 'fingering':ui.fingering=Math.max(0,Math.min(Number(el.dataset.index)||0,fingerings().length-1));refresh();return true;
-        case 'board-hear':{const k=boardModel().board?.keys[Number(el.dataset.compKey)];if(k?.enabled)audio.previewChord([k.c]);return true;}
         case 'seek':void transport.seek(Number(el.dataset.tick)).then(refresh);return true;
         case 'practice-start':case 'practice-next':case 'practice-prev':{
           transport.pause();ui.mode='practice';
@@ -316,16 +316,16 @@ export function createCompositionWorkspace({
   }
 
   // A drag commits one undoable edit. Pointer cancellation leaves the project untouched.
-  let drag=null;const held=new Map();
+  let drag=null;
+  // The board's keys play through the shared HexBoard player, as on Play: hold, glide and Shift sustain.
+  // `held` holds the sounding keys by key id, for the screen and the physical board.
+  const held=new Map(),silent=()=>{};
+  const keyPlayer=createHexboardPlayer({document:doc,window:win,selector:'[data-comp-key]',keyField:'compKey',surface:'.composition-board',keyboard:true,
+    press:node=>{const k=project()?boardModel().board?.keys[Number(node.dataset.compKey)]:null;return k&&!k.command?k:null;},
+    startVoice:cents=>audio.startVoice?.(cents)??silent,
+    onActiveNotesChange:notes=>{held.clear();for(const note of notes)held.set(note.id,{index:Number(note.id)});paint();}});
   function pointerDown(event){
     if(event.button!==0)return;
-    const key=event.target.closest?.('[data-comp-key]');
-    if(key&&project()){
-      const k=boardModel().board?.keys[Number(key.dataset.compKey)];if(!k?.enabled)return;
-      event.preventDefault();held.get(event.pointerId)?.release();
-      if(audio.startVoice)held.set(event.pointerId,{release:audio.startVoice(k.c),index:k.index});
-      key.classList.add('is-playing');return;
-    }
     // Chord blocks move along the chord lane only; melody notes also change degree by row.
     const noteNode=event.target.closest?.('.roll-note'),chordNode=noteNode?null:event.target.closest?.('.chord-block');
     const node=noteNode??chordNode,kind=chordNode?'chords':'melody';
@@ -353,7 +353,6 @@ export function createCompositionWorkspace({
     }
   }
   function pointerUp(event){
-    const release=held.get(event.pointerId);if(release){release.release();held.delete(event.pointerId);paint();suppressClick=true;setTimeout(()=>{suppressClick=false;},0);}
     if(!drag||drag.id!==event.pointerId)return;
     const d=drag;drag=null;
     if(event.type==='pointercancel'){refresh();return;}
@@ -368,7 +367,7 @@ export function createCompositionWorkspace({
     ui.selectedNote=d.event.id;
     edit(d.resize?'Resize melody note':'Move melody note',pr=>updateEvent(pr,clipOf(pr,'melody').id,d.event.id,d.resize?{durationTick:d.duration}:{startTick:d.start,tones:d.event.tones.map((t,i)=>i===0?{...t,coordinate:d.coordinate}:t)}));
   }
-  const releaseHeld=()=>{for(const entry of held.values())entry.release();held.clear();};
+  const releaseHeld=()=>keyPlayer.reset();
   function surfaceClick(event){
     const lane=event.target.closest?.('.roll-root-surface');
     if(lane&&project()&&ui.mode!=='practice'){
@@ -458,9 +457,11 @@ export function createCompositionWorkspace({
     get open(){return history!==null;},
     pause(){if(transport.state==='playing'){transport.pause();refresh();}},
     stop(){releaseHeld();if(transport.state!=='stopped'){transport.stop();refresh();}else paint();},
-    dispose(){clearTimeout(rootRetry);rootRetry=null;transport.stop();releaseHeld();doc.removeEventListener?.('click',surfaceClick);doc.removeEventListener?.('dblclick',doubleClick);doc.removeEventListener?.('pointerdown',pointerDown);doc.removeEventListener?.('pointermove',pointerMove);doc.removeEventListener?.('pointerup',pointerUp);doc.removeEventListener?.('pointercancel',pointerUp);},
+    dispose(){clearTimeout(rootRetry);rootRetry=null;transport.stop();keyPlayer.destroy();doc.removeEventListener?.('click',surfaceClick);doc.removeEventListener?.('dblclick',doubleClick);doc.removeEventListener?.('pointerdown',pointerDown);doc.removeEventListener?.('pointermove',pointerMove);doc.removeEventListener?.('pointerup',pointerUp);doc.removeEventListener?.('pointercancel',pointerUp);},
     // Test and integration hooks.
     getProject:project,transport,timeline,paint,deviceSnapshot,
+    // A physical HexBoard key plays as a press on its on-screen key; false when the board is not shown.
+    pressKey:(index,t)=>keyPlayer.pressKey(String(index),t),releaseKey:(index,t)=>keyPlayer.releaseKey(String(index),t),
     voiceSettings:()=>undefined,
   };
 }

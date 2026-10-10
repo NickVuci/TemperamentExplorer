@@ -79,5 +79,4 @@ assert.equal(ui.press({dataset:{hexKey:'4'},closest:()=>null}).register,old.keys
 const manual=ui.serialize();ui.restore(manual);assert.deepEqual(ui.serialize(),manual);
 ui.change({dataset:{hexField:'registerAlignment'},value:'scale'});
 assert.equal(ui.press({dataset:{hexKey:'4'},closest:()=>null}).register,0);
-ui.destroy();
 console.log(`Scale-order alignment: ${edges} adjacent degree transitions, ${wraps} period boundaries; EDO/non-octave exports, legacy sessions, playback and manual overrides passed.`);

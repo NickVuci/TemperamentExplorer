@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {makeState} from '../dist/engine.mjs';
 import {diamondLayout} from '../dist/diamond-layout.mjs';
 import {diamondApproximation} from '../dist/tonality-diamond.mjs';
-import {diamondFocus,describeDiamondFocus,matrixFocusDegrees,relativeRatios} from '../dist/harmonic-focus.mjs';
+import {diamondFocus,matrixFocusDegrees,relativeRatios} from '../dist/harmonic-focus.mjs';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {matrixScale} from '../dist/matrix.mjs';
@@ -15,10 +15,9 @@ const geometry=diamondLayout({limit:15,primeLimit:null}),place=(form,ratios)=>di
 const major=place('otonal',['1/1','5/4','3/2']);
 assert.deepEqual(major.placements.map(p=>[p.axis,p.harmonic]),[['row',1],['row',3]]);assert.equal(major.ids.length,6);
 assert.ok(major.placements.every(p=>geometry.cells.filter(c=>p.ids.includes(c.id)).every(c=>c.j===p.line)),'an otonal placement shares one denominator');
-assert.equal(describeDiamondFocus(major,{kind:'ji'}),'On the otonal row over 1, otonal row over 3.');
 const minor=place('utonal',['1/1','6/5','3/2']);assert.ok(minor.placements.length&&minor.placements.every(p=>p.axis==='column'));
 const dyad=place('ambitonal',['1/1','7/4']);assert.deepEqual(new Set(dyad.placements.map(p=>p.axis)),new Set(['row','column']));
-const partial=place('other',['1/1','5/4','3/2','11/10']);assert.equal(partial.partial,true);assert.match(describeDiamondFocus(partial,{kind:'ji',ratios:['1/1','5/4','3/2','11/10']}),/Partly on/);
+const partial=place('other',['1/1','5/4','3/2','11/10']);assert.equal(partial.partial,true);
 assert.deepEqual(place('otonal',['1/1']).ids,[],'a single note places nothing');
 
 // A tempered chord lights every cell whose approximation is one of its notes relative to 1/1.
@@ -30,12 +29,12 @@ assert.ok(tempered.ids.length>=2&&tempered.ids.every(id=>[keyOf([0,0]),keyOf(fif
 assert.deepEqual([...matrixFocusDegrees({degrees:[0,9,-3]},7)],[0,2,4]);assert.equal(matrixFocusDegrees(null,7),null);
 
 // The workspace exposes its selection as the focus, with the chosen rotation and an occurrence.
-const ui=createHarmonicCatalogueWorkspace({getState:()=>state,getSettings:()=>({limit:15,primeLimit:state.basis,tol:20}),describeFocus:focus=>focus?`focus ${focus.form}`:''});
+const ui=createHarmonicCatalogueWorkspace({getState:()=>state,getSettings:()=>({limit:15,primeLimit:state.basis,tol:20})});
 ui.setEnabled(true);while(ui.model().status!=='complete')await new Promise(resolve=>setTimeout(resolve,5));
 await ui.openInput('4:5:6');let focus=ui.focus();
 assert.equal(focus.kind,'ji');assert.equal(focus.form,'otonal');assert.deepEqual(focus.ratios,['1/1','5/4','3/2']);assert.ok(focus.degrees?.length===3);
 let html=ui.render();
-assert.match(html,/class="form-badge otonal">Otonal/);assert.match(html,/Otonal spelling <b>4:5:6<\/b>/);assert.match(html,/Also written as/);assert.match(html,/focus otonal/);
+assert.match(html,/class="form-badge otonal">Otonal/);assert.match(html,/class="harmony-forms">Otonal <b>4:5:6<\/b> · Utonal <b>1\/15:12:10<\/b>/,'the same chord spelled utonally');assert.match(html,/Also written as/);
 assert.equal((html.match(/data-harmony-action="rotation"/g)||[]).length,3);
 let heard=null;const played=createHarmonicCatalogueWorkspace({getState:()=>state,getSettings:()=>({limit:15,primeLimit:state.basis,tol:20}),play:notes=>heard=notes});played.setEnabled(true);
 while(played.model().status!=='complete')await new Promise(resolve=>setTimeout(resolve,5));await played.openInput('4:5:6');

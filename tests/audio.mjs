@@ -101,7 +101,7 @@ for(const state of [makeState('meantone'),fromCommas('128/125','2.3.5'),fromComm
  keys.forEach((key,i)=>assert.ok(Math.abs(audio.oscillators[i].frequency.value-220*2**((key.m[0]*state.p+key.m[1]*state.g)/1200))<1e-7));
  fire('keydown',{key:'Shift'});fire('pointerup',{shiftKey:true});assert.equal(audio.oscillators[1].stops.length,0);assert.equal(painted.size,1);
  fire('keyup',{key:'Shift'});assert.equal(audio.oscillators[1].stops.length,1);assert.equal(painted.size,0);
- assert.deepEqual(audio.errors,[]);player.reset();workspace.destroy();
+ assert.deepEqual(audio.errors,[]);player.reset();
 }
 console.log('Mouse-to-layout-to-audio integration passed for ordinary, divided-octave, and tritave periods, with wrapping on/off, dragging and Shift sustain.');
 

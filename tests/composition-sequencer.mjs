@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createCompositionWorkspace} from '../dist/composition-ui.mjs';
-import {compositionBoard,compactFingerings,compositionDeviceSnapshot} from '../dist/composition-board.mjs';
+import {compositionBoard,compactFingerings,compositionDeviceSnapshot,boardMarkup} from '../dist/composition-board.mjs';
+import {mosLayers,textColor,keyAppearance} from '../dist/hexboard-colors.mjs';
+import {boardMatches} from '../dist/hexboard.mjs';
 import {resolveTone} from '../dist/composition-context.mjs';
 import {PPQ,createProject,addEvent} from '../dist/composition-project.mjs';
 import {captureContext} from '../dist/composition-context.mjs';
@@ -24,6 +26,26 @@ ws.restore(fixture);ws.refresh();
 assert.match(host.innerHTML,/Compose and practise/);
 assert.match(host.innerHTML,/data-comp-roll/);
 assert.match(host.innerHTML,/composition-lower/);
+// The Compose board is a miniature of Play's: the layout's own colours, label ink and tonic marker.
+{
+  const pr=ws.getProject(),{board:b}=compositionBoard(pr),colors=mosLayers(pr.context.state,pr.layout,b);
+  const svg=host.innerHTML.match(/<svg class="composition-board hex-board[^"]*"[^]*?<\/svg>/)[0];
+  const keyMarkup=[...svg.matchAll(/<g class="comp-board-key([^"]*)"[^>]*data-comp-key="(\d+)"[^>]*>[^]*?<polygon[^>]*fill="(#[0-9a-f]{6})"[^>]*\/><text class="hex-key-label"[^>]*fill="(#[0-9a-f]{6})"/gi)];
+  assert.equal(keyMarkup.length,b.keys.filter(k=>!k.command).length,'every note button is drawn');
+  for(const [,,index,fill,ink] of keyMarkup){const look=keyAppearance(b.keys[index],Number(index),{colors});assert.equal(fill,look.fill,`button ${index} has its layout colour`);assert.equal(ink,textColor(fill),'with Play’s label contrast');}
+  // A layout with two MOS layers (5 inside 7) shows both layer colours, exactly as Play computes them.
+  const layered={...pr,layout:{...pr.layout,base:5}},lb=compositionBoard(layered).board,lc=mosLayers(layered.context.state,layered.layout,lb);
+  const fills=[...boardMarkup(layered,lb).matchAll(/data-comp-key="(\d+)"[^>]*>[^]*?<polygon[^>]*fill="(#[0-9a-f]{6})"/gi)];
+  assert.ok(fills.every(([,index,fill])=>fill===keyAppearance(lb.keys[index],Number(index),{colors:lc}).fill));
+  assert.ok(new Set(fills.filter(([,index])=>lb.keys[index].enabled).map(m=>m[2])).size>=2,'the layout colours differ by MOS layer');
+  assert.equal((svg.match(/<circle [^>]*fill="#dc8847"/g)||[]).length,1,'the tonic button is marked as on Play');
+  // Outlines follow Play's rule from the saved root: blue root, teal where the interval maps to a JI target.
+  const strokes=new Map([...svg.matchAll(/data-comp-key="(\d+)"[^>]*>[^]*?<polygon[^>]*stroke="(#[0-9a-f]{6})"/gi)].map(m=>[Number(m[1]),m[2]]));
+  const root=Number.isInteger(pr.layout.root)?pr.layout.root:pr.layout.center??65,matches=boardMatches(pr.context.state,b,root,pr.layout.tolerance??10,pr.layout.limit??15,pr.layout.primeLimit??null);
+  assert.equal(strokes.get(root),'#55b5ff','the root button is outlined blue');
+  for(const [i,stroke] of strokes)if(i!==root)assert.equal(stroke,matches[i].mapped.length&&b.keys[i].enabled?'#65d6b8':matches[i].other.length&&b.keys[i].enabled?'#e9bd5d':'#4b5a71',`button ${i} outline`);
+  assert.ok([...strokes.values()].includes('#65d6b8'),'some intervals map to JI targets');
+}
 // The roll's range defaults to the pitches the composition's HexBoard layout can play.
 {
   const rowsShown=()=>[...host.innerHTML.matchAll(/<div class="roll-row-grid" data-a="(-?\d+)" data-b="(-?\d+)"/g)].map(m=>`${m[1]},${m[2]}`);
@@ -150,6 +172,10 @@ assert.equal(JSON.stringify(ws.getProject()),unchanged);
   press('mode-compose');ws.transport.stop();press('chord-select',{event:pr.clips[0].events[0].id});
   assert.deepEqual(lit(),[],'melody only: no chord fingering');
   press('board-show',{value:'chords'});const fingering=lit();assert.ok(fingering.length>=2,'chords: the fingering lights');
+  {const svg=host.innerHTML.match(/<svg class="composition-board hex-board([^"]*)"/)[1];assert.match(svg,/has-chord/,'the rest of the board dims, as on Play');
+   const marked=[...host.innerHTML.matchAll(/<g class="comp-board-key[^"]*is-marked[^"]*"[^>]*data-comp-key="(\d+)"/g)].map(m=>Number(m[1])).sort((a,b)=>a-b);
+   assert.deepEqual(marked,fingering,'the shown fingering is highlighted on screen exactly as on the HexBoard');
+   assert.equal((host.innerHTML.match(/class="hex-chord-tone-label"/g)||[]).length,fingering.length,'with chord-tone numbers, as on Play');}
   press('board-show',{value:'both'});assert.deepEqual(lit(),fingering);
 }
 const snapshot=compositionDeviceSnapshot(p,board,[fingers[0]?.keys[0]??65]);assert.equal(snapshot.keys.length,board.keys.length);

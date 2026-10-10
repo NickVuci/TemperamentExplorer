@@ -22,13 +22,6 @@ export function diamondLayout(cfg,layout={}){
  }
  return {harmonics,cells,count,w,h,pad,width:count*w*2+pad*2,height:count*h*2+pad*2,custom:!!layout.harmonics,fold};
 }
-export function selectedDiamondCoordinates(cells,ids){
- const chosen=new Set(ids),selected=cells.filter(t=>chosen.has(t.id));
- if(!selected.length)throw Error('Select diamond cells first.');
- if(selected.some(t=>!t.status?.approximation))throw Error('Some selected cells have no available approximation. Change the source or target display filter.');
- const unique=new Map();for(const t of selected){const m=t.status.approximation.m;unique.set(m.join(','),[...m]);}
- return [...unique.values()];
-}
 function reciprocalLabel(label){return `1/${label.split(':').reverse().join(':')}`;}
 export function selectedDiamondChord(cells,ids){
  const chosen=new Set(ids),selected=cells.filter(t=>chosen.has(t.id)),tones=new Map();

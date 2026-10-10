@@ -1,8 +1,8 @@
-import {diamondLayout,parseDiamondHarmonics,selectedDiamondCoordinates,selectedDiamondChord,selectedDiamondChordTuning} from './diamond-layout.mjs';
+import {diamondLayout,parseDiamondHarmonics,selectedDiamondChord,selectedDiamondChordTuning} from './diamond-layout.mjs';
 import {diamondApproximation,renderDiamond} from './tonality-diamond.mjs';
 import {esc,option} from './ui.mjs';
 import {diamondHarmonicSelection} from './diamond-harmonic-selection.mjs';
-export function createDiamondWorkspace({document:doc,getState,refresh,notify,play,onInspect,onCollect,onPlace,onChord,onChordChange=()=>{},onTuningChange=()=>{},getHarmonicMode=()=>false}){
+export function createDiamondWorkspace({document:doc,getState,refresh,notify,play,onInspect,onCollect,onPlace,onChord,onChordChange=()=>{},onTuningChange=()=>{}}){
  // tuning: 'ji' sounds each cell's exact ratio; 'tempered' sounds its approximation in the temperament.
  let layout={harmonics:'',fold:false},interaction='play',tuning='tempered',selection=new Set(),playing=new Set(),geometry=null,signature='',layoutOptionsOpen=false,auditioning=false,auditionTimer=null;
  function clearAudition(){if(auditionTimer!==null)clearTimeout(auditionTimer);auditionTimer=null;auditioning=false;}
@@ -53,10 +53,10 @@ export function createDiamondWorkspace({document:doc,getState,refresh,notify,pla
   onTuningChange(id=>{const t=geometry?.cells.find(cell=>cell.id===id);return t?soundingCents(t):null;});}
  function item(){
   const targets=geometry.cells.filter(t=>selection.has(t.id)),alternative=targets.some(t=>!t.status?.approximation?.mapped);
-  const coords=getHarmonicMode()?targets.map(t=>{if(!t.status?.approximation?.m)throw Error('Some selected cells have no available approximation.');return [...t.status.approximation.m];}):selectedDiamondCoordinates(geometry?.cells??[],selection);
+  const coords=targets.map(t=>{if(!t.status?.approximation?.m)throw Error('Some selected cells have no available approximation.');return [...t.status.approximation.m];});
   if(coords.length<2)throw Error('Select at least two sounding voices.');if(coords.length>256)throw Error('Select no more than 256 sounding voices for the collection.');
   const label=`Diamond${alternative?' approximations':''} · ${targets.map(t=>t.label).join(' : ')}`.slice(0,100);
-  const harmonic=getHarmonicMode()&&coords.length<=8?diamondHarmonicSelection(getState(),targets.map(t=>({cellId:t.id,ratio:t.label,coordinate:[...t.status.approximation.m],mapped:!!t.status.approximation.mapped})),{label}):null;
+  const harmonic=coords.length<=8?diamondHarmonicSelection(getState(),targets.map(t=>({cellId:t.id,ratio:t.label,coordinate:[...t.status.approximation.m],mapped:!!t.status.approximation.mapped})),{label}):null;
   return {kind:coords.length>8?'scale':'chord',coords,label,exact:true,...(harmonic?{harmonicSelection:harmonic}:{})};
  }
  function change(el){

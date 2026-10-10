@@ -1,7 +1,7 @@
 import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {diamondLayout,parseDiamondHarmonics,selectedDiamondCoordinates,selectedDiamondChord,selectedDiamondChordTuning,fitDiamondChord} from '../dist/diamond-layout.mjs';
+import {diamondLayout,parseDiamondHarmonics,selectedDiamondChord,selectedDiamondChordTuning,fitDiamondChord} from '../dist/diamond-layout.mjs';
 import {createDiamondWorkspace} from '../dist/diamond-workspace.mjs';
 import {diamondApproximation,maximumDiamondError} from '../dist/tonality-diamond.mjs';
 import {diamondTargets} from '../dist/ji-limit-engine.mjs';
@@ -31,7 +31,7 @@ assert.deepEqual(selectedDiamondChord(layout.cells,['0:0','0:1','0:2']),{kind:'c
 assert.equal(selectedDiamondChord(layout.cells,['0:0','1:1','2:2']),null,'repeated unison cells are not a multi-tone chord');
 const largeLine=diamondLayout(cfg,{harmonics:'1:2:3:4:5:6:7:8:9',fold:false});
 assert.deepEqual(selectedDiamondChord(largeLine.cells,largeLine.harmonics.map((_,i)=>`${i}:0`)),{kind:'collection',form:'otonal',cardinality:9});
-const coords=selectedDiamondCoordinates(cells,['0:0','1:0','2:0']);assert.deepEqual(coords,[[0,0],mapRatio(5,4,s),mapRatio(3,2,s)]);
+const coords=['0:0','1:0','2:0'].map(id=>[...cells.find(cell=>cell.id===id).status.approximation.m]);assert.deepEqual(coords,[[0,0],mapRatio(5,4,s),mapRatio(3,2,s)]);
 const rowIds=['0:0','1:0','2:0'];
 const tuning=selectedDiamondChordTuning(cells,rowIds);
 assert.deepEqual(tuning.idealCents,[0,1200*Math.log2(5/4),1200*Math.log2(3/2)]);
@@ -55,8 +55,6 @@ for(const [state,harmonics]of [[s,'4:5:6'],[fromCommas('128/125','2.3.5'),'4:5:6
 }
 const largeMembers=largeLine.cells.map(cell=>({...cell,status:{approximation:{c:cell.c+(cell.i%3-1)*4,mapped:false}}})),largeIds=largeLine.harmonics.map((_,index)=>`${index}:0`);
 assert.ok(Math.abs(selectedDiamondChordTuning(largeMembers,largeIds).totalErrorCents-pairErrorOracle(largeMembers.filter(cell=>largeIds.includes(cell.id))))<1e-9,'larger collections include every pair');
-assert.deepEqual(selectedDiamondCoordinates(cells,['0:0','1:1']),[[0,0]]);
-assert.throws(()=>selectedDiamondCoordinates([{id:'0:0',status:{approximation:null}}],['0:0']),/no available approximation/);
 for(const state of [s,{...fromCommas('128/125','2.3.5','Computed WE'),n:2,mode:0},{...fromCommas('245/243','3.5.7','Computed WE'),n:2,mode:0}]){
  const pairs=state.basis[0]===3?[[1,1],[5,3],[7,3]]:[[1,1],[3,2],[9,8]],ms=pairs.map(([n,d])=>mapRatio(n,d,state));
  const fitted=fitDiamondChord(state,ms);assert.equal(fitted.p,state.p);assert.equal(fitted.g,state.g);assert.ok(ms.every(m=>scale(fitted).notes.some(n=>n.k===m[1])));

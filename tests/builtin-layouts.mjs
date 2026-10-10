@@ -43,6 +43,5 @@ for(const key of ['meantone','hanson']){
  for(const field of ['base','style','rotation','ap','ag','bp','bg'])assert.equal(cfg[field],builtin.state.config[field],`${key}: ${field}`);
  const html=ui.render();assert.match(html,/label="Built-in layouts"/);assert.ok(html.includes(`${builtin.name} · Default`),'the built-in layout is marked as the default');
  assert.doesNotMatch(html,/data-hex-action="layout-(?:delete|default|save-new)"/,'a built-in layout is not updated, deleted or made the default');
- ui.destroy();
 }
 console.log('Built-in layouts: valid records, playable boards, recommended/Bosanquet/Wicki-Hayden per temperament, conventional orientation, applied without a saved default, read-only passed.');

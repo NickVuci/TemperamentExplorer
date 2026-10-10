@@ -869,3 +869,39 @@ JI meaning of each note.
 board-local search) is replaced. The board-local search remains as "More on this layout", so no shape
 with the key lowest is lost. Do not reintroduce "contains the key" as the bass list, and do not define
 root position by harmonic-series roots without revisiting this entry.
+
+## D-039 — The harmony directory is the only chord catalogue; Play's classic catalogue is removed
+
+**Decision.** The A/B harmony mode flag is removed with every A branch. Play's classic chord catalogue
+(`chord-catalog-ui.mjs` with `chord-v2-ui`, `chord-discovery-view-v2`, `chord-realization-view-v2`,
+`chord-relationships-v2`, `chord-relationships-view-v2` and `chord-session-v2-adapter`) is deleted.
+Play's chord panel shows the selection sent from Discover. The diamond always collects the
+approximation of every selected cell and attaches a harmonic selection. Find layout alternatives is
+removed; `layoutCandidates` stays as the internal search of Fill note buttons. Sessions no longer
+write the A/B value or the Play catalogue state, and both are ignored when loading.
+
+**Rationale.** The flag was fixed at B, so the A paths were unreachable but still created, restored
+and tested; most HexBoard suites exercised A by default. The ranked layout list contradicted D-036.
+This leaves one owner per chord concept before the Play and Compose boards are unified
+(`docs/HEXBOARD_WORKSPACE_PLAN.md`).
+
+**Consequences.** A chord pinned in an old session's Play catalogue is not restored. Do not
+reintroduce a second Play catalogue or a mode switch; new Play chord features extend the harmony
+directory and `harmonic-play-ui.mjs`.
+
+## D-040 — One HexBoard picture, renderer and player for every board
+
+**Decision.** `hexboard-view.mjs` owns how a HexBoard looks: `boardPicture` (per-key colour, outline,
+label, chord tone, highlight), `boardSvg` (one renderer for Play's board and Compose's miniature) and
+`deviceFrame` (the physical LEDs). Both boards' keys play through `hexboard-player.mjs`; Compose's own
+one-pointer key handler and its click-to-hear action are removed, and physical keys press the Compose
+board while a composition is open. `tests/hexboard-parity.mjs` pins Play's board key by key against a
+fixture recorded from the renderer this replaced.
+
+**Rationale.** Play and Compose drew the board in two places that had begun to drift (labels,
+outlines, focus, input). Moving the HexBoard workspace into Compose (`docs/HEXBOARD_WORKSPACE_PLAN.md`)
+needs one board, so this lands first with no visible change to Play.
+
+**Consequences.** Compose keys now hold, glide and sustain with Shift as on Play. Do not add board
+drawing or key input elsewhere; extend the picture or the player. Rerecord the parity fixture
+(`node tests/hexboard-parity.mjs --record`) only for an intended change to Play's board.

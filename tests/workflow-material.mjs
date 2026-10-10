@@ -43,7 +43,7 @@ hex.clearHighlight();assert.ok(!hex.render().includes('class="scale-highlight"')
 // Exercise the real app click handler against the current HexBoard API. A stale
 // call to the removed comparison-panel open() method used to break this handoff.
 let useScaleHandler,renderedPlay=false,scrolled=false;
-const handoff=vm.createContext({compositionWorkspace:{click:()=>false,change:()=>false,pause(){},stop(){},refresh(){}},harmonicMode:'a',manualChordInspector:false,states,layoutState:{state:boardStates()[0]},view:'scales',
+const handoff=vm.createContext({compositionWorkspace:{click:()=>false,change:()=>false,pause(){},stop(){},refresh(){}},harmonicWorkspace:{click:()=>false},manualChordInspector:false,states,layoutState:{state:boardStates()[0]},view:'scales',
  hexWorkspace:hex,getLayoutStates:boardStates,
  materialWorkspace:{click:()=>false},presetWorkspace:{click:()=>false},
  renderWorkspace:()=>{renderedPlay=true;},$:()=>({scrollIntoView:()=>{scrolled=true;}}),

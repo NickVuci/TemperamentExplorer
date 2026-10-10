@@ -100,7 +100,7 @@ for(const [name,s,config] of cases) {
   reverse();assert.deepEqual(buildBoard(s,workspace.serialize().configs[0]).keys,before.keys);
   workspace.click({closest:()=>({dataset:{hexAction:'period-auto'}})});
   assert.equal(workspace.serialize().configs[0].periodPlacement,null);
-  assert.deepEqual(s,stateBefore);workspace.destroy();
+  assert.deepEqual(s,stateBefore);
   console.log(name+': reverse direction, audio pitch, double reverse, save/restore and Auto passed.');
 }
 

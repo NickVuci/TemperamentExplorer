@@ -184,43 +184,6 @@ input[type=range] {
   font-size: 12px;
   color: var(--muted);
 }
-.sequence {
-  font: 12px var(--font-mono);
-  letter-spacing: 2px;
-  overflow-wrap: anywhere;
-  line-height: 1.7;
-  color: var(--accent);
-  min-height: 22px;
-}
-.strip {
-  display: flex;
-  gap: 3px;
-  margin: 14px 0;
-  overflow: auto;
-  padding-bottom: 6px;
-}
-.key {
-  flex: 1;
-  min-width: 24px;
-  height: 65px;
-  padding: 0 2px;
-  background: #273142;
-  border-color: #40516a;
-  color: var(--accent);
-  font: 12px var(--font-mono);
-  display: flex;
-  align-items: end;
-  justify-content: center;
-  padding-bottom: 9px;
-}
-.key.root {
-  background: var(--accent);
-  color: #11151c;
-}
-.key:hover,
-.key.playing {
-  background: #4c5c74;
-}
 .panelactions {
   display: flex;
   gap: 8px;
@@ -1349,16 +1312,6 @@ footer {
 }
 .hex-inspector h3 {
   font-size: 21px;
-}
-.hex-suggestions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 10px;
-  margin-top: 15px;
-}
-.hex-suggestions button {
-  text-align: left;
-  line-height: 1.6;
 }
 .hex-workspace .panelactions {
   display: flex;
@@ -2788,87 +2741,17 @@ footer {
   stroke: #efb1b1;
 }
 
-/* Chord catalogue: scale identity first, then roots, voicings and keys. */
+/* Play chord panels: the selected harmony and manual chord search. */
 .chord-source { color: var(--b); }
 .catalogue-panel { min-width: 0; }
 .catalogue-panel h3 { margin: 0 0 8px; }
 .catalogue-panel label { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 14px; }
 .catalogue-panel select, .catalogue-panel input:not([type=checkbox]) { width: 100%; min-width: 0; padding: 9px 10px; }
 .catalogue-panel button { font-size: 14px; padding: 8px 11px; }
-.catalogue-controls, .catalogue-voice-controls, .catalogue-advanced-controls { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 10px; }
-.catalogue-voice-controls { grid-template-columns: minmax(0, 1fr); margin-top: 12px; }
-.catalogue-advanced { margin: 12px 0; padding: 10px; border: 1px solid var(--line); border-radius: 8px; }
-.catalogue-advanced-controls { margin-top: 12px; }
-.catalogue-panel .catalogue-check { flex-direction: row; align-items: center; }
-.catalogue-check input { flex: 0 0 auto; }
-.catalogue-custom { grid-column: 1 / -1; }
-.catalogue-target, .catalogue-help, .catalogue-meta, .catalogue-status { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 8px 0 12px; }
-.catalogue-error { color: #f0aaaa; }
-.catalogue-list { display: grid; gap: 6px; max-height: 330px; overflow-y: auto; scrollbar-gutter: stable; padding: 2px; }
-.catalogue-group { display: flex; gap: 10px; justify-content: space-between; align-items: center; text-align: left; width: 100%; min-width: 0; }
-.catalogue-group > span:first-child { min-width: 0; }
-.catalogue-group > span:last-child { text-align: right; flex: 0 0 auto; font-family: var(--font-mono); font-size: 12px; }
-.catalogue-group b { font-family: var(--font-mono); overflow-wrap: anywhere; }
 .catalogue-panel small { display: block; color: var(--muted); font-size: 12px; line-height: 1.5; font-family: var(--font-ui); font-weight: normal; }
-.catalogue-group.selected, .catalogue-root.selected { border-color: var(--b); background: #294660; box-shadow: inset 0 -2px var(--b); }
-.catalogue-pages, .catalogue-fingerings, .catalogue-selection-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
-.catalogue-pages { font-size: 12px; color: var(--muted); }
-.catalogue-selection { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 4px; }
-.catalogue-selection h4 { margin: 0; color: var(--b); font-family: var(--font-mono); overflow-wrap: anywhere; }
-.catalogue-roots { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 6px; max-height: 180px; overflow-y: auto; padding: 2px; }
-.catalogue-root { text-align: left; }
-.catalogue-fingerings { text-align: center; }
-.catalogue-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
-.catalogue-voicing { margin-top: 12px; }
-.catalogue-voicing .tablewrap { margin-top: 10px; overflow: auto; }
-.catalogue-voicing td, .catalogue-voicing th { padding: 8px; font-size: 12px; white-space: nowrap; }
 .hex-manual-chords { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; }
 .hex-manual-chords > summary { color: var(--muted); font-size: 14px; }
-/* Keep reciprocal forms together through ranking, filtering and pagination. */
-.catalogue-pair { border: 1px solid var(--line); border-radius: 8px; padding: 5px; display: grid; gap: 4px; }
-.catalogue-pair .catalogue-group { border-color: transparent; background: transparent; }
-.catalogue-pair .catalogue-group.selected { border-color: var(--b); background: #294660; }
-.catalogue-pair .catalogue-group:hover:not(:disabled) { border-color: var(--border-strong); background: var(--surface); }
-.catalogue-pair .catalogue-group.selected:hover { background: #294660; border-color: var(--b); }
-.catalogue-pair .catalogue-group:disabled { opacity: .65; cursor: default; }
-.catalogue-panel .catalogue-form { color: var(--text); font-size: 14px; margin-bottom: 2px; }
 .hex-manual-chords .hex-chord-finder { margin-top: 12px; }
-@media (max-width:480px) {
- .catalogue-controls, .catalogue-advanced-controls { grid-template-columns: minmax(0, 1fr); }
- .catalogue-group { align-items: start; }
- .catalogue-group > span:last-child { max-width: 100px; }
-}
-
-/* Chord engine v2 shares the existing catalogue surface. */
-.chord-v2 { min-width: 0; }
-.chord-v2-status { display: grid; gap: .65rem; margin: 1rem 0; }
-.chord-v2-status > div { border-left: 2px solid var(--line, #344152); padding-left: .65rem; }
-.chord-v2-status dt { color: var(--muted, #a8b6c9); font-size: .875rem; }
-.chord-v2-status dd { margin: .15rem 0 0; overflow-wrap: anywhere; }
-.chord-v2 details { margin-top: .65rem; min-width: 0; }
-.chord-v2 .catalogue-roots button { overflow-wrap: anywhere; }
-.chord-v2 .catalogue-roots small { display: block; }
-.chord-v2 .tablewrap { max-width: 100%; overflow-x: auto; }
-.chord-v2 .catalogue-controls { grid-template-columns: minmax(0,1fr); }
-.chord-v2-filter-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .6rem; margin: .8rem 0; }
-.chord-v2-filter-grid input,.chord-v2-filter-grid select { min-width: 0; width: 100%; }
-.chord-v2-discovery-list button { display: flex; justify-content: space-between; gap: .7rem; text-align: left; width: 100%; }
-.chord-v2-discovery-list button small,.chord-v2-discovery-list button b { display: block; }
-@media(max-width: 450px) { .chord-v2-filter-grid { grid-template-columns: minmax(0,1fr); } }
-
-/* Chord workflow: browse → root → inversion/fingering; details follow below. */
-.chord-v2-types, .chord-v2-occurrences, .chord-v2-realization { margin-top: 1rem; min-width: 0; }
-.chord-v2-types h4, .chord-v2-occurrences h4 { margin: 0 0 .6rem; font-size: 1rem; }
-.chord-v2-discovery-list { max-height: 18rem; overflow-y: auto; overscroll-behavior: contain; }
-.chord-v2 .chord-v2-discovery-list .catalogue-group { align-items: center; padding: .6rem .75rem; }
-.chord-v2-discovery-list .catalogue-group > span:last-child { white-space: nowrap; }
-.chord-v2-occurrences .catalogue-roots { max-height: 9rem; overflow-y: auto; }
-.chord-v2 .catalogue-roots [aria-pressed="true"] { border-color: var(--b); background: #294660; }
-.chord-v2-realization > .chord-v2-filter-grid { grid-template-columns: minmax(0,1fr); }
-.chord-v2-secondary { margin-top: 1rem; padding-top: .5rem; border-top: 1px solid var(--line); }
-.chord-v2-secondary > details { margin-top: .5rem; padding: .65rem 0; border-bottom: 1px solid var(--line); }
-.chord-v2-secondary > details > summary { font-size: .875rem; color: var(--muted); cursor: pointer; }
-.chord-v2 button:focus-visible, .chord-v2 summary:focus-visible { outline: 2px solid var(--b); outline-offset: 3px; }
 
 /* Compact, actionable scale-coverage milestones. */
 .scale-milestones { margin-top: 14px; min-width: 0; }
@@ -3241,89 +3124,6 @@ footer {
   border: 1px solid var(--line);
   border-radius: 9px;
 }
-.live-chord-kicker {
-  grid-row: 1;
-  grid-column: 1 / -1;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  color: var(--muted);
-  font-size: 13px;
-}
-.live-chord-value {
-  grid-row: 2;
-  grid-column: 1;
-  min-width: 0;
-  font-size: clamp(21px, 2.6vw, 29px);
-  line-height: 1.1;
-  font-weight: 700;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-variant-numeric: lining-nums;
-}
-.live-chord-detail {
-  grid-row: 3;
-  grid-column: 1;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  line-height: 17px;
-  color: var(--muted);
-  font-size: 14px;
-}
-.live-chord-alternatives-host {
-  grid-row: 2 / 4;
-  grid-column: 2;
-  justify-self: end;
-  align-self: center;
-  max-width: 220px;
-  font-size: 14px;
-}
-.live-chord-alternatives {
-  position: relative;
-}
-.live-chord-alternatives summary {
-  cursor: pointer;
-  color: var(--b);
-}
-.live-chord-alternatives ul {
-  position: absolute;
-  z-index: 20;
-  top: calc(100% + 6px);
-  right: 0;
-  width: max-content;
-  max-width: min(320px, calc(100vw - 32px));
-  box-sizing: border-box;
-  margin: 0;
-  padding-left: 20px;
-  max-height: 180px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--board-bg);
-  box-shadow: 0 8px 24px #0008;
-  overflow: auto;
-}
-.live-chord-alternatives li {
-  margin: 3px 0;
-  overflow-wrap: anywhere;
-}
-.live-chord-alternatives small {
-  color: var(--muted);
-}
-.live-chord-announcement {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
 @media (max-width:560px) {
   .hex-live-chord-readout {
     grid-template-columns: minmax(0, 1fr);
@@ -3332,28 +3132,6 @@ footer {
     min-height: 124px;
     gap: 3px;
     padding: 9px 11px;
-  }
-  .live-chord-kicker {
-    grid-row: 1;
-    grid-column: 1;
-  }
-  .live-chord-value {
-    grid-row: 2;
-    grid-column: 1;
-  }
-  .live-chord-detail {
-    grid-row: 3;
-    grid-column: 1;
-  }
-  .live-chord-alternatives-host {
-    grid-row: 4;
-    grid-column: 1;
-    justify-self: start;
-    max-width: 100%;
-  }
-  .live-chord-alternatives ul {
-    right: auto;
-    left: 0;
   }
 }
 
@@ -3428,9 +3206,6 @@ footer {
     max-height: 180px;
   }
 }
-
-.harmony-ab-selector { display: flex; align-items: center; gap: .5rem; font-size: .875rem; white-space: nowrap; }
-.harmony-ab-selector select { width: auto; max-width: 14rem; }
 .harmony-workspace { padding: 1rem; border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
 .harmony-heading { display: flex; gap: 1rem; flex-wrap: wrap; align-items: baseline; }
 .harmony-heading h3 { margin: 0; }
@@ -3464,8 +3239,6 @@ footer {
 @media (max-width: 850px) {
  .harmony-columns { grid-template-columns: minmax(0,1fr); }
  .harmony-detail { border-left: 0; border-top: 1px solid var(--line); padding: 1rem 0 0; }
- .harmony-ab-selector { flex-direction: column; align-items: stretch; gap: .15rem; }
- .harmony-ab-selector select { max-width: 100%; font-size: .875rem; }
  .harmony-workspace { padding: .75rem; }
 }
 @media (max-width: 420px) { .harmony-list { grid-template-columns: minmax(0,1fr); } }
@@ -3708,15 +3481,10 @@ footer {
 .comp-panel-heading{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
 .comp-panel-heading h3{margin:0;flex:1}
 .comp-panel-heading label,.comp-panel-heading>span{font-size:14px;color:var(--muted)}
-.composition-board{width:100%;display:block;max-height:410px;touch-action:pan-y}
-.comp-board-key polygon{fill:#242e3d;stroke:#49586c;stroke-width:1.4;stroke-linejoin:round}
-.comp-board-key text{fill:#ced8e8;font-size:12px;font-weight:500;pointer-events:none}
-.comp-board-key[aria-disabled=true]{opacity:.28;pointer-events:none}
-.comp-board-key[aria-disabled=false]{cursor:pointer}
-.comp-board-key:hover polygon,.comp-board-key:focus polygon{stroke:#e2eaf8;stroke-width:2.5}
-.comp-board-key.is-selected polygon{fill:#99792e;stroke:#f1c96c;stroke-width:2}
-.comp-board-key.is-playing polygon{fill:#dfb653;stroke:#ffe8ab;stroke-width:2}
-.comp-board-key.is-playing text{fill:#17202e;font-weight:700}
+/* Compose's board is a miniature of Play's: it carries .hex-board, so it shares Play's colours and states. */
+.composition-board.hex-board{width:100%;min-width:0;display:block;max-height:410px;touch-action:pan-y}
+.composition-board .comp-board-key[aria-disabled=true]{pointer-events:none}
+.composition-board .comp-board-key:focus-visible polygon{stroke:#fff}
 .comp-fingerings{display:grid;gap:8px}
 .comp-fingering{display:grid;grid-template-columns:1fr auto;gap:5px;text-align:left;padding:12px;background:var(--surface2);font-size:14px;white-space:normal}
 .comp-fingering small{grid-column:1/-1;color:var(--muted);font-size:12px}
@@ -3783,7 +3551,7 @@ footer {
 /* Anchor both header panels to the right edge, including narrow screens. */
 .header-actions{position:relative}.header-actions>.header-options{position:static}
 
-.hex-chord-panel .hex-live-chord-readout{height:auto;min-height:112px;grid-template-rows:auto auto auto;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:0 0 14px;margin:0 0 16px}.hex-chord-panel .live-chord-value{white-space:normal;font-size:22px;line-height:1.2}.hex-chord-panel .live-chord-detail{white-space:normal;line-height:1.4}.hex-chord-panel .live-chord-alternatives-host{grid-row:4;grid-column:1/-1;justify-self:start}
+.hex-chord-panel .hex-live-chord-readout{height:auto;min-height:112px;grid-template-rows:auto auto auto;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:0 0 14px;margin:0 0 16px}
 
 .hex-chord-panel .hex-live-chord-readout{display:block;min-height:0}.live-note-columns{display:flex;overflow-x:auto;gap:0;padding-bottom:8px}.live-note-column{display:grid;flex:1 0 112px;gap:5px;text-align:center;padding:0 10px;border-right:1px solid var(--line);font-size:14px;white-space:nowrap}.live-note-column:last-child{border-right:0}.live-note-column strong{font-size:22px;line-height:1.2}.live-note-label{color:var(--muted);font-size:11px;margin-top:7px}.live-note-chord{border-top:1px solid var(--line);padding-top:12px;margin-top:8px;text-align:center}.live-note-chord>strong{font-size:24px}.live-note-chord>small{display:block;color:var(--muted);margin-top:4px}.live-note-chord details{text-align:left;font-size:13px;margin-top:10px}.live-notes-empty{color:var(--muted);margin:8px 0;font-size:14px}
 
@@ -3950,7 +3718,6 @@ footer {
 .form-badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:600;vertical-align:middle;border:1px solid var(--line);color:var(--text)}.form-badge.otonal{border-color:#e5a251}.form-badge.utonal{border-color:#73a3f7}.form-badge.ambitonal{border-color:var(--mint)}.form-badge.et{border-color:#c07ad9}
 .harmony-detail h4:has(+.harmony-current-rotation){margin-bottom:.15rem}.harmony-current-rotation{margin:0 0 .75rem;font-size:13px;color:var(--muted)}.harmony-current-rotation b{color:var(--text);font-weight:600}
 .harmony-rotations{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 8px}.harmony-rotations button{min-height:26px;padding:3px 9px;font-size:12px}.harmony-rotations button[aria-pressed=true]{border-color:var(--a);background:var(--surface2)}
-.harmony-focus-note{color:var(--muted);font-size:12px}
 .matrix-chord-hint{margin:2px 0 6px;font-size:12px}
 .harmony-follow{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:0 0 6px}
 /* A highlighted Play-board key keeps its layout colour and shines a level brighter. */
@@ -3986,8 +3753,8 @@ footer {
 .scale-line-cents:first-of-type { transform: none; }
 .scale-line-cents.end { transform: translateX(-100%); }
 /* With a chord highlighted, the on-screen board darkens every key outside it (LEDs are unaffected). */
-.hex-board.has-chord g:not(.is-marked) polygon{filter:brightness(.4) saturate(.7)}
-.hex-board.has-chord g:not(.is-marked) text{opacity:.45}
+.hex-board.has-chord g:not(.is-marked):not(.is-playing) polygon{filter:brightness(.4) saturate(.7)}
+.hex-board.has-chord g:not(.is-marked):not(.is-playing) text{opacity:.45}
 .hexboard-brightness { font-size: 13px; gap: 4px; }
 .hexboard-brightness > span { display: flex; align-items: center; gap: 10px; }
 .hexboard-brightness input[type=range] { margin: 4px 0; flex: 1; }

@@ -50,9 +50,9 @@ phones it scrolls away). All Discover panes scroll with the page. The directory 
   from Play) opens this screen. Saved sessions with any older Discover view restore
   into it, an old matrix view with the matrix centre; the centre choice is saved in
   session settings.
-- **Play** owns the HexBoard target scale/mode, layout settings, the v2 Scale
-  Chords catalogue, chord realizations/fingerings, temporary scale/chord highlights,
-  playback, and HexBoard export.
+- **Play** owns the HexBoard target scale/mode, layout settings, the harmony sent
+  from Discover with its fingerings, manual chord search, chords on the selected key,
+  temporary scale/chord highlights, playback, and HexBoard export.
 - **Create** hosts the composition suite MVP (see "Composition suite" below). The
   material collection is also available there. Arrangement, recording, tuning
   conversion, account saving and WAV/MIDI export are not implemented.
@@ -89,8 +89,8 @@ applied separately. Direct mappings are validated by `state.mjs`.
 `harmonic-context.mjs` builds immutable mapping-only records and versioned keys
 from the basis/matrix, canonicalizing basis-column permutations only in the key;
 its kernel witnesses use exact matrix multiplication, never tuned cents or comma
-labels. The B harmonic interface uses these records for catalogue, selection and session
-handoffs; A compatibility consumers retain their earlier local key formats.
+labels. The harmonic interface uses these records for catalogue, selection and session
+handoffs.
 `harmonic-equivalence.mjs` now exposes exact, period and mapped-octave policies
 with exact removed-lift certificates and translation/permutation-invariant set
 keys. The v2 chord projection retains its older period-class compatibility path
@@ -100,7 +100,7 @@ with input-member links and reciprocal duals. Existing `ji2:` fingerprints remai
 octave-family matches while retaining every played full coordinate.
 `harmonic-types.mjs` now defines JSON-safe validation boundaries for mapping,
 tempered shape, selection and ET assessment records, and dependency-specific
-keys for tuning, target set, scale/mode and layout. B Discover/Play, diamond handoffs and optional material/session provenance use
+keys for tuning, target set, scale/mode and layout. Discover/Play, diamond handoffs and optional material/session provenance use
 these boundaries. Invalid optional provenance cannot invalidate valid sounding material.
 Target-set IDs encode the exact sorted prime subgroup alongside odd limit,
 prime filter and representation policy; they are independent of the tuning
@@ -214,8 +214,7 @@ equivalence and producer bounds enter the context; scale/mode/layout do not.
 `harmonic-cooperative.mjs` drives the same generator algorithms synchronously
 for compatibility or asynchronously for jobs. Graph traversal, CSP states/
 compatibility checks and chord-approximation combinations yield every 256 work
-items. The existing `chord-v2-worker.mjs` supports these jobs beside the unchanged
-legacy Play discovery envelope. B uses these envelopes; A retains the legacy Play envelope for comparison.
+items. `chord-v2-worker.mjs` runs these jobs.
 
 The application currently supports prime-basis rank-2 mappings. Arbitrary composite
 or fractional basis elements and higher-rank scale enumeration are not supported.
@@ -406,11 +405,10 @@ tooltip, while visible deviations contain only signed cents.
 
 ## Chord system
 
-Discover's harmony directory and analysis pane are always B · Harmonic discovery.
-The former classic-view selector and local preference are removed; legacy A/B
-session values are ignored when loading. The manual inspector remains available for
-direct coordinate inspection, and `chord-session-v2-adapter.mjs` continues migrating
-compatible saved sessions.
+The harmony directory is the only chord catalogue (D-039). The A/B mode flag and the
+classic Play catalogue are removed; saved A/B values and old Play catalogue state are
+ignored when loading. The manual inspector remains available for direct coordinate
+inspection.
 
 `harmonic-catalogue-ui.mjs` owns Discover's harmony directory and analysis,
 independently of the board.
@@ -469,7 +467,7 @@ row (otonal), column (utonal) or both (ambitonal and other) that holds it, or th
 holding most of it as a partial placement, and highlights every cell whose approximation
 sounds a note of a tempered chord; `matrixFocusDegrees` marks interval-matrix cells
 between the focused occurrence's scale degrees. The app reapplies both after every redraw
-and directory refresh, and the analysis states where the diamond shows the chord.
+and directory refresh.
 
 Other views set the focus through `focusExternal`: a JI chord by family (any rotation or
 doubling, keeping the picked rotation), otherwise a tempered shape (preferring a JI row that
@@ -510,9 +508,8 @@ nodes, 20,000 occurrences and 1,000 groups, and truncation is displayed explicit
 `chords.mjs` contains only degree/session wrappers; `bestChordTarget`, the old
 independent occurrence loop and manual search cache are removed. Historical
 search JSON remains stable while nonenumerable bounds are available to the UI.
-Legacy pins remain usable from the manual inspector. The classic catalogue
-presentation and historical session adapter are retained intentionally; no retired
-pre-v2 analytical engine is reactivated.
+Legacy pins remain usable from the manual inspector. No retired pre-v2 analytical
+engine is reactivated.
 
 The canonical pipeline is:
 
@@ -561,10 +558,9 @@ The canonical pipeline is:
   have null JI quality fields. Board placement remains a separate step.
 
 No scale occurrence, no playable fingering, outside-basis projection, tempered
-cardinality collapse, and poor tuning are distinct states. A Play retains its
-search/family/voicing catalogue. B Play presents the selection sent from Discover
-and explicit occurrence/fingering choices. The live readout follows held and
-Shift-latched voices in both modes; label interpretation never changes playback
+cardinality collapse, and poor tuning are distinct states. Play presents the
+selection sent from Discover and explicit occurrence/fingering choices. The live
+readout follows held and Shift-latched voices; label interpretation never changes playback
 or persistent selection.
 
 In B mode the live readout reads held keys (screen or HexBoard) against the harmony directory
@@ -581,10 +577,17 @@ the curated recognizer.
 ## HexBoard layout and period wrapping
 
 `hexboard.mjs` owns the 140-button physical grid (seven command positions and 133
-note buttons), musical axes, layout reflections, board construction, filling,
-alternatives, interval overlays, and export. Physical staggered geometry is fixed as
+note buttons), musical axes, layout reflections, board construction, filling
+(`layoutCandidates` is its internal search), interval overlays, and export. Physical staggered geometry is fixed as
 `x = 2 * column + rowParity`, `y = row`. Musical axes are integer coordinates with
 determinant ±1 so the unwrapped layout covers the full rank-2 lattice.
+
+`hexboard-view.mjs` is the one board picture (D-040). `boardPicture` gives every key its layout
+colour, outline (selected chord, interval root, mapped or alternative JI match from the root),
+label, chord-tone number and highlight state through `keyAppearance`; `boardSvg` draws it for Play
+and for Compose's miniature; `deviceFrame` sends it to the physical board. Sounding keys are marked
+by `hexboard-player.mjs`, which plays both boards. `tests/hexboard-parity.mjs` pins Play's board
+key by key against a recorded fixture.
 
 With Period Wrapping **Off**, keys retain the true globally isomorphic rank-2
 lattice. With wrapping **On**, `hexboard-wrapping.mjs` places a canonical copy of
@@ -678,8 +681,9 @@ optimistic revisions and do not require sign-in. Session files remain
 `temperament-lab-v1` and preserve the primary temperament, views, linked JI
 settings (odd limit, optional prime limit or prime subgroup, and tolerance),
 material, comma search, chord state, and HexBoard settings. Workflow version 8
-adds optional B catalogue/Play selections, A/B mode and harmonic material
-provenance. Custom spellings, repeated voices and selected voicing controls
+adds optional catalogue/Play selections and harmonic material provenance. The A/B
+mode value and Play catalogue state are no longer written and are ignored on load;
+HexBoard settings hold one layout, and the second layout of older sessions is ignored. Custom spellings, repeated voices and selected voicing controls
 round-trip. Historical ET metadata is not shown as a current proof after restore;
 ET reassessment requires a fresh explicit search. Older two-temperament
 sessions restore their primary temperament and ignore retired comparison data.
@@ -699,6 +703,9 @@ Compatibility aliases and narrow session migrations are intentional.
 - Chord engine v2 replaced and removed the old catalogue engine and runtime switch.
 - The deprecated two-temperament Compare flow and its A/B workspace paths were
   removed; older sessions continue to load their primary temperament.
+- The A/B harmony mode flag, the classic Play chord catalogue (`chord-catalog-ui.mjs`
+  with its v2 views, relationships engine and session adapter), Find layout
+  alternatives and the Discover diamond focus note were removed (D-039).
 - JI odd/prime-limit and tolerance ownership was centralized; one exact filter
   engine powers all JI target and candidate searches, and duplicate Play controls
   were removed. Basis-diamond default-scale and milestone searches deliberately
@@ -713,9 +720,10 @@ Compatibility aliases and narrow session migrations are intentional.
 - Several controller tests use source extraction and mocked DOM contexts. Core
   calculations have strong regression coverage, but full browser, keyboard,
   screen-reader, and acoustic acceptance remain manual.
-- The classic catalogue presentation remains for the requested A/B comparison.
-  Manual/board analytical rules are fully migrated to shared services; older
+- Manual/board analytical rules are fully migrated to shared services; older
   session and degree APIs remain intentional compatibility adapters.
+- `chord-discovery-v2.mjs#discoverChords` has no app consumer since D-039; only its
+  tests and `scripts/profile-chord-v2.mjs` use it.
 - The material collection can save, play, inspect, and place scales/chords. A chord
   progression and melody/phrase composition sequencer is not implemented.
 - Product limits include 256 scale notes, bounded chord discovery, 2–8-tone exact
@@ -762,7 +770,10 @@ exact-coordinate matches. This remains guided playback without performance
 judging. The board's Chords / Melody / Both toggle filters what it lights (sounding cues by track, and
 the selected chord's fingering unless only the melody is shown); it is display-only and never changes
 playback. `composition-board.mjs` reuses `buildBoard`, `chordPlacements` and the
-existing colour engine; it does not define another pitch or fingering engine.
+existing colour engine; it does not define another pitch or fingering engine. Its board is a
+miniature of Play's, drawn by the same `hexboard-view.mjs` picture and renderer from the saved
+layout, and its keys play through the shared `hexboard-player.mjs` (hold, glide, Shift sustain;
+physical keys press it while a composition is open) (D-040).
 
 
 Create opens one composition at a time: a chord progression built from collected
@@ -827,7 +838,7 @@ persisted and the board always starts disconnected.
 | Delegated-control bytes, key/encoder decoding, colour to LED conversion | `hexboard-protocol.mjs` |
 | Web MIDI port, enter/exit, changed-LED sending, unplug detection | `hexboard-device.mjs` |
 | Key routing, the LED picture, the 100 ms follow and 1.5 s refresh timers | `hexboard-sync.mjs` |
-| What the board should show (colours, highlights, dimming) | `hexboard-ui.mjs#keyAppearance` (screen and `deviceSnapshot`) |
+| What the board should show (colours, outlines, labels, highlights) | `hexboard-view.mjs#boardPicture` over `hexboard-colors.mjs#keyAppearance`; drawn by `boardSvg`, sent by `deviceFrame` |
 | Wiring and header status | `app.mjs` |
 
 Keys. Button index equals the layout's key index (`0..139`). On the Play view a board press goes
