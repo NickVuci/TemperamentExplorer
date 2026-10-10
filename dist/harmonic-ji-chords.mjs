@@ -44,11 +44,20 @@ function seedSources(){
  return sources;
 }
 
-// Keep this deterministic orientation only as presentation metadata. It is not
-// evidence that a general rational chord is intrinsically otonal.
+/** Largest odd part of a reduced integer chord form (`4:5:6` → 5, `10:12:15` → 15). */
+export function maxOddHarmonic(terms){
+ let best=0n;
+ for(const term of terms){let n=BigInt(term);while(n>0n&&n%2n===0n)n/=2n;if(n>best)best=n;}
+ return best;
+}
+// A chord identical to its exact reciprocal is ambitonal ('self'). Otherwise the side whose reduced
+// harmonic representation has the lower maximum odd harmonic is otonal and its reciprocal utonal.
+// Equal maxima fall back to smaller term sums, then fingerprints, so pairing stays deterministic.
 function orientPair(base,dual){
- const score=identity=>identity.aliases.otonal.split(':').map(Number).reduce((sum,value)=>sum+value,0),a=score(base),b=score(dual);
- return a<b||a===b&&base.fingerprint<dual.fingerprint?[base,dual]:[dual,base];
+ const terms=identity=>identity.aliases.otonal.split(':'),a=maxOddHarmonic(terms(base)),b=maxOddHarmonic(terms(dual));
+ if(a!==b)return a<b?[base,dual]:[dual,base];
+ const score=identity=>terms(identity).map(Number).reduce((sum,value)=>sum+value,0),x=score(base),y=score(dual);
+ return x<y||x===y&&base.fingerprint<dual.fingerprint?[base,dual]:[dual,base];
 }
 
 /** Present any exact chord with the curated seeds' otonal/utonal orientation and labels. */
@@ -86,6 +95,11 @@ export function chordRotations(identity,octave){
  for(const q of identity.canonicalRatios.map(q=>[BigInt(q.n),BigInt(q.d)])){const r=octave?foldOctave(q[0],q[1]):(()=>{const g=gcdBig(q[0],q[1]);return [q[0]/g,q[1]/g];})(),key=r.join('/');if(!seen.has(key)){seen.add(key);classes.push(r);}}
  return classes.map((root,index)=>{const own=rotationTerms(classes,root,octave);
   return {index,root:`${root[0]}/${root[1]}`,ratios:own.ratios.map(([n,d])=>`${n}/${d}`),terms:own.terms,dualTerms:reciprocalTerms(own.ratios),label:own.terms.join(':')};});
+}
+/** The rotation key (`chordRotations(...).root`) of one JI member n/d: octave-reduced when `octave`. */
+export function rotationRootKey(n,d,octave){
+ const q=[BigInt(n),BigInt(d)],r=octave?foldOctave(q[0],q[1]):(()=>{const g=gcdBig(q[0],q[1]);return [q[0]/g,q[1]/g];})();
+ return `${r[0]}/${r[1]}`;
 }
 export function simplestRotation(identity,octave){
  const rotations=chordRotations(identity,octave);

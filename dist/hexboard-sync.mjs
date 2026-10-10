@@ -3,23 +3,26 @@
 //    path (pressKey), so sound, selection, chord picking and live chord recognition behave as
 //    for a mouse. Off the Play view it sounds the key directly.
 //  - Lights: every key shows the layout's colours; keys in a chord or scale highlight shine
-//    a level brighter; keys being played turn white.
+//    a level brighter; keys being played turn white. The firmware has no brightness command,
+//    so the app's brightness setting scales every LED value it sends.
 import {hexToLed,BUTTON_COUNT} from './hexboard-protocol.mjs';
 
 // Brightness of a key's own layout colour: ordinary, and highlighted (one level brighter).
 export const LEVEL={normal:.5,lit:1};
 const OFF={h:0,s:0,v:0},WHITE={h:0,s:0,v:127};
 const PROBE_SAMPLES=20;
+export const BRIGHTNESS={min:.05,max:1,default:1};
+export const clampBrightness=value=>{const n=Number(value);return Number.isFinite(n)?Math.min(BRIGHTNESS.max,Math.max(BRIGHTNESS.min,n)):BRIGHTNESS.default;};
 
-/** LED picture for a board snapshot (see hexboard-ui deviceSnapshot) and the set of keys sounding now. */
-export function ledFrame(snapshot,held=new Set()){
-  const frame=new Map();
+/** LED picture for a board snapshot (see hexboard-ui deviceSnapshot), the keys sounding now and an overall brightness (0..1). */
+export function ledFrame(snapshot,held=new Set(),brightness=BRIGHTNESS.default){
+  const frame=new Map(),scale=clampBrightness(brightness),white={...WHITE,v:Math.round(WHITE.v*scale)};
   for(let led=0;led<BUTTON_COUNT;led++){
     const key=snapshot?.keys[led];
     if(!key||key.command||!key.enabled||!key.color){frame.set(led,OFF);continue;}
-    if(held.has(led)){frame.set(led,WHITE);continue;}
+    if(held.has(led)){frame.set(led,white);continue;}
     // A highlight changes no colour and leaves other keys alone: highlighted keys are only brighter.
-    frame.set(led,hexToLed(key.layoutColor??key.color,key.lit||key.marked?LEVEL.lit:LEVEL.normal));
+    frame.set(led,hexToLed(key.layoutColor??key.color,(key.lit||key.marked?LEVEL.lit:LEVEL.normal)*scale));
   }
   return frame;
 }
@@ -31,8 +34,9 @@ export function createHexboardSync({
   now=()=>globalThis.performance?.now?.()??Date.now(),
   queue=fn=>queueMicrotask(fn),
   timer={set:(fn,ms)=>setInterval(fn,ms),clear:id=>clearInterval(id)},
-  intervalMs=100,refreshMs=1500,
+  intervalMs=100,refreshMs=1500,brightness=BRIGHTNESS.default,
 }){
+  let level=clampBrightness(brightness);
   const down=new Map();           // key index -> {release?: fn}  (release only for directly sounded keys)
   let appHeld=new Set();          // keys the board player reports as sounding (mouse and device alike)
 
@@ -46,7 +50,7 @@ export function createHexboardSync({
   function sync(force=false){
     if(!device.connected)return;
     const snapshot=getSnapshot();
-    if(snapshot)device.setLeds(ledFrame(snapshot,held()),{force});
+    if(snapshot)device.setLeds(ledFrame(snapshot,held(),level),{force});
   }
 
   // While running, the board follows the app within `intervalMs`, and the whole picture is
@@ -99,5 +103,8 @@ export function createHexboardSync({
   /** Median time from a board key's MIDI arrival to its sound being scheduled, in ms (null before any press). */
   function inputDelay(){if(!delays.length)return null;const sorted=[...delays].sort((a,b)=>a-b);return sorted[Math.floor(sorted.length/2)];}
 
-  return {keyDown,keyUp,setActive,sync,start,stop,releaseAll,inputDelay,get held(){return held();},get running(){return timers!==null;}};
+  /** Sets the overall LED brightness (clamped to BRIGHTNESS.min..max) and repaints a connected board. */
+  function setBrightness(value){level=clampBrightness(value);scheduleSync();return level;}
+
+  return {keyDown,keyUp,setActive,sync,start,stop,releaseAll,inputDelay,setBrightness,get brightness(){return level;},get held(){return held();},get running(){return timers!==null;}};
 }

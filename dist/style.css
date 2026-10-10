@@ -3948,6 +3948,7 @@ footer {
   font-weight: 700;
 }
 .form-badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:600;vertical-align:middle;border:1px solid var(--line);color:var(--text)}.form-badge.otonal{border-color:#e5a251}.form-badge.utonal{border-color:#73a3f7}.form-badge.ambitonal{border-color:var(--mint)}.form-badge.et{border-color:#c07ad9}
+.harmony-detail h4:has(+.harmony-current-rotation){margin-bottom:.15rem}.harmony-current-rotation{margin:0 0 .75rem;font-size:13px;color:var(--muted)}.harmony-current-rotation b{color:var(--text);font-weight:600}
 .harmony-rotations{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 8px}.harmony-rotations button{min-height:26px;padding:3px 9px;font-size:12px}.harmony-rotations button[aria-pressed=true]{border-color:var(--a);background:var(--surface2)}
 .harmony-focus-note{color:var(--muted);font-size:12px}
 .matrix-chord-hint{margin:2px 0 6px;font-size:12px}
@@ -3960,3 +3961,88 @@ footer {
 
 /* Chord rows begin at unison, using the scale matrix's ascending layout. */
 .matrix.chord-interval-matrix{--matrix-cell-height:28px;width:calc(var(--matrix-columns)*52px);min-width:calc(var(--matrix-columns)*52px)}
+/* Compact scale head: Scale, Mode and step sizes on one row. */
+.unified-scale-controls { padding-bottom: 8px; margin-bottom: 8px; }
+.unified-scale-controls .formrow.scale-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; max-width: none; margin: 0; }
+.scale-head > label { flex-direction: row; align-items: center; gap: 6px; font-size: 13px; }
+.scale-head > label:first-child { flex: 1 1 240px; max-width: 360px; }
+.scale-head > label:nth-child(2) { flex: 0 1 120px; }
+.scale-head .scale-step-sizes { margin: 0; padding: 0; border: 0; gap: 14px; flex-wrap: nowrap; }
+.scale-head .scale-step-sizes div { flex-direction: row; align-items: baseline; gap: 6px; }
+.scale-head .scale-step-sizes b { font-size: 13px; }
+/* One period as a line, scale degrees plotted at their cents positions. */
+.scale-line { position: relative; height: 58px; margin: 4px 14px 6px; }
+.scale-line-track { position: absolute; left: 0; right: 0; top: 24px; height: 2px; background: var(--line); }
+.scale-line-end { position: absolute; top: 17px; width: 2px; height: 16px; margin-left: -1px; background: var(--muted); }
+.scale-line .scale-line-note { position: absolute; top: 25px; width: 12px; height: 12px; min-width: 0; min-height: 0; padding: 0; line-height: 0; border-radius: 50%; transform: translate(-50%, -50%); background: var(--surface2); border: 2px solid var(--accent); cursor: pointer; }
+.scale-line-note span { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); font: 11px var(--font-mono); color: var(--muted); pointer-events: none; }
+.scale-line .scale-line-note.root { background: var(--accent); }
+.scale-line-note.root span { color: var(--accent); }
+.scale-line .scale-line-note:is(:hover,:focus-visible) { background: var(--accent); }
+.scale-line-step { position: absolute; top: 30px; transform: translateX(-50%); font: 11px var(--font-mono); color: var(--accent); pointer-events: auto; }
+.scale-line-cents { position: absolute; top: 44px; transform: translateX(-50%); font: 11px var(--font-mono); color: var(--muted); white-space: nowrap; }
+.scale-line.dense .scale-line-note { width: 8px; height: 8px; border-width: 1px; }
+.scale-line.dense :is(.scale-line-note span,.scale-line-step) { display: none; }
+.scale-line-cents:first-of-type { transform: none; }
+.scale-line-cents.end { transform: translateX(-100%); }
+/* With a chord highlighted, the on-screen board darkens every key outside it (LEDs are unaffected). */
+.hex-board.has-chord g:not(.is-marked) polygon{filter:brightness(.4) saturate(.7)}
+.hex-board.has-chord g:not(.is-marked) text{opacity:.45}
+.hexboard-brightness { font-size: 13px; gap: 4px; }
+.hexboard-brightness > span { display: flex; align-items: center; gap: 10px; }
+.hexboard-brightness input[type=range] { margin: 4px 0; flex: 1; }
+.hexboard-brightness output { min-width: 3.5em; text-align: right; font: 12px var(--font-mono); color: var(--text); }
+/* Compose chord lane: drag a chord to move it, drag its right edge to change its length. */
+.roll-chord-lane .chord-block{overflow:hidden;text-overflow:ellipsis;min-width:6px;touch-action:none;cursor:grab;box-sizing:border-box}
+.roll-chord-lane .chord-block-type{display:block;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.roll-chord-lane .chord-block-root{font-family:var(--font-mono);color:#fff7dd}
+.roll-chord-lane .chord-block-root sup{font-size:9px}
+.roll-chord-lane .chord-block-grip{position:absolute;top:0;right:0;bottom:0;width:8px;cursor:ew-resize;border-left:1px solid transparent}
+.roll-chord-lane .chord-block:hover .chord-block-grip,.roll-chord-lane .chord-block[aria-pressed=true] .chord-block-grip{border-left-color:#f4ce72;background:rgba(244,206,114,.25)}
+.roll-chord-lane .chord-block.is-dragging{opacity:.85;z-index:4;cursor:grabbing}
+.chord-root-note{font-size:13px;font-weight:400;color:var(--muted);font-family:var(--font-mono)}
+/* Chords on a bass note: the bass degree on the scale line, the directory's bass list, Play's sections. */
+.scale-line .scale-line-note.is-bass { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px #f4ce72; }
+.scale-line-note.is-bass span { color: #f4ce72; font-weight: 600; }
+.bass-summary { margin: 0 0 8px; font-size: 12px; color: var(--muted); }
+.bass-group h5 { margin: 10px 0 4px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.bass-group h5 small { font-weight: 400; margin-left: 4px; }
+.directory-chord.bass-chord { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left; }
+.directory-chord.bass-chord small { font-size: 11px; color: var(--muted); }
+.key-harmonies .harmony-list-heading { grid-column: 1 / -1; list-style: none; margin: 10px 0 2px; font-size: 12px; font-weight: 600; color: var(--muted); }
+/* Compose melody guide: rows holding a note of the chord above, for as long as the chord lasts. */
+.roll-guide { position: absolute; top: 2px; bottom: 2px; pointer-events: none; background: rgba(207,167,73,.13); border-block: 1px solid rgba(207,167,73,.32); box-sizing: border-box; }
+.roll-guide.is-root { background: rgba(232,186,80,.42); border-block-color: rgba(244,206,114,.75); }
+.roll-guide.is-selected { background: rgba(207,167,73,.26); }
+.roll-guide.is-root.is-selected { background: rgba(244,206,114,.42); }
+.roll-guide-key { display: inline-flex; align-items: center; gap: 6px; margin-left: 14px; font-size: 12px; color: var(--muted); }
+.roll-guide-key i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; background: rgba(207,167,73,.13); border: 1px solid rgba(207,167,73,.32); }
+.roll-guide-key i.is-root { margin-left: 8px; background: rgba(232,186,80,.42); border-color: rgba(244,206,114,.75); }
+/* Compose board: which tracks light up. */
+.comp-board-show { display: inline-flex; gap: 0; margin: 0; padding: 0; border: 0; }
+.comp-board-show button { min-height: 28px; padding: 3px 10px; font-size: 13px; border-radius: 0; margin-left: -1px; }
+.comp-board-show button:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
+.comp-board-show button:last-child { border-radius: 0 6px 6px 0; }
+.comp-board-show button[aria-pressed=true] { border-color: var(--a); background: var(--surface2); color: var(--text); position: relative; }
+/* Compose root lane: each chord's root degree under the melody rows, and the harmony picker. */
+.roll-root-lane { display: grid; grid-template-columns: var(--degree-width) 1fr; height: 36px; border-top: 1px solid var(--line); }
+.roll-root-lane > b { position: sticky; left: 0; z-index: 6; padding: 9px 12px; font-size: 14px; border-right: 1px solid var(--line); background: var(--surface2); }
+.roll-root-lane > div { position: relative; background: repeating-linear-gradient(to right, transparent 0 calc(var(--bar-width) - 1px), var(--line) calc(var(--bar-width) - 1px) var(--bar-width)); }
+.roll-root-lane .roll-root-surface { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; cursor: copy; }
+.roll-root-lane .roll-root-surface:hover { background: rgba(207,167,73,.06); }
+.roll-root-lane .root-block { position: absolute; top: 5px; height: 26px; min-height: 0; padding: 0 8px; box-sizing: border-box; border: 1px solid #cfa749; border-radius: 5px; background: rgba(126,99,41,.55); color: #fff0c4; font: 600 13px var(--font-mono); text-align: left; overflow: hidden; white-space: nowrap; cursor: pointer; }
+.roll-root-lane .root-block sup { font-size: 9px; }
+.roll-root-lane .root-block[aria-pressed=true], .roll-root-lane .root-block.is-picking { outline: 2px solid #f4ce72; outline-offset: -2px; background: rgba(216,174,80,.55); }
+.roll-root-lane .root-pick-marker { position: absolute; top: 3px; bottom: 3px; width: 3px; margin-left: -1px; background: #f4ce72; border-radius: 2px; pointer-events: none; }
+.root-picker { margin: 10px 0 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.root-picker-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.root-degrees { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 8px; }
+.root-degrees > span { margin-right: 6px; font-size: 13px; color: var(--muted); }
+.root-degrees button { min-width: 34px; min-height: 30px; padding: 3px 8px; font: 13px var(--font-mono); }
+.root-degrees button[aria-pressed=true] { border-color: #f4ce72; background: rgba(216,174,80,.3); color: var(--text); }
+.root-harmony-group h5 { margin: 8px 0 4px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.root-harmonies { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px; }
+.root-harmonies button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 5px 8px; text-align: left; font-size: 13px; }
+.root-harmonies button small { font-size: 11px; color: var(--muted); }
+/* The root lane floats at the foot of the scrolling roll, like the bar ruler at its head. */
+.roll-root-lane { position: sticky; bottom: 0; z-index: 5; background: var(--surface); box-shadow: 0 -6px 10px -6px rgba(0,0,0,.55); }

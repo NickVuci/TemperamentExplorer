@@ -8,7 +8,7 @@ import {
 } from './composition-project.mjs';
 import {createTransport} from './composition-transport.mjs';
 import {boardSnapshot,buildCueTimeline,activeCues,toPracticeTargets,MATCH_MODES} from './composition-cues.mjs';
-import {renderComposition,renderSelectionPanel,formatPosition,NOTE_LENGTHS,REGISTER_CHOICES,STEP_TICKS} from './composition-view.mjs';
+import {renderComposition,renderSelectionPanel,formatPosition,chordRoot,NOTE_LENGTHS,REGISTER_CHOICES,STEP_TICKS} from './composition-view.mjs';
 import {compositionBoard,compactFingerings,compositionDeviceSnapshot} from './composition-board.mjs';
 
 const FOCUS_ATTRS=['data-comp','data-comp-field','data-event','data-tick','data-a','data-b'];
@@ -18,10 +18,19 @@ export function createCompositionWorkspace({
   document:doc,audio,getState,getLayout,getTonic,getMaterial,loadState,getHost,notify=()=>{},download=()=>{},
   // The chord focused in Discover, as a collected-chord item, and a hook told which chord is selected here.
   getFocusedChord=()=>null,onChordFocus=()=>{},
+  // The chord directory's chords built on a scale degree of the app's Play scale (bass entries); null while listing.
+  getBassEntries=()=>[],
   raf=globalThis.requestAnimationFrame?.bind(globalThis),timer,
 }){
   let history=null,message='',cache=null,frame=null,boardCache=null,placementCache=null,suppressClick=false;
-  const ui={selectedChord:null,addLength:4,collection:0,noteDuration:NOTE_LENGTHS[2][1],registers:'home',matchMode:'exact-coordinate',selectedNote:null,mode:'compose',practiceSpeed:70,follow:true,boardLabels:true,fingering:0};
+  const ui={selectedChord:null,addLength:4,collection:0,noteDuration:NOTE_LENGTHS[2][1],registers:'board',matchMode:'exact-coordinate',selectedNote:null,mode:'compose',practiceSpeed:70,follow:true,boardLabels:true,fingering:0,boardShow:'both',
+    // Root lane picker: {tick, replace: chord id or null, degree: scale degree or null, all: show every harmony}.
+    rootPick:null};
+  // Which tracks the composition board (screen and HexBoard) lights: 'chords', 'melody' or 'both'.
+  // A display choice only: playback always sounds every track.
+  const BOARD_SHOW=['chords','melody','both'];
+  const showsTrack=kind=>ui.boardShow==='both'||kind===ui.boardShow;
+  const soundingCells=tick=>activeCues(timeline(),tick).sounding.filter(q=>showsTrack(q.trackKind)).flatMap(q=>q.cells);
   const project=()=>history?.project??null;
   const transport=createTransport({getProject:()=>{const p=project();return p&&ui.mode==='practice'?{...p,tempo:p.tempo*ui.practiceSpeed/100}:p;},audio,...(timer?{timer}:{}),onState:(event,detail)=>{
     if(event==='error'){say(`Audio could not start${detail?.error?.message?`: ${detail.error.message}`:''}. Press Play again.`);return;}
@@ -60,10 +69,38 @@ export function createCompositionWorkspace({
     if(placementCache?.project!==p||placementCache?.event!==event)placementCache={project:p,event,items:compactFingerings(p,event,boardModel().board)};
     return placementCache.items;
   }
-  function selectedKeys(){return fingerings()[ui.fingering]?.keys??[];}
+  // Directory chords on the picked root, voiced from that degree's home coordinate in the composition's
+  // scale. Only offered while the app matches the composition (the directory follows the app); null while
+  // the directory is still listing.
+  let rootRetry=null;
+  function rootHarmonies(){
+    const p=project(),pick=ui.rootPick;
+    if(!p||pick?.degree==null||!matchesApp(p.context,getState()))return [];
+    const entries=getBassEntries(pick.degree);
+    if(entries==null){if(!rootRetry)rootRetry=setTimeout(()=>{rootRetry=null;if(ui.rootPick)refresh();},400);return null;}
+    const home=p.context.scale.degrees[pick.degree]?.coordinate;
+    return entries.map((e,index)=>({e,index})).filter(({e})=>home&&e.bass?.[0]===home[0]&&e.bass?.[1]===home[1]&&e.coords.length<=8)
+      .map(({e,index})=>({index,label:e.label,role:e.role,size:e.classCount,coords:e.coords}));
+  }
+  function pickHarmony(index){
+    const p=project(),pick=ui.rootPick,h=rootHarmonies()?.find(x=>x.index===index);
+    if(!p||!pick||!h)return;
+    const clip=clipOf(p,'chords'),old=pick.replace?find(clip,pick.replace):null;
+    const source={kind:'directory',label:h.label,role:h.role};
+    let newId=null;
+    const ok=edit(old?'Change harmony':'Add harmony',pr=>{
+      const ev=makeEvent({startTick:old?old.startTick:pick.tick,durationTick:old?old.durationTick:ui.addLength*PPQ,velocity:old?.velocity??90,tones:h.coords.map(coordinate=>({coordinate})),source},allIds(pr));
+      newId=ev.id;return addEvent(old?removeEvent(pr,clip.id,old.id):pr,clip.id,ev);
+    });
+    if(!ok)return;
+    ui.rootPick=null;ui.selectedChord=newId;ui.fingering=0;
+    const e=find(clipOf(project(),'chords'),newId);if(e){audio.previewChord?.(centsOf(project(),e));onChordFocus(e.tones.map(t=>[...t.coordinate]));}
+    refresh();
+  }
+  function selectedKeys(){return showsTrack('chords')?fingerings()[ui.fingering]?.keys??[]:[];}
   function deviceSnapshot(){
     const p=project();if(!p)return null;
-    const active=transport.state==='playing'||ui.mode==='practice'?activeCues(timeline(),transport.position()).sounding.flatMap(c=>c.cells):[];
+    const active=transport.state==='playing'||ui.mode==='practice'?soundingCells(transport.position()):[];
     return compositionDeviceSnapshot(p,boardModel().board,[...new Set([...(ui.follow&&active.length?active:selectedKeys()),...Array.from(held.values(),h=>h.index)])]);
   }
 
@@ -77,7 +114,7 @@ export function createCompositionWorkspace({
       transportState:transport.state,position:tick,
       chordClip:p?clipOf(p,'chords'):null,melodyClip:p?clipOf(p,'melody'):null,
       selectedChord:ui.selectedChord,selectedNote:ui.selectedNote,addLength:ui.addLength,collectionIndex:ui.collection,
-      mode:ui.mode,practiceSpeed:ui.practiceSpeed,follow:ui.follow,boardLabels:ui.boardLabels,fingering:ui.fingering,
+      mode:ui.mode,practiceSpeed:ui.practiceSpeed,follow:ui.follow,boardLabels:ui.boardLabels,boardShow:ui.boardShow,fingering:ui.fingering,rootPick:ui.rootPick,rootHarmonies:ui.rootPick?rootHarmonies():[],
       board:boardModel().board,boardReason:boardModel().reason,fingerings:fingerings(),selectedKeys:selectedKeys(),
       collection:items.map(x=>({label:x.item.label,compatible:!!p&&tuningKey(x.item.state)===tuningKey(p.context)})),
       focused:(()=>{const item=getFocusedChord();return item?{label:item.label,compatible:!!p&&tuningKey(item.state)===tuningKey(p.context)}:null;})(),
@@ -114,7 +151,7 @@ export function createCompositionWorkspace({
     for(const n of doc.querySelectorAll?.('.roll-note')??[])n.classList.toggle('is-playing',transport.state==='playing'&&Number(n.dataset.start)<=tick&&tick<Number(n.dataset.end));
     const roll=doc.querySelector('[data-comp-roll]'),playhead=doc.querySelector('[data-comp-playhead]');
     if(roll&&playhead){const start=Number(roll.dataset.start),span=Number(roll.dataset.span);playhead.hidden=tick<start||tick>=start+span;playhead.style.setProperty('--playhead-left',`calc(104px + (100% - 104px) * ${(tick-start)/span})`);}
-    const sounding=new Set(ui.follow&&(transport.state==='playing'||ui.mode==='practice')?activeCues(timeline(),tick).sounding.flatMap(q=>q.cells):[]);
+    const sounding=new Set(ui.follow&&(transport.state==='playing'||ui.mode==='practice')?soundingCells(tick):[]);
     for(const entry of held.values())sounding.add(entry.index);
     for(const key of doc.querySelectorAll?.('[data-comp-key]')??[])key.classList.toggle('is-playing',sounding.has(Number(key.dataset.compKey)));
     const cues=doc.querySelector('[data-comp-cues]'),text=cueText(tick);
@@ -229,6 +266,17 @@ export function createCompositionWorkspace({
         case 'redo':history.redo();changed();return true;
         case 'load-context':loadState(structuredClone(p.context.state));return true;
         case 'mode-compose':case 'mode-practice':transport.pause();ui.mode=action==='mode-practice'?'practice':'compose';refresh();return true;
+        case 'root-block':{
+          const e=find(clipOf(project(),'chords'),el.dataset.event);if(!e||ui.mode==='practice')return true;
+          const root=chordRoot(project(),e);
+          ui.selectedChord=e.id;ui.fingering=0;ui.rootPick={tick:e.startTick,replace:e.id,degree:root?.degree??null,all:false};
+          onChordFocus(e.tones.map(t=>[...t.coordinate]));refresh();return true;
+        }
+        case 'root-degree':if(ui.rootPick){const d=Number(el.dataset.degree);if(Number.isInteger(d)&&d>=0&&d<project().context.scale.degrees.length){ui.rootPick={...ui.rootPick,degree:d,all:false};}}refresh();return true;
+        case 'root-harmony':pickHarmony(Number(el.dataset.index));return true;
+        case 'root-more':if(ui.rootPick)ui.rootPick={...ui.rootPick,all:!ui.rootPick.all};refresh();return true;
+        case 'root-cancel':ui.rootPick=null;refresh();return true;
+        case 'board-show':if(BOARD_SHOW.includes(el.dataset.value))ui.boardShow=el.dataset.value;refresh();return true;
         case 'fingering':ui.fingering=Math.max(0,Math.min(Number(el.dataset.index)||0,fingerings().length-1));refresh();return true;
         case 'board-hear':{const k=boardModel().board?.keys[Number(el.dataset.compKey)];if(k?.enabled)audio.previewChord([k.c]);return true;}
         case 'seek':void transport.seek(Number(el.dataset.tick)).then(refresh);return true;
@@ -278,14 +326,16 @@ export function createCompositionWorkspace({
       if(audio.startVoice)held.set(event.pointerId,{release:audio.startVoice(k.c),index:k.index});
       key.classList.add('is-playing');return;
     }
-    const node=event.target.closest?.('.roll-note');
+    // Chord blocks move along the chord lane only; melody notes also change degree by row.
+    const noteNode=event.target.closest?.('.roll-note'),chordNode=noteNode?null:event.target.closest?.('.chord-block');
+    const node=noteNode??chordNode,kind=chordNode?'chords':'melody';
     if(!node||ui.mode==='practice'||!project())return;
-    const grid=node.closest('.roll-row-grid'),roll=node.closest('[data-comp-roll]');
-    const e=find(clipOf(project(),'melody'),node.dataset.event);
+    const grid=kind==='chords'?node.parentElement:node.closest('.roll-row-grid'),roll=node.closest('[data-comp-roll]');
+    const e=find(clipOf(project(),kind),node.dataset.event);
     if(!grid||!roll||!e)return;
     transport.pause();
-    drag={node,event:e,id:event.pointerId,x:event.clientX,y:event.clientY,span:Number(roll.dataset.span),width:grid.getBoundingClientRect().width,
-      resize:!!event.target.closest?.('[data-comp-resize]'),start:e.startTick,duration:e.durationTick,coordinate:[...e.tones[0].coordinate],moved:false};
+    drag={node,kind,event:e,id:event.pointerId,x:event.clientX,y:event.clientY,span:Number(roll.dataset.span),width:grid.getBoundingClientRect().width,
+      resize:!!event.target.closest?.('[data-comp-resize]'),start:e.startTick,duration:e.durationTick,coordinate:[...(e.tones[0]?.coordinate??[0,0])],moved:false};
   }
   function pointerMove(event){
     if(!drag||drag.id!==event.pointerId)return;
@@ -296,6 +346,7 @@ export function createCompositionWorkspace({
     if(drag.resize){drag.duration=Math.max(STEP_TICKS,drag.event.durationTick+delta);drag.node.style.width=`${100*drag.duration/drag.span}%`;}
     else{
       drag.start=Math.max(0,drag.event.startTick+delta);
+      if(drag.kind==='chords'){drag.node.style.transform=`translateX(${(drag.start-drag.event.startTick)/drag.span*drag.width}px)`;return;}
       const row=doc.elementFromPoint?.(event.clientX,event.clientY)?.closest?.('.roll-row-grid');
       if(row)drag.coordinate=[Number(row.dataset.a),Number(row.dataset.b)];
       drag.node.style.transform=`translate(${dx}px,${dy}px)`;
@@ -307,11 +358,24 @@ export function createCompositionWorkspace({
     const d=drag;drag=null;
     if(event.type==='pointercancel'){refresh();return;}
     if(!d.moved)return;
-    suppressClick=true;setTimeout(()=>{suppressClick=false;},0);ui.selectedNote=d.event.id;
+    suppressClick=true;setTimeout(()=>{suppressClick=false;},0);
+    if(d.kind==='chords'){
+      if(d.resize?d.duration===d.event.durationTick:d.start===d.event.startTick){refresh();return;}
+      ui.selectedChord=d.event.id;
+      edit(d.resize?'Resize chord':'Move chord',pr=>updateEvent(pr,clipOf(pr,'chords').id,d.event.id,d.resize?{durationTick:d.duration}:{startTick:d.start}));
+      return;
+    }
+    ui.selectedNote=d.event.id;
     edit(d.resize?'Resize melody note':'Move melody note',pr=>updateEvent(pr,clipOf(pr,'melody').id,d.event.id,d.resize?{durationTick:d.duration}:{startTick:d.start,tones:d.event.tones.map((t,i)=>i===0?{...t,coordinate:d.coordinate}:t)}));
   }
   const releaseHeld=()=>{for(const entry of held.values())entry.release();held.clear();};
   function surfaceClick(event){
+    const lane=event.target.closest?.('.roll-root-surface');
+    if(lane&&project()&&ui.mode!=='practice'){
+      const grid=lane.parentElement,roll=lane.closest('[data-comp-roll]'),rect=grid.getBoundingClientRect();
+      const span=Number(roll.dataset.span),tick=Math.min(Math.floor((span-1)/STEP_TICKS)*STEP_TICKS,Math.max(0,Math.floor((event.clientX-rect.left)/rect.width*span/STEP_TICKS)*STEP_TICKS));
+      ui.rootPick={tick,replace:null,degree:ui.rootPick?.degree??null,all:false};refresh();return;
+    }
     const surface=event.target.closest?.('.roll-surface');
     if(surface&&project()&&ui.mode!=='practice'){
       const grid=surface.closest('.roll-row-grid'),roll=surface.closest('[data-comp-roll]'),rect=grid.getBoundingClientRect();
@@ -394,7 +458,7 @@ export function createCompositionWorkspace({
     get open(){return history!==null;},
     pause(){if(transport.state==='playing'){transport.pause();refresh();}},
     stop(){releaseHeld();if(transport.state!=='stopped'){transport.stop();refresh();}else paint();},
-    dispose(){transport.stop();releaseHeld();doc.removeEventListener?.('click',surfaceClick);doc.removeEventListener?.('dblclick',doubleClick);doc.removeEventListener?.('pointerdown',pointerDown);doc.removeEventListener?.('pointermove',pointerMove);doc.removeEventListener?.('pointerup',pointerUp);doc.removeEventListener?.('pointercancel',pointerUp);},
+    dispose(){clearTimeout(rootRetry);rootRetry=null;transport.stop();releaseHeld();doc.removeEventListener?.('click',surfaceClick);doc.removeEventListener?.('dblclick',doubleClick);doc.removeEventListener?.('pointerdown',pointerDown);doc.removeEventListener?.('pointermove',pointerMove);doc.removeEventListener?.('pointerup',pointerUp);doc.removeEventListener?.('pointercancel',pointerUp);},
     // Test and integration hooks.
     getProject:project,transport,timeline,paint,deviceSnapshot,
     voiceSettings:()=>undefined,

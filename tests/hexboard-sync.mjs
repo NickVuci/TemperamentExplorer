@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {ledFrame,createHexboardSync,LEVEL} from '../dist/hexboard-sync.mjs';
+import {ledFrame,createHexboardSync,LEVEL,BRIGHTNESS,clampBrightness} from '../dist/hexboard-sync.mjs';
 import {hexToLed,BUTTON_COUNT} from '../dist/hexboard-protocol.mjs';
 import {buildBoard} from '../dist/hexboard.mjs';
 import {makeState} from '../dist/engine.mjs';
@@ -22,6 +22,14 @@ assert.deepEqual(lit.get(7),{h:0,s:0,v:0},'a disabled key is dark');
 assert.deepEqual(ledFrame(snap,new Set([5])).get(5),{h:0,s:0,v:127},'a sounding key is white');
 assert.ok(ledFrame(null).get(10).v===0,'no snapshot means a dark board');
 assert.ok(LEVEL.normal<LEVEL.lit);assert.deepEqual(Object.keys(LEVEL),['normal','lit'],'there is no receded level');
+// Brightness scales every LED value, keeps hue and saturation, and is clamped.
+const half=ledFrame({keys:keys.map(k=>k.index===5?{...k,lit:true,marked:true}:k)},new Set([9]),.5);
+assert.deepEqual(half.get(5),hexToLed('#5686df',LEVEL.lit*.5),'brightness scales a highlighted key');
+assert.deepEqual(half.get(6),hexToLed('#5686df',LEVEL.normal*.5),'brightness scales an ordinary key');
+assert.deepEqual(half.get(9),{h:0,s:0,v:64},'brightness scales a sounding key');
+assert.deepEqual(half.get(0),{h:0,s:0,v:0});
+assert.equal(clampBrightness(0),BRIGHTNESS.min);assert.equal(clampBrightness(3),1);assert.equal(clampBrightness('x'),BRIGHTNESS.default);
+assert.deepEqual(ledFrame(snap,new Set(),1),frame,'full brightness is the original picture');
 
 // ---------- controller with fakes ----------
 function setup({withNode=true,hiddenNode=false}={}){
@@ -43,6 +51,10 @@ function setup({withNode=true,hiddenNode=false}={}){
   assert.deepEqual([...t.sync.held],[65]);
   assert.equal(t.sentFrames.length,0,'the LEDs wait until the sound has started');assert.equal(t.queued.length,1);
   t.flush();assert.deepEqual(t.sentFrames.at(-1).get(65),{h:0,s:0,v:127},'the pressed key lights white on the board');
+  assert.equal(t.sync.brightness,1);assert.equal(t.sync.setBrightness(.25),.25);t.flush();
+  assert.deepEqual(t.sentFrames.at(-1).get(65),{h:0,s:0,v:32},'changing brightness repaints the connected board');
+  assert.deepEqual(t.sentFrames.at(-1).get(66),hexToLed('#5686df',LEVEL.normal*.25));
+  t.sync.setBrightness(1);t.flush();
   assert.equal(t.sync.inputDelay(),6,'the probe reports MIDI arrival to sound');
   t.sync.keyDown(66);t.sync.keyDown(67);assert.equal(t.queued.length,1,'changes within one event share one LED update');t.flush();
   t.sync.keyUp(67);t.sync.keyUp(65);
@@ -150,6 +162,11 @@ for(const opts of [{withNode:false},{hiddenNode:true}]){
     else assert.deepEqual(chordFrame.get(k.index),plainFrame.get(k.index),'other keys are exactly as before');
   }
   assert.ok(withChord.keys.filter(k=>k.lit).length>=3);
+  // Only the screen darkens keys outside a highlighted chord: the board class drives CSS dimming.
+  const svg=html=>html.match(/<svg class="hex-board[^"]*"/)[0];
+  assert.match(svg(ws.render()),/has-chord/,'the on-screen board dims outside a highlighted chord');
+  assert.equal((ws.render().match(/\bis-marked\b/g)??[]).length,withChord.keys.filter(k=>k.marked).length,'chord keys stay undimmed');
+  ws.clearHighlight();assert.doesNotMatch(svg(ws.render()),/has-chord/,'no chord, no dimming');
   ws.clearHighlight();ws.showScale(scaleCoords,'test scale');
   const withScale=ws.deviceSnapshot(),scaleFrame=ledFrame(withScale);
   for(const k of withScale.keys.filter(k=>k.enabled)){

@@ -4,7 +4,7 @@ import {fromCommas} from '../dist/tuning.mjs';
 import {targetSet} from '../dist/ji-limit-engine.mjs';
 import {chordIdentity} from '../dist/chord-identity-v2.mjs';
 import {harmonicIdentity} from '../dist/harmonic-equivalence.mjs';
-import {harmonicLines,enumerateJISubsets,analyzeJIDyads,curatedJIChords,simplestRotation,orientedJIInterpretation} from '../dist/harmonic-ji-chords.mjs';
+import {harmonicLines,enumerateJISubsets,analyzeJIDyads,curatedJIChords,simplestRotation,orientedJIInterpretation,maxOddHarmonic} from '../dist/harmonic-ji-chords.mjs';
 
 const limits=(state,oddLimit,representationPolicy='octave',primeFilter=state.basis)=>({
  oddLimit,primeFilter,mappingSubgroup:state.basis,representationPolicy
@@ -82,5 +82,15 @@ for(const input of ['10:12:15','1/6:5:4','1/8:6:5:4'])assert.equal(rotation(inpu
 assert.equal(rotation('4:6:7'),'6:7:8');assert.equal(rotation('10:12:15'),'1/6:5:4','minor pairs with the major run');assert.equal(rotation('3:5:7'),'5:6:7','without an even-rooted run the smallest terms win');assert.equal(rotation('2:3:4'),'2:3','a doubled fifth is the two-note chord');
 assert.notEqual(rotation('4:5:6'),rotation('10:12:15'),'major and minor stay distinct');
 assert.equal(simplestRotation(chordIdentity('1:2'),true),null,'a single pitch class has no chord');
+
+// Ambitonal means self-reciprocal; otherwise the lower maximum odd harmonic is the otonal side.
+assert.equal(maxOddHarmonic(['8','9','10','12']),9n);
+const formOf=input=>orientedJIInterpretation(input,{kind:'test'});
+assert.equal(formOf('4:5:6').presentationForm,'otonal');assert.equal(formOf('10:12:15').presentationForm,'utonal');assert.equal(formOf('10:12:15').preferredLabel,'1/6:5:4');
+assert.equal(formOf('8:9:10:12').presentationForm,'otonal','max odd 9 beats the reciprocal 30:36:40:45 at 45');
+assert.equal(formOf('1:3:9').presentationForm,'self');assert.equal(formOf('1:3:9').preferredLabel,'1:3:9','ambitonal chords are written otonally');
+assert.deepEqual(['1:3:15','1:5:15'].map(input=>formOf(input).presentationForm),['otonal','utonal'],'equal maxima are not ambitonal unless self-reciprocal');
+const fifthPair=curatedJIChords().filter(row=>row.pairId===curatedJIChords().find(row=>row.label==='2:3:4').pairId);
+assert.deepEqual(fifthPair.map(row=>[row.label,row.form]),[['2:3:4','otonal'],['1/4:3:2','utonal']]);
 
 console.log('Target-derived harmonic axes, reciprocal families, bounded subsets, dyad failures and source provenance passed.');

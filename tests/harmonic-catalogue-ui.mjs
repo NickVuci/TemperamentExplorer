@@ -93,7 +93,42 @@ assert.equal(spellings(),'Otonal <b>5:6:8</b> · Utonal <b>1/24:20:15</b>');
 assert.deepEqual(lineCents('JI'),[0,1200*Math.log2(6/5),1200*Math.log2(8/5)].map(c=>Number(c.toFixed(3))),'JI ticks follow the rotated ratios');assert.deepEqual(lineCents('tempered'),heard.map(c=>Number(c.toFixed(3))),'tempered ticks follow rotation playback');
 click('rotation',{index:'2'});assert.match(ui.render(),/data-chord-row="2"[^>]*class="is-active-rotation" aria-current="true"/);
 assert.equal(spellings(),'Otonal <b>3:4:5</b> · Utonal <b>1/20:15:12</b>');
-click('rotation',{index:'0'});assert.doesNotMatch(ui.renderParts({directory:true}).detail,/pitch classes/);
+const heading=()=>ui.render().match(/<h4>([^<]*)/)[1].trim(),currentRotation=()=>ui.render().match(/class="harmony-current-rotation"[^>]*>Rotation <b>([^<]*)<\/b>/)?.[1];
+const rotationLabels=()=>[...ui.render().match(/class="harmony-rotations"[^]*?<\/div>/)[0].matchAll(/data-harmony-action="rotation"[^>]*>([^<]*)</g)].map(m=>m[1]);
+assert.equal(heading(),'4:5:6','the directory chord stays at the top');assert.equal(currentRotation(),'3:4:5','the selected rotation is shown beneath it');
+assert.deepEqual(rotationLabels().sort(),['3:4:5','4:5:6','5:6:8'],'otonal rotations use otonal labels');
+await ui.openInput('10:12:15');assert.equal(heading(),'1/6:5:4');
+assert.ok(rotationLabels().length===3&&rotationLabels().every(label=>label.startsWith('1/')),'utonal rotations use utonal labels');
+const minorRotation=rotationLabels().find(label=>label!=='1/6:5:4'),minorIndex=ui.render().match(new RegExp(`data-index="(\\d)"[^>]*>${minorRotation.replace(/[/]/g,'\\/')}<`))[1];
+click('rotation',{index:minorIndex});assert.equal(heading(),'1/6:5:4');assert.equal(currentRotation(),minorRotation);
+await ui.openInput('8:10:12:15');assert.equal(heading(),'8:10:12:15');assert.match(ui.render(),/form-badge ambitonal/,'a self-reciprocal chord is ambitonal');assert.ok(rotationLabels().every(label=>!label.startsWith('1/')),'ambitonal rotations use only otonal labels');
+await ui.openInput('4:5:6');click('rotation',{index:'0'});
+assert.match(ui.render(),/Rotation <b>4:5:6<\/b> · root position/,'the directory spelling is root position');
+click('rotation',{index:'1'});assert.match(ui.render(),/Rotation <b>5:6:8<\/b> · 1st inversion of 4:5:6/);click('rotation',{index:'0'});
+// Chords on a bass note: every inversion of a listed chord whose lowest note can stand on a scale degree.
+{
+  change('search','');assert.deepEqual(ui.setBass({scale:'discover',degree:2}),{scale:'discover',degree:2});
+  const list=ui.renderParts({directory:true}).list,entries=ui.bassEntries();
+  assert.match(list,/with Discover scale degree 2 as the bass/);
+  {const firstInversion=entries.findIndex(e=>!e.rootPosition);assert.ok(firstInversion>0&&entries.slice(firstInversion).every(e=>!e.rootPosition),'root positions are listed before inversions');}
+  const majorOn2=entries.find(e=>e.row.preferredLabel==='4:5:6'),minorOn2=entries.find(e=>e.row.preferredLabel==='1/6:5:4');
+  assert.ok(majorOn2&&majorOn2.inversion===1&&majorOn2.label==='5:6:8','major stands on degree 2 in 1st inversion, written 5:6:8');
+  assert.match(list,/<span>5:6:8<\/span><small>1st inversion of 4:5:6<\/small>/);
+  const minorRoots=[];for(let d=0;d<state.n;d++){ui.setBass({scale:'discover',degree:d});if(ui.bassEntries().some(e=>e.row.preferredLabel==='1/6:5:4'&&e.rootPosition&&e.label==='1/6:5:4'))minorRoots.push(d);}
+  assert.ok(minorRoots.length,'minor stands in root position, written in its utonal form, on some degree');ui.setBass({scale:'discover',degree:2});
+  assert.ok(entries.length>2&&entries.every(e=>e.degrees[0]===2&&e.degree===2),'every listed chord has degree 2 in the bass');
+  click('bass-select',{id:majorOn2.row.id,member:String(majorOn2.member)});
+  assert.equal(heading(),'4:5:6');assert.equal(currentRotation(),'5:6:8','choosing an entry opens its chord on that inversion');
+  assert.match(ui.render(),/1st inversion of 4:5:6 · bass on Discover scale degree 2/);
+  const voice=ui.model().detail.voice;assert.ok(voice,'the entry’s occurrence is chosen for voicing');
+  assert.equal(voice.inversion,majorOn2.member,'the voicing has the same note in the bass');
+  assert.equal(voice.degrees[voice.pitches.indexOf(Math.min(...voice.pitches))],2,'Hear voicing and Send to Play sound degree 2 in the bass');
+  assert.equal(ui.setBass({scale:'play',degree:5}),null,'a degree outside the 2-note Play scale is rejected');
+  change('bass','discover:0');assert.deepEqual(ui.bass(),{scale:'discover',degree:0});
+  assert.ok(ui.bassEntries().some(e=>e.row.preferredLabel==='4:5:6'&&e.rootPosition));
+  click('directory-clear');assert.equal(ui.bass(),null,'Clear also clears the bass');
+  click('rotation',{index:'0'});
+}assert.doesNotMatch(ui.renderParts({directory:true}).detail,/pitch classes/);
 click('directory-star',{input:tempered.spelling,label:tempered.preferredLabel});assert.ok(ui.serialize().favourites.some(r=>r.input===tempered.spelling),'ET chords can be starred');
 ui.input({dataset:{harmonyField:'search'},value:''});const etSize=tempered.shape.coordinates.length;click('directory-group',{group:`size-${etSize}`});click('directory-group',{group:`size-${etSize}-et`});
 assert.match(ui.renderParts({directory:true}).list,new RegExp(`data-input="${tempered.spelling}"[^>]*aria-pressed="true"`));

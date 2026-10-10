@@ -826,3 +826,46 @@ give players the isomorphic boards they already know.
 **Consequences.** Temperaments that are not built-in presets open on the current
 board settings until the user saves a layout. A saved default always wins over the
 built-in, and built-ins still apply when saved layouts are unavailable.
+
+## D-037 — Ambitonal means self-reciprocal; maximum odd harmonic orients the rest
+
+**Decision.** `orientPair` in `harmonic-ji-chords.mjs` is the one classifier. A chord
+identical to its exact reciprocal is ambitonal (presentation form `self`) and is
+written in its otonal form. Otherwise the side whose reduced harmonic representation
+has the lower maximum odd harmonic (`maxOddHarmonic`, the largest odd part of its
+integer terms) is otonal and its reciprocal utonal. Equal maxima, such as `1:3:15`
+against `1:5:15` or `2:3:4` against `3:4:6`, fall back to the smaller term sum, then
+the fingerprint.
+
+**Rationale.** A briefly adopted variant also called equal maxima ambitonal. It was
+rejected: ambitonal is reserved for chords that read the same otonally and utonally.
+The odd-harmonic test replaces the term-sum heuristic as the otonal/utonal criterion
+because it has a musical definition and is unchanged by octave shifts and rotation.
+
+**Consequences.** Do not widen ambitonal to equal maxima, and do not restore term sums
+as the primary test. The analysis labels every rotation in the chord's own form.
+Diamond line forms (fixed denominator or numerator) describe geometry, not this
+classification.
+
+## D-038 — Chords on a bass note: directory spelling is root position
+
+**Decision.** Discover's directory and Play's key panel answer "which chords can be built on this
+degree or button, with it as the bass?" from the one chord directory. An entry is a (chord,
+inversion) pair. Root position is the directory spelling: its member 0 is in the bass. Inversion k puts
+the k-th distinct note of that spelling, in close-position order above the root, in the bass. Voicings
+are close: every other note lies within the octave above the bass. The bass filter is shared state,
+saved in sessions, and set from the Discover scale line, the directory, or a Play key.
+
+**Rationale.** Directory rows merge rotations, so "rooted on d" for any rotation would just mean
+"contains d". The bass question needs one inversion per entry. The directory spelling is what the user
+already sees, it is deterministic, and minor is written 1/6:5:4 (10:12:15), so its root position is the
+conventional one. A harmonic-series root was considered and rejected: it gives no conventional root for
+minor, and none at all for chords such as 5:6:7. The consequence that 4:6:7 is the 2nd inversion of
+6:7:8 (the preferred spelling) is accepted. JI chords are ordered by JI pitch, so tempering cannot
+renumber inversions. Voicings fold by the octave, not the period, so divided-octave temperaments keep the
+JI meaning of each note.
+
+**Consequences.** The old Play "Harmonies with key X" list (any chord containing the key, from the
+board-local search) is replaced. The board-local search remains as "More on this layout", so no shape
+with the key lowest is lost. Do not reintroduce "contains the key" as the bass list, and do not define
+root position by harmonic-series roots without revisiting this entry.

@@ -2,7 +2,7 @@ import {createLayoutPresets} from './layout-presets.mjs';
 import {layoutPresetForState,layoutPresetConfigKey,mappingKey,layoutKey} from './layout-preset-data.mjs';
 import {createLayoutChooser} from './layout-chooser.mjs';
 import {BUILTIN_LAYOUTS,builtinLayoutsFor} from './builtin-layouts.mjs';
-import {findScaleMilestones} from './scale-milestones.mjs';
+import {findScaleMilestones,scaleDefaultKey} from './scale-milestones.mjs';
 import {createChordCatalogueWorkspace} from './chord-catalog-ui.mjs';
 import {createHarmonicPlayWorkspace} from './harmonic-play-ui.mjs';
 import {validatePeriodPlacement,validateCopyPeriodStep} from './hexboard-wrapping.mjs';
@@ -22,7 +22,7 @@ import {inspectCoordinateChord} from './harmonic-inspection.mjs';
 import {renderCoordinateAssessment} from './harmonic-inspection-ui.mjs';
 import {chordPlacements,discoverBoardChords,chordsWithKey} from './hexboard-chords.mjs';
 import {MAX_CHORD_TONES} from './chord-identity-v2.mjs';
-import {DEFAULT_ODD_LIMIT,scale,scaleChoices,MAX_SCALE_SIZE} from './engine.mjs';
+import {DEFAULT_ODD_LIMIT,scale,scaleChoices,MAX_SCALE_SIZE,mapRatio} from './engine.mjs';
 import {formatPrimeFilter,validateJILimits} from './ji-limit-engine.mjs';
 import {baseOptions,flipPlacementVector,migrateLayoutMirrors,buildBoard,layoutCandidates,boardMatches,exportHexboard,fillBoard,cents,commands} from './hexboard.mjs';
 import {mod} from './pitch.mjs';
@@ -35,7 +35,7 @@ const defaults=()=>({periodWrapping:true,showPeriodLabels:false,periodPlacement:
 const validColorMap=(map,min,max,excluded)=>map&&typeof map==='object'&&!Array.isArray(map)&&Object.entries(map).every(([n,v])=>/^\d+$/.test(n)&&Number(n)>=min&&Number(n)<=max&&!excluded?.has(Number(n))&&validColor(v));
 // matchPlayed reads held keys against the harmony directory (harmony mode B); null keeps the
 // curated recognizer's reading.
-export function createHexboardWorkspace({matchPlayed=()=>null,getJI,setJI,getStates,play,refresh,onCatalogueRefresh=refresh,notify,download,getHz,onCollect,onInspect,getHarmonicMode=()=>false,onBrowseHarmony=()=>{},onFitHarmonicScale=()=>{},request=globalThis.fetch}){
+export function createHexboardWorkspace({matchPlayed=()=>null,getJI,setJI,getStates,play,refresh,onCatalogueRefresh=refresh,notify,download,getHz,onCollect,onInspect,getHarmonicMode=()=>false,getBassEntries=()=>[],onBrowseHarmony=()=>{},onFitHarmonicScale=()=>{},request=globalThis.fetch}){
  const freshFinder=()=>({size:3,reach:4,other:false,groups:[],selected:-1,placement:0,searched:false,limited:false,signature:'',imported:null});
  let scaleHighlight=null,catalogueHighlight=null,coverageKey=null,keepRestoredBase=false;
  const refreshLayoutChooser=()=>{const doc=globalThis.document,host=doc?.querySelector('.layout-recommendations');if(!host)return;const active=doc.activeElement,editing=active?.dataset?.layoutName!==undefined,selection=editing?[active.selectionStart,active.selectionEnd]:null;const cfg=config(),saved=savedLayouts.catalog();host.outerHTML=chooser.markup(state(),cfg,saved,'chooser');const options=doc.querySelector('.layout-recommendation-options');if(options)options.outerHTML=chooser.markup(state(),cfg,saved,'advanced');if(editing){const input=doc.querySelector('[data-layout-name]');if(input&&!input.disabled){input.focus({preventScroll:true});if(selection[0]!=null)input.setSelectionRange(...selection);}}};
@@ -50,7 +50,8 @@ export function createHexboardWorkspace({matchPlayed=()=>null,getJI,setJI,getSta
  const harmonicPlay=createHarmonicPlayWorkspace({getState:state,getBoard:()=>buildBoard(state(),config()),getNear:()=>config().center,refresh,notify,play,onCollect,onBrowse:onBrowseHarmony,onFitScale:onFitHarmonicScale,onHighlight:value=>{catalogueHighlight=value;scaleHighlight=null;}});
  let lastHarmonicMode=false;
  function syncHarmonicMode(){const mode=!!getHarmonicMode();if(mode===lastHarmonicMode)return;lastHarmonicMode=mode;if(mode)catalogue.destroy();else harmonicPlay.suspend();catalogueHighlight=null;}
- function config(){const s=state(),cfg=configs[0],bs=baseOptions(s);if(getJI){const ji=getJI(s);cfg.limit=ji.limit;cfg.primeLimit=ji.primeLimit??null;cfg.tolerance=ji.tol;}const coverage=findScaleMilestones(s,getJI?{limit:cfg.limit,primeLimit:cfg.primeLimit}:undefined);if(coverage.key!==coverageKey){if(!keepRestoredBase&&bs.some(v=>v.n===coverage.intervalMOS?.n)){cfg.base=coverage.intervalMOS.n;cfg.offset=0;}coverageKey=coverage.key;keepRestoredBase=false;}if(!bs.some(v=>v.n===cfg.base))cfg.base=(bs.find(v=>v.n===7)||bs.filter(v=>v.n<s.n).at(-1)||bs[0])?.n||2;if(!bs.length&&['bosanquet','compressed'].includes(cfg.style))cfg.style='period';cfg.base=Math.min(cfg.base,s.n);cfg.offset=Math.max(0,Math.min(cfg.offset,s.n-cfg.base));return cfg;}
+ function config(){const s=state(),cfg=configs[0],bs=baseOptions(s);if(getJI){const ji=getJI(s);cfg.limit=ji.limit;cfg.primeLimit=ji.primeLimit??null;cfg.tolerance=ji.tol;}const target=getJI?{limit:cfg.limit,primeLimit:cfg.primeLimit}:undefined,defaultKey=scaleDefaultKey(s,target);// The automatic base follows mapping and JI-target changes, never a retuning.
+if(defaultKey!==coverageKey){const coverage=findScaleMilestones(s,target);if(!keepRestoredBase&&bs.some(v=>v.n===coverage.intervalMOS?.n)){cfg.base=coverage.intervalMOS.n;cfg.offset=0;}coverageKey=defaultKey;keepRestoredBase=false;}if(!bs.some(v=>v.n===cfg.base))cfg.base=(bs.find(v=>v.n===7)||bs.filter(v=>v.n<s.n).at(-1)||bs[0])?.n||2;if(!bs.length&&['bosanquet','compressed'].includes(cfg.style))cfg.style='period';cfg.base=Math.min(cfg.base,s.n);cfg.offset=Math.max(0,Math.min(cfg.offset,s.n-cfg.base));return cfg;}
  function buttonColorContextKey(){const s=state(),cfg=config();return JSON.stringify([mappingKey(s),s.n,s.mode,layoutKey(cfg),cfg.layerGrowth]);}
  function rememberButtonColorContext(){buttonColorContext=buttonColorContextKey();}
  function syncButtonColorContext(){const next=buttonColorContextKey();if(buttonColorContext!==null&&buttonColorContext!==next){config().keyColors={};config().degreeColors={};}buttonColorContext=next;}
@@ -135,7 +136,7 @@ export function createHexboardWorkspace({matchPlayed=()=>null,getJI,setJI,getSta
   const positions=b.keys.map(k=>{const x=k.x*pitch/2,y=k.y*pitch*Math.sqrt(3)/2;return {x:x*Math.cos(angle)-y*Math.sin(angle),y:x*Math.sin(angle)+y*Math.cos(angle)};});
   const visiblePositions=positions.filter((_,i)=>!b.keys[i].command);
   const xmin=Math.min(...visiblePositions.map(p=>p.x))-23,ymin=Math.min(...visiblePositions.map(p=>p.y))-23,width=Math.max(...visiblePositions.map(p=>p.x))-xmin+23,height=Math.max(...visiblePositions.map(p=>p.y))-ymin+23;
-  return `<svg class="hex-board" viewBox="0 0 ${width} ${height}" role="group" aria-label="HexBoard layout: 133 note buttons">${b.keys.map((k,i)=>{if(k.command)return '';const x=positions[i].x-xmin,y=positions[i].y-ymin,pts=Array.from({length:6},(_,j)=>{const a=(j*60-90)*Math.PI/180+angle;return `${x+radius*Math.cos(a)},${y+radius*Math.sin(a)}`;}).join(' '),m=matches[i],look=keyAppearance(k,i,{colors,overlay,scaleOn:scaleHighlight,chord:cfg.chord}),scaleTone=look.scaleTone,tone=look.tone,fill=look.fill,stroke=cfg.chord.includes(i)?'#de88ff':i===cfg.root?'#55b5ff':m.mapped.length&&k.enabled?'#65d6b8':m.other.length&&k.enabled?'#e9bd5d':'#4b5a71';return `<g class="${i===cfg.selected?'is-selected':''} ${look.lit?'is-lit':''} ${cfg.chord.includes(i)?'is-chord':''} ${k.conflict?'is-overlap':''}" ${k.command?'':`role="button" tabindex="0" aria-disabled="${!k.enabled}" data-hex-key="${i}" aria-label="Button ${i}, ${k.degree>=0?'degree '+k.degree:'outside scale'}, ${fmt(k.c)} cents${k.wrapped&&k.enabled?`, period register ${k.register}`:''}${k.conflict?', overlapping period copies':''}${tone>=0?`, chord tone ${tone+1}`:''}${k.enabled?'':', disabled'}"`}><title>Button ${i}${k.wrapped&&k.enabled?` · degree ${k.degree} · register ${k.register>=0?'+':''}${k.register}`:''}${k.conflict?` · Overlap: ${k.placements.map(p=>`degree ${p.degree}, copy ${p.copyRegister}`).join('; ')}`:''} · ${k.command?'Command':`${fmt(k.c)}¢; ${k.m[0]}P + ${k.m[1]}G`}</title><polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="1.4" stroke-linejoin="round"/><text class="hex-key-label" x="${x+(tone>=0?-4:0)}" y="${y+(cfg.showPeriodLabels&&k.wrapped&&k.enabled?-1:4)}" text-anchor="middle" fill="${textColor(fill)}" font-size="${k.command?8:12}">${k.conflict?'×':k.command?'CMD':k.degree>=0?k.degree:'·'}</text>${tone>=0?`<text class="hex-chord-tone-label" x="${x+10}" y="${y+(cfg.showPeriodLabels&&k.wrapped&&k.enabled?-3:2)}" text-anchor="start" fill="${textColor(fill)}" font-size="7" aria-hidden="true">${tone+1}</text>`:''}${cfg.showPeriodLabels&&k.wrapped&&k.enabled?`<text class="hex-period-label" x="${x}" y="${y+12}" text-anchor="middle" fill="${textColor(fill)}" font-size="9">${signed(k.register)}P</text>`:''}${i===cfg.center?`<circle cx="${x}" cy="${y-11}" r="2.5" fill="#dc8847"/>`:''}</g>`;}).join('')}</svg>`;
+  return `<svg class="hex-board${overlay?.keys?.length||cfg.chord.length?' has-chord':''}" viewBox="0 0 ${width} ${height}" role="group" aria-label="HexBoard layout: 133 note buttons">${b.keys.map((k,i)=>{if(k.command)return '';const x=positions[i].x-xmin,y=positions[i].y-ymin,pts=Array.from({length:6},(_,j)=>{const a=(j*60-90)*Math.PI/180+angle;return `${x+radius*Math.cos(a)},${y+radius*Math.sin(a)}`;}).join(' '),m=matches[i],look=keyAppearance(k,i,{colors,overlay,scaleOn:scaleHighlight,chord:cfg.chord}),scaleTone=look.scaleTone,tone=look.tone,fill=look.fill,stroke=cfg.chord.includes(i)?'#de88ff':i===cfg.root?'#55b5ff':m.mapped.length&&k.enabled?'#65d6b8':m.other.length&&k.enabled?'#e9bd5d':'#4b5a71';return `<g class="${i===cfg.selected?'is-selected':''} ${look.lit?'is-lit':''} ${look.marked?'is-marked':''} ${cfg.chord.includes(i)?'is-chord':''} ${k.conflict?'is-overlap':''}" ${k.command?'':`role="button" tabindex="0" aria-disabled="${!k.enabled}" data-hex-key="${i}" aria-label="Button ${i}, ${k.degree>=0?'degree '+k.degree:'outside scale'}, ${fmt(k.c)} cents${k.wrapped&&k.enabled?`, period register ${k.register}`:''}${k.conflict?', overlapping period copies':''}${tone>=0?`, chord tone ${tone+1}`:''}${k.enabled?'':', disabled'}"`}><title>Button ${i}${k.wrapped&&k.enabled?` · degree ${k.degree} · register ${k.register>=0?'+':''}${k.register}`:''}${k.conflict?` · Overlap: ${k.placements.map(p=>`degree ${p.degree}, copy ${p.copyRegister}`).join('; ')}`:''} · ${k.command?'Command':`${fmt(k.c)}¢; ${k.m[0]}P + ${k.m[1]}G`}</title><polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="1.4" stroke-linejoin="round"/><text class="hex-key-label" x="${x+(tone>=0?-4:0)}" y="${y+(cfg.showPeriodLabels&&k.wrapped&&k.enabled?-1:4)}" text-anchor="middle" fill="${textColor(fill)}" font-size="${k.command?8:12}">${k.conflict?'×':k.command?'CMD':k.degree>=0?k.degree:'·'}</text>${tone>=0?`<text class="hex-chord-tone-label" x="${x+10}" y="${y+(cfg.showPeriodLabels&&k.wrapped&&k.enabled?-3:2)}" text-anchor="start" fill="${textColor(fill)}" font-size="7" aria-hidden="true">${tone+1}</text>`:''}${cfg.showPeriodLabels&&k.wrapped&&k.enabled?`<text class="hex-period-label" x="${x}" y="${y+12}" text-anchor="middle" fill="${textColor(fill)}" font-size="9">${signed(k.register)}P</text>`:''}${i===cfg.center?`<circle cx="${x}" cy="${y-11}" r="2.5" fill="#dc8847"/>`:''}</g>`;}).join('')}</svg>`;
  }
  function customColorMarkup(s,cfg,b,k){const exportButton='<button data-hex-action="export" class="primary">Export for HexBoard</button>';if(!k||k.command)return `<section class="hex-custom-color"><div class="hex-controls hex-export-only">${exportButton}</div></section>`;const colors=mosLayers(s,cfg,b),canDegree=k.degree>=0,scope=colorScope==='degree'&&canDegree?'degree':'key',override=scope==='degree'?cfg.degreeColors?.[k.degree]:cfg.keyColors?.[k.index],layerColor=canDegree?colors.layers[colors.degreeLayers[k.degree]]?.color:null,fallback=scope==='degree'?(validColor(cfg.degreeColors?.[k.degree])?cfg.degreeColors[k.degree]:layerColor):keyColor(k,colors),value=validColor(override)?override:fallback,canSetRoot=!(k.wrapped&&!k.enabled);return `<section class="hex-custom-color"><div class="hex-controls"><h4>Button ${k.index}</h4><select data-hex-color-scope aria-label="Apply color to">${option('key','Single button',scope)}${canDegree?option('degree','Scale degree',scope):''}</select><input type="color" data-hex-custom-color="${scope}" value="${value}" aria-label="Color for ${scope==='degree'?`degree ${k.degree}`:`button ${k.index}`}"><button data-hex-action="clear-custom-color" data-hex-color-target="${scope}" ${validColor(override)?'':'disabled'}>Use default color</button>${canSetRoot?'<button data-hex-action="root">Set interval root here</button>':''}${exportButton}</div></section>`;}
  function inspect(s,cfg,b){const k=b.keys[cfg.selected];if(k.wrapped&&!k.enabled)return `<p>${k.conflict?`Overlapping copies: ${k.placements.map(p=>`degree ${p.degree} in copy ${p.copyRegister>=0?'+':''}${p.copyRegister}`).join('; ')}. This key is disabled. Adjust the period placement or use Reset / Auto.`:'No scale copy occupies this key. Adjust the period placement to move copies here.'}</p>`;const m=boardMatches(s,b,cfg.root,cfg.tolerance,cfg.limit,cfg.primeLimit)[cfg.selected];return `<p>${k.degree>=0?`Target degree ${k.degree}`:'Outside target scale'}${k.inMOS?` · ${k.base?'base MOS':'added at scale'} ${mosLayers(s,cfg,b).layers[mosLayers(s,cfg,b).degreeLayers[k.degree]].n}`:''}${k.alias?' · same pitch at other coordinates':''}</p><p><b>${fmt(k.c)} ¢</b> from tonic<br>${k.m[0]} periods + ${k.m[1]} generators${k.wrapped?`<br>Base degree ${k.degree}: ${fmt(k.basePitch)}¢ + register ${k.register>=0?'+':''}${k.register} × ${fmt(s.p)}¢<br>Copy ${signed(k.copyRegister)} × ${signed(b.wrapping.copyPeriodStep)} = ${signed(k.copyPeriods)} periods; extension ${signed(k.extensionRegister)}; anchor ${signed(cfg.register)}`:''}</p><p>From button ${cfg.root}: ${fmt(m.c)}¢ ascending.</p><p class="target-mapped">Mapped: ${m.mapped.map(t=>`${t.label} (${t.error>=0?'+':''}${fmt(t.error)}¢)`).join(', ')||'none within tolerance'}</p><p class="target-hit">Other: ${m.other.map(t=>`${t.label} (${t.error>=0?'+':''}${fmt(t.error)}¢; ${t.reason==='Outside temperament basis'?'outside basis':'alternative'})`).join(', ')||'none within tolerance'}</p>`;}
@@ -209,33 +210,52 @@ export function createHexboardWorkspace({matchPlayed=()=>null,getJI,setJI,getSta
   host.innerHTML=columns?`${labels.size?'':chord}<div class="live-note-columns">${columns}</div>${labels.size?chord:''}`:ratios.length?chord:'<p class="live-notes-empty">Play keys to see note and chord data</p>';
 
  }
- // Chord shapes on this layout that contain the selected key, each with the places it can be played
- // that include that key. Reuses the finder's own search (JI limit, tolerance and reach rules),
- // narrowed to one key, so every result is a chord the Chords panel would also find.
+ // Chords built on the selected key: every directory chord that can stand on the key's Play-scale
+ // degree (getBassEntries, the directory's shared bass list), voiced close above this key's own
+ // register and placed exactly on the layout with this key as the bass, within reach. Shapes the
+ // board-local search (chordsWithKey: the finder's JI limit, tolerance and reach rules) finds with this
+ // key lowest, but which no directory entry voices, follow as "more on this layout".
  let harmonyCache=null;
+ const SIZES=[3,4,5,6],NO_ENTRIES=Object.freeze([]);
  function harmoniesAt({size=3,reach=6}={}){
   let cfg,s,b;
   try{cfg=config();s=state();b=boardFor(s,cfg);}catch{return null;}
-  size=size===4?4:3;reach=Math.max(2,Math.min(12,Math.round(Number(reach))||6));
+  size=SIZES.includes(size)?size:3;reach=Math.max(2,Math.min(12,Math.round(Number(reach))||6));
   const key=b.keys[cfg.selected];
   if(!key||key.command||!key.enabled)return {key:null,size,reach,harmonies:[],count:0};
+  const keyInfo={index:key.index,cents:key.c,degree:key.degree},settings={limit:cfg.limit,tolerance:cfg.tolerance};
+  // One shared empty list keeps the cache valid when there are no entries (or no directory).
+  const listed=key.degree>=0?getBassEntries({scale:'play',degree:key.degree}):NO_ENTRIES,entries=listed===null?null:listed?.length?listed:NO_ENTRIES;
   const signature=JSON.stringify([boardSignature(s,cfg),key.index,size,reach]);
-  if(harmonyCache?.signature===signature)return harmonyCache.result;
-  let found;
-  try{found=chordsWithKey(s,b,key.index,{size,reach,other:false,limit:cfg.limit,primeLimit:cfg.primeLimit,tolerance:cfg.tolerance});}
-  catch(error){
-   // Unsupported chord-search settings are reported to the panel rather than thrown on every poll.
-   const failed={key:{index:key.index,cents:key.c,degree:key.degree},size,reach,harmonies:[],count:0,settings:{limit:cfg.limit,tolerance:cfg.tolerance},error:error.message};
-   harmonyCache={signature,result:failed};return failed;
+  if(harmonyCache?.signature===signature&&harmonyCache.entries===entries)return harmonyCache.result;
+  const octave=s.basis.includes(2)?mapRatio(2,1,s):null,octaveCents=octave?cents(s,octave):null;
+  // Octave-reduced, order-free key of a shape relative to its bass, so an open voicing finds its chord.
+  const classKey=shape=>shape.map(m=>{if(!octave)return m.join(',');const k=Math.floor(cents(s,m)/octaveCents+1e-9);return [m[0]-k*octave[0],m[1]-k*octave[1]].join(',');}).sort().join(';');
+  const harmonies=[],covered=new Map();
+  for(const e of entries??[]){
+   if(e.classCount!==size||e.bass[1]!==key.m[1])continue;
+   // The entry is voiced from the degree's home register; move it to this key's register.
+   const lift=key.m[0]-e.bass[0],coords=e.coords.map(m=>[m[0]+lift,m[1]]),shape=coords.map(m=>[m[0]-coords[0][0],m[1]-coords[0][1]]);
+   covered.set(classKey(shape),e);
+   let placements;try{placements=chordPlacements(b,coords,key.index,{exact:true}).filter(p=>p.keys[0]===key.index&&p.reach<=reach);}catch{continue;}
+   if(!placements.length)continue;
+   placements.sort((x,y)=>x.reach-y.reach||x.keys.join(',').localeCompare(y.keys.join(',')));
+   harmonies.push({source:'directory',label:e.label,role:e.role,rowId:e.row.id,member:e.member,shape,placements,reach:placements[0].reach});
   }
-  const harmonies=[];
-  for(const g of found.groups){
-   const ratios=g.label.split(' · ');
-   const roles=[...new Set(g.placements.map(p=>p.keys.indexOf(key.index)))].sort((x,y)=>x-y).map(note=>({note,ratio:ratios[note]??''}));
-   harmonies.push({label:g.label,shape:g.shape,max:g.max,mapped:g.mapped,total:g.total,roles,placements:g.placements});
+  let error=null;
+  if(size<=4){
+   try{
+    const found=chordsWithKey(s,b,key.index,{size,reach,other:false,limit:cfg.limit,primeLimit:cfg.primeLimit,tolerance:cfg.tolerance});
+    for(const g of found.groups){
+     const placements=g.placements.filter(p=>p.keys[0]===key.index);
+     if(!placements.length||harmonies.some(h=>h.source==='directory'&&JSON.stringify(h.shape)===JSON.stringify(g.shape)))continue;
+     const chord=covered.get(classKey(g.shape));
+     harmonies.push({source:'layout',label:g.label,role:chord?`open voicing of ${chord.label} (${chord.role})`:'not in the directory',shape:g.shape,placements,reach:placements[0].reach,max:g.max,mapped:g.mapped,total:g.total});
+    }
+   }catch(e){error=e.message;}
   }
-  const result={key:{index:key.index,cents:key.c,degree:key.degree},size,reach,harmonies,count:harmonies.length,settings:{limit:cfg.limit,tolerance:cfg.tolerance}};
-  harmonyCache={signature,result};
+  const result={key:keyInfo,size,reach,harmonies,count:harmonies.length,loading:entries===null,settings,...(error?{error}:{})};
+  harmonyCache={signature,entries,result};
   return result;
  }
  // Lights placement `placement` of harmony `index` (from the last harmoniesAt result) on the board.

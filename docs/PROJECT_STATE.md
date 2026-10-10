@@ -432,15 +432,35 @@ rows come from the curated/line producers plus chord-space chords, oriented oton
 the chord-space shapes no JI chord maps onto. A notes-from/to range (3–8, default
 3–6) sets which sizes are listed. Size and type groups start collapsed; type
 filters select JI, otonal, utonal, ambitonal (self-reciprocal chords that read the
-same otonally and utonally), ET or custom lookups. Favourites and recents store exact spellings; an ET row stores the
+same otonally and utonally), ET or custom lookups. Otherwise a chord is otonal when its
+reduced harmonic form has the lower maximum odd harmonic than its reduced subharmonic
+form (`4:5:6`: 5 < 15), and utonal when higher; equal maxima fall back to smaller term
+sums. Favourites and recents store exact spellings; an ET row stores the
 simplest root-relative JI spelling that maps onto its shape, so recalling it
 returns that shape in the active temperament. The analysis shows a form badge (otonal, utonal, ambitonal, other JI,
 essentially tempered, unresolved), the otonal and utonal spellings, pitch classes and
-merged spellings, and the chord's rotations; choosing a rotation re-roots the focus and
+merged spellings, and the chord's rotations, each labelled in the chord's form
+(a utonal chord's as `1/a:b:c`, otonal and ambitonal ones as `a:b:c`). The directory chord stays in the
+heading with the selected rotation beneath it; choosing a rotation re-roots the focus and
 sounds it bass-first within an octave. It lists, for every member pair, the tempered
 interval and each JI interval mapped to it with its tempering error, marking the readings a
 JI chord uses, the commas closing an ET chord's conflicting cycles (`assessET`), and other
 JI chords on the same shape.
+
+Chords on a bass note. One shared bass filter, `{scale:'discover'|'play', degree}`, owned by the
+harmony workspace and saved in sessions, lists the directory's chords that can be built with that scale
+degree as the bass (`bassEntries`). Each entry is one chord in one inversion: root position is the
+directory spelling (member 0 lowest), and inversion k puts the k-th note of that spelling's close-position
+order in the bass, so 5:6:8 is the 1st inversion of 4:5:6 and 1/6:5:4 (10:12:15) is minor in root
+position. `harmonic-bass.mjs` owns the math: classes and order use JI pitches for JI chords (tempering
+never renumbers inversions) and tuned pitches for ET shapes; voicings keep every other note within the
+octave above the bass (not the period, so divided-octave temperaments keep their JI meaning); chords
+without 2 in the basis are exact and only their lowest note can be the bass. Entries come from the
+existing occurrence search, respect the directory's size, type and search filters, and list root
+positions first. The directory shows them in place of the tree when a bass is set (Bass note control, or
+a click on a Discover scale-line degree). Choosing one opens the chord on that rotation, with the voicing
+bass, occurrence and analysis heading ("1st inversion of 4:5:6 · bass on … degree d") to match. The
+analysis names every rotation as root position or an inversion of the directory chord.
 
 The harmony workspace owns the focused harmony: its selected row, rotation and scale
 occurrence (`focus()`). `harmonic-focus.mjs` projects it without changing other selections:
@@ -717,7 +737,18 @@ The Compose tab uses the approved **Compose and practise** layout: one four-bar
 chord/melody time ruler above three responsive panels (saved HexBoard, selected
 chord and compact exact fingerings, practice). Melody bars can be selected, moved
 between degrees or resized on a sixteenth-note grid; each drag is one undoable
-command. Chord inversion raises the lowest sounding voice by the actual
+command. The roll's rows default to the HexBoard layout range: one row per in-scale pitch on the
+composition's saved layout (`boardRows`), with the home period and wider period ranges still selectable. Chord blocks drag along the chord lane and resize from their right edge on
+the same grid (overlaps are allowed), and show the chord's label with its root as a
+scale degree: the first tone, which inversion keeps (`chordRoot`). Below the chord lane, every melody
+row that sounds a note of a chord is tinted for that chord's span, and the root more strongly
+(`chordGuides`); notes match by octave class (exact without 2 in the basis), never by period. A Root
+lane under the melody rows shows each chord's root degree over its span. Clicking an empty spot picks a
+time on the sixteenth grid; clicking a chord's root picks that chord. Either opens a picker: choose a root
+(scale degree), then one of the directory's chords built on it as the bass (the shared bass entries for the
+Play scale), voiced close above that degree's home coordinate. The harmony is added at the time with the
+chosen add length, or replaces the picked chord at its time and length, as one undoable edit. Because the
+directory follows the app, the picker only lists harmonies while the app matches the composition's setup. Chord inversion raises the lowest sounding voice by the actual
 temperament period and preserves its tone identity. Missing exact fingerings are
 shown explicitly. The note list keeps outside-scale notes editable.
 
@@ -728,7 +759,9 @@ place. The composition board and the physical HexBoard read the composition's
 saved geometry and tuning while Compose is active; mouse/device auditions use
 the app's central tonic and sound through the shared audio engine. The header Audio menu controls all tabs; legacy project sound fields remain readable but do not override playback. Follow lights highlights
 exact-coordinate matches. This remains guided playback without performance
-judging. `composition-board.mjs` reuses `buildBoard`, `chordPlacements` and the
+judging. The board's Chords / Melody / Both toggle filters what it lights (sounding cues by track, and
+the selected chord's fingering unless only the melody is shown); it is display-only and never changes
+playback. `composition-board.mjs` reuses `buildBoard`, `chordPlacements` and the
 existing colour engine; it does not define another pitch or fingering engine.
 
 
@@ -812,7 +845,10 @@ own layout colour and outline. A chord placement, selected chord keys or a scale
 and leaves the other keys as they were; only its keys shine a level brighter (on screen a brightness filter,
 `.is-lit`; on the board full brightness instead of half). A highlighted key's number shows its place in the
 chord, 1 being the root. Keys being played, by the board or the mouse, are white on the board.
-Disabled and command keys are dark.
+Disabled and command keys are dark. On screen only, a highlighted chord (`.has-chord`) also darkens every
+key outside it (`.is-marked`); the LEDs keep the other keys unchanged. While connected, Settings shows a
+HexBoard brightness slider (5–100%, remembered in the browser). The firmware has no brightness command,
+so `ledFrame` scales every LED value it sends.
 
 Keeping the board current. After entering host mode the app waits 300 ms for the board to settle,
 then paints. LEDs travel in paced messages of at most 32 LEDs. While connected, the app is sampled every
@@ -844,25 +880,30 @@ held from the previous fingering must be lifted before the next one counts. The 
 board's own (nearest the tonic first). Not covered: scoring or timing targets, a saved history, and
 fingering practice away from the Play view.
 
-## Harmonies with a key
+## Chords on a key (Play)
 
-A collapsible panel at the top of the Play view lists, for the key selected on the board (a mouse click or a
-HexBoard press), every chord of 3 or 4 notes that includes that key within a chosen reach (3-10 keys). Each
-row gives the chord's JI ratios, the role the key plays (root or another note), how many places on the layout
-it can be played with that key, its worst tuning error and how many of its intervals map. Choosing a row lights
-one place on the screen and on a connected HexBoard; Previous/Next step through the places and Hear sounds them.
-The chosen chord also becomes the Fingering practice chord, so its fingerings can be practised as a game.
+A collapsible panel at the top of the Play view lists, for the key selected on the board (a mouse click or
+a HexBoard press), the chords that can be built on it with that key as the bass. Directory chords come
+first: the shared bass entries for the key's Play-scale degree, each voiced close above the key's own
+register and placed exactly on the layout with the key as the lowest note, within the chosen reach (3–10
+keys) and size (3–6 notes). "More on this layout" then lists 3- and 4-note shapes the board-local search
+finds with the key lowest that no directory entry voices, as an open voicing of a directory chord or as
+not in the directory. Choosing a row lights one place on the screen and on a connected HexBoard;
+Previous/Next step through the places and Hear sounds them. The chosen chord becomes the Fingering
+practice chord, and a directory chord also opens in Discover's analysis. A newly selected key becomes the
+shared bass while "Follow what I play" is on, so Discover lists the same chords.
 
 | Concern | Owner |
 | --- | --- |
+| Bass/inversion math (classes, close voicings, inversions on a degree) | `harmonic-bass.mjs` |
+| Shared bass filter and entries over the directory | `harmonic-catalogue-ui.mjs#bassEntriesFor` / `#setBass` / `#chooseBass` |
 | Exhaustive key-centred chord search, same pair rules as the board chord search | `hexboard-chords.mjs#chordsWithKey` |
-| The harmonies query, lighting one, hearing one | `hexboard-ui.mjs#harmoniesAt` / `#showHarmony` / `#hearKeys` |
+| The chords-on-key query, lighting one, hearing one | `hexboard-ui.mjs#harmoniesAt` / `#showHarmony` / `#hearKeys` |
 | Panel markup and events (polls every 250 ms, redraws on visible change) | `key-harmonies-ui.mjs` |
 
-The search starts from the key, so it is small and complete; the whole-board chord search stops at result caps
-(20,000 places) when the tolerance or reach is wide and can then list fewer chords. Chord quality uses the app's
-odd limit and tolerance. A key that is disabled, or a setting the search rejects, shows a message instead of a
-list. Not covered: chords of other sizes, "other approximations" targets, or saving a harmony list.
+While the directory is still listing, only the layout shapes show. A key outside the Play scale has no
+directory chords. Compose's Root lane picks from the same entries. Not covered yet: marking the bass
+degree's keys on the board.
 
 ## Responsiveness
 

@@ -6,6 +6,7 @@ import {defaultScale,withDefaultScale} from '../dist/default-scale.mjs';
 import {findScaleMilestones,scaleCoverageTarget} from '../dist/scale-milestones.mjs';
 import {createPresetWorkspace} from '../dist/preset-ui.mjs';
 import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
+import {applyTuningMethod} from '../dist/tuning-methods.mjs';
 
 // Interval complete: every mapped diamond interval occurs between two notes of the scale, in any mode.
 function intervalCovers(s,options){
@@ -45,6 +46,11 @@ ui.receiveCommas(0,[2,3,5],[{label:'81/80'}]);ui.click({dataset:{userPreset:'gen
 const hex=createHexboardWorkspace({getStates:()=>states,getJI:()=>ji,refresh:()=>{},notify:()=>{},play:()=>{},getHz:()=>220});
 hex.render();assert.equal(hex.serialize().configs[0].base,findScaleMilestones(states[0],ji).intervalMOS.n);
 hex.change({dataset:{hexField:'base'},value:'5'});hex.render();assert.equal(hex.serialize().configs[0].base,5,'manual base survives unchanged context');
+// A retuning changes only tuning: the layout (base MOS, offset, style and every other field) is kept.
+{const before=structuredClone(hex.serialize().configs[0]);
+ for(const tuned of [applyTuningMethod(states[0],{method:'Minimax'}),{...states[0],g:states[0].g+0.4,tuning:'Manual'}]){
+  states[0]=tuned;hex.render();assert.deepEqual(hex.serialize().configs[0],before,`retuning to ${tuned.tuning} keeps the layout`);
+ }}
 const session=hex.serialize();hex.restore(session);hex.render();assert.equal(hex.serialize().configs[0].base,5,'saved manual base survives restore');
 ji={limit:9,primeLimit:3,tol:10};hex.render();assert.equal(hex.serialize().configs[0].base,findScaleMilestones(states[0],ji).intervalMOS.n,'new JI target updates base default');
 hex.restore(null);ji={limit:15,primeLimit:5,tol:10};hex.render();assert.equal(hex.serialize().configs[0].base,7,'reset reapplies first interval-complete MOS');

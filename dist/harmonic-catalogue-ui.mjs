@@ -4,7 +4,8 @@ import {harmonicEntryGeometry,harmonicSelection,sourceShapeVoicing} from './harm
 import {searchShapeOccurrences,occurrenceShape} from './chord-occurrence-v2.mjs';
 import {realizeShape} from './chord-realization-v2.mjs';
 import {chordIdentity} from './chord-identity-v2.mjs';
-import {chordRotations} from './harmonic-ji-chords.mjs';
+import {chordRotations,rotationRootKey} from './harmonic-ji-chords.mjs';
+import {bassInversions,chordClasses,inversionName} from './harmonic-bass.mjs';
 import {matchPlayedChord,rowsByShape} from './played-chord.mjs';
 import {assessET} from './harmonic-et.mjs';
 import {equivalencePolicy,harmonicIdentity,quotientCoordinate,shapeKey} from './harmonic-equivalence.mjs';
@@ -90,17 +91,75 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
  // followPlaying: chords held on the diamond move the focus; reveal: a row to scroll into view once.
  let rotation=0,followPlaying=true,reveal=null,scope='temperament',query='',page=0,selected='',entry=null,result=null,status='idle',error='',progress=null,stamp='',enabled=false,generation=0;
  let selectedRoot='',inversion=0,style='original',periodShift=0,sourceSelection=null,directInputs=[],pendingRestore=null;
+ // bass: the shared "chords on this bass note" filter, {scale:'discover'|'play', degree}; bassChoice: the
+ // bass entry last chosen from that list, so the analysis can name its bass.
+ let bass=null,bassChoice=null,bassMemo=null;
  let sizeMin=3,sizeMax=6,directoryFormFilter='all',recent=[];const closedGroups=new Set(),openGroups=new Set(),expandedGroups=new Set();let favourites=loadFavourites();
  function saveFavourites(){try{globalThis.localStorage?.setItem('temperament-lab-chord-favourites',JSON.stringify(favourites));}catch{}}
  function remember(row){const input=row?rowInput(row):null;if(!input)return;recent=[{input,label:rowLabel(row)},...recent.filter(r=>r.input!==input)].slice(0,6);}
- const occurrences=new BoundedCache(96);
+ const occurrences=new BoundedCache(2048);
  const jobs=createHarmonicCatalogueJobs({workerFactory,onMessage:message=>{if(message.type==='progress'){progress=message.progress;refresh();}}});
  const state=()=>scope.startsWith('play')?getPlayState():getState();
  const tolerance=()=>getSettings(getState()).tol??10;
  function payload(){const s=getState(),ji=getSettings(s);return {state:s,targetSpec:{oddLimit:ji.limit??15,primeFilter:ji.primeLimit??null,mappingSubgroup:s.basis,representationPolicy:s.basis.includes(2)?'octave':'native-exact'},categories:['ji','chords'],
   chordSizes:SIZE_RANGE.filter(size=>size>=sizeMin&&size<=sizeMax),maxRecords:20000,pageSize:50,directInputs};}
- function scopeOccurrences(row){const s=state(),geometry=harmonicEntryGeometry(s,row);if(!geometry)return null;
-  return occurrences.get(JSON.stringify([s.basis,s.rows,s.n,s.mode,row.id,geometry.shape]),()=>searchShapeOccurrences(s,geometry.shape));}
+ function occurrencesIn(s,row){const geometry=harmonicEntryGeometry(s,row);if(!geometry)return null;
+  return {geometry,found:occurrences.get(JSON.stringify([s.basis,s.rows,s.n,s.mode,row.id,geometry.shape]),()=>searchShapeOccurrences(s,geometry.shape))};}
+ function scopeOccurrences(row){return occurrencesIn(state(),row)?.found??null;}
+ const bassState=()=>bass?.scale==='play'?getPlayState():getState();
+ // Display spelling of one JI rotation: a utonal chord's as 1/a:b:c, otonal and ambitonal ones as a:b:c.
+ const rotationText=(row,r)=>formOf(row)==='utonal'?'1/'+[...r.dualTerms].reverse().join(':'):r.label;
+ // Position in rotations() of the rotation rooted on one geometry member: JI rotations by root ratio,
+ // tempered shapes by member.
+ function rotationIndexFor(row,geometry,member,octave){
+  if(row.kind!=='ji')return member;
+  const tone=geometry.tones?.[member];if(!tone)return 0;
+  const key=rotationRootKey(tone.n,tone.d,octave);
+  return Math.max(0,chordRotations(row.interpretation.identity,octave).findIndex(r=>r.root===key));
+ }
+ /** Every inversion of the listed chords that can stand on the bass degree (see harmonic-bass.mjs). */
+ function bassEntries(rows,value=bass){
+  if(!value)return [];
+  const s=value.scale==='play'?getPlayState():getState();if(value.degree>=s.n)return [];
+  const octave=s.basis.includes(2),key=JSON.stringify([value,s.basis,s.rows,s.n,s.mode,rows.map(row=>row.id)]);
+  if(bassMemo?.result===result&&bassMemo.key===key)return bassMemo.entries;
+  const entries=[];
+  for(const row of rows){
+   let found,list;try{found=occurrencesIn(s,row);if(!found)continue;list=bassInversions(s,found.geometry.shape.coordinates,found.geometry.tones,found.found,value.degree);}catch{continue;}
+   for(const e of list){
+    const index=rotationIndexFor(row,found.geometry,e.member,octave),r=row.kind==='ji'?chordRotations(row.interpretation.identity,octave)[index]:null;
+    entries.push({...e,row,rotation:index,label:r?rotationText(row,r):rowLabel(row),of:rowLabel(row),role:e.rootPosition?'root position':`${inversionName(e.inversion)} of ${rowLabel(row)}`});
+   }
+  }
+  // Root positions first, then inversions; the directory's own order within each.
+  entries.sort((a,b)=>(a.inversion>0)-(b.inversion>0));
+  bassMemo={result,key,entries};return entries;
+ }
+ // The bass list over the directory's visible rows (size range and type filters applied).
+ const directoryBassEntries=(value=bass)=>value?bassEntries(filtered().filter(row=>directorySize(row)>=sizeMin&&directorySize(row)<=sizeMax&&formMatches(row,directoryFormFilter)),value):[];
+ // Opens a bass entry in the analysis on its inversion, remembering its bass.
+ function chooseBassEntry(pick,value=bass){
+  // The voicing's bass (realization variant ids are bass member indices) follows the chosen inversion.
+  entry=pick.row;selected=pick.row.id;inversion=pick.member;sourceSelection=null;rotation=pick.rotation;remember(entry);
+  bassChoice={rowId:pick.row.id,member:pick.member,inversion:pick.inversion,...value};
+  // The analysis shows this occurrence when its scale filter reads the same scale as the bass.
+  selectedRoot=(value.scale==='play')===scope.startsWith('play')?pick.occurrenceId:'';
+ }
+ function setBass(value){
+  const next=value&&['discover','play'].includes(value.scale)&&Number.isInteger(value.degree)&&value.degree>=0?{scale:value.scale,degree:value.degree}:null;
+  const s=next?(next.scale==='play'?getPlayState():getState()):null;
+  bass=next&&next.degree<s.n?next:null;bassMemo=null;bassChoice=null;
+  return bass;
+ }
+ const bassWhere=()=>`${bass.scale==='play'?'Play':'Discover'} scale degree ${bass.degree}`;
+ function renderBassList(entries){
+  if(!entries.length)return `<p class="harmony-empty">No listed chord can have its bass on ${esc(bassWhere())}. Try another degree or widen the filters.</p>`;
+  const sizes=[...new Set(entries.map(e=>e.classCount))].sort((a,b)=>a-b);
+  return `<p class="bass-summary">${entries.length} chord${entries.length===1?'':'s'} with ${esc(bassWhere())} as the bass</p><div class="directory-tree bass-list" aria-label="Chords on this bass">${sizes.map(size=>{
+   const items=entries.filter(e=>e.classCount===size),group='bass-'+size,shown=expandedGroups.has(group)?items:items.slice(0,DIRECTORY_GROUP_PAGE);
+   return `<section class="bass-group"><h5>${SIZE_LABELS[size]??`${size}-note chords`} <small>${items.length}</small></h5><div class="directory-chords">${shown.map(e=>`<div class="directory-chord-row">${button('bass-select',`<span>${esc(e.label)}</span><small>${e.rootPosition?'root position':`${inversionName(e.inversion)} of ${esc(rowLabel(e.row))}`}</small>`,`class="directory-chord bass-chord" data-id="${esc(e.row.id)}" data-member="${e.member}" aria-pressed="${selected===e.row.id&&bassChoice?.member===e.member}"`)}</div>`).join('')}${shown.length<items.length?button('directory-more',`Show all ${items.length}`,`class="directory-more" data-group="${group}"`):''}</div></section>`;
+  }).join('')}</div>`;
+ }
  async function run({force=false,direct=null}={}){
   if(!enabled)return;
   const current=++generation,previous=entry,previousRoot=selectedRoot;error='';status='loading';progress=null;sourceSelection=null;
@@ -197,7 +256,10 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
   if(!entry||!m.geometry)return [];
   const s=m.state,octave=s.basis.includes(2);
   return rotationCache.get(JSON.stringify([entry.id,s.basis,s.rows]),()=>{
-   if(entry.kind==='ji')return chordRotations(entry.interpretation.identity,octave).map(r=>({index:r.index,label:r.label,ratios:r.ratios,utonal:'1/'+[...r.dualTerms].reverse().join(':')}));
+   // Rotations are written in the chord's form: a utonal chord's as 1/a:b:c, otonal and ambitonal ones as a:b:c.
+   if(entry.kind==='ji'){const utonalChord=formOf(entry)==='utonal';
+    return chordRotations(entry.interpretation.identity,octave).map(r=>{const utonal='1/'+[...r.dualTerms].reverse().join(':');
+     return {index:r.index,root:r.root,label:r.label,ratios:r.ratios,utonal,display:utonalChord?utonal:r.label};});}
    let index;try{index=dyadIndex(s);}catch{return [];}
    const coords=m.geometry.shape.coordinates,simplest=items=>[...items].sort((a,b)=>a.ratio.split('/').reduce((p,v)=>p*Number(v),1)-b.ratio.split('/').reduce((p,v)=>p*Number(v),1))[0];
    return coords.map((root,k)=>{const members=coords.map((point,i)=>{if(i===k)return {ratio:'1/1',cents:0};const item=simplest(index.byClassKey[quotientCoordinate(index.policy,[point[0]-root[0],point[1]-root[1]]).key]??[]);return item?{ratio:item.ratio,cents:item.idealCents}:{ratio:'?',cents:0};}).sort((a,b)=>a.cents-b.cents);
@@ -237,9 +299,27 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
   return `<p class="harmony-forms">Otonal <b>${esc(otonal)}</b> · Utonal <b>${esc(utonal)}</b></p>
    ${others.length?`<details class="harmony-aliases"><summary>Also written as (${others.length})</summary><p>${others.map(esc).join(' · ')}</p></details>`:''}`;
  }
+ // The selected rotation, beneath the directory chord it belongs to, named as an inversion of that
+ // chord (its directory spelling is root position) and, when chosen from the bass list, with its bass.
+ function rotationMember(m,current){
+  if(entry.kind!=='ji')return current.index;
+  const octave=m.state.basis.includes(2);
+  return m.geometry.tones?.findIndex(t=>rotationRootKey(t.n,t.d,octave)===current.root)??-1;
+ }
+ function currentRotation(m){
+  const list=rotations(m);if(list.length<2)return '';
+  const current=list[rotation]??list[0];let role='';
+  try{
+   const member=rotationMember(m,current),classes=member>=0?chordClasses(m.state,m.geometry.shape.coordinates,entry.kind==='ji'?m.geometry.tones:null).classes:[];
+   const k=classes.findIndex(c=>c.member===member);
+   if(k>=0)role=k===0?' · root position':` · ${inversionName(k)} of ${esc(rowLabel(entry))}`;
+   if(bassChoice?.rowId===entry.id&&bassChoice.member===member)role+=` · bass on ${bassChoice.scale==='play'?'Play':'Discover'} scale degree ${bassChoice.degree}`;
+  }catch{}
+  return `<p class="harmony-current-rotation" aria-live="polite">Rotation <b>${esc(current.display??current.label)}</b>${role}</p>`;
+ }
  function rotationButtons(m){
   const list=rotations(m);if(list.length<2)return '';
-  return `<h5>Rotations</h5><div class="harmony-rotations" role="group" aria-label="Rotations">${list.map(r=>button('rotation',esc(r.label),`data-index="${r.index}" aria-pressed="${(list[rotation]?.index??0)===r.index}"`)).join('')}</div>`;
+  return `<h5>Rotations</h5><div class="harmony-rotations" role="group" aria-label="Rotations">${list.map(r=>button('rotation',esc(r.display??r.label),`data-index="${r.index}" aria-pressed="${(list[rotation]?.index??0)===r.index}"`)).join('')}</div>`;
  }
  // A JI chord is found by its family (rotations and doublings merge); a tempered chord by its shape,
  // preferring a JI row that maps onto it.
@@ -283,7 +363,7 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
   const m=detailModel(),geometry=m.geometry;
   const followSwitch=`<label class="checklabel harmony-follow"><input type="checkbox" data-harmony-field="follow" ${followPlaying?'checked':''}> Follow what I play</label>`;
   const form=formOf(entry),commas=etCommas();
-  return `${followSwitch}<h4>${esc(rowLabel(entry))}${['ji','tempered'].includes(entry.kind)?` <span class="form-badge ${form}">${FORM_LABELS[form]}</span>`:''}</h4>${geometry?`${chordLineDiagram(m)}${rotationButtons(m)}${chordIntervalMatrix(m)}`:''}${spellings(m)}${entry.kind==='ji'||geometry?`<div class="panelactions">${entry.kind==='ji'?button('dual','Open reciprocal chord'):''}${geometry?`${button('hear',m.voice?'Hear voicing':'Hear mapped notes')}${button('collect','Add to collection',occurrenceShape(m.state,geometry.shape).members.length<2?'disabled':'')}${button('send','Send to Play')}`:''}</div>`:''}
+  return `${followSwitch}<h4>${esc(rowLabel(entry))}${['ji','tempered'].includes(entry.kind)?` <span class="form-badge ${form}">${FORM_LABELS[form]}</span>`:''}</h4>${currentRotation(m)}${geometry?`${chordLineDiagram(m)}${rotationButtons(m)}${chordIntervalMatrix(m)}`:''}${spellings(m)}${entry.kind==='ji'||geometry?`<div class="panelactions">${entry.kind==='ji'?button('dual','Open reciprocal chord'):''}${geometry?`${button('hear',m.voice?'Hear voicing':'Hear mapped notes')}${button('collect','Add to collection',occurrenceShape(m.state,geometry.shape).members.length<2?'disabled':'')}${button('send','Send to Play')}`:''}</div>`:''}
    ${entry.kind==='source'?'<p>Source sounding coordinates and voices are preserved.</p>':''}
    ${entry.kind==='ji'?otherReadings():''}
    ${!geometry?`<p>Outside the mapping subgroup · missing primes ${entry.missingPrimes?.join(', ')??'unknown'}. No sounding coordinates are available.</p>`:`
@@ -306,8 +386,8 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
    const baseRows=rows,inRange=row=>directorySize(row)>=sizeMin&&directorySize(row)<=sizeMax,visible=rows.filter(row=>inRange(row)&&formMatches(row,directoryFormFilter));
    const sizeChoices=SIZE_RANGE.map(size=>[size,size]),quick=`<div class="directory-size-range" role="group" aria-label="Chord size"><span>Notes</span>${select('sizeMin','<span class="sr-only">Fewest notes</span>',sizeMin,sizeChoices)}<span>to</span>${select('sizeMax','<span class="sr-only">Most notes</span>',sizeMax,sizeChoices)}</div>`;
    const formChips=`<div class="directory-form-filters" role="group" aria-label="Chord type">${[['all','All'],['ji','JI'],['otonal','Otonal'],['utonal','Utonal'],['ambitonal','Ambitonal'],['et','ET'],['custom','Custom']].map(([id,label])=>button('directory-form',`${['all','ji','custom'].includes(id)?'':`<i class="directory-dot ${id}" aria-hidden="true"></i>`}${label} <small>${baseRows.filter(row=>inRange(row)&&formMatches(row,id)).length}</small>`,`data-value="${id}" aria-pressed="${directoryFormFilter===id}"`)).join('')}</div>`;
-   parts.controls=`${quick}<div class="directory-search"><label><span class="sr-only">Search chords or enter an exact ratio</span><input type="search" data-harmony-field="search" maxlength="300" value="${esc(query)}" placeholder="Search chords or enter 4:5:6…"></label>${button('lookup','↵','title="Look up exact ratio chord" aria-label="Look up exact ratio chord"')}</div><div class="directory-filter-heading"><span>Quick filters</span>${button('directory-clear','Clear')}</div><div class="directory-quick-filters">${select('scope','Scale membership',scope,[['temperament','Whole temperament'],['discover','Discover scale · anywhere'],['discover-tonic','Discover scale · tonic'],['play','Play scale · anywhere'],['play-tonic','Play scale · tonic']])}</div>${formChips}`+parts.controls.slice(parts.controls.indexOf('</div>')+6);
-   parts.list=visible.length?renderDirectoryTree(visible,selected,openGroups,favourites,expandedGroups):status==='loading'?'<p class="harmony-empty">Loading harmony…</p>':'<p class="harmony-empty">No chords match these filters.</p>';
+   parts.controls=`${quick}<div class="directory-search"><label><span class="sr-only">Search chords or enter an exact ratio</span><input type="search" data-harmony-field="search" maxlength="300" value="${esc(query)}" placeholder="Search chords or enter 4:5:6…"></label>${button('lookup','↵','title="Look up exact ratio chord" aria-label="Look up exact ratio chord"')}</div><div class="directory-filter-heading"><span>Quick filters</span>${button('directory-clear','Clear')}</div><div class="directory-quick-filters">${select('scope','Scale membership',scope,[['temperament','Whole temperament'],['discover','Discover scale · anywhere'],['discover-tonic','Discover scale · tonic'],['play','Play scale · anywhere'],['play-tonic','Play scale · tonic']])}${select('bass','Bass note',bass?`${bass.scale}:${bass.degree}`:'',[['','Any'],...Array.from({length:getState().n},(_,i)=>[`discover:${i}`,`Discover scale · degree ${i}`]),...Array.from({length:getPlayState().n},(_,i)=>[`play:${i}`,`Play scale · degree ${i}`])])}</div>${formChips}`+parts.controls.slice(parts.controls.indexOf('</div>')+6);
+   parts.list=bass&&visible.length?renderBassList(directoryBassEntries()):visible.length?renderDirectoryTree(visible,selected,openGroups,favourites,expandedGroups):status==='loading'?'<p class="harmony-empty">Loading harmony…</p>':'<p class="harmony-empty">No chords match these filters.</p>';
    parts.info=`<details class="directory-recent" aria-label="Recent chords" ${closedGroups.has('recent')?'':'open'}><summary data-harmony-action="directory-group" data-group="recent">Recent</summary>${recent.length?recent.map(r=>savedChordRow(r,favourites)).join(''):'<p>Select a chord to keep it here.</p>'}</details><details class="directory-favourites" aria-label="Favourite chords" ${closedGroups.has('favourites')?'':'open'}><summary data-harmony-action="directory-group" data-group="favourites">Favourites</summary>${favourites.length?favourites.map(r=>savedChordRow(r,favourites)).join(''):'<p>Star a chord to keep it here.</p>'}</details>`+parts.info;
   }
   return parts;
@@ -321,6 +401,7 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
   if(name==='search'&&query===el.value)return true;
   try{if(name==='search'){query=String(el.value).slice(0,300);page=0;}else if(name==='scope'){if(!['temperament','discover','discover-tonic','play','play-tonic'].includes(el.value))return true;scope=el.value;selectedRoot='';sourceSelection=null;}
    else if(name==='follow'){followPlaying=!!el.checked;}
+   else if(name==='bass'){const [scale,degree]=String(el.value).split(':');setBass(scale?{scale,degree:Number(degree)}:null);}
    else if(name==='sizeMin'||name==='sizeMax'){const value=Number(el.value);if(!SIZE_RANGE.includes(value))return true;if(name==='sizeMin'){sizeMin=value;sizeMax=Math.max(sizeMax,value);}else{sizeMax=value;sizeMin=Math.min(sizeMin,value);}}
    else if(name==='root'){selectedRoot=el.value;inversion=0;sourceSelection=null;}
    else if(name==='inversion')inversion=Number(el.value);else if(name==='style')style=el.value;else if(name==='periodShift')periodShift=Math.max(-8,Math.min(8,Math.round(Number(el.value)||0)));
@@ -342,7 +423,8 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
    if(action==='directory-more')expandedGroups.add(b.dataset.group);
    if(action==='directory-group'){const id=b.dataset.group,set=id==='recent'||id==='favourites'?closedGroups:openGroups;if(set.has(id))set.delete(id);else set.add(id);}
    if(action==='directory-form'){directoryFormFilter=['all','ji','otonal','utonal','ambitonal','et','custom'].includes(b.dataset.value)?b.dataset.value:'all';}
-   if(action==='directory-clear'){sizeMin=3;sizeMax=6;directoryFormFilter='all';query='';page=0;}
+   if(action==='directory-clear'){sizeMin=3;sizeMax=6;directoryFormFilter='all';query='';page=0;setBass(null);}
+   if(action==='bass-select'){const pick=directoryBassEntries().find(e=>e.row.id===b.dataset.id&&e.member===Number(b.dataset.member));if(pick)chooseBassEntry(pick);}
    if(action==='directory-recent'){directoryFormFilter='all';}if(action==='directory-recent')void openInput(b.dataset.input).catch(e=>{error=e.message;refresh();});
    if(action==='select'){entry=result?.items.find(row=>row.id===b.dataset.id)??null;selected=entry?.id??'';selectedRoot='';inversion=0;rotation=0;sourceSelection=null;}
    if(action==='select')remember(entry);
@@ -357,10 +439,16 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
   }catch(e){error=e.message;notify(e.message);refresh();}return true;
  }
  function setEnabled(value){if(enabled===value)return;enabled=!!value;if(!enabled){generation++;jobs.cancel();if(status==='loading'){stamp='';status='idle';}}else sync();}
- return {render,renderParts,change,click,sync,setEnabled,openInput,focus,focusExternal,matchPlayed,followPlaying:()=>followPlaying,takeReveal(){const id=reveal;reveal=null;return id;},
+ return {render,renderParts,change,click,sync,setEnabled,openInput,focus,focusExternal,matchPlayed,
+  /** Sets (or clears, with null) the shared bass filter {scale:'discover'|'play', degree}; returns the applied value. */
+  setBass(value){const applied=setBass(value);refresh();return applied;},bass:()=>bass?{...bass}:null,bassEntries:()=>directoryBassEntries(),
+  /** The directory's chords on any bass, without changing the shared filter; null until the directory is listed. */
+  bassEntriesFor(value){sync();if(!result||status==='loading')return null;const s=value?.scale==='play'?getPlayState():getState();if(!value||!Number.isInteger(value.degree)||value.degree<0||value.degree>=s.n)return [];return directoryBassEntries({scale:value.scale==='play'?'play':'discover',degree:value.degree});},
+  /** Opens the directory chord rowId on the inversion with member `member` in the bass (as a bass entry). */
+  chooseBass(value,rowId,member){const pick=directoryBassEntries(value).find(e=>e.row.id===rowId&&e.member===member);if(!pick)return false;chooseBassEntry(pick,value);refresh();return true;},followPlaying:()=>followPlaying,takeReveal(){const id=reveal;reveal=null;return id;},
   input(el){const field=el?.dataset?.harmonyField;if(field!=='search')return false;query=String(el.value).slice(0,300);page=0;refresh();return true;},
   openSelection(value){value=validateHarmonicSelection(value);generation++;jobs.cancel();query='';pendingRestore=null;status='idle';error='';result=null;stamp=catalogueContext(payload()).id;selectedRoot='';sourceSelection=value;entry={id:'source:'+value.voicing.id,kind:'source',shape:value.shape,preferredLabel:value.label};selected=entry.id;refresh();},selection:currentSelection,model:()=>({scope,query,selected,entry,result,status,error,detail:detailModel()}),
-  serialize:()=>({version:1,followPlaying,favourites,recent,sizeRange:[sizeMin,sizeMax],directoryFormFilter,scope,query,directInputs,selected,selectedInterpretation:entry?.interpretationId??null,selectedRoot,inversion,style,periodShift,selection:currentSelection()}),
-  restore(data){followPlaying=data?.followPlaying!==false;if(Array.isArray(data?.favourites)){favourites=validFavourites(data.favourites);saveFavourites();}recent=validFavourites(data?.recent).slice(0,6);[sizeMin,sizeMax]=Array.isArray(data?.sizeRange)&&data.sizeRange.length===2&&data.sizeRange.every(size=>SIZE_RANGE.includes(size))&&data.sizeRange[0]<=data.sizeRange[1]?data.sizeRange:[3,6];directoryFormFilter=['all','ji','otonal','utonal','ambitonal','et','custom'].includes(data?.directoryFormFilter)?data.directoryFormFilter:'all';closedGroups.clear();openGroups.clear();expandedGroups.clear();generation++;jobs.cancel();result=null;entry=null;selected='';selectedRoot='';sourceSelection=null;pendingRestore=null;directInputs=Array.isArray(data?.directInputs)?data.directInputs.filter(v=>typeof v==='string'&&v.length<=300).slice(0,1):[];stamp='';error='';status='idle';scope=['temperament','discover','discover-tonic','play','play-tonic'].includes(data?.scope)?data.scope:'temperament';query=typeof data?.query==='string'?data.query.slice(0,300):'';inversion=Number.isSafeInteger(data?.inversion)?Math.max(0,Math.min(7,data.inversion)):0;style=['original','compact','open'].includes(data?.style)?data.style:'original';periodShift=Number.isSafeInteger(data?.periodShift)?Math.max(-8,Math.min(8,data.periodShift)):0;if(data?.selection)try{pendingRestore={...data,selection:validateHarmonicSelection(data.selection)};}catch{notify('Unsupported harmonic metadata was ignored.');}},
+  serialize:()=>({version:1,followPlaying,favourites,recent,sizeRange:[sizeMin,sizeMax],directoryFormFilter,bass:bass?{...bass}:null,scope,query,directInputs,selected,selectedInterpretation:entry?.interpretationId??null,selectedRoot,inversion,style,periodShift,selection:currentSelection()}),
+  restore(data){followPlaying=data?.followPlaying!==false;if(Array.isArray(data?.favourites)){favourites=validFavourites(data.favourites);saveFavourites();}recent=validFavourites(data?.recent).slice(0,6);[sizeMin,sizeMax]=Array.isArray(data?.sizeRange)&&data.sizeRange.length===2&&data.sizeRange.every(size=>SIZE_RANGE.includes(size))&&data.sizeRange[0]<=data.sizeRange[1]?data.sizeRange:[3,6];directoryFormFilter=['all','ji','otonal','utonal','ambitonal','et','custom'].includes(data?.directoryFormFilter)?data.directoryFormFilter:'all';setBass(data?.bass??null);closedGroups.clear();openGroups.clear();expandedGroups.clear();generation++;jobs.cancel();result=null;entry=null;selected='';selectedRoot='';sourceSelection=null;pendingRestore=null;directInputs=Array.isArray(data?.directInputs)?data.directInputs.filter(v=>typeof v==='string'&&v.length<=300).slice(0,1):[];stamp='';error='';status='idle';scope=['temperament','discover','discover-tonic','play','play-tonic'].includes(data?.scope)?data.scope:'temperament';query=typeof data?.query==='string'?data.query.slice(0,300):'';inversion=Number.isSafeInteger(data?.inversion)?Math.max(0,Math.min(7,data.inversion)):0;style=['original','compact','open'].includes(data?.style)?data.style:'original';periodShift=Number.isSafeInteger(data?.periodShift)?Math.max(-8,Math.min(8,data.periodShift)):0;if(data?.selection)try{pendingRestore={...data,selection:validateHarmonicSelection(data.selection)};}catch{notify('Unsupported harmonic metadata was ignored.');}},
   destroy(){generation++;enabled=false;jobs.destroy();occurrences.entries.clear();}};
 }
