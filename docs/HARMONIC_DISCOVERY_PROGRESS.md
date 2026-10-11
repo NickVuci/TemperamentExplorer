@@ -66,7 +66,7 @@ production source, session format, UI state owner or deployment changed.
 
 | Flow | Current owner and handoff |
 |---|---|
-| Discover → Chords | `app.mjs` routes to `chord-ui.mjs` and `chords.mjs#discoverChords`, currently a degree-first manual analysis. |
+| Discover → Chords | `app.mjs` routes to `chord-ui.mjs`, which uses `harmonic-inspection.mjs` for coordinate inspection, occurrences and scale discovery. |
 | Play → Scale Chords → HexBoard | `hexboard-ui.mjs` hosts `chord-catalog-ui.mjs`/v2 and a separate board layout finder, with Play's own `n`/`mode` from `getLayoutStates()`. |
 | Diamond → Open in Chords | `diamond-workspace.mjs` sends coordinates and a label; `fitDiamondChord` can select a fitting Discover scale/mode, then `chordWorkspace.fromCoordinates` receives them. Typed JI identity is not carried. |
 | Play catalogue → Inspect/Collect | Inspect adopts a state and coordinates into Discover manual Chords; Collect creates material. |
@@ -968,11 +968,11 @@ placements into assessment, shows coherent JI/ET/not-dyadic/unknown states and
 finite comma evidence, and retains its original note, inversion and audition
 controls. Repeated harmonic classes retain their voices without a false ET claim.
 
-`chords.mjs` is now a degree/session adapter. Occurrences delegate to
-`searchShapeOccurrences`; Find delegates to the shared bounded coordinate search.
-No active independent manual occurrence/search-cache/target-selection rule
-remains. Old pin state and voicing round-trip, legacy pins are visible, and the
-manual inspector has an explicit return to the harmonic catalogue.
+The manual inspector uses `harmonic-inspection.mjs` directly. Occurrences use
+`searchShapeOccurrences`; Find uses the shared bounded coordinate search. No
+active independent manual occurrence/search-cache/target-selection rule remains.
+Old pin state and voicing round-trip, legacy pins are visible, and the manual
+inspector has an explicit return to the harmonic catalogue.
 
 **Checks:** `node tests/harmonic-inspection.mjs` exit 0. Independently fixed
 examples: didymic meantone ET at L=9 and JI-liftable at L=27 with unchanged shape

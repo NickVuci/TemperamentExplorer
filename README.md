@@ -32,7 +32,7 @@ or development dependency was added by the refactor.
 | Comma kernels, EDO targets, fitting and tuning-method orchestration | `tuning.mjs`, `weil-tuning.mjs`, `tuning-methods.mjs` |
 | JI assignment compatibility and finite-scale approximations | `assignments.mjs` |
 | Matrix spans, modes and pagination | `matrix.mjs` |
-| Chord analysis and discovery | `chords.mjs` |
+| Chord inspection and scale discovery | `harmonic-inspection.mjs`, `chord-*v2.mjs` |
 | Board geometry, export, chord placement and layer colors | `hexboard*.mjs` calculation modules |
 | Web Audio context, scheduling, held voices and cleanup | `audio.mjs` |
 | Pointer/keyboard/Shift-sustain interaction (no oscillator creation) | `hexboard-player.mjs` |

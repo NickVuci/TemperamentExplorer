@@ -6,7 +6,7 @@ import { fromCommas } from '../dist/tuning.mjs';
 import { matrixScale, matrixInterval } from '../dist/matrix.mjs';
 import { buildBoard, exportHexboard } from '../dist/hexboard.mjs';
 import { bestApproximations, bestModeApproximations } from '../dist/assignments.mjs';
-import { discoverChords } from '../dist/chords.mjs';
+import { discoverScaleChords } from '../dist/harmonic-inspection.mjs';
 import { diamondApproximation } from '../dist/tonality-diamond.mjs';
 
 const digest = values => createHash('sha256').update(JSON.stringify(values)).digest('hex');
@@ -33,7 +33,7 @@ for (const original of states) {
     const board = buildBoard(s, cfg), exported = exportHexboard(s, cfg).file;
     boards.push([board, exported.tuningBundle.tuning, exported.tuningBundle.layouts[0].buttonOverrides]);
   }
-  chords.push(discoverChords(original,3,13,10,false));
+  chords.push(discoverScaleChords(original,3,13,10,false));
 }
 const actual = Object.fromEntries(Object.entries({scales,matches,approximations,boards,chords}).map(([key,value])=>[key,digest(value)]));
 const expected = {

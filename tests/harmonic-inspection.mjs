@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import {makeState,mapRatio,scale,targets,classifyTargets,mod} from '../dist/engine.mjs';
 import {fromCommas} from '../dist/tuning.mjs';
 import {noteCoordinate,approximationSpan} from '../dist/pitch.mjs';
-import {inspectCoordinateChord,enumerateCoordinateChords} from '../dist/harmonic-inspection.mjs';
-import {analyzeChord,chordOccurrences,discoverChords} from '../dist/chords.mjs';
+import {inspectCoordinateChord,enumerateCoordinateChords,discoverScaleChords} from '../dist/harmonic-inspection.mjs';
+import {searchShapeOccurrences} from '../dist/chord-occurrence-v2.mjs';
 import {renderCoordinateAssessment} from '../dist/harmonic-inspection-ui.mjs';
 import {createChordWorkspace} from '../dist/chord-ui.mjs';
 import {buildBoard} from '../dist/hexboard.mjs';
@@ -51,10 +51,10 @@ for(const other of [false,true]){
 }
 const notes=scale(s).notes.map((n,i)=>({degree:i,c:n.c,coordinate:noteCoordinate(s,n)}));
 const tiny=enumerateCoordinateChords(s,notes,{maxNodes:1});assert.equal(tiny.limited,true);assert.equal(tiny.complete,false);
-assert.ok(discoverChords(s).complete);
+assert.ok(discoverScaleChords(s).complete);
 const degrees=major.map(m=>scale(s).notes.findIndex(n=>n.k===m[1]));assert.ok(degrees.every(i=>i>=0));
-const occurrences=chordOccurrences(s,degrees);assert.ok(occurrences.length);assert.ok(occurrences.some(d=>d.join()===degrees.toSorted((a,b)=>a-b).join()));
-const manual=analyzeChord(s,degrees,5,10,true,5,{[degrees[0]]:1});assert.equal(manual.assessment.status,'ji-liftable');
+const occurrences=searchShapeOccurrences(s,{coordinates:degrees.map(i=>noteCoordinate(s,scale(s).notes[i]))}).completeOccurrences.map(o=>o.degrees.toSorted((a,b)=>a-b));assert.ok(occurrences.length);assert.ok(occurrences.some(d=>d.join()===degrees.toSorted((a,b)=>a-b).join()));
+const manual=inspectCoordinateChord(s,major.map((m,i)=>[m[0]+(i===0?1:0),m[1]]),{limit:5,tolerance:10,other:true,primeLimit:5});assert.equal(manual.assessment.status,'ji-liftable');
 let played=[];const states=[s],ui=createChordWorkspace({getStates:()=>states,play:p=>played=p,refresh(){},notify:m=>assert.match(m,/Chord pinned/)});
 ui.fromCoordinates(major,'4:5:6');assert.match(ui.render(),/Coherent JI harmony/);
 ui.click({dataset:{chord:'invert'}});ui.click({dataset:{chord:'pin'}});const saved=JSON.parse(JSON.stringify(ui.serialize()));

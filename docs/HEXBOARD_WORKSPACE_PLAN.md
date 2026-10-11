@@ -107,4 +107,4 @@ fingering game.
 
 ### Not Play-specific (out of scope)
 
-`chord-ui.mjs`/`chords.mjs` (`chordWorkspace` in `app.mjs`) is Discover's live manual note inspector.
+`chord-ui.mjs` (`chordWorkspace` in `app.mjs`) is Discover's live manual note inspector and uses the shared coordinate inspection services.

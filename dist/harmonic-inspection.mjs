@@ -1,8 +1,8 @@
 // Coordinate consumers adapt to the same target projection, dyad domains and
 // coherent-lift solver as the catalogue. Tuning quality is a separate filter.
-import {DEFAULT_ODD_LIMIT,targets,createTargetClassifier} from './engine.mjs';
+import {DEFAULT_ODD_LIMIT,targets,scale,createTargetClassifier} from './engine.mjs';
 import {targetSet,validateJILimits} from './ji-limit-engine.mjs';
-import {coordinateCents,mod,approximationSpan} from './pitch.mjs';
+import {coordinateCents,mod,approximationSpan,noteCoordinate} from './pitch.mjs';
 import {projectCoordinateShape} from './chord-projection-v2.mjs';
 import {buildDyadIndex,domainsForShape} from './harmonic-dyad-graph.mjs';
 import {assessET} from './harmonic-et.mjs';
@@ -65,4 +65,21 @@ export function enumerateCoordinateChords(s,notes,{size=3,maxNodes=250000,maxRes
   for(let j=start;j<=notes.length-(size-ds.length);j++)if(ds.every(i=>pairs[i][j]))visit([...ds,j],j+1);
  }
  visit([],0);return {count,limited,complete:!limited,visited,bounds:{maxNodes,maxResults,maxGroups},groupCount:groups.size};
+}
+
+export function discoverScaleChords(s,size=3,limit=DEFAULT_ODD_LIMIT,tolerance=10,other=true,primeLimit=null){
+ if(s.n>96)throw Error('Automatic chord discovery supports up to 96 notes. Choose a smaller scale to search, or select chords manually in the HexBoard workspace.');
+ if(![3,4].includes(size))throw Error('Choose triads or tetrads.');
+ if(scale(s).collision)return {groups:[],count:0,collision:true};
+ const notes=scale(s).notes.map((note,degree)=>({degree,k:note.k,c:note.c,coordinate:noteCoordinate(s,note)})),groups=new Map();
+ const groupKey=items=>{const generators=items.map(note=>note.k).sort((a,b)=>a-b);return generators.map(k=>k-generators[0]).join(',');};
+ const search=enumerateCoordinateChords(s,notes,{size,groupKey,options:{limit,tolerance,other,primeLimit,span:s.p},onChord:(selected,pairs)=>{
+  const key=groupKey(selected),shape=key.split(',').map(Number),errors=pairs.map(pair=>Math.abs(pair.error)),score=Math.max(...errors),rms=Math.sqrt(errors.reduce((sum,error)=>sum+error*error,0)/errors.length);
+  const item={degrees:selected.map(note=>note.degree),max:score,rms,mapped:pairs.filter(pair=>pair.identity).length,total:errors.length,labels:pairs.map(pair=>pair.label)};
+  let group=groups.get(key);if(!group){group={shape,occurrences:[],best:item};groups.set(key,group);}
+  group.occurrences.push(item);if(score<group.best.max-1e-8||Math.abs(score-group.best.max)<1e-8&&rms<group.best.rms)group.best=item;
+ }});
+ const result={groups:[...groups.values()].sort((a,b)=>a.best.max-b.best.max||a.best.rms-b.best.rms||a.shape.at(-1)-b.shape.at(-1)),count:search.count,collision:false};
+ Object.defineProperties(result,{limited:{value:search.limited},complete:{value:search.complete},bounds:{value:search.bounds},visited:{value:search.visited}});
+ return result;
 }

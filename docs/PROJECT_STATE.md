@@ -511,9 +511,11 @@ Manual period-placement changes feed full voiced coordinates to assessment.
 The same bounded finite-coordinate candidate search powers degree and board
 adapters, with reach as a physical predicate. Its defaults are 250,000 visited
 nodes, 20,000 occurrences and 1,000 groups, and truncation is displayed explicitly.
-`chords.mjs` contains only degree/session wrappers; `bestChordTarget`, the old
-independent occurrence loop and manual search cache are removed. Historical
-search JSON remains stable while nonenumerable bounds are available to the UI.
+`harmonic-inspection.mjs` owns coordinate-chord inspection and scale discovery;
+the manual workspace consumes those shared services directly. `bestChordTarget`,
+the old independent occurrence loop and manual search cache are removed.
+Historical search JSON remains stable while nonenumerable bounds are available
+to the UI.
 Legacy pins remain usable from the manual inspector. No retired pre-v2 analytical
 engine is reactivated.
 
@@ -935,4 +937,3 @@ key press. The read-only polls (LED sync, fingering game, harmonies panel) share
 The harmony directory renders no chords inside collapsed groups and at most 100 per
 open group until "Show all" is chosen, and memoizes its whole-temperament filtering
 per result, so redraws stay small at high odd limits.
-
