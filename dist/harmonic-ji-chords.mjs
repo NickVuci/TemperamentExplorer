@@ -68,8 +68,8 @@ export function orientedJIInterpretation(input,provenance){
 }
 
 // Pitch-class form of a chord: octave doublings merge and every rotation (choice of root) is one
-// chord. A rotation whose integer form (or exact reciprocal's) is a run of consecutive harmonics on
-// an even number, 2n:2n+1:2n+2…, is preferred (4:5:6 over 3:4:5, 6:7:8 over 4:6:7); otherwise the
+// chord. A rotation whose integer form (or exact reciprocal's) starts on a power of two, 2^k:…, is
+// rooted on the harmonic fundamental and preferred (4:5:6 over 3:4:5, 4:6:7 over 6:7:8); otherwise the
 // smallest terms win. Both tests read the otonal side of the rotation's exact otonal/utonal pair, so a
 // chord and its reciprocal choose matching rotations (major 4:5:6, minor 1/6:5:4).
 const gcdBig=(a,b)=>{while(b){[a,b]=[b,a%b];}return a<0n?-a:a;};
@@ -104,11 +104,11 @@ export function rotationRootKey(n,d,octave){
 export function simplestRotation(identity,octave){
  const rotations=chordRotations(identity,octave);
  if(rotations.length<2)return null;
- const sum=terms=>terms.reduce((a,b)=>a+b,0n),run=terms=>terms[0]%2n===0n&&terms.every((t,i)=>i===0||t-terms[i-1]===1n);
+ const sum=terms=>terms.reduce((a,b)=>a+b,0n),powerOfTwoRoot=terms=>(terms[0]&(terms[0]-1n))===0n;
  let best=null;
  for(const rotation of rotations){
   const own=rotation.terms,dual=rotation.dualTerms;
-  const rank=[run(own)||run(dual)?0n:1n,sum(own)<sum(dual)?sum(own):sum(dual),own.at(-1),sum(own)];
+  const rank=[powerOfTwoRoot(own)||powerOfTwoRoot(dual)?0n:1n,sum(own)<sum(dual)?sum(own):sum(dual),own.at(-1),sum(own)];
   const spelling=rotation.ratios.join(':');
   const order=best?rank.reduce((d,v,i)=>d||(v<best.rank[i]?-1:v>best.rank[i]?1:0),0)||(spelling<best.spelling?-1:spelling>best.spelling?1:0):-1;
   if(order<0)best={rank,spelling,classCount:rotations.length,index:rotation.index};

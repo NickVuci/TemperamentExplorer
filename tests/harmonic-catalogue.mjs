@@ -9,7 +9,7 @@ const state=makeState('meantone');
 const query={state,directInputs:['4:5:6','5:6:8','1/6:1/5:1/4'],pageSize:5};
 const result=await queryCatalogue(query),major=await getHarmonicEntry(result,chordIdentity('4:5:6').fingerprint);
 const raised=await getHarmonicEntry(result,chordIdentity('5:6:8').fingerprint);
-// Rotations and octave doublings are one chord, written as the even-rooted harmonic run 4:5:6.
+// Rotations and octave doublings are one chord, written with the power-of-two root 4:5:6.
 assert.equal(result.status,'complete');assert.equal(major.id,raised.id);assert.equal(major.preferredLabel,'4:5:6');
 assert.ok(major.mergedInterpretationIds.includes(chordIdentity('4:5:6').fingerprint)&&major.mergedInterpretationIds.includes(chordIdentity('5:6:8').fingerprint));
 assert.ok(major.aliases.includes('5:6:8')&&major.aliases.includes('2:3:4:5:6'));

@@ -421,9 +421,9 @@ independently of the board.
 It lists one directory of JI and essentially tempered (ET) chords, relisted
 automatically whenever the temperament, JI limits or size range change. A JI chord
 is its octave-reduced pitch-class set: octave doublings and rotations (inversions)
-merge into one row (`simplestRotation`). A rotation whose integer form is a run of
-consecutive harmonics on an even number (2n:2n+1:2n+2…) is preferred, so major is `4:5:6`
-and `6:7:8` beats `4:6:7`; otherwise the smallest integer terms win. Both rules read the
+merge into one row (`simplestRotation`). A rotation whose integer form starts on a power
+of two (2^k:…, rooted on the harmonic fundamental) is preferred, so major is `4:5:6`
+and `4:6:7` beats `6:7:8`; otherwise the smallest integer terms win. Both rules read the
 otonal side of the rotation's exact otonal/utonal pair, so minor is `1/6:5:4`, and size counts distinct pitch classes. The row lists every merged spelling
 as an alias and in `mergedInterpretationIds` (matched by `hasInterpretation`), so a
 lookup, favourite or saved selection of any spelling opens or stars the merged chord;

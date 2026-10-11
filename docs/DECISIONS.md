@@ -860,8 +860,8 @@ saved in sessions, and set from the Discover scale line, the directory, or a Pla
 "contains d". The bass question needs one inversion per entry. The directory spelling is what the user
 already sees, it is deterministic, and minor is written 1/6:5:4 (10:12:15), so its root position is the
 conventional one. A harmonic-series root was considered and rejected: it gives no conventional root for
-minor, and none at all for chords such as 5:6:7. The consequence that 4:6:7 is the 2nd inversion of
-6:7:8 (the preferred spelling) is accepted. JI chords are ordered by JI pitch, so tempering cannot
+minor, and none at all for chords such as 5:6:7. With 4:6:7 as the preferred spelling, 6:7:8 is its
+1st inversion. JI chords are ordered by JI pitch, so tempering cannot
 renumber inversions. Voicings fold by the octave, not the period, so divided-octave temperaments keep the
 JI meaning of each note.
 

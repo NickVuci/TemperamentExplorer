@@ -75,11 +75,11 @@ assert.deepEqual(permutedLine.partialNumbers,l5Otonal.partialNumbers);
 assert.deepEqual(permutedLine.sourceAxisRows,l5Otonal.sourceAxisRows,'axis and cell provenance is stable under target/source ordering');
 assert.equal(permutedLine.familyId,l5Otonal.familyId);
 
-// Octave doublings and rotations are one chord. Even-rooted harmonic runs (2n:2n+1:…) win, then the smallest terms.
+// Octave doublings and rotations are one chord. Power-of-two roots (2^k:…) win, then the smallest terms.
 const rotation=(input,octave=true)=>{const best=simplestRotation(chordIdentity(input),octave);return best&&orientedJIInterpretation(best.spelling,{kind:'test'}).preferredLabel;};
 for(const input of ['4:5:6','5:6:8','3:4:5','1:3:5','2:3:4:5:6'])assert.equal(rotation(input),'4:5:6',input);
 for(const input of ['10:12:15','1/6:5:4','1/8:6:5:4'])assert.equal(rotation(input),rotation('10:12:15'),input);
-assert.equal(rotation('4:6:7'),'6:7:8');assert.equal(rotation('10:12:15'),'1/6:5:4','minor pairs with the major run');assert.equal(rotation('3:5:7'),'5:6:7','without an even-rooted run the smallest terms win');assert.equal(rotation('2:3:4'),'2:3','a doubled fifth is the two-note chord');
+assert.equal(rotation('4:6:7'),'4:6:7');assert.equal(rotation('6:7:8'),'4:6:7');assert.equal(rotation('5:6:8:9'),'8:9:10:12');assert.equal(rotation('10:12:15'),'1/6:5:4','minor pairs with the major rotation');assert.equal(rotation('3:5:7'),'5:6:7','without a power-of-two root the smallest terms win');assert.equal(rotation('2:3:4'),'2:3','a doubled fifth is the two-note chord');
 assert.notEqual(rotation('4:5:6'),rotation('10:12:15'),'major and minor stay distinct');
 assert.equal(simplestRotation(chordIdentity('1:2'),true),null,'a single pitch class has no chord');
 
