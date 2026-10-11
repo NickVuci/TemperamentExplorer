@@ -3813,3 +3813,29 @@ footer {
 .root-harmonies button small { font-size: 11px; color: var(--muted); }
 /* The root lane floats at the foot of the scrolling roll, like the bar ruler at its head. */
 .roll-root-lane { position: sticky; bottom: 0; z-index: 5; background: var(--surface); box-shadow: 0 -6px 10px -6px rgba(0,0,0,.55); }
+/* Play panels: toolbar, Key data, and the side panel's Now playing, Chords (two modes) and Practice. */
+#play-view .play-toolbar { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+#play-view .play-toolbar > .layout-recommendations { flex: 1 1 360px; margin-bottom: 0; }
+#play-view .play-toolbar > [data-hex-action="export"] { flex: none; min-height: 42px; }
+#play-view .hex-data-box { margin: 10px 0 0; }
+#play-view .hex-data-box > summary { padding: 6px 0; font-size: 14px; color: var(--muted); }
+#play-view .hex-data-box[open] > summary { color: var(--text); margin-bottom: 8px; }
+.hex-chord-panel > section + section, .hex-chord-panel > section + .fingering-game { border-top: 1px solid var(--line); padding-top: 14px; margin-top: 14px; }
+.hex-chord-panel h3 { margin: 0 0 8px; font-size: 16px; }
+.hex-chord-panel .play-now .hex-live-chord-readout { border-bottom: 0; margin-bottom: 8px; padding-bottom: 6px; min-height: 84px; }
+.play-selection { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.play-selection button { min-height: 30px; padding: 4px 10px; font-size: 13px; }
+.play-chord-modes { display: inline-flex; margin: 0 0 12px; }
+.play-chord-modes button { min-height: 30px; padding: 4px 12px; font-size: 13px; border-radius: 0; margin-left: -1px; }
+.play-chord-modes button:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
+.play-chord-modes button:last-child { border-radius: 0 6px 6px 0; }
+.play-chord-modes button[aria-selected="true"] { border-color: var(--a); background: var(--surface2); color: var(--text); position: relative; }
+.play-chord-search { display: flex; align-items: flex-end; gap: 8px; margin: 0 0 12px; }
+.play-chord-search label { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 13px; color: var(--muted); }
+.play-chord-search input { width: 100%; min-width: 0; }
+.play-chord-search button { min-height: 38px; }
+.play-chords .harmony-play h3 { font-size: 14px; color: var(--muted); margin: 12px 0 6px; }
+.play-chords .hex-chord-finder { margin: 0 0 8px; }
+/* Mounted panels sit flat inside the side panel instead of as separate boxes. */
+.hex-chord-panel .key-harmonies, .hex-chord-panel .fingering-game { background: none; border: 0; border-radius: 0; padding: 0; margin: 0; }
+.play-chords .key-harmonies h3 { font-size: 14px; }

@@ -905,3 +905,22 @@ needs one board, so this lands first with no visible change to Play.
 **Consequences.** Compose keys now hold, glide and sustain with Shift as on Play. Do not add board
 drawing or key input elsewhere; extend the picture or the player. Rerecord the parity fixture
 (`node tests/hexboard-parity.mjs --record`) only for an intended change to Play's board.
+
+## D-041 — Play has one Chords panel with two modes; the whole-board chord search is removed
+
+**Decision.** Play's page is a toolbar (layout, Export for HexBoard, advanced options), the board with
+a collapsible Key data box, and a side panel: Now playing, one Chords panel and Fingering practice. The
+Chords panel has two modes. Chord → places looks a chord up in the directory (the same `openInput` as
+Discover) or takes the harmony sent from Discover, and shows the places of the chord being placed,
+including keys selected on the board (Find places). Note → chords lists the chords on the selected key
+(D-038). The whole-board "Find chords on this layout" search and the Manual selection & pairwise search
+panel are removed.
+
+**Rationale.** Four tools answered overlapping questions with different rules: the whole-board search
+capped its results, while Note → chords searches each key exhaustively. `tests/play-chords.mjs` checks
+that every chord the removed search found is listed by Note → chords on its lowest key with the same
+placement, and that Find places gives exactly the old Map selected keys placements.
+
+**Consequences.** Searching for chords on the layout starts from a key. Do not reintroduce a
+board-wide chord list; extend Note → chords or the directory. `hexboard-chords.mjs#discoverBoardChords`
+remains only as the reference for that equivalence test.

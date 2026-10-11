@@ -50,9 +50,15 @@ phones it scrolls away). All Discover panes scroll with the page. The directory 
   from Play) opens this screen. Saved sessions with any older Discover view restore
   into it, an old matrix view with the matrix centre; the centre choice is saved in
   session settings.
-- **Play** owns the HexBoard target scale/mode, layout settings, the harmony sent
-  from Discover with its fingerings, manual chord search, chords on the selected key,
-  temporary scale/chord highlights, playback, and HexBoard export.
+- **Play** owns the HexBoard target scale/mode, layout settings, temporary scale/chord
+  highlights, playback and HexBoard export. Its page (D-041): a toolbar (layout, Export for
+  HexBoard, Advanced Layout Options), the board with a collapsible Key data box (selected-button
+  colours, inspector, axes and coverage), and a side panel with Now playing (live readout and
+  keys selected as a chord, with Find places), one Chords panel and Fingering practice. The Chords
+  panel has two modes. Chord → places: a directory search (Discover's lookup, `openInput`), the
+  harmony sent from Discover with its occurrences and fingerings, and the places of the chord being
+  placed (selected keys or a Note → chords pick). Note → chords: the chords on the selected key,
+  below. The app mounts the Note → chords and Practice panels into their slots after each redraw.
 - **Create** hosts the composition suite MVP (see "Composition suite" below). The
   material collection is also available there. Arrangement, recording, tuning
   conversion, account saving and WAV/MIDI export are not implemented.
@@ -703,6 +709,8 @@ Compatibility aliases and narrow session migrations are intentional.
 - Chord engine v2 replaced and removed the old catalogue engine and runtime switch.
 - The deprecated two-temperament Compare flow and its A/B workspace paths were
   removed; older sessions continue to load their primary temperament.
+- Play's whole-board chord search (Find chords on this layout) and the Manual selection & pairwise
+  search panel were folded into the Chords panel (D-041).
 - The A/B harmony mode flag, the classic Play chord catalogue (`chord-catalog-ui.mjs`
   with its v2 views, relationships engine and session adapter), Find layout
   alternatives and the Discover diamond focus note were removed (D-039).
@@ -872,7 +880,7 @@ Limits. One board; port chosen by name only; no manual port picker; LED colours 
 
 ## Fingering practice
 
-A panel at the top of the Play view turns the chord on the board into a short game: pick how many of
+A panel at the foot of Play's side panel turns the chord on the board into a short game: pick how many of
 its fingerings to practise (3, 5, 10 or all), press Start, and the first fingering lights up; play
 all its keys together and the next lights up, until the set is finished (time, wrong keys and skips are
 shown; Skip and Stop are available). The panel is hidden and any running game ends when the player leaves
@@ -891,9 +899,9 @@ held from the previous fingering must be lifted before the next one counts. The 
 board's own (nearest the tonic first). Not covered: scoring or timing targets, a saved history, and
 fingering practice away from the Play view.
 
-## Chords on a key (Play)
+## Note → chords (Play)
 
-A collapsible panel at the top of the Play view lists, for the key selected on the board (a mouse click or
+The Note → chords mode of Play's Chords panel lists, for the key selected on the board (a mouse click or
 a HexBoard press), the chords that can be built on it with that key as the bass. Directory chords come
 first: the shared bass entries for the key's Play-scale degree, each voiced close above the key's own
 register and placed exactly on the layout with the key as the lowest note, within the chosen reach (3–10
@@ -910,7 +918,7 @@ shared bass while "Follow what I play" is on, so Discover lists the same chords.
 | Shared bass filter and entries over the directory | `harmonic-catalogue-ui.mjs#bassEntriesFor` / `#setBass` / `#chooseBass` |
 | Exhaustive key-centred chord search, same pair rules as the board chord search | `hexboard-chords.mjs#chordsWithKey` |
 | The chords-on-key query, lighting one, hearing one | `hexboard-ui.mjs#harmoniesAt` / `#showHarmony` / `#hearKeys` |
-| Panel markup and events (polls every 250 ms, redraws on visible change) | `key-harmonies-ui.mjs` |
+| Panel markup and events (polls every 250 ms, redraws on visible change; while its tab is closed it only reports the selected key) | `key-harmonies-ui.mjs` |
 
 While the directory is still listing, only the layout shapes show. A key outside the Play scale has no
 directory chords. Compose's Root lane picks from the same entries. Not covered yet: marking the bass

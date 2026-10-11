@@ -38,7 +38,9 @@ joining the same screen is later work.
    input path (`hexboard-player.mjs`), one device snapshot. Play moves onto it with no visible change.
    Tests: per-key parity with today's Play board (fill, stroke, label, classes) on several layouts
    including wrapped and divided-period ones; existing HexBoard suites; browser check.
-2. **Tidy Play** into the panels above. Remove the items marked *Remove* in the audit; fold the
+2. **Tidy Play** into the panels above. *Done 2026-10-10 (D-041):* toolbar, board with Key data,
+   Now playing, Chords (Chord → places with a directory search; Note → chords) and Practice;
+   `tests/play-chords.mjs` checks equivalence with the removed whole-board search and Map selected keys. Remove the items marked *Remove* in the audit; fold the
    overlapping chord tools into the Chords panel. Tests: rewritten Play suites, plus an equivalence check
    that the Chords panel finds what today's tools find in both modes.
 3. **Instrument ownership.** The composition owns temperament, tuning, instrument scale and layout;
