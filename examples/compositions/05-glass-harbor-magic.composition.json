@@ -1,0 +1,1041 @@
+{
+  "format": "temperament-lab-composition-v1",
+  "id": "sample-05-glass-harbor-magic-project-5",
+  "name": "Glass Harbor - Magic 6/8",
+  "revision": 0,
+  "context": {
+    "version": 1,
+    "name": "Magic (5-limit)",
+    "basis": [
+      2,
+      3,
+      5
+    ],
+    "rows": [
+      [
+        1,
+        0,
+        2
+      ],
+      [
+        0,
+        5,
+        1
+      ]
+    ],
+    "p": 1200,
+    "g": 380.61879685352966,
+    "tuning": {
+      "method": "Prime least squares",
+      "config": null
+    },
+    "tonicHz": 196,
+    "scale": {
+      "n": 13,
+      "mode": 0,
+      "degrees": [
+        {
+          "degree": 0,
+          "coordinate": [
+            0,
+            0
+          ]
+        },
+        {
+          "degree": 1,
+          "coordinate": [
+            -3,
+            10
+          ]
+        },
+        {
+          "degree": 2,
+          "coordinate": [
+            -2,
+            7
+          ]
+        },
+        {
+          "degree": 3,
+          "coordinate": [
+            -1,
+            4
+          ]
+        },
+        {
+          "degree": 4,
+          "coordinate": [
+            0,
+            1
+          ]
+        },
+        {
+          "degree": 5,
+          "coordinate": [
+            -3,
+            11
+          ]
+        },
+        {
+          "degree": 6,
+          "coordinate": [
+            -2,
+            8
+          ]
+        },
+        {
+          "degree": 7,
+          "coordinate": [
+            -1,
+            5
+          ]
+        },
+        {
+          "degree": 8,
+          "coordinate": [
+            0,
+            2
+          ]
+        },
+        {
+          "degree": 9,
+          "coordinate": [
+            -3,
+            12
+          ]
+        },
+        {
+          "degree": 10,
+          "coordinate": [
+            -2,
+            9
+          ]
+        },
+        {
+          "degree": 11,
+          "coordinate": [
+            -1,
+            6
+          ]
+        },
+        {
+          "degree": 12,
+          "coordinate": [
+            0,
+            3
+          ]
+        }
+      ]
+    },
+    "state": {
+      "name": "Magic (5-limit)",
+      "basis": [
+        2,
+        3,
+        5
+      ],
+      "rows": [
+        [
+          1,
+          0,
+          2
+        ],
+        [
+          0,
+          5,
+          1
+        ]
+      ],
+      "p": 1200,
+      "commas": "3125/3072",
+      "source": "https://en.xen.wiki/w/5-limit#Magic",
+      "defaultTuning": "Prime least squares",
+      "g": 380.61879685352966,
+      "key": "magic",
+      "n": 13,
+      "mode": 0,
+      "tuning": "Prime least squares"
+    }
+  },
+  "layout": {
+    "base": 7,
+    "offset": 0,
+    "style": "compressed",
+    "rotation": 2,
+    "mirror": false,
+    "flipHorizontal": false,
+    "flipVertical": false,
+    "center": 65,
+    "register": 0,
+    "deviceRotation": 1,
+    "outside": false,
+    "ap": 1,
+    "ag": 0,
+    "bp": 0,
+    "bg": 1,
+    "periodWrapping": true,
+    "periodPlacement": null,
+    "copyPeriodStep": 1,
+    "registerAlignment": "scale",
+    "palette": "spectrum",
+    "layerGrowth": "balanced",
+    "layerColors": {},
+    "keyColors": {},
+    "degreeColors": {}
+  },
+  "tempo": 76,
+  "meter": {
+    "numerator": 6,
+    "denominator": 8,
+    "groups": [
+      3,
+      3
+    ]
+  },
+  "ppq": 960,
+  "tracks": [
+    {
+      "id": "sample-05-glass-harbor-magic-track-1",
+      "name": "Chords",
+      "kind": "chords",
+      "level": 0.55,
+      "mute": false,
+      "solo": false
+    },
+    {
+      "id": "sample-05-glass-harbor-magic-track-2",
+      "name": "Melody",
+      "kind": "melody",
+      "level": 1,
+      "mute": false,
+      "solo": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "sample-05-glass-harbor-magic-clip-3",
+      "trackId": "sample-05-glass-harbor-magic-track-1",
+      "name": "Chords",
+      "startTick": 0,
+      "lengthTick": 23040,
+      "repeat": 1,
+      "events": [
+        {
+          "id": "sample-05-glass-harbor-magic-event-6",
+          "startTick": 0,
+          "durationTick": 2820,
+          "velocity": 62,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-6-tone-0",
+              "coordinate": [
+                0,
+                0
+              ]
+            },
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-6-tone-1",
+              "coordinate": [
+                0,
+                1
+              ]
+            },
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-6-tone-2",
+              "coordinate": [
+                0,
+                2
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Stacked thirds",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-7",
+          "startTick": 2880,
+          "durationTick": 2820,
+          "velocity": 68,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-7-tone-0",
+              "coordinate": [
+                0,
+                1
+              ]
+            },
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-7-tone-1",
+              "coordinate": [
+                0,
+                2
+              ]
+            },
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-7-tone-2",
+              "coordinate": [
+                0,
+                3
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Stacked thirds",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-8",
+          "startTick": 5760,
+          "durationTick": 2820,
+          "velocity": 74,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-8-tone-0",
+              "coordinate": [
+                0,
+                0
+              ]
+            },
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-8-tone-1",
+              "coordinate": [
+                -1,
+                4
+              ]
+            },
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-8-tone-2",
+              "coordinate": [
+                -1,
+                5
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Minor",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-9",
+          "startTick": 8640,
+          "durationTick": 2820,
+          "velocity": 62,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-9-tone-0",
+              "coordinate": [
+                0,
+                0
+              ]
+            },
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-9-tone-1",
+              "coordinate": [
+                0,
+                1
+              ]
+            },
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-9-tone-2",
+              "coordinate": [
+                -1,
+                5
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Major",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-10",
+          "startTick": 11520,
+          "durationTick": 2820,
+          "velocity": 68,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-10-tone-0",
+              "coordinate": [
+                0,
+                1
+              ]
+            },
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-10-tone-1",
+              "coordinate": [
+                0,
+                2
+              ]
+            },
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-10-tone-2",
+              "coordinate": [
+                0,
+                3
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Stacked thirds",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-11",
+          "startTick": 14400,
+          "durationTick": 2820,
+          "velocity": 74,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-11-tone-0",
+              "coordinate": [
+                0,
+                0
+              ]
+            },
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-11-tone-1",
+              "coordinate": [
+                -1,
+                4
+              ]
+            },
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-11-tone-2",
+              "coordinate": [
+                -1,
+                5
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Minor",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-12",
+          "startTick": 17280,
+          "durationTick": 2820,
+          "velocity": 62,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-12-tone-0",
+              "coordinate": [
+                0,
+                0
+              ]
+            },
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-12-tone-1",
+              "coordinate": [
+                0,
+                1
+              ]
+            },
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-12-tone-2",
+              "coordinate": [
+                0,
+                2
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Stacked thirds",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-13",
+          "startTick": 20160,
+          "durationTick": 2820,
+          "velocity": 68,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-13-tone-0",
+              "coordinate": [
+                0,
+                0
+              ]
+            },
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-13-tone-1",
+              "coordinate": [
+                0,
+                1
+              ]
+            },
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-13-tone-2",
+              "coordinate": [
+                -1,
+                5
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Major",
+            "rootTone": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "sample-05-glass-harbor-magic-clip-4",
+      "trackId": "sample-05-glass-harbor-magic-track-2",
+      "name": "Melody",
+      "startTick": 0,
+      "lengthTick": 23040,
+      "repeat": 1,
+      "events": [
+        {
+          "id": "sample-05-glass-harbor-magic-event-14",
+          "startTick": 0,
+          "durationTick": 450,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-14-tone-0",
+              "coordinate": [
+                1,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-15",
+          "startTick": 480,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-15-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-16",
+          "startTick": 960,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-16-tone-0",
+              "coordinate": [
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-17",
+          "startTick": 1440,
+          "durationTick": 930,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-17-tone-0",
+              "coordinate": [
+                0,
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-18",
+          "startTick": 2400,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-18-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-19",
+          "startTick": 2880,
+          "durationTick": 450,
+          "velocity": 96,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-19-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-20",
+          "startTick": 3360,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-20-tone-0",
+              "coordinate": [
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-21",
+          "startTick": 3840,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-21-tone-0",
+              "coordinate": [
+                0,
+                6
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-22",
+          "startTick": 4320,
+          "durationTick": 1410,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-22-tone-0",
+              "coordinate": [
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-23",
+          "startTick": 5760,
+          "durationTick": 450,
+          "velocity": 101,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-23-tone-0",
+              "coordinate": [
+                1,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-24",
+          "startTick": 6240,
+          "durationTick": 450,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-24-tone-0",
+              "coordinate": [
+                -1,
+                7
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-25",
+          "startTick": 6720,
+          "durationTick": 450,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-25-tone-0",
+              "coordinate": [
+                0,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-26",
+          "startTick": 7200,
+          "durationTick": 930,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-26-tone-0",
+              "coordinate": [
+                0,
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-27",
+          "startTick": 8160,
+          "durationTick": 450,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-27-tone-0",
+              "coordinate": [
+                0,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-28",
+          "startTick": 8640,
+          "durationTick": 1410,
+          "velocity": 106,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-28-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-29",
+          "startTick": 10080,
+          "durationTick": 930,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-29-tone-0",
+              "coordinate": [
+                0,
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-30",
+          "startTick": 11040,
+          "durationTick": 450,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-30-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-31",
+          "startTick": 11520,
+          "durationTick": 450,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-31-tone-0",
+              "coordinate": [
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-32",
+          "startTick": 12000,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-32-tone-0",
+              "coordinate": [
+                0,
+                6
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-33",
+          "startTick": 12480,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-33-tone-0",
+              "coordinate": [
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-34",
+          "startTick": 12960,
+          "durationTick": 1410,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-34-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-35",
+          "startTick": 14400,
+          "durationTick": 450,
+          "velocity": 96,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-35-tone-0",
+              "coordinate": [
+                0,
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-36",
+          "startTick": 14880,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-36-tone-0",
+              "coordinate": [
+                -1,
+                8
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-37",
+          "startTick": 15360,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-37-tone-0",
+              "coordinate": [
+                -2,
+                11
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-38",
+          "startTick": 15840,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-38-tone-0",
+              "coordinate": [
+                0,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-39",
+          "startTick": 16320,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-39-tone-0",
+              "coordinate": [
+                -1,
+                7
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-40",
+          "startTick": 16800,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-40-tone-0",
+              "coordinate": [
+                1,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-41",
+          "startTick": 17280,
+          "durationTick": 450,
+          "velocity": 101,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-41-tone-0",
+              "coordinate": [
+                1,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-42",
+          "startTick": 17760,
+          "durationTick": 450,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-42-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-43",
+          "startTick": 18240,
+          "durationTick": 450,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-43-tone-0",
+              "coordinate": [
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-44",
+          "startTick": 18720,
+          "durationTick": 450,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-44-tone-0",
+              "coordinate": [
+                0,
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-45",
+          "startTick": 19200,
+          "durationTick": 930,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-45-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-46",
+          "startTick": 20160,
+          "durationTick": 450,
+          "velocity": 106,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-46-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-47",
+          "startTick": 20640,
+          "durationTick": 450,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-47-tone-0",
+              "coordinate": [
+                -2,
+                10
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-05-glass-harbor-magic-event-48",
+          "startTick": 21120,
+          "durationTick": 1890,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-05-glass-harbor-magic-event-48-tone-0",
+              "coordinate": [
+                1,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "loop": {
+    "enabled": false,
+    "startTick": 5760,
+    "endTick": 17280
+  },
+  "sound": {
+    "wave": "triangle"
+  }
+}

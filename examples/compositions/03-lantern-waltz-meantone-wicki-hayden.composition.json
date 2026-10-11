@@ -1,0 +1,904 @@
+{
+  "format": "temperament-lab-composition-v1",
+  "id": "sample-03-lantern-waltz-meantone-wicki-hayden-project-5",
+  "name": "Lantern Waltz - Meantone Wicki-Hayden",
+  "revision": 0,
+  "context": {
+    "version": 1,
+    "name": "Meantone",
+    "basis": [
+      2,
+      3,
+      5
+    ],
+    "rows": [
+      [
+        1,
+        1,
+        0
+      ],
+      [
+        0,
+        1,
+        4
+      ]
+    ],
+    "p": 1200,
+    "g": 696.6512,
+    "tuning": {
+      "method": "Published CWE",
+      "config": null
+    },
+    "tonicHz": 196,
+    "scale": {
+      "n": 7,
+      "mode": 4,
+      "degrees": [
+        {
+          "degree": 0,
+          "coordinate": [
+            0,
+            0
+          ]
+        },
+        {
+          "degree": 1,
+          "coordinate": [
+            -1,
+            2
+          ]
+        },
+        {
+          "degree": 2,
+          "coordinate": [
+            -2,
+            4
+          ]
+        },
+        {
+          "degree": 3,
+          "coordinate": [
+            1,
+            -1
+          ]
+        },
+        {
+          "degree": 4,
+          "coordinate": [
+            0,
+            1
+          ]
+        },
+        {
+          "degree": 5,
+          "coordinate": [
+            -1,
+            3
+          ]
+        },
+        {
+          "degree": 6,
+          "coordinate": [
+            -2,
+            5
+          ]
+        }
+      ]
+    },
+    "state": {
+      "name": "Meantone",
+      "basis": [
+        2,
+        3,
+        5
+      ],
+      "rows": [
+        [
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          4
+        ]
+      ],
+      "g": 696.6512,
+      "p": 1200,
+      "commas": "81/80",
+      "source": "https://en.xen.wiki/w/Meantone_family#Meantone",
+      "key": "meantone",
+      "n": 7,
+      "mode": 4,
+      "tuning": "Published CWE"
+    }
+  },
+  "layout": {
+    "base": 7,
+    "offset": 0,
+    "style": "manual",
+    "rotation": 0,
+    "mirror": false,
+    "flipHorizontal": false,
+    "flipVertical": false,
+    "center": 64,
+    "register": 0,
+    "deviceRotation": 0,
+    "outside": true,
+    "ap": -1,
+    "ag": 2,
+    "bp": 0,
+    "bg": 1,
+    "periodWrapping": false,
+    "periodPlacement": null,
+    "copyPeriodStep": 1,
+    "registerAlignment": "scale",
+    "palette": "spectrum",
+    "layerGrowth": "balanced",
+    "layerColors": {},
+    "keyColors": {},
+    "degreeColors": {}
+  },
+  "tempo": 92,
+  "meter": {
+    "numerator": 3,
+    "denominator": 4
+  },
+  "ppq": 960,
+  "tracks": [
+    {
+      "id": "sample-03-lantern-waltz-meantone-wicki-hayden-track-1",
+      "name": "Chords",
+      "kind": "chords",
+      "level": 0.55,
+      "mute": false,
+      "solo": false
+    },
+    {
+      "id": "sample-03-lantern-waltz-meantone-wicki-hayden-track-2",
+      "name": "Melody",
+      "kind": "melody",
+      "level": 1,
+      "mute": false,
+      "solo": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "sample-03-lantern-waltz-meantone-wicki-hayden-clip-3",
+      "trackId": "sample-03-lantern-waltz-meantone-wicki-hayden-track-1",
+      "name": "Chords",
+      "startTick": 0,
+      "lengthTick": 23040,
+      "repeat": 1,
+      "events": [
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-6",
+          "startTick": 0,
+          "durationTick": 2820,
+          "velocity": 62,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-6-tone-0",
+              "coordinate": [
+                0,
+                0
+              ]
+            },
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-6-tone-1",
+              "coordinate": [
+                -2,
+                4
+              ]
+            },
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-6-tone-2",
+              "coordinate": [
+                0,
+                1
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Major",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-7",
+          "startTick": 2880,
+          "durationTick": 2820,
+          "velocity": 68,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-7-tone-0",
+              "coordinate": [
+                -1,
+                3
+              ]
+            },
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-7-tone-1",
+              "coordinate": [
+                0,
+                0
+              ]
+            },
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-7-tone-2",
+              "coordinate": [
+                -2,
+                4
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Minor",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-8",
+          "startTick": 5760,
+          "durationTick": 2820,
+          "velocity": 74,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-8-tone-0",
+              "coordinate": [
+                1,
+                -1
+              ]
+            },
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-8-tone-1",
+              "coordinate": [
+                -1,
+                3
+              ]
+            },
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-8-tone-2",
+              "coordinate": [
+                0,
+                0
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Major",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-9",
+          "startTick": 8640,
+          "durationTick": 2820,
+          "velocity": 62,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-9-tone-0",
+              "coordinate": [
+                0,
+                1
+              ]
+            },
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-9-tone-1",
+              "coordinate": [
+                -2,
+                5
+              ]
+            },
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-9-tone-2",
+              "coordinate": [
+                -1,
+                2
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Major",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-10",
+          "startTick": 11520,
+          "durationTick": 2820,
+          "velocity": 68,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-10-tone-0",
+              "coordinate": [
+                -1,
+                2
+              ]
+            },
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-10-tone-1",
+              "coordinate": [
+                1,
+                -1
+              ]
+            },
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-10-tone-2",
+              "coordinate": [
+                -1,
+                3
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Minor",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-11",
+          "startTick": 14400,
+          "durationTick": 2820,
+          "velocity": 74,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-11-tone-0",
+              "coordinate": [
+                1,
+                -1
+              ]
+            },
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-11-tone-1",
+              "coordinate": [
+                -1,
+                3
+              ]
+            },
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-11-tone-2",
+              "coordinate": [
+                0,
+                0
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Major",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-12",
+          "startTick": 17280,
+          "durationTick": 2820,
+          "velocity": 62,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-12-tone-0",
+              "coordinate": [
+                0,
+                1
+              ]
+            },
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-12-tone-1",
+              "coordinate": [
+                -2,
+                5
+              ]
+            },
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-12-tone-2",
+              "coordinate": [
+                -1,
+                2
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Major",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-13",
+          "startTick": 20160,
+          "durationTick": 2820,
+          "velocity": 68,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-13-tone-0",
+              "coordinate": [
+                0,
+                0
+              ]
+            },
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-13-tone-1",
+              "coordinate": [
+                -2,
+                4
+              ]
+            },
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-13-tone-2",
+              "coordinate": [
+                0,
+                1
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Major",
+            "rootTone": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "sample-03-lantern-waltz-meantone-wicki-hayden-clip-4",
+      "trackId": "sample-03-lantern-waltz-meantone-wicki-hayden-track-2",
+      "name": "Melody",
+      "startTick": 0,
+      "lengthTick": 23040,
+      "repeat": 1,
+      "events": [
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-14",
+          "startTick": 0,
+          "durationTick": 930,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-14-tone-0",
+              "coordinate": [
+                -1,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-15",
+          "startTick": 960,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-15-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-16",
+          "startTick": 1440,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-16-tone-0",
+              "coordinate": [
+                0,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-17",
+          "startTick": 1920,
+          "durationTick": 930,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-17-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-18",
+          "startTick": 2880,
+          "durationTick": 1410,
+          "velocity": 96,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-18-tone-0",
+              "coordinate": [
+                0,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-19",
+          "startTick": 4320,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-19-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-20",
+          "startTick": 4800,
+          "durationTick": 930,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-20-tone-0",
+              "coordinate": [
+                -1,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-21",
+          "startTick": 5760,
+          "durationTick": 930,
+          "velocity": 101,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-21-tone-0",
+              "coordinate": [
+                2,
+                -1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-22",
+          "startTick": 6720,
+          "durationTick": 930,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-22-tone-0",
+              "coordinate": [
+                0,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-23",
+          "startTick": 7680,
+          "durationTick": 930,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-23-tone-0",
+              "coordinate": [
+                2,
+                -1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-24",
+          "startTick": 8640,
+          "durationTick": 450,
+          "velocity": 106,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-24-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-25",
+          "startTick": 9120,
+          "durationTick": 450,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-25-tone-0",
+              "coordinate": [
+                -1,
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-26",
+          "startTick": 9600,
+          "durationTick": 450,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-26-tone-0",
+              "coordinate": [
+                0,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-27",
+          "startTick": 10080,
+          "durationTick": 450,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-27-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-28",
+          "startTick": 10560,
+          "durationTick": 930,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-28-tone-0",
+              "coordinate": [
+                0,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-29",
+          "startTick": 11520,
+          "durationTick": 930,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-29-tone-0",
+              "coordinate": [
+                0,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-30",
+          "startTick": 12480,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-30-tone-0",
+              "coordinate": [
+                2,
+                -1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-31",
+          "startTick": 12960,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-31-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-32",
+          "startTick": 13440,
+          "durationTick": 930,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-32-tone-0",
+              "coordinate": [
+                0,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-33",
+          "startTick": 14400,
+          "durationTick": 930,
+          "velocity": 96,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-33-tone-0",
+              "coordinate": [
+                0,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-34",
+          "startTick": 15360,
+          "durationTick": 930,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-34-tone-0",
+              "coordinate": [
+                2,
+                -1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-35",
+          "startTick": 16320,
+          "durationTick": 930,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-35-tone-0",
+              "coordinate": [
+                1,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-36",
+          "startTick": 17280,
+          "durationTick": 450,
+          "velocity": 101,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-36-tone-0",
+              "coordinate": [
+                0,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-37",
+          "startTick": 17760,
+          "durationTick": 450,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-37-tone-0",
+              "coordinate": [
+                -1,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-38",
+          "startTick": 18240,
+          "durationTick": 930,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-38-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-39",
+          "startTick": 19200,
+          "durationTick": 930,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-39-tone-0",
+              "coordinate": [
+                -1,
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-40",
+          "startTick": 20160,
+          "durationTick": 930,
+          "velocity": 106,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-40-tone-0",
+              "coordinate": [
+                -1,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-41",
+          "startTick": 21120,
+          "durationTick": 450,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-41-tone-0",
+              "coordinate": [
+                0,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-03-lantern-waltz-meantone-wicki-hayden-event-42",
+          "startTick": 21600,
+          "durationTick": 1410,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-03-lantern-waltz-meantone-wicki-hayden-event-42-tone-0",
+              "coordinate": [
+                1,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "loop": {
+    "enabled": false,
+    "startTick": 5760,
+    "endTick": 17280
+  },
+  "sound": {
+    "wave": "triangle"
+  }
+}

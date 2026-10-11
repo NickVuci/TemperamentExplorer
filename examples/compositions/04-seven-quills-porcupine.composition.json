@@ -1,0 +1,1176 @@
+{
+  "format": "temperament-lab-composition-v1",
+  "id": "sample-04-seven-quills-porcupine-project-5",
+  "name": "Seven Quills - Porcupine 7/8",
+  "revision": 0,
+  "context": {
+    "version": 1,
+    "name": "Porcupine (5-limit)",
+    "basis": [
+      2,
+      3,
+      5
+    ],
+    "rows": [
+      [
+        1,
+        2,
+        3
+      ],
+      [
+        0,
+        -3,
+        -5
+      ]
+    ],
+    "p": 1200,
+    "g": 163.6048949435196,
+    "tuning": {
+      "method": "Prime least squares",
+      "config": null
+    },
+    "tonicHz": 196,
+    "scale": {
+      "n": 15,
+      "mode": 0,
+      "degrees": [
+        {
+          "degree": 0,
+          "coordinate": [
+            0,
+            0
+          ]
+        },
+        {
+          "degree": 1,
+          "coordinate": [
+            -1,
+            8
+          ]
+        },
+        {
+          "degree": 2,
+          "coordinate": [
+            0,
+            1
+          ]
+        },
+        {
+          "degree": 3,
+          "coordinate": [
+            -1,
+            9
+          ]
+        },
+        {
+          "degree": 4,
+          "coordinate": [
+            0,
+            2
+          ]
+        },
+        {
+          "degree": 5,
+          "coordinate": [
+            -1,
+            10
+          ]
+        },
+        {
+          "degree": 6,
+          "coordinate": [
+            0,
+            3
+          ]
+        },
+        {
+          "degree": 7,
+          "coordinate": [
+            -1,
+            11
+          ]
+        },
+        {
+          "degree": 8,
+          "coordinate": [
+            0,
+            4
+          ]
+        },
+        {
+          "degree": 9,
+          "coordinate": [
+            -1,
+            12
+          ]
+        },
+        {
+          "degree": 10,
+          "coordinate": [
+            0,
+            5
+          ]
+        },
+        {
+          "degree": 11,
+          "coordinate": [
+            -1,
+            13
+          ]
+        },
+        {
+          "degree": 12,
+          "coordinate": [
+            0,
+            6
+          ]
+        },
+        {
+          "degree": 13,
+          "coordinate": [
+            -1,
+            14
+          ]
+        },
+        {
+          "degree": 14,
+          "coordinate": [
+            0,
+            7
+          ]
+        }
+      ]
+    },
+    "state": {
+      "name": "Porcupine (5-limit)",
+      "basis": [
+        2,
+        3,
+        5
+      ],
+      "rows": [
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          0,
+          -3,
+          -5
+        ]
+      ],
+      "p": 1200,
+      "commas": "250/243",
+      "source": "https://en.xen.wiki/w/22edo#Porcupine_temperament",
+      "defaultTuning": "Prime least squares",
+      "g": 163.6048949435196,
+      "key": "porcupine",
+      "n": 15,
+      "mode": 0,
+      "tuning": "Prime least squares"
+    }
+  },
+  "layout": {
+    "base": 8,
+    "offset": 0,
+    "style": "compressed",
+    "rotation": 2,
+    "mirror": false,
+    "flipHorizontal": false,
+    "flipVertical": false,
+    "center": 65,
+    "register": 1,
+    "deviceRotation": 1,
+    "outside": false,
+    "ap": 1,
+    "ag": 0,
+    "bp": 0,
+    "bg": 1,
+    "periodWrapping": true,
+    "periodPlacement": null,
+    "copyPeriodStep": 1,
+    "registerAlignment": "scale",
+    "palette": "spectrum",
+    "layerGrowth": "balanced",
+    "layerColors": {},
+    "keyColors": {},
+    "degreeColors": {}
+  },
+  "tempo": 112,
+  "meter": {
+    "numerator": 7,
+    "denominator": 8,
+    "groups": [
+      2,
+      2,
+      3
+    ]
+  },
+  "ppq": 960,
+  "tracks": [
+    {
+      "id": "sample-04-seven-quills-porcupine-track-1",
+      "name": "Chords",
+      "kind": "chords",
+      "level": 0.55,
+      "mute": false,
+      "solo": false
+    },
+    {
+      "id": "sample-04-seven-quills-porcupine-track-2",
+      "name": "Melody",
+      "kind": "melody",
+      "level": 1,
+      "mute": false,
+      "solo": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "sample-04-seven-quills-porcupine-clip-3",
+      "trackId": "sample-04-seven-quills-porcupine-track-1",
+      "name": "Chords",
+      "startTick": 0,
+      "lengthTick": 26880,
+      "repeat": 1,
+      "events": [
+        {
+          "id": "sample-04-seven-quills-porcupine-event-6",
+          "startTick": 0,
+          "durationTick": 3300,
+          "velocity": 62,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-6-tone-0",
+              "coordinate": [
+                0,
+                0
+              ]
+            },
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-6-tone-1",
+              "coordinate": [
+                0,
+                2
+              ]
+            },
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-6-tone-2",
+              "coordinate": [
+                0,
+                4
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Scale triad",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-7",
+          "startTick": 3360,
+          "durationTick": 3300,
+          "velocity": 68,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-7-tone-0",
+              "coordinate": [
+                0,
+                1
+              ]
+            },
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-7-tone-1",
+              "coordinate": [
+                0,
+                3
+              ]
+            },
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-7-tone-2",
+              "coordinate": [
+                0,
+                5
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Scale triad",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-8",
+          "startTick": 6720,
+          "durationTick": 3300,
+          "velocity": 74,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-8-tone-0",
+              "coordinate": [
+                0,
+                2
+              ]
+            },
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-8-tone-1",
+              "coordinate": [
+                0,
+                4
+              ]
+            },
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-8-tone-2",
+              "coordinate": [
+                0,
+                6
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Scale triad",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-9",
+          "startTick": 10080,
+          "durationTick": 3300,
+          "velocity": 62,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-9-tone-0",
+              "coordinate": [
+                0,
+                1
+              ]
+            },
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-9-tone-1",
+              "coordinate": [
+                0,
+                3
+              ]
+            },
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-9-tone-2",
+              "coordinate": [
+                0,
+                5
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Scale triad",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-10",
+          "startTick": 13440,
+          "durationTick": 3300,
+          "velocity": 68,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-10-tone-0",
+              "coordinate": [
+                0,
+                0
+              ]
+            },
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-10-tone-1",
+              "coordinate": [
+                0,
+                2
+              ]
+            },
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-10-tone-2",
+              "coordinate": [
+                0,
+                4
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Scale triad",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-11",
+          "startTick": 16800,
+          "durationTick": 3300,
+          "velocity": 74,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-11-tone-0",
+              "coordinate": [
+                0,
+                2
+              ]
+            },
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-11-tone-1",
+              "coordinate": [
+                0,
+                4
+              ]
+            },
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-11-tone-2",
+              "coordinate": [
+                0,
+                6
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Scale triad",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-12",
+          "startTick": 20160,
+          "durationTick": 3300,
+          "velocity": 62,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-12-tone-0",
+              "coordinate": [
+                0,
+                1
+              ]
+            },
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-12-tone-1",
+              "coordinate": [
+                0,
+                3
+              ]
+            },
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-12-tone-2",
+              "coordinate": [
+                0,
+                5
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Scale triad",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-13",
+          "startTick": 23520,
+          "durationTick": 3300,
+          "velocity": 68,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-13-tone-0",
+              "coordinate": [
+                0,
+                0
+              ]
+            },
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-13-tone-1",
+              "coordinate": [
+                0,
+                2
+              ]
+            },
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-13-tone-2",
+              "coordinate": [
+                0,
+                4
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Scale triad",
+            "rootTone": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "sample-04-seven-quills-porcupine-clip-4",
+      "trackId": "sample-04-seven-quills-porcupine-track-2",
+      "name": "Melody",
+      "startTick": 0,
+      "lengthTick": 26880,
+      "repeat": 1,
+      "events": [
+        {
+          "id": "sample-04-seven-quills-porcupine-event-14",
+          "startTick": 0,
+          "durationTick": 450,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-14-tone-0",
+              "coordinate": [
+                1,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-15",
+          "startTick": 480,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-15-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-16",
+          "startTick": 960,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-16-tone-0",
+              "coordinate": [
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-17",
+          "startTick": 1440,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-17-tone-0",
+              "coordinate": [
+                1,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-18",
+          "startTick": 1920,
+          "durationTick": 930,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-18-tone-0",
+              "coordinate": [
+                1,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-19",
+          "startTick": 2880,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-19-tone-0",
+              "coordinate": [
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-20",
+          "startTick": 3360,
+          "durationTick": 930,
+          "velocity": 96,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-20-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-21",
+          "startTick": 4320,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-21-tone-0",
+              "coordinate": [
+                1,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-22",
+          "startTick": 4800,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-22-tone-0",
+              "coordinate": [
+                1,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-23",
+          "startTick": 5280,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-23-tone-0",
+              "coordinate": [
+                1,
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-24",
+          "startTick": 5760,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-24-tone-0",
+              "coordinate": [
+                1,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-25",
+          "startTick": 6240,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-25-tone-0",
+              "coordinate": [
+                1,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-26",
+          "startTick": 6720,
+          "durationTick": 450,
+          "velocity": 101,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-26-tone-0",
+              "coordinate": [
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-27",
+          "startTick": 7200,
+          "durationTick": 450,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-27-tone-0",
+              "coordinate": [
+                1,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-28",
+          "startTick": 7680,
+          "durationTick": 930,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-28-tone-0",
+              "coordinate": [
+                1,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-29",
+          "startTick": 8640,
+          "durationTick": 450,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-29-tone-0",
+              "coordinate": [
+                1,
+                6
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-30",
+          "startTick": 9120,
+          "durationTick": 450,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-30-tone-0",
+              "coordinate": [
+                1,
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-31",
+          "startTick": 9600,
+          "durationTick": 450,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-31-tone-0",
+              "coordinate": [
+                1,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-32",
+          "startTick": 10080,
+          "durationTick": 450,
+          "velocity": 106,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-32-tone-0",
+              "coordinate": [
+                1,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-33",
+          "startTick": 10560,
+          "durationTick": 450,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-33-tone-0",
+              "coordinate": [
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-34",
+          "startTick": 11040,
+          "durationTick": 930,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-34-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-35",
+          "startTick": 12480,
+          "durationTick": 450,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-35-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-36",
+          "startTick": 12960,
+          "durationTick": 450,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-36-tone-0",
+              "coordinate": [
+                1,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-37",
+          "startTick": 13440,
+          "durationTick": 450,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-37-tone-0",
+              "coordinate": [
+                1,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-38",
+          "startTick": 13920,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-38-tone-0",
+              "coordinate": [
+                0,
+                8
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-39",
+          "startTick": 14400,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-39-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-40",
+          "startTick": 14880,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-40-tone-0",
+              "coordinate": [
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-41",
+          "startTick": 15360,
+          "durationTick": 930,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-41-tone-0",
+              "coordinate": [
+                1,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-42",
+          "startTick": 16320,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-42-tone-0",
+              "coordinate": [
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-43",
+          "startTick": 16800,
+          "durationTick": 450,
+          "velocity": 96,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-43-tone-0",
+              "coordinate": [
+                1,
+                6
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-44",
+          "startTick": 17280,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-44-tone-0",
+              "coordinate": [
+                0,
+                13
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-45",
+          "startTick": 17760,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-45-tone-0",
+              "coordinate": [
+                1,
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-46",
+          "startTick": 18240,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-46-tone-0",
+              "coordinate": [
+                1,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-47",
+          "startTick": 18720,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-47-tone-0",
+              "coordinate": [
+                1,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-48",
+          "startTick": 19200,
+          "durationTick": 930,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-48-tone-0",
+              "coordinate": [
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-49",
+          "startTick": 20160,
+          "durationTick": 930,
+          "velocity": 101,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-49-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-50",
+          "startTick": 21120,
+          "durationTick": 930,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-50-tone-0",
+              "coordinate": [
+                1,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-51",
+          "startTick": 22080,
+          "durationTick": 450,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-51-tone-0",
+              "coordinate": [
+                1,
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-52",
+          "startTick": 22560,
+          "durationTick": 450,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-52-tone-0",
+              "coordinate": [
+                1,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-53",
+          "startTick": 23040,
+          "durationTick": 450,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-53-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-54",
+          "startTick": 23520,
+          "durationTick": 450,
+          "velocity": 106,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-54-tone-0",
+              "coordinate": [
+                1,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-55",
+          "startTick": 24000,
+          "durationTick": 450,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-55-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-04-seven-quills-porcupine-event-56",
+          "startTick": 24480,
+          "durationTick": 2370,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-04-seven-quills-porcupine-event-56-tone-0",
+              "coordinate": [
+                1,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "loop": {
+    "enabled": false,
+    "startTick": 6720,
+    "endTick": 20160
+  },
+  "sound": {
+    "wave": "triangle"
+  }
+}

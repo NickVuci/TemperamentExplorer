@@ -987,8 +987,10 @@ button numbers or cents; the onset coordinate is the note.
 `composition-game-ui.mjs` owns Play setup, section preview, runs, repeat and speed training; its pure
 engine (`composition-game.mjs`) builds charts from `buildCueTimeline`, one target per sounding tone.
 Timed judges presses in real-time windows of 40, 80 and 130 ms at the time heard, matching each press
-to the nearest unjudged target of the same exact pitch (or degree, when any octave counts). Early,
-late and repeated presses cost nothing; other presses are wrong notes. Wait steps through the onsets
+to the earliest unjudged target of the same exact pitch (or degree, when any octave counts) in its
+window, together with any others of that pitch at the same onset. A target is missed 50 ms after its
+window. Early and late presses of the right pitch (a missed note's included) and repeated presses
+cost nothing; other presses are wrong notes. Wait steps through the onsets
 in order without a clock (D-048) and reports note completion without scoring. The persisted
 browser mode values remain `play` and `learn`. Both modes share section selection, board hints and
 repeat; 10–200% runtime speed, backing, count-in and metronome apply to Timed. Timed repeat shows
@@ -1009,7 +1011,11 @@ Advanced controls with their existing independent match rule and schema.
 
 **Rationale.** The cue timeline already carries exact pitch, keys and timing for this purpose. Real-time
 windows keep difficulty independent of tempo and speed. Heard time and the output timestamp remove most
-latency error, and the tap test measures the rest instead of assuming it. Lighting every copy of a pitch
+latency error, and the tap test measures the rest instead of assuming it. Misses are recorded by the
+frame clock while presses carry their own times, so the input allowance keeps a press made in time
+from losing its note to a frame that ran before it was handled, and a press after a recorded miss is
+late rather than wrong. The nearest-target rule let a slightly late press take the next note of the
+same pitch, and a doubled pitch needed two presses of one button. Lighting every copy of a pitch
 under period wrapping hid where to play, so a single route is shown. Per-onset choices moved a
 repeated pitch between copies and broke common tones, so buttons are fixed per pitch. Sharing them
 across the chart turns fingering into chart-wide trade-offs: the former strict order (straight

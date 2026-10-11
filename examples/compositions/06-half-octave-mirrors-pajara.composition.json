@@ -1,0 +1,1082 @@
+{
+  "format": "temperament-lab-composition-v1",
+  "id": "sample-06-half-octave-mirrors-pajara-project-5",
+  "name": "Half-Octave Mirrors - Pajara 5/4",
+  "revision": 0,
+  "context": {
+    "version": 1,
+    "name": "Pajara (7-limit)",
+    "basis": [
+      2,
+      3,
+      5,
+      7
+    ],
+    "rows": [
+      [
+        2,
+        3,
+        5,
+        6
+      ],
+      [
+        0,
+        1,
+        -2,
+        -2
+      ]
+    ],
+    "p": 600,
+    "g": 107.34377294696299,
+    "tuning": {
+      "method": "Weil–Euclidean",
+      "config": null
+    },
+    "tonicHz": 196,
+    "scale": {
+      "n": 5,
+      "mode": 0,
+      "degrees": [
+        {
+          "degree": 0,
+          "coordinate": [
+            0,
+            0
+          ]
+        },
+        {
+          "degree": 1,
+          "coordinate": [
+            0,
+            1
+          ]
+        },
+        {
+          "degree": 2,
+          "coordinate": [
+            0,
+            2
+          ]
+        },
+        {
+          "degree": 3,
+          "coordinate": [
+            0,
+            3
+          ]
+        },
+        {
+          "degree": 4,
+          "coordinate": [
+            0,
+            4
+          ]
+        }
+      ]
+    },
+    "state": {
+      "name": "Pajara (7-limit)",
+      "basis": [
+        2,
+        3,
+        5,
+        7
+      ],
+      "rows": [
+        [
+          2,
+          3,
+          5,
+          6
+        ],
+        [
+          0,
+          1,
+          -2,
+          -2
+        ]
+      ],
+      "commas": "50/49, 64/63",
+      "source": "https://en.xen.wiki/w/Pajara",
+      "defaultSize": 5,
+      "defaultTuning": "Weil–Euclidean",
+      "p": 600,
+      "g": 107.34377294696299,
+      "key": "pajara7",
+      "n": 5,
+      "mode": 0,
+      "tuning": "Weil–Euclidean"
+    }
+  },
+  "layout": {
+    "base": 5,
+    "offset": 0,
+    "style": "compressed",
+    "rotation": 2,
+    "mirror": false,
+    "flipHorizontal": false,
+    "flipVertical": false,
+    "center": 65,
+    "register": 2,
+    "deviceRotation": 1,
+    "outside": false,
+    "ap": 1,
+    "ag": 0,
+    "bp": 0,
+    "bg": 1,
+    "periodWrapping": true,
+    "periodPlacement": null,
+    "copyPeriodStep": 1,
+    "registerAlignment": "scale",
+    "palette": "spectrum",
+    "layerGrowth": "balanced",
+    "layerColors": {},
+    "keyColors": {},
+    "degreeColors": {}
+  },
+  "tempo": 100,
+  "meter": {
+    "numerator": 5,
+    "denominator": 4,
+    "groups": [
+      3,
+      2
+    ]
+  },
+  "ppq": 960,
+  "tracks": [
+    {
+      "id": "sample-06-half-octave-mirrors-pajara-track-1",
+      "name": "Chords",
+      "kind": "chords",
+      "level": 0.55,
+      "mute": false,
+      "solo": false
+    },
+    {
+      "id": "sample-06-half-octave-mirrors-pajara-track-2",
+      "name": "Melody",
+      "kind": "melody",
+      "level": 1,
+      "mute": false,
+      "solo": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "sample-06-half-octave-mirrors-pajara-clip-3",
+      "trackId": "sample-06-half-octave-mirrors-pajara-track-1",
+      "name": "Chords",
+      "startTick": 0,
+      "lengthTick": 38400,
+      "repeat": 1,
+      "events": [
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-6",
+          "startTick": 0,
+          "durationTick": 4740,
+          "velocity": 62,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-6-tone-0",
+              "coordinate": [
+                0,
+                0
+              ]
+            },
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-6-tone-1",
+              "coordinate": [
+                0,
+                4
+              ]
+            },
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-6-tone-2",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Scale triad",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-7",
+          "startTick": 4800,
+          "durationTick": 4740,
+          "velocity": 68,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-7-tone-0",
+              "coordinate": [
+                0,
+                1
+              ]
+            },
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-7-tone-1",
+              "coordinate": [
+                0,
+                3
+              ]
+            },
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-7-tone-2",
+              "coordinate": [
+                1,
+                0
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Scale triad",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-8",
+          "startTick": 9600,
+          "durationTick": 4740,
+          "velocity": 74,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-8-tone-0",
+              "coordinate": [
+                0,
+                2
+              ]
+            },
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-8-tone-1",
+              "coordinate": [
+                0,
+                4
+              ]
+            },
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-8-tone-2",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Scale triad",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-9",
+          "startTick": 14400,
+          "durationTick": 4740,
+          "velocity": 62,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-9-tone-0",
+              "coordinate": [
+                0,
+                0
+              ]
+            },
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-9-tone-1",
+              "coordinate": [
+                0,
+                3
+              ]
+            },
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-9-tone-2",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Scale triad",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-10",
+          "startTick": 19200,
+          "durationTick": 4740,
+          "velocity": 68,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-10-tone-0",
+              "coordinate": [
+                0,
+                0
+              ]
+            },
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-10-tone-1",
+              "coordinate": [
+                0,
+                4
+              ]
+            },
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-10-tone-2",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Scale triad",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-11",
+          "startTick": 24000,
+          "durationTick": 4740,
+          "velocity": 74,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-11-tone-0",
+              "coordinate": [
+                0,
+                1
+              ]
+            },
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-11-tone-1",
+              "coordinate": [
+                0,
+                3
+              ]
+            },
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-11-tone-2",
+              "coordinate": [
+                1,
+                0
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Scale triad",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-12",
+          "startTick": 28800,
+          "durationTick": 4740,
+          "velocity": 62,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-12-tone-0",
+              "coordinate": [
+                0,
+                2
+              ]
+            },
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-12-tone-1",
+              "coordinate": [
+                0,
+                4
+              ]
+            },
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-12-tone-2",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Scale triad",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-13",
+          "startTick": 33600,
+          "durationTick": 4740,
+          "velocity": 68,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-13-tone-0",
+              "coordinate": [
+                0,
+                0
+              ]
+            },
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-13-tone-1",
+              "coordinate": [
+                0,
+                4
+              ]
+            },
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-13-tone-2",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Scale triad",
+            "rootTone": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "sample-06-half-octave-mirrors-pajara-clip-4",
+      "trackId": "sample-06-half-octave-mirrors-pajara-track-2",
+      "name": "Melody",
+      "startTick": 0,
+      "lengthTick": 38400,
+      "repeat": 1,
+      "events": [
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-14",
+          "startTick": 0,
+          "durationTick": 930,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-14-tone-0",
+              "coordinate": [
+                2,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-15",
+          "startTick": 960,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-15-tone-0",
+              "coordinate": [
+                2,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-16",
+          "startTick": 1440,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-16-tone-0",
+              "coordinate": [
+                2,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-17",
+          "startTick": 1920,
+          "durationTick": 930,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-17-tone-0",
+              "coordinate": [
+                2,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-18",
+          "startTick": 2880,
+          "durationTick": 930,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-18-tone-0",
+              "coordinate": [
+                3,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-19",
+          "startTick": 3840,
+          "durationTick": 930,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-19-tone-0",
+              "coordinate": [
+                3,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-20",
+          "startTick": 4800,
+          "durationTick": 930,
+          "velocity": 96,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-20-tone-0",
+              "coordinate": [
+                2,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-21",
+          "startTick": 5760,
+          "durationTick": 930,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-21-tone-0",
+              "coordinate": [
+                2,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-22",
+          "startTick": 6720,
+          "durationTick": 930,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-22-tone-0",
+              "coordinate": [
+                3,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-23",
+          "startTick": 7680,
+          "durationTick": 930,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-23-tone-0",
+              "coordinate": [
+                2,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-24",
+          "startTick": 8640,
+          "durationTick": 930,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-24-tone-0",
+              "coordinate": [
+                2,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-25",
+          "startTick": 9600,
+          "durationTick": 450,
+          "velocity": 101,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-25-tone-0",
+              "coordinate": [
+                2,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-26",
+          "startTick": 10080,
+          "durationTick": 450,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-26-tone-0",
+              "coordinate": [
+                2,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-27",
+          "startTick": 10560,
+          "durationTick": 930,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-27-tone-0",
+              "coordinate": [
+                2,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-28",
+          "startTick": 11520,
+          "durationTick": 930,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-28-tone-0",
+              "coordinate": [
+                3,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-29",
+          "startTick": 12480,
+          "durationTick": 930,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-29-tone-0",
+              "coordinate": [
+                3,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-30",
+          "startTick": 13440,
+          "durationTick": 930,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-30-tone-0",
+              "coordinate": [
+                3,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-31",
+          "startTick": 14400,
+          "durationTick": 1410,
+          "velocity": 106,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-31-tone-0",
+              "coordinate": [
+                3,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-32",
+          "startTick": 15840,
+          "durationTick": 450,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-32-tone-0",
+              "coordinate": [
+                2,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-33",
+          "startTick": 16320,
+          "durationTick": 930,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-33-tone-0",
+              "coordinate": [
+                2,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-34",
+          "startTick": 18240,
+          "durationTick": 930,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-34-tone-0",
+              "coordinate": [
+                2,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-35",
+          "startTick": 19200,
+          "durationTick": 930,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-35-tone-0",
+              "coordinate": [
+                3,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-36",
+          "startTick": 20160,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-36-tone-0",
+              "coordinate": [
+                3,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-37",
+          "startTick": 20640,
+          "durationTick": 450,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-37-tone-0",
+              "coordinate": [
+                3,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-38",
+          "startTick": 21120,
+          "durationTick": 930,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-38-tone-0",
+              "coordinate": [
+                3,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-39",
+          "startTick": 22080,
+          "durationTick": 930,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-39-tone-0",
+              "coordinate": [
+                2,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-40",
+          "startTick": 23040,
+          "durationTick": 930,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-40-tone-0",
+              "coordinate": [
+                2,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-41",
+          "startTick": 24000,
+          "durationTick": 930,
+          "velocity": 96,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-41-tone-0",
+              "coordinate": [
+                3,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-42",
+          "startTick": 24960,
+          "durationTick": 930,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-42-tone-0",
+              "coordinate": [
+                3,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-43",
+          "startTick": 25920,
+          "durationTick": 930,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-43-tone-0",
+              "coordinate": [
+                3,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-44",
+          "startTick": 26880,
+          "durationTick": 930,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-44-tone-0",
+              "coordinate": [
+                2,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-45",
+          "startTick": 27840,
+          "durationTick": 930,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-45-tone-0",
+              "coordinate": [
+                2,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-46",
+          "startTick": 28800,
+          "durationTick": 450,
+          "velocity": 101,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-46-tone-0",
+              "coordinate": [
+                2,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-47",
+          "startTick": 29280,
+          "durationTick": 450,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-47-tone-0",
+              "coordinate": [
+                2,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-48",
+          "startTick": 29760,
+          "durationTick": 930,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-48-tone-0",
+              "coordinate": [
+                3,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-49",
+          "startTick": 30720,
+          "durationTick": 930,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-49-tone-0",
+              "coordinate": [
+                3,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-50",
+          "startTick": 31680,
+          "durationTick": 930,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-50-tone-0",
+              "coordinate": [
+                3,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-51",
+          "startTick": 32640,
+          "durationTick": 930,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-51-tone-0",
+              "coordinate": [
+                2,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-52",
+          "startTick": 33600,
+          "durationTick": 930,
+          "velocity": 106,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-52-tone-0",
+              "coordinate": [
+                2,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-53",
+          "startTick": 34560,
+          "durationTick": 930,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-53-tone-0",
+              "coordinate": [
+                2,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-06-half-octave-mirrors-pajara-event-54",
+          "startTick": 35520,
+          "durationTick": 2850,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-06-half-octave-mirrors-pajara-event-54-tone-0",
+              "coordinate": [
+                2,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "loop": {
+    "enabled": false,
+    "startTick": 9600,
+    "endTick": 28800
+  },
+  "sound": {
+    "wave": "triangle"
+  }
+}

@@ -5,7 +5,7 @@
 // to the next as each is played. It draws the note highway and the approach rings each frame,
 // calibrates timing, keeps best scores and lights the physical HexBoard. Rendering of each phase lives
 // in composition-game-view.mjs.
-import {buildChart,createGame,WINDOWS,PARTS,MATCHES,MODES} from './composition-game.mjs';
+import {buildChart,createGame,WINDOWS,INPUT_SLACK_MS,PARTS,MATCHES,MODES} from './composition-game.mjs';
 import {heardSeconds,CLICK} from './composition-transport.mjs';
 import {PPQ,barTicks,contentEndTick} from './composition-project.mjs';
 import {degreeOf,resolveTone} from './composition-context.mjs';
@@ -204,10 +204,11 @@ export function createGameController({document:doc,audio,transport,getProject,ge
   function cancelRepeat(){clearTimer(repeatTimer);repeatTimer=null;repeatCountdown=null;}
   function cancelEnd(){clearTimer(endTimer);endTimer=null;}
   function cleanAudio(){engine?.clearHolds();inputKeys.clear();releaseHeld();audio.cancelGroup?.('preview');}
-  // Timed plays the backing through the section and then its last judging window. Wait runs no clock.
+  // Timed plays the backing through the section and then until its last notes are judged. Wait runs no clock.
+  const judgedAfterMs=()=>WINDOWS.good+INPUT_SLACK_MS+Math.max(0,run.offsetMs)+1;
   async function playRun(countIn=0){
     const mine=revision;
-    await transport.play({untilTick:chart.to,graceMs:WINDOWS.good+Math.max(0,run.offsetMs)+1,countIn});
+    await transport.play({untilTick:chart.to,graceMs:judgedAfterMs(),countIn});
     if(mine!==revision)return;
     if(transport.state==='playing')loop();
   }
@@ -340,7 +341,7 @@ export function createGameController({document:doc,audio,transport,getProject,ge
     }else if(r.kind==='hit'){
       flash(keys.length?keys:route.has(r.target.index)?[route.get(r.target.index)]:[],r.result);
       say(r.result==='ok'?'Yes':`${RESULT_TEXT[r.result]}${Number.isFinite(r.offsetMs)&&Math.abs(r.offsetMs)>=10?` · ${Math.abs(Math.round(r.offsetMs))} ms ${r.offsetMs<0?'early':'late'}`:''}`,r.result);
-      markNote(r.target);
+      for(const t of r.targets??[r.target])markNote(t);
     }else if(r.kind==='miss'){flash(route.has(r.target.index)?[route.get(r.target.index)]:[],'miss');say('Miss','miss');markNote(r.target);}
     else if(r.kind==='wrong'){flash(keys,'wrong');say('Wrong note','wrong');}
     else if(r.kind==='early'||r.kind==='late'){flash(keys,'near');say(r.kind==='early'?'Too early':'Too late','near');}
@@ -478,7 +479,7 @@ export function createGameController({document:doc,audio,transport,getProject,ge
     if(phase!=='running'||stopping)return;
     if(event==='error'){leave();message=`Audio could not start${detail?.error?.message?`: ${detail.error.message}`:''}. Try Start again.`;refresh();return;}
     if(event==='ended'){
-      for(const r of engine.advance(detail?.v??chart.to+(WINDOWS.good+Math.max(0,run.offsetMs)+1)/1000*engine.tps))react(r);
+      for(const r of engine.advance(detail?.v??chart.to+judgedAfterMs()/1000*engine.tps))react(r);
       finish();return;
     }
     if(event==='stopped'){quit();return;}

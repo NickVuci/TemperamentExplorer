@@ -880,10 +880,13 @@ notes, missing tones and notes to release, with completed-note progress and Hear
 results show completed notes and wrong notes; it has no timing score, accuracy, combo or grade. Both
 modes support Pause, Restart and Quit.
 
-Timed judges presses at the time heard: Perfect within 40 ms, Great 80, Good 130; a note not played is
-missed after its window. The right pitch just outside it shows as early or late, and pressing a note
-just played again shows as a repeat, both without penalty; any other press is a wrong note and breaks
-the combo. Notes a quarter or longer add a hold bonus when kept down to their end. The multiplier
+Timed judges presses at the time heard: Perfect within 40 ms, Great 80, Good 130. A press takes the
+earliest unplayed note of its pitch in the window, so a late press never takes the next note of that
+pitch, and it also plays every other note of that pitch starting with it (a melody note doubling a
+chord tone), timed once. A note not played is missed 50 ms after its window, so a press made inside the
+window but handled a frame or two later still counts. The right pitch outside its window, a note
+already missed included, shows as early or late, and pressing a note just played again shows as a
+repeat, both without penalty; any other press is a wrong note and breaks the combo. Notes a quarter or longer add a hold bonus when kept down to their end. The multiplier
 rises every ten in a row, to ×2.5. Results give the grade (S, A, B, C, D by accuracy), counts, best combo,
 average timing and spread with a histogram, and the three weakest bars with buttons opening those
 bars in Wait setup. Timed repeat keeps the completed pass's results visible during a three-second

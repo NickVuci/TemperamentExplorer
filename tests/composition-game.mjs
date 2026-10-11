@@ -2,7 +2,7 @@
 // any-register matching, held-together Wait mode and the results summary.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {buildChart,createGame,gradeFor,WINDOWS,POINTS,HOLD_BONUS,NEAR_MS} from '../dist/composition-game.mjs';
+import {buildChart,createGame,gradeFor,WINDOWS,POINTS,HOLD_BONUS,NEAR_MS,INPUT_SLACK_MS} from '../dist/composition-game.mjs';
 import {createProject,addEvent,PPQ} from '../dist/composition-project.mjs';
 import {captureContext} from '../dist/composition-context.mjs';
 
@@ -41,19 +41,46 @@ const chart=buildChart(project,{part:'melody'});
   r=g.press('h4',deg(4),960+tk(10));assert.equal(r.kind,'repeat','pressing a note just played again costs nothing');assert.equal(g.state().wrong,0);assert.equal(g.state().combo,3);
   r=g.press('h4b',up(deg(2)),4320-tk(250));assert.deepEqual([r.kind,r.target.tick],['early',4320],'the right pitch a little too soon is early, not wrong');assert.equal(g.state().combo,3);
   r=g.press('h5',deg(6),1000);assert.equal(r.kind,'wrong','another pitch is a wrong note');assert.equal(g.state().combo,0,'which breaks the combo');assert.equal(g.state().wrong,1);
-  // Two targets of one pitch 240 ticks (125 ms) apart: each press takes the nearer one.
-  r=g.press('h6',deg(0),2160-tk(30));assert.equal(r.target.tick,2160,'the nearest target of that pitch');
-  r=g.press('h7',deg(0),1920+tk(5));assert.equal(r.target.tick,1920);
-  const kept=g.advance(4320+tk(WINDOWS.good)-1);
-  assert.deepEqual(kept.filter(e=>e.kind==='miss'),[],'nothing is missed inside its window');
+  // Two targets of one pitch 240 ticks (125 ms) apart: a press takes the earliest one still in its
+  // window, so a late press for the first never takes the second, although it is nearer.
+  r=g.press('h6',deg(0),1920+tk(100));assert.deepEqual([r.target.tick,r.result],[1920,'good'],'a late press keeps to its own note');
+  r=g.press('h7',deg(0),2160+tk(5));assert.equal(r.target.tick,2160);
+  const kept=g.advance(4320+tk(WINDOWS.good+INPUT_SLACK_MS)-1);
+  assert.deepEqual(kept.filter(e=>e.kind==='miss'),[],'nothing is missed inside its window and the input allowance');
   assert.deepEqual(kept.filter(e=>e.kind==='hold').map(e=>[e.target.tick,e.held]),[[960,true]],'a long note still held at its end scores its hold');
-  const missed=g.advance(4320+tk(WINDOWS.good)+1);assert.deepEqual(missed.map(m=>m.target.tick),[4320],'then it is missed');
+  const missed=g.advance(4320+tk(WINDOWS.good+INPUT_SLACK_MS)+1);assert.deepEqual(missed.map(m=>m.target.tick),[4320],'then it is missed');
   assert.equal(g.state().done,true);
   const s=g.summary();
-  assert.deepEqual(s.counts,{perfect:3,great:1,good:1,miss:1});
-  assert.equal(s.accuracy,(3*100+75+40)/6);assert.equal(s.grade,gradeFor(s.accuracy));assert.equal(s.fullCombo,false);
+  assert.deepEqual(s.counts,{perfect:2,great:1,good:2,miss:1});
+  assert.equal(s.accuracy,(2*100+75+2*40)/6);assert.equal(s.grade,gradeFor(s.accuracy));assert.equal(s.fullCombo,false);
   assert.equal(s.timing.count,5);assert.equal(s.timing.bins.reduce((n,b)=>n+b.count,0),5,'every timed hit lands in the histogram');
   assert.equal(s.weakest[0].bar,2,'the bar with the miss is the weakest');
+}
+{
+  // The right pitch pressed after its note was missed, or just outside its window, is late, never wrong.
+  const g=createGame(chart,{tps:TPS});
+  assert.equal(g.press('a',deg(0),0).result,'perfect');
+  assert.deepEqual(g.advance(480+tk(WINDOWS.good+INPUT_SLACK_MS)+1).map(e=>e.kind),['miss'],'the frame loop records the miss');
+  const r=g.press('late',deg(2),480+tk(WINDOWS.good+INPUT_SLACK_MS+20));
+  assert.deepEqual([r.kind,r.target.tick],['late',480],'the missed note is late, not wrong');
+  assert.equal(g.state().wrong,0);assert.equal(g.targets[1].result,'miss');
+  assert.equal(g.press('just',deg(4),960+tk(WINDOWS.good+10)).kind,'late','just outside the window is late before the miss is recorded');
+  // A press made inside the window still counts when it is handled after the window has passed.
+  const h=createGame(chart,{tps:TPS});
+  h.advance(tk(WINDOWS.good+INPUT_SLACK_MS/2));
+  assert.equal(h.press('handled-late',deg(0),tk(WINDOWS.good-10)).result,'good');assert.equal(h.state().wrong,0);
+}
+{
+  // A melody note doubling a chord tone (one pitch, one onset) is played by one press, timed once.
+  const both=buildChart(project,{part:'both'}),g=createGame(both,{tps:TPS});
+  const tonic=both.targets.filter(t=>t.tick===0&&t.coordinate.join()===deg(0).join());
+  assert.equal(tonic.length,2,'the melody tonic doubles the chord root');
+  const r=g.press('one',deg(0),tk(5));
+  assert.deepEqual(r.targets.map(t=>t.result),['perfect','perfect'],'both tones are played');assert.equal(g.state().combo,2);
+  assert.ok(tonic.every(t=>g.targets[t.index].result==='perfect'));
+  assert.equal(g.targets.filter(t=>Number.isFinite(t.offsetMs)).length,1,'the press is timed once');
+  assert.equal(g.release('one',3840).held,true,'the hold follows the longer note');
+  assert.deepEqual(g.advance(tk(1000)).filter(e=>e.kind==='miss'&&e.target.coordinate.join()===deg(0).join()),[],'neither tonic is left to miss');
 }
 {
   // Holds: a note a quarter or longer scores a hold when kept down to (nearly) its end.

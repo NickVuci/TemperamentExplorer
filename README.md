@@ -3,6 +3,10 @@
 Rank-2 regular-temperament discovery, tuning, scale/interval analysis, and
 HexBoard play and layout creation.
 
+Ready-to-open [sample compositions](examples/compositions/README.md) cover 12 EDO,
+Meantone, Porcupine, Magic and Pajara, with contrasting layouts and rhythms for
+testing the Compose piano roll and Play mode.
+
 ## Source and build
 
 **The top-level files in `dist/` are authored source, not disposable output.**

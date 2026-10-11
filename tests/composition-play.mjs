@@ -180,10 +180,20 @@ await test('Timed lights each key only while its note is due',async()=>{
   await h.advance(300);h.controller.step();assert.deepEqual(litKeys(h),[],'a played note goes out');
   await h.go(1920);h.controller.step();assert.deepEqual(litKeys(h),[k2]);
   await h.advance(140);h.controller.step();
+  assert.ok(!keyNode(h,k2).classList.contains('game-now'),'a note past its window goes out');
+  await h.advance(50);h.controller.step();
   assert.equal(h.controller.engine.targets[1].result,'miss');
   assert.ok(!keyNode(h,k2).classList.contains('game-now'),'a missed note goes out');
   assert.equal(h.controller.deviceSnapshot().keys[k2].layoutColor,'#ff4d4d','and flashes its miss');
   h.controller.finish();assert.deepEqual(litKeys(h),[],'results show the layout alone');h.close();
+});
+
+await test('Timed calls the right note pressed too late late, never a wrong note',async()=>{
+  const h=harness({p:project([[0,480,0],[1920,480,2]])});await h.start();await h.go(0);
+  await h.advance(250);h.controller.step();assert.equal(h.controller.engine.targets[0].result,'miss','the frame loop records the miss');
+  h.down('late',0);await flush();
+  assert.equal(h.controller.engine.state().wrong,0,'no wrong note');
+  assert.equal(h.document.querySelector('[data-game-feedback]').textContent,'Too late');h.close();
 });
 
 await test('Wait lights only the next notes to play',async()=>{

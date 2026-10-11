@@ -2,10 +2,12 @@
 // player's HexBoard holds. Pure: presses arrive with the position the player heard (the transport's
 // timeAt `v`, in ticks), so judging is deterministic. No DOM, audio or board hardware.
 //
-// Play: each press takes the nearest unjudged target of the same pitch within the Good window and is
-// graded by how far off it was; a target nobody plays is missed once the window has passed. Pressing
-// the right pitch a little outside the window is reported as early or late, and pressing a note just
-// played again as a repeat, without a penalty; any other press is a wrong note and breaks the combo. Notes a quarter long or longer also score a hold
+// Play: each press takes the earliest unjudged target of the same pitch within the Good window, with
+// any others of that pitch starting together (a melody note doubling a chord tone), and is graded by
+// how far off it was; a target nobody plays is missed once the window and a short input allowance have
+// passed. Pressing the right pitch a little outside the window, a note already missed included, is
+// reported as early or late, and pressing a note just played again as a repeat, without a penalty; any
+// other press is a wrong note and breaks the combo. Notes a quarter long or longer also score a hold
 // when kept down to their end. Learn (Wait): no clock runs; the notes are played in order, each onset
 // due as soon as the one before it is complete, until all its distinct pitches are held together with
 // fresh presses and no stray notes. Notes already played may stay held.
@@ -15,6 +17,9 @@ import {PPQ,barTicks} from './composition-project.mjs';
 
 export const WINDOWS=Object.freeze({perfect:40,great:80,good:130});   // milliseconds either side
 export const NEAR_MS=400;                                              // early/late feedback range
+// A press made inside its window can reach the page a frame or two after the window has passed, so a
+// note is only missed this long after its window.
+export const INPUT_SLACK_MS=50;
 export const POINTS=Object.freeze({perfect:100,great:75,good:40,miss:0});
 export const HOLD_BONUS=25;
 export const HOLD_MIN_TICKS=PPQ;
@@ -111,9 +116,11 @@ export function createGame(chart,{tps,match='exact',context=null,mode='play',off
       if(t.key!==key)continue;
       const ms=offset(t,v);
       if(Math.abs(ms)>NEAR_MS)continue;
-      if(t.result){if(t.result!=='miss')again??=t;continue;}
-      if(Math.abs(ms)<=windows.good){if(!best||Math.abs(ms)<Math.abs(best.ms))best={t,ms};}
-      else if(!near||Math.abs(ms)<Math.abs(near.ms))near={t,ms};
+      if(t.result&&t.result!=='miss'){again??=t;continue;}
+      // Notes are played in order, so a late press never takes the next note of the same pitch.
+      if(!t.result&&Math.abs(ms)<=windows.good){best??={t,ms};continue;}
+      // The right pitch outside its window is only early or late, even once its note has been missed.
+      if(!near||Math.abs(ms)<Math.abs(near.ms))near={t,ms};
     }
     if(!best){
       if(near)return {kind:near.ms<0?'early':'late',target:near.t,offsetMs:near.ms};
@@ -122,9 +129,13 @@ export function createGame(chart,{tps,match='exact',context=null,mode='play',off
       wrong++;combo=0;return {kind:'wrong',coordinate:[...coordinate]};
     }
     const a=Math.abs(best.ms),result=a<=windows.perfect?'perfect':a<=windows.great?'great':'good';
-    judge(best.t,result,best.ms);
-    if(best.t.endTick-best.t.tick>=HOLD_MIN_TICKS)holds.set(holdId,best.t);
-    return {kind:'hit',target:best.t,result,offsetMs:best.ms};
+    // One press plays every note of this pitch starting together; its timing is counted once.
+    const together=[];
+    for(let i=lowerBound(best.t.tick);i<targets.length&&ticks[i]===best.t.tick;i++)if(targets[i].key===key&&!targets[i].result)together.push(targets[i]);
+    for(const t of together)judge(t,result,t===best.t?best.ms:null);
+    const longest=together.reduce((a,b)=>b.endTick>a.endTick?b:a);
+    if(longest.endTick-longest.tick>=HOLD_MIN_TICKS)holds.set(holdId,longest);
+    return {kind:'hit',target:best.t,targets:together,result,offsetMs:best.ms};
   }
   /** A key up: Timed hold judging; Wait reevaluates the group after removing the held input. */
   function release(holdId,v){
@@ -148,7 +159,7 @@ export function createGame(chart,{tps,match='exact',context=null,mode='play',off
     for(;missCursor<targets.length;missCursor++){
       const t=targets[missCursor];
       if(t.result)continue;
-      if(offset(t,v)<=windows.good)break;
+      if(offset(t,v)<=windows.good+INPUT_SLACK_MS)break;
       judge(t,'miss',null);out.push({kind:'miss',target:t});
     }
     return out;

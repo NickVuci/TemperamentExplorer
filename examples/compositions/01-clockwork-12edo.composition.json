@@ -1,0 +1,1138 @@
+{
+  "format": "temperament-lab-composition-v1",
+  "id": "sample-01-clockwork-12edo-project-5",
+  "name": "Clockwork - 12 EDO rhythm study",
+  "revision": 0,
+  "context": {
+    "version": 1,
+    "name": "12 EDO (meantone mapping)",
+    "basis": [
+      2,
+      3,
+      5
+    ],
+    "rows": [
+      [
+        1,
+        1,
+        0
+      ],
+      [
+        0,
+        1,
+        4
+      ]
+    ],
+    "p": 1200,
+    "g": 700,
+    "tuning": {
+      "method": "Manual",
+      "config": null
+    },
+    "tonicHz": 196,
+    "scale": {
+      "n": 12,
+      "mode": 0,
+      "degrees": [
+        {
+          "degree": 0,
+          "coordinate": [
+            0,
+            0
+          ]
+        },
+        {
+          "degree": 1,
+          "coordinate": [
+            -4,
+            7
+          ]
+        },
+        {
+          "degree": 2,
+          "coordinate": [
+            -1,
+            2
+          ]
+        },
+        {
+          "degree": 3,
+          "coordinate": [
+            -5,
+            9
+          ]
+        },
+        {
+          "degree": 4,
+          "coordinate": [
+            -2,
+            4
+          ]
+        },
+        {
+          "degree": 5,
+          "coordinate": [
+            -6,
+            11
+          ]
+        },
+        {
+          "degree": 6,
+          "coordinate": [
+            -3,
+            6
+          ]
+        },
+        {
+          "degree": 7,
+          "coordinate": [
+            0,
+            1
+          ]
+        },
+        {
+          "degree": 8,
+          "coordinate": [
+            -4,
+            8
+          ]
+        },
+        {
+          "degree": 9,
+          "coordinate": [
+            -1,
+            3
+          ]
+        },
+        {
+          "degree": 10,
+          "coordinate": [
+            -5,
+            10
+          ]
+        },
+        {
+          "degree": 11,
+          "coordinate": [
+            -2,
+            5
+          ]
+        }
+      ]
+    },
+    "state": {
+      "name": "12 EDO (meantone mapping)",
+      "basis": [
+        2,
+        3,
+        5
+      ],
+      "rows": [
+        [
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          4
+        ]
+      ],
+      "g": 700,
+      "p": 1200,
+      "commas": "81/80",
+      "source": "https://en.xen.wiki/w/Meantone_family#Meantone",
+      "key": "meantone",
+      "n": 12,
+      "mode": 0,
+      "tuning": "Manual"
+    }
+  },
+  "layout": {
+    "base": 7,
+    "offset": 0,
+    "style": "compressed",
+    "rotation": 2,
+    "mirror": false,
+    "flipHorizontal": false,
+    "flipVertical": false,
+    "center": 65,
+    "register": 1,
+    "deviceRotation": 1,
+    "outside": false,
+    "ap": 1,
+    "ag": 0,
+    "bp": 0,
+    "bg": 1,
+    "periodWrapping": true,
+    "periodPlacement": null,
+    "copyPeriodStep": 1,
+    "registerAlignment": "scale",
+    "palette": "spectrum",
+    "layerGrowth": "balanced",
+    "layerColors": {},
+    "keyColors": {},
+    "degreeColors": {}
+  },
+  "tempo": 104,
+  "meter": {
+    "numerator": 4,
+    "denominator": 4,
+    "groups": [
+      2,
+      2
+    ]
+  },
+  "ppq": 960,
+  "tracks": [
+    {
+      "id": "sample-01-clockwork-12edo-track-1",
+      "name": "Chords",
+      "kind": "chords",
+      "level": 0.55,
+      "mute": false,
+      "solo": false
+    },
+    {
+      "id": "sample-01-clockwork-12edo-track-2",
+      "name": "Melody",
+      "kind": "melody",
+      "level": 1,
+      "mute": false,
+      "solo": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "sample-01-clockwork-12edo-clip-3",
+      "trackId": "sample-01-clockwork-12edo-track-1",
+      "name": "Chords",
+      "startTick": 0,
+      "lengthTick": 30720,
+      "repeat": 1,
+      "events": [
+        {
+          "id": "sample-01-clockwork-12edo-event-6",
+          "startTick": 0,
+          "durationTick": 3780,
+          "velocity": 62,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-6-tone-0",
+              "coordinate": [
+                0,
+                0
+              ]
+            },
+            {
+              "toneId": "sample-01-clockwork-12edo-event-6-tone-1",
+              "coordinate": [
+                -2,
+                4
+              ]
+            },
+            {
+              "toneId": "sample-01-clockwork-12edo-event-6-tone-2",
+              "coordinate": [
+                0,
+                1
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Major",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-7",
+          "startTick": 3840,
+          "durationTick": 3780,
+          "velocity": 68,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-7-tone-0",
+              "coordinate": [
+                -1,
+                3
+              ]
+            },
+            {
+              "toneId": "sample-01-clockwork-12edo-event-7-tone-1",
+              "coordinate": [
+                0,
+                0
+              ]
+            },
+            {
+              "toneId": "sample-01-clockwork-12edo-event-7-tone-2",
+              "coordinate": [
+                -2,
+                4
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Minor",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-8",
+          "startTick": 7680,
+          "durationTick": 3780,
+          "velocity": 74,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-8-tone-0",
+              "coordinate": [
+                -6,
+                11
+              ]
+            },
+            {
+              "toneId": "sample-01-clockwork-12edo-event-8-tone-1",
+              "coordinate": [
+                -1,
+                3
+              ]
+            },
+            {
+              "toneId": "sample-01-clockwork-12edo-event-8-tone-2",
+              "coordinate": [
+                0,
+                0
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Major",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-9",
+          "startTick": 11520,
+          "durationTick": 3780,
+          "velocity": 62,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-9-tone-0",
+              "coordinate": [
+                0,
+                1
+              ]
+            },
+            {
+              "toneId": "sample-01-clockwork-12edo-event-9-tone-1",
+              "coordinate": [
+                -2,
+                5
+              ]
+            },
+            {
+              "toneId": "sample-01-clockwork-12edo-event-9-tone-2",
+              "coordinate": [
+                -1,
+                2
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Major",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-10",
+          "startTick": 15360,
+          "durationTick": 3780,
+          "velocity": 68,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-10-tone-0",
+              "coordinate": [
+                -1,
+                2
+              ]
+            },
+            {
+              "toneId": "sample-01-clockwork-12edo-event-10-tone-1",
+              "coordinate": [
+                -6,
+                11
+              ]
+            },
+            {
+              "toneId": "sample-01-clockwork-12edo-event-10-tone-2",
+              "coordinate": [
+                -1,
+                3
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Minor",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-11",
+          "startTick": 19200,
+          "durationTick": 3780,
+          "velocity": 74,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-11-tone-0",
+              "coordinate": [
+                -6,
+                11
+              ]
+            },
+            {
+              "toneId": "sample-01-clockwork-12edo-event-11-tone-1",
+              "coordinate": [
+                -1,
+                3
+              ]
+            },
+            {
+              "toneId": "sample-01-clockwork-12edo-event-11-tone-2",
+              "coordinate": [
+                0,
+                0
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Major",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-12",
+          "startTick": 23040,
+          "durationTick": 3780,
+          "velocity": 62,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-12-tone-0",
+              "coordinate": [
+                0,
+                1
+              ]
+            },
+            {
+              "toneId": "sample-01-clockwork-12edo-event-12-tone-1",
+              "coordinate": [
+                -2,
+                5
+              ]
+            },
+            {
+              "toneId": "sample-01-clockwork-12edo-event-12-tone-2",
+              "coordinate": [
+                -1,
+                2
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Major",
+            "rootTone": 0
+          }
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-13",
+          "startTick": 26880,
+          "durationTick": 3780,
+          "velocity": 68,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-13-tone-0",
+              "coordinate": [
+                0,
+                0
+              ]
+            },
+            {
+              "toneId": "sample-01-clockwork-12edo-event-13-tone-1",
+              "coordinate": [
+                -2,
+                4
+              ]
+            },
+            {
+              "toneId": "sample-01-clockwork-12edo-event-13-tone-2",
+              "coordinate": [
+                0,
+                1
+              ]
+            }
+          ],
+          "source": {
+            "kind": "sample",
+            "label": "Major",
+            "rootTone": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "sample-01-clockwork-12edo-clip-4",
+      "trackId": "sample-01-clockwork-12edo-track-2",
+      "name": "Melody",
+      "startTick": 0,
+      "lengthTick": 30720,
+      "repeat": 1,
+      "events": [
+        {
+          "id": "sample-01-clockwork-12edo-event-14",
+          "startTick": 0,
+          "durationTick": 930,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-14-tone-0",
+              "coordinate": [
+                1,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-15",
+          "startTick": 960,
+          "durationTick": 930,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-15-tone-0",
+              "coordinate": [
+                -1,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-16",
+          "startTick": 1920,
+          "durationTick": 930,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-16-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-17",
+          "startTick": 2880,
+          "durationTick": 930,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-17-tone-0",
+              "coordinate": [
+                -1,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-18",
+          "startTick": 3840,
+          "durationTick": 450,
+          "velocity": 96,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-18-tone-0",
+              "coordinate": [
+                0,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-19",
+          "startTick": 4320,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-19-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-20",
+          "startTick": 4800,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-20-tone-0",
+              "coordinate": [
+                -1,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-21",
+          "startTick": 5280,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-21-tone-0",
+              "coordinate": [
+                0,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-22",
+          "startTick": 5760,
+          "durationTick": 930,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-22-tone-0",
+              "coordinate": [
+                1,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-23",
+          "startTick": 6720,
+          "durationTick": 930,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-23-tone-0",
+              "coordinate": [
+                -1,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-24",
+          "startTick": 7680,
+          "durationTick": 610,
+          "velocity": 101,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-24-tone-0",
+              "coordinate": [
+                -5,
+                11
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-25",
+          "startTick": 8320,
+          "durationTick": 290,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-25-tone-0",
+              "coordinate": [
+                0,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-26",
+          "startTick": 8640,
+          "durationTick": 610,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-26-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-27",
+          "startTick": 9280,
+          "durationTick": 290,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-27-tone-0",
+              "coordinate": [
+                -5,
+                11
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-28",
+          "startTick": 9600,
+          "durationTick": 610,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-28-tone-0",
+              "coordinate": [
+                -1,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-29",
+          "startTick": 10240,
+          "durationTick": 290,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-29-tone-0",
+              "coordinate": [
+                0,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-30",
+          "startTick": 10560,
+          "durationTick": 930,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-30-tone-0",
+              "coordinate": [
+                1,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-31",
+          "startTick": 11520,
+          "durationTick": 290,
+          "velocity": 106,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-31-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-32",
+          "startTick": 11840,
+          "durationTick": 290,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-32-tone-0",
+              "coordinate": [
+                0,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-33",
+          "startTick": 12160,
+          "durationTick": 290,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-33-tone-0",
+              "coordinate": [
+                -1,
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-34",
+          "startTick": 12480,
+          "durationTick": 290,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-34-tone-0",
+              "coordinate": [
+                0,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-35",
+          "startTick": 12800,
+          "durationTick": 290,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-35-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-36",
+          "startTick": 13120,
+          "durationTick": 290,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-36-tone-0",
+              "coordinate": [
+                0,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-37",
+          "startTick": 13440,
+          "durationTick": 1890,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-37-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-38",
+          "startTick": 15360,
+          "durationTick": 162,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-38-tone-0",
+              "coordinate": [
+                0,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-39",
+          "startTick": 15552,
+          "durationTick": 162,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-39-tone-0",
+              "coordinate": [
+                -1,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-40",
+          "startTick": 15744,
+          "durationTick": 162,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-40-tone-0",
+              "coordinate": [
+                -5,
+                11
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-41",
+          "startTick": 15936,
+          "durationTick": 162,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-41-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-42",
+          "startTick": 16128,
+          "durationTick": 162,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-42-tone-0",
+              "coordinate": [
+                0,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-43",
+          "startTick": 16320,
+          "durationTick": 930,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-43-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-44",
+          "startTick": 17280,
+          "durationTick": 930,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-44-tone-0",
+              "coordinate": [
+                -5,
+                11
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-45",
+          "startTick": 18240,
+          "durationTick": 930,
+          "velocity": 76,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-45-tone-0",
+              "coordinate": [
+                0,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-46",
+          "startTick": 19680,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-46-tone-0",
+              "coordinate": [
+                -5,
+                11
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-47",
+          "startTick": 20160,
+          "durationTick": 1410,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-47-tone-0",
+              "coordinate": [
+                0,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-48",
+          "startTick": 21600,
+          "durationTick": 450,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-48-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-49",
+          "startTick": 22080,
+          "durationTick": 930,
+          "velocity": 81,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-49-tone-0",
+              "coordinate": [
+                -5,
+                11
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-50",
+          "startTick": 23040,
+          "durationTick": 2850,
+          "velocity": 101,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-50-tone-0",
+              "coordinate": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-51",
+          "startTick": 25920,
+          "durationTick": 450,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-51-tone-0",
+              "coordinate": [
+                -1,
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-52",
+          "startTick": 26400,
+          "durationTick": 450,
+          "velocity": 86,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-52-tone-0",
+              "coordinate": [
+                0,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-53",
+          "startTick": 26880,
+          "durationTick": 930,
+          "velocity": 106,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-53-tone-0",
+              "coordinate": [
+                -1,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-54",
+          "startTick": 27840,
+          "durationTick": 930,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-54-tone-0",
+              "coordinate": [
+                0,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sample-01-clockwork-12edo-event-55",
+          "startTick": 28800,
+          "durationTick": 1890,
+          "velocity": 91,
+          "tones": [
+            {
+              "toneId": "sample-01-clockwork-12edo-event-55-tone-0",
+              "coordinate": [
+                1,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "loop": {
+    "enabled": false,
+    "startTick": 7680,
+    "endTick": 23040
+  },
+  "sound": {
+    "wave": "triangle"
+  }
+}
