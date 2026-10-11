@@ -35,7 +35,7 @@ for(const row of rows)row.appendChild=el=>{el.parentElement=row;};
 // Audio: a clock whose output timestamp lags it by 20 ms, recorded voices, and live voices.
 const clock={audioSeconds:100,state:'running',clockRevision:1,performanceMs:50000,anchor:{audioSeconds:99.98,performanceMs:50000}};
 const scheduled=[],previews=[];
-const audio={prepare:async()=>{},getClockSnapshot:()=>({...clock,anchor:{...clock.anchor}}),cancelGroup(){},
+const audio={prepare:async()=>{},getClockSnapshot:()=>({...clock,performanceMs:clock.anchor.performanceMs,anchor:{...clock.anchor}}),cancelGroup(){},
   scheduleVoices:(list,opts)=>{scheduled.push(...list.map(v=>({...v,settings:opts.settings})));return list.map(v=>({voiceId:v.voiceId,cancel(){}}));},
   previewChord:c=>previews.push(c),startVoice:()=>()=>{},outputLatency:()=>null};
 let appState=fixture.context.state,matched=[];
@@ -149,8 +149,9 @@ assert.equal(chords().length,chordCount+1,'three keys pressed together record on
 assert.deepEqual([rec[0].startTick,rec[0].durationTick],[960,1920],'snapped to the grid while Snap is on');
 assert.equal(rec[0].source.label,'4:5:6');assert.ok(rec[0].source.played.startTick>960,'the played timing is kept in its source');
 press('record');press('input-target',{value:'melody'});
-// ---- practice: the board plays but enters nothing ----
-press('mode-practice');press('step-input');const frozen=JSON.stringify(P());down(deg(0));up(deg(0));assert.equal(JSON.stringify(P()),frozen,'practice enters nothing');
+// ---- Play auditions cannot enter notes or enable recording ----
+press('mode-game');press('step-input');press('record');const frozen=JSON.stringify(P());down(deg(0));up(deg(0));assert.equal(JSON.stringify(P()),frozen,'Play auditions enter nothing');
+assert.doesNotMatch(host.innerHTML,/data-comp="record"|data-comp="step-input"/,'editing controls stay in Compose');
 press('mode-compose');
 ws.dispose();
 console.log('composition-hexboard-input: ok');

@@ -981,20 +981,37 @@ the halt keeps live-edit replanning out of a take in progress.
 adds notes, so existing material is kept, and undo removes the whole take. Do not key recorded pitch on
 button numbers or cents; the onset coordinate is the note.
 
-## D-045 — The rhythm game judges the cue timeline at heard time
+## D-045 — Compose Play owns Timed and Wait over the cue timeline
 
-**Decision.** Game mode builds its chart from `buildCueTimeline` (one target per sounding tone) and judges
-presses with a pure engine (`composition-game.mjs`) in real-time windows of 40, 80 and 130 ms at the time
-heard, matching each press to the nearest unjudged target of the same exact pitch (or degree, when any
-octave counts). Early, late and repeated presses cost nothing; other presses are wrong notes. Learn mode
-pauses the transport at each due note instead of judging time. The backing is the composition with the
-player's part muted or quiet. One key per note is suggested, but every key with the pitch counts. A tap
-test measures the remaining input lag; it, the settings and best scores stay in the browser.
+**Decision.** The composition workspace has Compose for editing and Play for learning or timed runs.
+`composition-game-ui.mjs` owns Play setup, section preview, runs, repeat and speed training; its pure
+engine (`composition-game.mjs`) builds charts from `buildCueTimeline`, one target per sounding tone.
+Timed judges presses in real-time windows of 40, 80 and 130 ms at the time heard, matching each press
+to the nearest unjudged target of the same exact pitch (or degree, when any octave counts). Early,
+late and repeated presses cost nothing; other presses are wrong notes. Wait pauses the transport at
+each due onset until its distinct matching pitches are held together, with unrelated extras released.
+Only fresh presses at the current onset satisfy it; accepted written sustains may overlap later cues.
+Wait reports note completion without scoring. The persisted
+browser mode values remain `play` and `learn`. Both modes share section selection, 10–200% runtime
+speed, backing, board hints and repeat. Timed repeat shows results during a three-second pausable
+intermission; Wait repeat restarts immediately with its configured count-in. Speed training applies
+only to Timed. One key per note is suggested when hints are enabled, but every key matching the chosen
+rule counts. Suggestions prefer the player's most recently used matching button for the open piece,
+then straight chord shapes and continued melody lines before reach and travel. These runtime button
+choices survive restarts and repeats, and reset for another piece or physical pitch layout. The
+display-only route helper consumes chart matching keys and shared hex geometry; it does not resolve
+pitch or judge input. A tap test measures remaining input lag; it, settings and best scores stay in the browser. Compose retains
+its saved-tempo transport and loop editing. Standalone practice targets are exported from Play's
+Advanced controls with their existing independent match rule and schema.
 
 **Rationale.** The cue timeline already carries exact pitch, keys and timing for this purpose. Real-time
 windows keep difficulty independent of tempo and speed. Heard time and the output timestamp remove most
 latency error, and the tap test measures the rest instead of assuming it. Lighting every copy of a pitch
-under period wrapping hid where to play, so a single route is shown.
+under period wrapping hid where to play, so a single route is shown. Guided learning and timed runs
+share notes, input, section and speed controls, so a single controller owns their lifecycle rather
+than a separate guided-playback practice view.
 
-**Consequences.** Scores are not synchronised to accounts. `toPracticeTargets` remains the export for other
-consumers. Changing the windows or points changes every stored best score's meaning.
+**Consequences.** Scores are not synchronised to accounts. Runtime speed and Play settings never change
+saved tempo, context or composition/session schemas. `toPracticeTargets` remains the export for other
+consumers. Changing the windows or points changes every stored best score's meaning. Do not add a
+parallel practice transport or duplicate controller; extend Play's Timed/Wait lifecycle.

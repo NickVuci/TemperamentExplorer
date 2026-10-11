@@ -237,9 +237,9 @@ press('undo');
   change('loop','off');assert.deepEqual(P().loop,{enabled:false,startTick:3840*3,endTick:3840*5},'turning the loop off keeps its range');
 }
 
-// ---- practice: no editing ----
-press('mode-practice');
-{const n=mel().length,before=JSON.stringify(P());pd(surface,50,x(free));pu(50);key('a',{ctrlKey:true});key('Delete');assert.equal(JSON.stringify(P()),before,'practice mode leaves the composition alone');assert.equal(mel().length,n);}
+// ---- Play: no editing ----
+press('mode-game');
+{const n=mel().length,before=JSON.stringify(P());pd(surface,50,x(free));pu(50);key('a',{ctrlKey:true});key('Delete');press('undo');change('tempo',70);assert.equal(JSON.stringify(P()),before,'Play leaves the composition alone');assert.equal(mel().length,n);}
 press('mode-compose');
 
 // ---- hover readout ----

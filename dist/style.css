@@ -3480,7 +3480,7 @@ footer {
 .roll-playhead{position:absolute;top:30px;bottom:0;left:var(--playhead-left,104px);pointer-events:none;z-index:4;border-left:1px solid #d9e3f7}
 .roll-playhead i{position:absolute;top:0;left:-5px;width:9px;height:7px;background:#d9e3f7;clip-path:polygon(0 0,100% 0,50% 100%)}
 .roll-status{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding:9px 12px;color:var(--muted);font-size:13px;border-top:1px solid var(--line)}
-.composition-lower{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1.05fr);gap:14px;margin:16px 0;align-items:start}
+.composition-lower{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px;margin:16px 0;align-items:start}
 .comp-panel{padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--surface);min-width:0}
 .comp-panel h3{margin:0 0 14px;font-size:17px}
 .comp-panel h4{font-size:16px;margin:10px 0}
@@ -3503,19 +3503,12 @@ footer {
 .comp-panel .chord-add select{max-width:100%;width:100%;font-size:14px}
 .comp-note-inspector{border-top:1px solid var(--line);margin-top:14px;padding-top:6px;display:flex;flex-wrap:wrap;gap:8px}
 .comp-note-inspector h4{width:100%;margin:7px 0}
-.practice-card{background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px;font-size:14px}
-.practice-card b{font-size:15px;font-weight:600}
-.practice-card p{color:var(--muted);line-height:1.5;margin:6px 0 0;font-size:14px}
-.practice-card label{display:flex;flex-wrap:wrap;width:100%;justify-content:space-between}
-.practice-card input[type=range]{width:100%;accent-color:#508ce5}
-.practice-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
-.practice-actions button{font-size:14px;padding:6px 9px}
 .comp-table-scroll{overflow:auto}
 .composition-note-list{margin:12px 0}
 .composition-start{padding:22px;max-width:760px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
 .composition-start>button{margin:6px 10px 6px 0}
-@media(max-width:1100px){.composition-lower{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}.comp-practice{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px}.comp-practice h3{grid-column:1/-1}.practice-card{margin:0}.composition-header h2{flex-basis:100%}}
-@media(max-width:700px){.composition-suite{padding:10px}.composition-header{gap:10px}.composition-header h2{font-size:22px}.composition-header .composition-transport{width:100%;flex-wrap:wrap}.comp-mode{width:100%}.comp-mode button{flex:1}.composition-lower{grid-template-columns:minmax(0,1fr)}.comp-practice{display:block;grid-column:auto}.practice-card{margin-bottom:10px}.roll-toolbar{gap:8px}.roll-status{flex-wrap:wrap}.composition-board{max-height:420px}.comp-panel{padding:12px}}
+@media(max-width:1100px){.composition-header h2{flex-basis:100%}}
+@media(max-width:700px){.composition-suite{padding:10px}.composition-header{gap:10px}.composition-header h2{font-size:22px}.composition-header .composition-transport{width:100%;flex-wrap:wrap}.comp-mode{width:100%}.comp-mode button{flex:1}.composition-lower{grid-template-columns:minmax(0,1fr)}.roll-toolbar{gap:8px}.roll-status{flex-wrap:wrap}.composition-board{max-height:420px}.comp-panel{padding:12px}}
 
 /* Project settings: aligned fields and a separate action row. */
 .composition-project-menu[open]{padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:8px}
@@ -3941,7 +3934,6 @@ footer {
 /* Tools set the cursor over empty cells. */
 .composition-timeline.is-tool-draw .roll-surface { cursor: cell; }
 .composition-timeline.is-tool-select .roll-surface { cursor: crosshair; }
-.composition-timeline.is-practice .roll-note { cursor: default; }
 /* Rows: degree 0 rows are the landmarks; rows outside the scale or the chosen range are marked. */
 .roll-rows { position: relative; }
 .roll-row.is-degree0 .roll-degree { background: #2b3550; font-weight: 600; }
@@ -4020,7 +4012,7 @@ footer {
 .roll-mark.is-pending { border: 1px dashed #65d6b8; background: rgba(101,214,184,.35); }
 .roll-mark.is-take { border: 1px solid #ff9aa2; background: rgba(226,92,102,.6); }
 .roll-mark.is-take.is-open { box-shadow: 0 0 10px rgba(255,120,130,.8); }
-/* Compose rhythm game: setup, the note highway beside the HexBoard, judgements and results. */
+/* Compose Play: setup, the note highway beside the HexBoard, judgements and results. */
 .game { margin-top: 4px; }
 .game-setup { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap: 18px; align-items: start; }
 .game-setup-form { padding: 16px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
@@ -4030,6 +4022,26 @@ footer {
 .game-fields select, .composition-suite .game-fields input[type=number] { width: 100%; padding: 7px 9px; font-size: 14px; }
 .game-fields .game-check { flex-direction: row; align-items: center; gap: 8px; grid-column: 1 / -1; color: var(--text); }
 .game-fields .game-check input { width: auto; }
+.game-speed-control { grid-column: 1 / -1; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--inset-bg); }
+.game-speed-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.game-speed-heading label { max-width: 130px; }
+.game-speed-heading output { padding-bottom: 8px; color: var(--text); font-variant-numeric: tabular-nums; }
+.game-fields .game-speed-range { margin: 10px 0; }
+.game-speed-range .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.game-speed-range input { width: 100%; margin: 0; accent-color: #508ce5; }
+.game-speed-presets { display: flex; flex-wrap: wrap; gap: 7px; }
+.game-speed-presets button { min-height: 32px; padding: 4px 12px; }
+.game-speed-presets button[aria-pressed=true] { border-color: #508ce5; background: var(--surface2); }
+.game-advanced { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+.game-advanced summary { cursor: pointer; }
+.game-advanced h4 { margin: 12px 0 6px; }
+.game-advanced label { display: grid; gap: 5px; margin: 10px 0; color: var(--muted); font-size: 13px; }
+.game-advanced select { width: 100%; }
+.game-preview { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.game-preview h4 { margin: 0 0 6px; font-size: 15px; }
+.game-preview output { display: block; min-height: 1.5em; overflow-wrap: anywhere; font-size: 14px; }
+.game-preview-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.game-preview-actions button { flex: 1; min-height: 36px; padding: 6px 10px; }
 .game-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0 0; }
 .game-actions .comp-primary { min-height: 44px; padding: 10px 22px; font-size: 16px; }
 .game-meta { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
@@ -4043,8 +4055,11 @@ footer {
 .game-combo { min-width: 9ch; font: 700 15px var(--font-ui); color: #ffd166; }
 .game-progress { flex: 1; min-width: 120px; height: 6px; border-radius: 3px; background: var(--inset-bg); overflow: hidden; }
 .game-progress i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #4387ed, #65d6b8); }
-.game-controls { display: flex; gap: 8px; }
+.game-controls { display: flex; flex-wrap: wrap; gap: 8px; }
 .game-controls button { min-height: 36px; padding: 6px 14px; }
+.game-controls button[hidden] { display: none; }
+.game-hud .game-pass b { font-size: 18px; }
+.game-wait-instructions { margin: 0 0 12px; }
 /* The stage: highway, then the board */
 .game-stage { display: grid; grid-template-columns: minmax(0,1.5fr) minmax(0,1fr); gap: 14px; align-items: start; }
 .game-highway { position: relative; display: grid; grid-template-columns: 52px minmax(0,1fr); border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: #0e131b; }
@@ -4080,6 +4095,9 @@ footer {
 .game-board .comp-board-key.game-flash-near polygon { fill: #ffb347; }
 /* Results */
 .game-results { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 14px 22px; align-items: center; padding: 18px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
+.game-results.is-wait { grid-template-columns: minmax(0,1fr); }
+.game-repeat { grid-column: 1 / -1; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--inset-bg); }
+.game-repeat p { margin: 0; font-variant-numeric: tabular-nums; }
 .game-grade { display: grid; place-items: center; width: 110px; height: 110px; border-radius: 50%; font: 800 56px var(--font-ui); color: #0d1626; background: #9cc2ff; box-shadow: 0 0 30px rgba(156,194,255,.35); }
 .game-grade.is-S { background: #ffd166; box-shadow: 0 0 34px rgba(255,209,102,.55); }
 .game-grade.is-A { background: #3ddc84; }
@@ -4106,7 +4124,7 @@ footer {
 .game-calibrate p { color: var(--muted); }
 .game-calibrate .game-big { color: var(--text); margin: 14px 0; }
 @media (max-width: 1000px) { .game-setup, .game-stage { grid-template-columns: minmax(0,1fr); } }
-@media (max-width: 560px) { .game-fields { grid-template-columns: minmax(0,1fr); } .game-results { grid-template-columns: minmax(0,1fr); justify-items: start; } .game-hud { gap: 8px 14px; } .game-hud b { font-size: 20px; } }
+@media (max-width: 560px) { .game-fields { grid-template-columns: minmax(0,1fr); } .game-results { grid-template-columns: minmax(0,1fr); justify-items: start; } .game-repeat { width: 100%; box-sizing: border-box; } .game-hud { gap: 8px 14px; } .game-hud b { font-size: 20px; } .game-preview-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); } .game-controls { width: 100%; } .game-controls button { flex: 1; } }
 @media (prefers-reduced-motion: reduce) { .game-note { transition: none; } }
 @media (max-width: 700px) {
   .roll-toolbar { gap: 8px; }

@@ -19,7 +19,7 @@ import {createGameController} from './composition-game-ui.mjs';
 import {compositionBoard,compactFingerings,compositionDeviceSnapshot,boardMarkup} from './composition-board.mjs';
 import {createHexboardPlayer} from './hexboard-player.mjs';
 
-const FOCUS_ATTRS=['data-comp','data-comp-field','data-event','data-tick','data-a','data-b','data-n'];
+const FOCUS_ATTRS=['data-comp','data-comp-field','type','data-event','data-tick','data-a','data-b','data-n'];
 const slug=name=>String(name).trim().replace(/[^\w.-]+/g,'-').replace(/^-+|-+$/g,'')||'composition';
 const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
 const intIn=(value,lo,hi,fallback)=>{const n=Math.round(Number(value));return Number.isFinite(n)?clamp(n,lo,hi):fallback;};
@@ -37,7 +37,7 @@ export function createCompositionWorkspace({
   raf=globalThis.requestAnimationFrame?.bind(globalThis),timer,
 }){
   let history=null,message='',cache=null,frame=null,boardCache=null,placementCache=null,suppressClick=false,clipboard=null,input=null;
-  const ui={selectedChord:null,addLength:4,collection:0,noteDuration:'grid',registers:'board',matchMode:'exact-coordinate',mode:'compose',practiceSpeed:70,follow:true,boardLabels:true,fingering:0,boardShow:'both',
+  const ui={selectedChord:null,addLength:4,collection:0,noteDuration:'grid',registers:'board',matchMode:'exact-coordinate',mode:'compose',follow:true,boardLabels:true,fingering:0,boardShow:'both',
     // Root lane picker: {tick, replace: chord id or null, degree: scale degree or null, all: show every harmony}.
     rootPick:null,
     // Piano roll: the time grid, tool, zoom, the selected melody notes and the open toolbar menu.
@@ -51,13 +51,14 @@ export function createCompositionWorkspace({
   const showsTrack=kind=>ui.boardShow==='both'||kind===ui.boardShow;
   const soundingCells=tick=>activeCues(timeline(),tick).sounding.filter(q=>showsTrack(q.trackKind)).flatMap(q=>q.cells);
   const project=()=>history?.project??null;
-  const transport=createTransport({getProject:()=>{const p=project();return p&&ui.mode==='game'?game.playbackProject(p):p&&ui.mode==='practice'?{...p,tempo:p.tempo*ui.practiceSpeed/100}:p;},audio,...(timer?{timer}:{}),
+  const canEdit=()=>ui.mode==='compose';
+  const transport=createTransport({getProject:()=>{const p=project();return p&&ui.mode==='game'?game.playbackProject(p):p;},audio,...(timer?{timer}:{}),
     getClick:()=>ui.mode==='game'?game.settings.click:ui.click,onState:(event,detail)=>{
+    if(ui.mode==='game'){game.onTransport(event,detail);return;}
     if(event==='error'){say(`Audio could not start${detail?.error?.message?`: ${detail.error.message}`:''}. Press Play again.`);return;}
     if(event==='resync')return;
     // The rhythm game drives the transport and draws itself.
-    if(ui.mode==='game'){game.onTransport(event);return;}
-    if(event==='playing'&&ui.record&&ui.mode!=='practice'&&!take)beginTake();
+    if(event==='playing'&&ui.record&&canEdit()&&!take)beginTake();
     // A take ends whenever playback halts; committing it rebuilds the workspace.
     if(take&&['paused','stopped','ended','suspended'].includes(event)){endTake();return;}
     refresh();
@@ -65,6 +66,8 @@ export function createCompositionWorkspace({
   }});
 
   const game=createGameController({document:doc,audio,transport,getProject:()=>project(),getBoard:()=>boardModel().board,refresh:()=>refresh(),notify,
+    getSelectedSection:()=>{const p=project(),clip=p&&clipOf(p,'chords'),e=clip?.events.find(e=>e.id===ui.selectedChord);return e?{from:clip.startTick+e.startTick,to:clip.startTick+e.startTick+e.durationTick}:null;},
+    getExportMatch:()=>ui.matchMode,releaseHeld:()=>keyPlayer.reset(),
     ...(raf?{raf}:{raf:null}),...(gameStorage?{storage:gameStorage}:{})});
 
   const trackOf=(p,kind)=>p.tracks.find(t=>t.kind===kind);
@@ -80,16 +83,6 @@ export function createCompositionWorkspace({
     if(!cache||cache.project!==p)cache={project:p,timeline:buildCueTimeline(p,boardSnapshot(p),{ignoreMixer:true}),snapshot:null};
     return cache.timeline;
   }
-  function cueText(tick){
-    const p=project();
-    if(!p)return '';
-    const a=activeCues(timeline(),tick);
-    const where=q=>q.cells.length?`key ${q.cells.slice(0,3).join(' or ')}${q.cells.length>3?'…':''}`:'no key on this layout';
-    const melody=a.sounding.filter(q=>q.trackKind==='melody').map(q=>`degree ${q.degree??'outside scale'}`).join(', ');
-    const next=a.upcoming.map(q=>`${q.trackKind==='melody'?`degree ${q.degree??'outside scale'}`:'chord note'} → ${where(q)}`).join('; ');
-    return `Now: ${melody||'no melody note'}. Next${a.nextTick===null?': nothing.':` (${formatPosition(p,a.nextTick)}): ${next}.`}`;
-  }
-
   function boardModel(){
     const p=project();if(!p)return {board:null,reason:''};
     if(boardCache?.project!==p)boardCache={project:p,...compositionBoard(p)};
@@ -139,7 +132,7 @@ export function createCompositionWorkspace({
   function deviceSnapshot(){
     const p=project();if(!p)return null;
     if(ui.mode==='game')return game.deviceSnapshot(Array.from(held.values(),h=>h.index));
-    const active=transport.state==='playing'||ui.mode==='practice'?soundingCells(transport.position()):[];
+    const active=transport.state==='playing'?soundingCells(transport.position()):[];
     return compositionDeviceSnapshot(p,boardModel().board,[...new Set([...(ui.follow&&active.length?active:[...selectedKeys(),...noteKeys()]),...Array.from(held.values(),h=>h.index)])]);
   }
 
@@ -181,7 +174,7 @@ export function createCompositionWorkspace({
       transportState:transport.state,position:tick,
       chordClip:p?clipOf(p,'chords'):null,melodyClip:p?clipOf(p,'melody'):null,
       selectedChord:ui.selectedChord,selected:new Set(ui.selected),addLength:ui.addLength,collectionIndex:ui.collection,
-      mode:ui.mode,practiceSpeed:ui.practiceSpeed,follow:ui.follow,boardLabels:ui.boardLabels,boardShow:ui.boardShow,fingering:ui.fingering,rootPick:ui.rootPick,rootHarmonies:ui.rootPick?rootHarmonies():[],
+      mode:ui.mode,follow:ui.follow,boardLabels:ui.boardLabels,boardShow:ui.boardShow,fingering:ui.fingering,rootPick:ui.rootPick,rootHarmonies:ui.rootPick?rootHarmonies():[],
       board:boardModel().board,boardReason:boardModel().reason,fingerings:fingerings(),selectedKeys:selectedKeys(),noteKeys:noteKeys(),
       inputTarget:ui.inputTarget,stepInput:ui.stepInput,record:ui.record,recording:!!take,countIn:ui.countIn,click:ui.click,
       collection:items.map(x=>({label:x.item.label,compatible:!!p&&tuningKey(x.item.state)===tuningKey(p.context)})),
@@ -190,7 +183,7 @@ export function createCompositionWorkspace({
       grid:ui.grid,tool:ui.tool,zoom:ui.zoom,rowHeight:ui.rowHeight,velocityLane:ui.velocityLane,menu:ui.menu,rhythm:ui.rhythm,canPaste:!!clipboard,
       euclidRange:p?euclidPlan().text:'',euclidPreview:euclidPreview(),
       game:ui.mode==='game'?game.view():null,
-      cueText:cueText(tick),message,
+      message,
     };
   }
   const render=()=>renderComposition(view());
@@ -228,6 +221,7 @@ export function createCompositionWorkspace({
   function say(text){message=text;notify(text);refresh();}
   function changed(){transport.invalidate();cache=null;placementCache=null;ui.fingering=0;message='';refresh();}
   function edit(label,command){
+    if(!canEdit())return false;
     try{history.execute(label,command);changed();return true;}
     catch(error){say(error.message);return false;}
   }
@@ -342,7 +336,7 @@ export function createCompositionWorkspace({
     moveCursor(last.tick);
   }
   // Recording: armed, it takes every hold heard while playback runs (after any count-in).
-  function startPlayback(){void transport.play({countIn:ui.record&&ui.mode!=='practice'?ui.countIn:0});}
+  function startPlayback(){if(canEdit())void transport.play({countIn:ui.record?ui.countIn:0});}
   function beginTake(){take={rec:createTake(),kind:ui.inputTarget};}
   function endTake(){
     if(!take)return;
@@ -366,14 +360,14 @@ export function createCompositionWorkspace({
     if(commitEvents('melody','Record take',{remove:[],put}))notify(`Recorded ${put.length} note${put.length===1?'':'s'}. Press Q to quantize them.`);
   }
   function toggleRecord(){
-    if(ui.mode==='practice')return;
+    if(!canEdit())return;
     ui.record=!ui.record;
     if(transport.state==='playing'){if(ui.record&&!take)beginTake();else if(!ui.record&&take){endTake();return;}}
     refresh();
   }
   function hexInput(event){
     if(ui.mode==='game'){game.input(event);return;}
-    if(!project()||ui.mode==='practice'||!event?.holdId)return;
+    if(!project()||!canEdit()||!event?.holdId)return;
     if(take){
       const at=transport.timeAt(event.t);
       if(event.type==='down')take.rec.down(event.holdId,event.coordinate,at);
@@ -398,7 +392,7 @@ export function createCompositionWorkspace({
       g.parentElement?.classList.toggle('is-held',heldIds.has(id));
       g.parentElement?.classList.toggle('is-sounding',!heldIds.has(id)&&soundingIds.has(id));
     }
-    const stepping=ui.stepInput&&ui.mode!=='practice'&&transport.state!=='playing',at=transport.position(),length=stepping?stepLength(at):0;
+    const stepping=ui.stepInput&&canEdit()&&transport.state!=='playing',at=transport.position(),length=stepping?stepLength(at):0;
     let cursor=roll.querySelector?.('.roll-step-cursor');
     if(stepping){
       if(!cursor&&doc.createElement){cursor=doc.createElement('div');cursor.className='roll-step-cursor';cursor.setAttribute('aria-hidden','true');roll.appendChild(cursor);}
@@ -451,11 +445,9 @@ export function createCompositionWorkspace({
       }
     }
     if(roll)paintInput(roll);
-    const sounding=new Set(ui.follow&&ui.mode!=='game'&&(transport.state==='playing'||ui.mode==='practice')?soundingCells(tick):[]);
+    const sounding=new Set(ui.follow&&canEdit()&&transport.state==='playing'?soundingCells(tick):[]);
     for(const entry of held.values())sounding.add(entry.index);
     for(const key of doc.querySelectorAll?.('[data-comp-key]')??[])key.classList.toggle('is-playing',sounding.has(Number(key.dataset.compKey)));
-    const cues=doc.querySelector('[data-comp-cues]'),text=cueText(tick);
-    if(cues&&cues.textContent!==text)cues.textContent=text;
   }
   function startLoop(){
     if(frame!==null||!raf)return;
@@ -464,7 +456,7 @@ export function createCompositionWorkspace({
   }
 
   function resetSelection(){ui.selectedChord=null;ui.selected=new Set();ui.menu=null;}
-  function resetInput(){take=null;stepGroup.cancel();steps=[];game.leave();}
+  function resetInput(){take=null;stepGroup.cancel();steps=[];game.leave();ui.mode='compose';}
   function open(text){
     try{
       const next=parseProject(text);
@@ -526,7 +518,7 @@ export function createCompositionWorkspace({
     if(action==='note-select'){select([el.dataset.event],'replace');return;}
     if(action==='note-hear'){const e=find(clip,el.dataset.event);if(e)audio.previewChord(centsOf(p,e));return;}
     if(action==='note-cell'){
-      if(ui.mode==='practice')return;
+      if(!canEdit())return;
       const tick=q(el.dataset.tick),coordinate=[q(el.dataset.a),q(el.dataset.b)];
       const same=clip.events.find(e=>e.startTick===tick&&e.tones.length===1&&e.tones[0].coordinate[0]===coordinate[0]&&e.tones[0].coordinate[1]===coordinate[1]);
       if(same)commitNotes('Remove note',{remove:[same.id],put:[]},{select:false});
@@ -598,16 +590,19 @@ export function createCompositionWorkspace({
       }
       const p=project();
       if(!p)return true;
+      const shared=['save','close','load-context','mode-compose','mode-game','export-targets'];
+      if(!canEdit()&&!shared.includes(action)&&!action.startsWith('game-'))return true;
       switch(action){
         case 'save':download(`${slug(p.name)}.composition.json`,serializeProject(p),'application/json');return true;
         case 'close':transport.stop();history=null;resetSelection();resetInput();cache=null;message='';refresh();return true;
         case 'undo':history.undo();changed();return true;
         case 'redo':history.redo();changed();return true;
         case 'load-context':loadState(structuredClone(p.context.state));return true;
-        case 'mode-compose':case 'mode-practice':case 'mode-game':{
+        case 'mode-compose':case 'mode-game':{
           const next=action.slice(5);if(next===ui.mode){refresh();return true;}
           if(ui.mode==='game')game.leave();
           if(take)endTake();
+          releaseHeld();
           if(next==='game')transport.stop();else transport.pause();
           ui.mode=next;stepGroup.cancel();refresh();return true;
         }
@@ -621,7 +616,7 @@ export function createCompositionWorkspace({
         case 'rows-less':rowsBy(-4);return true;
         case 'row-hear':{const m=[q(el.dataset.a),q(el.dataset.b)];ui.lastRow=m;audition([m]);return true;}
         case 'root-block':{
-          const e=find(clipOf(project(),'chords'),el.dataset.event);if(!e||ui.mode==='practice')return true;
+          const e=find(clipOf(project(),'chords'),el.dataset.event);if(!e||!canEdit())return true;
           const root=chordRoot(project(),e);
           ui.selectedChord=e.id;ui.fingering=0;ui.rootPick={tick:e.startTick,replace:e.id,degree:root?.degree??null,all:false};
           onChordFocus(e.tones.map(t=>[...t.coordinate]));refresh();return true;
@@ -633,17 +628,6 @@ export function createCompositionWorkspace({
         case 'board-show':if(BOARD_SHOW.includes(el.dataset.value))ui.boardShow=el.dataset.value;refresh();return true;
         case 'fingering':ui.fingering=Math.max(0,Math.min(Number(el.dataset.index)||0,fingerings().length-1));refresh();return true;
         case 'seek':void transport.seek(Number(el.dataset.tick)).then(refresh);return true;
-        case 'practice-start':case 'practice-next':case 'practice-prev':{
-          transport.pause();ui.mode='practice';
-          const ticks=[...new Set(timeline().map(c=>c.onsetTick))].sort((a,b)=>a-b),now=transport.position();
-          const next=action==='practice-start'?ticks[0]:action==='practice-next'?ticks.find(t=>t>now):ticks.filter(t=>t<now).at(-1);
-          const at=next??(action==='practice-next'?ticks[0]:ticks.at(-1));
-          if(at===undefined){say('Add a chord or melody note before practising.');return true;}
-          void transport.seek(at).then(()=>{const active=activeCues(timeline(),at).sounding;audio.previewChord(active.map(c=>c.cents));refresh();});return true;
-        }
-        case 'loop-off':edit('Disable loop',pr=>setLoop(pr,{enabled:false,startTick:0,endTick:null}));return true;
-        case 'loop-all':edit('Loop composition',pr=>setLoop(pr,{enabled:true,startTick:0,endTick:null}));return true;
-        case 'loop-selected':{const e=clipOf(p,'chords').events.find(e=>e.id===ui.selectedChord);if(e)edit('Loop selected chord',pr=>setLoop(pr,{enabled:true,startTick:e.startTick,endTick:e.startTick+e.durationTick}));return true;}
         case 'play':startPlayback();return true;
         case 'record':toggleRecord();return true;
         case 'input-target':if(['melody','chords'].includes(el.dataset.value)){ui.inputTarget=el.dataset.value;stepGroup.cancel();}refresh();return true;
@@ -658,7 +642,7 @@ export function createCompositionWorkspace({
           return true;
       }
       if(action.startsWith('game-')){if(ui.mode==='game')game.click(action,el);return true;}
-      if(action.startsWith('sel-')||action.startsWith('rhythm-')){if(ui.mode!=='practice')selectionAction(action,el);}
+      if(action.startsWith('sel-')||action.startsWith('rhythm-')){if(canEdit())selectionAction(action,el);}
       else if(action.startsWith('chord-'))chordAction(action,el);
       else melodyAction(action,el);
     }catch(error){say(error.message);}
@@ -685,7 +669,7 @@ export function createCompositionWorkspace({
     const inRoll=!target||target===doc.body||target===doc.documentElement||!!target.closest?.('.composition-timeline');
     if(!inRoll||event.altKey)return false;
     const done=fn=>{event.preventDefault();fn();return true;};
-    const k=key.length===1?key.toLowerCase():key,some=ui.selected.size>0,editing=ui.mode!=='practice';
+    const k=key.length===1?key.toLowerCase():key,some=ui.selected.size>0,editing=canEdit();
     if(mod){
       if(k==='z')return done(()=>{event.shiftKey?history.redo():history.undo();changed();});
       if(k==='y')return done(()=>{history.redo();changed();});
@@ -728,7 +712,7 @@ export function createCompositionWorkspace({
   // Roll gestures: each finished drag commits one undoable edit; pointer cancellation leaves the project untouched.
   input=createRollInput({document:doc,ctl:{
     project,ui,clip:kind=>clipOf(project(),kind),commit:edit,commitNotes,select,refresh,addNote,defaultLength,rowName,audition,
-    isPractice:()=>ui.mode==='practice',
+    canEdit,
     seek:tick=>{void transport.seek(tick).then(paint);},
     setLoop:(start,end)=>edit('Set loop',pr=>setLoop(pr,{enabled:true,startTick:start,endTick:end})),
     hover:text=>{const out=doc.querySelector?.('[data-comp-hover]');if(out&&out.textContent!==text)out.textContent=text;},
@@ -739,20 +723,20 @@ export function createCompositionWorkspace({
   const tickIn=(event,el)=>{const grid=el.closest('.roll-row-grid')??el.parentElement,roll=el.closest('[data-comp-roll]'),r=grid.getBoundingClientRect(),span=Number(roll.dataset.span);return Math.max(0,Math.min(span-1,(event.clientX-r.left)/r.width*span));};
   function surfaceClick(event){
     const lane=event.target.closest?.('.roll-root-surface');
-    if(lane&&project()&&ui.mode!=='practice'){
+    if(lane&&project()&&canEdit()){
       const tick=snapTick(project().meter,{...grid(),snap:true},tickIn(event,lane),'floor');
       ui.rootPick={tick,replace:null,degree:ui.rootPick?.degree??null,all:false};refresh();return;
     }
     // A pointer draws on pointerdown; Enter on a focused row adds a note at the playhead.
     const surface=event.target.closest?.('.roll-surface');
-    if(surface&&project()&&ui.mode!=='practice'&&event.detail===0){
+    if(surface&&project()&&canEdit()&&event.detail===0){
       const at=snapTick(project().meter,grid(),transport.position(),'floor'),m=[q(surface.dataset.a),q(surface.dataset.b)];
       if(addNote(at,m,defaultLength(at)))audition([m]);
     }
   }
   doc.addEventListener?.('click',surfaceClick);
   function doubleClick(event){
-    if(!project()||ui.mode==='practice')return;
+    if(!project()||!canEdit())return;
     const note=event.target?.closest?.('.roll-note');
     if(note&&!note.closest?.('[hidden]')){
       if(!find(clipOf(project(),'melody'),note.dataset.event)||(note.dataset.event===drawn.id&&Date.now()-drawn.at<800))return;
@@ -787,6 +771,7 @@ export function createCompositionWorkspace({
     const field=el.dataset?.compField;
     if(field===undefined)return false;
     if(field.startsWith('game'))return ui.mode==='game'&&game.change(field,el);
+    if(!canEdit()&&field!=='matchMode')return true;
     const p=project(),value=el.value,r=ui.rhythm;
     const preview=()=>{const out=doc.querySelector?.('[data-comp-euclid-preview]');if(out)out.textContent=euclidPreview();};
     try{
@@ -796,7 +781,6 @@ export function createCompositionWorkspace({
         case 'registers':if(REGISTER_CHOICES.some(r=>r[0]===value))ui.registers=value;refresh();return true;
         case 'follow':ui.follow=!!el.checked;refresh();return true;
         case 'boardLabels':ui.boardLabels=!!el.checked;refresh();return true;
-        case 'practiceSpeed':ui.practiceSpeed=Math.max(25,Math.min(100,Number(value)||70));transport.invalidate();refresh();return true;
         case 'matchMode':if(MATCH_MODES.includes(value))ui.matchMode=value;return true;
         case 'gridDivision':ui.grid=normalizeGrid({...ui.grid,division:Number(value)});refresh();return true;
         case 'gridFeel':ui.grid=normalizeGrid({...ui.grid,feel:value});refresh();return true;
@@ -852,8 +836,8 @@ export function createCompositionWorkspace({
       history=createHistory(parseProject(data));cache=null;message='';resetSelection();resetInput();
     },
     get open(){return history!==null;},
-    pause(){if(transport.state==='playing'){transport.pause();refresh();}},
-    stop(){releaseHeld();if(transport.state!=='stopped'){transport.stop();refresh();}else paint();},
+    pause(){if(ui.mode==='game'){game.pause();return;}if(transport.state==='playing'){transport.pause();refresh();}stepGroup.cancel();releaseHeld();audio.cancelGroup?.('preview');},
+    stop(){if(ui.mode==='game'){game.quit();return;}releaseHeld();if(transport.state!=='stopped'){transport.stop();refresh();}else paint();},
     dispose(){clearTimeout(rootRetry);rootRetry=null;game.leave();transport.stop();keyPlayer.destroy();doc.removeEventListener?.('click',surfaceClick);doc.removeEventListener?.('dblclick',doubleClick);doc.removeEventListener?.('pointerdown',input.pointerDown);doc.removeEventListener?.('pointermove',input.pointerMove);doc.removeEventListener?.('pointerup',input.pointerUp);doc.removeEventListener?.('pointercancel',input.pointerUp);doc.removeEventListener?.('wheel',input.wheel,{passive:false});},
     // Test and integration hooks.
     getProject:project,transport,timeline,paint,deviceSnapshot,game,

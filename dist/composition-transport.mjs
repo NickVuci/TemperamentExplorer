@@ -24,7 +24,7 @@ const byStart=(a,b)=>a.startTick-b.startTick||(a.occId<b.occId?-1:a.occId>b.occI
  * own time). The output timestamp in the snapshot pairs the two clocks after output latency, so a
  * key press is placed against what the player was hearing when they pressed it.
  */
-export function heardSeconds(snap,performanceMs){
+export function heardSeconds(snap,performanceMs=snap.performanceMs){
   const a=snap.anchor??{audioSeconds:snap.audioSeconds,performanceMs:snap.performanceMs};
   return a.audioSeconds+(Number.isFinite(performanceMs)&&Number.isFinite(a.performanceMs)?(performanceMs-a.performanceMs)/1000:0);
 }
@@ -100,9 +100,15 @@ export function createTransport({getProject,audio,timer={set:(fn,ms)=>setInterva
   // Cancel tokens of scheduled voices with their onsets, so a live edit can replace the ones not yet
   // sounding. Count-in clicks are marked so an edit during the count-in keeps them.
   let pending=[],countFrom=0;
+  let runOptions={untilTick:null,boundary:'end',graceMs:GRACE_SECONDS*1000},preparing=false;
 
   const tps=()=>project.tempo*PPQ/60;
   const emit=(event,detail)=>onState(event,detail);
+  const bounded=()=>runOptions.untilTick!==null;
+  function refreshPlan(){
+    plan=createPlan(project,{click:getClick()});
+    if(bounded()){plan.loop.enabled=false;plan.end=runOptions.untilTick;}
+  }
 
   function realTick(v){
     if(plan.loop.enabled&&v>=plan.loop.end){const len=plan.loop.end-plan.loop.start;return plan.loop.start+((v-plan.loop.end)%len);}
@@ -126,8 +132,13 @@ export function createTransport({getProject,audio,timer={set:(fn,ms)=>setInterva
     const snap=audio.getClockSnapshot();
     if(snap.state!=='running'||snap.clockRevision!==anchorClock){halt('suspended');return;}
     const rate=tps(),nowV=pos0+(snap.audioSeconds-anchorAudio)*rate;
-    if(!plan.loop.enabled&&nowV>=plan.end+GRACE_SECONDS*rate){
-      token++;clearTimer();audio.cancelGroup(GROUP);pending=[];position=0;state='stopped';emit('ended',{tick:plan.end});return;
+    const heard=heardSeconds(snap),heardV=pos0+(heard-anchorAudio)*rate;
+    const pauseBoundary=bounded()&&runOptions.boundary==='pause';
+    const completionV=bounded()?heardV:nowV;
+    if(!plan.loop.enabled&&completionV>=plan.end+(pauseBoundary?0:runOptions.graceMs/1000*rate)-1e-6){
+      token++;clearTimer();audio.cancelGroup(GROUP);pending=[];
+      position=pauseBoundary?plan.end:0;state=pauseBoundary?'paused':'stopped';
+      emit(pauseBoundary?'boundary':'ended',pauseBoundary?{tick:plan.end}:{tick:plan.end,v:heardV,seconds:heard,tps:rate});return;
     }
     const hiV=Math.floor(nowV+lookahead*rate)+1;
     let loV=scheduledV,resynced=false;
@@ -141,7 +152,7 @@ export function createTransport({getProject,audio,timer={set:(fn,ms)=>setInterva
       for(const v of voices){
         const onset=anchorAudio+(v.onsetV-pos0)/rate,release=anchorAudio+(v.releaseV-pos0)/rate;
         for(const tone of v.tones){
-          if(tone.click){clicks.push({voiceId:`${v.occId}:${v.cycle}`,cents:CLICK[tone.click].cents,onsetAudioSeconds:onset,releaseAudioSeconds:onset+CLICK.seconds,velocity:v.velocity,chordSize:1});continue;}
+          if(tone.click){clicks.push({voiceId:`${v.occId}:${v.cycle}`,cents:CLICK[tone.click].cents,onsetAudioSeconds:onset,releaseAudioSeconds:bounded()?Math.min(onset+CLICK.seconds,anchorAudio+(plan.end-pos0)/rate):onset+CLICK.seconds,velocity:v.velocity,chordSize:1});continue;}
           list.push({
             voiceId:`${v.occId}:${tone.toneId}:${v.cycle}`,cents:resolveTone(ctx,tone.coordinate).cents,
             onsetAudioSeconds:onset,releaseAudioSeconds:release,velocity:v.velocity,chordSize:v.tones.length,
@@ -161,15 +172,21 @@ export function createTransport({getProject,audio,timer={set:(fn,ms)=>setInterva
     if(Array.isArray(tokens))for(const t of tokens){const v=byId.get(t.voiceId);if(v)pending.push({cancel:t.cancel,onset:v.onsetAudioSeconds,release:v.releaseAudioSeconds,countIn});}
   }
 
-  /** With `countIn`, that many bars of clicks come first and the piece starts on the downbeat after them. */
-  async function play({countIn=0}={}){
+  /** Count-in bars precede playback. A finite absolute `untilTick` bounds audio to [position, tick).
+   * `boundary: 'pause'` waits there; 'end' finishes after heard-time `graceMs`. Bare resume keeps bounds. */
+  async function play(options={}){
     if(state==='playing')return;
+    const {countIn=0,untilTick=runOptions.untilTick,boundary=runOptions.boundary,graceMs=runOptions.graceMs}=options;
+    runOptions={untilTick:Number.isFinite(untilTick)?Math.max(0,Math.floor(untilTick)):null,boundary:boundary==='pause'?'pause':'end',graceMs:Number.isFinite(graceMs)?Math.max(0,graceMs):GRACE_SECONDS*1000};
     const mine=++token;
-    try{await audio.prepare();}catch(error){if(mine===token)emit('error',{error});return;}
+    preparing=true;
+    try{await audio.prepare();}catch(error){if(mine===token){preparing=false;emit('error',{error});}return;}
     if(mine!==token)return; // stopped, paused or seeked while the audio context was resuming
-    project=getProject();plan=createPlan(project,{click:getClick()});
+    preparing=false;
+    project=getProject();refreshPlan();
     let p=position;
-    if(plan.loop.enabled?p>=plan.loop.end:p>=plan.end)p=plan.loop.enabled?plan.loop.start:0;
+    if(!bounded()&&(plan.loop.enabled?p>=plan.loop.end:p>=plan.end))p=plan.loop.enabled?plan.loop.start:0;
+    if(bounded())p=Math.min(p,plan.end);
     const snap=audio.getClockSnapshot();
     if(snap.state!=='running'){emit('error',{error:new Error('Audio is not running.')});return;}
     const bars=Math.max(0,Math.round(countIn)||0),beat=beatTicks(project.meter)/tps();
@@ -179,7 +196,7 @@ export function createTransport({getProject,audio,timer={set:(fn,ms)=>setInterva
     timerId=timer.set(pump,PUMP_MS);
     if(bars)schedule(Array.from({length:bars*project.meter.numerator},(_,k)=>{
       const level=beatAccent(project.meter,k%project.meter.numerator),onset=countFrom+k*beat;
-      return {voiceId:`count#${k}`,cents:CLICK[level].cents,onsetAudioSeconds:onset,releaseAudioSeconds:onset+CLICK.seconds,velocity:CLICK[level].velocity,chordSize:1};
+      return {voiceId:`count#${k}`,cents:CLICK[level].cents,onsetAudioSeconds:onset,releaseAudioSeconds:bounded()?Math.min(onset+CLICK.seconds,anchorAudio+(plan.end-pos0)/tps()):onset+CLICK.seconds,velocity:CLICK[level].velocity,chordSize:1};
     }),CLICK.settings,true);
     emit('playing',{tick:pos0,countIn:bars});
     pump();
@@ -202,18 +219,18 @@ export function createTransport({getProject,audio,timer={set:(fn,ms)=>setInterva
   function timeAt(performanceMs){
     const snap=audio.getClockSnapshot(),seconds=heardSeconds(snap,performanceMs);
     if(state!=='playing'||!plan)return {tick:position,v:position,seconds,room:Infinity,tps:0,countIn:false,early:0};
-    const rate=tps(),v=pos0+(seconds-anchorAudio)*rate,room=t=>plan.loop.enabled&&t<plan.loop.end?plan.loop.end-t:Math.max(1,plan.end-t);
+    const rate=tps(),rawV=pos0+(seconds-anchorAudio)*rate,v=bounded()&&runOptions.boundary==='pause'?Math.min(rawV,plan.end):rawV,room=t=>plan.loop.enabled&&t<plan.loop.end?plan.loop.end-t:Math.max(1,plan.end-t);
     if(seconds<anchorAudio)return {tick:pos0,v,seconds,room:room(pos0),tps:rate,countIn:true,early:anchorAudio-seconds};
     // A millionth of a tick absorbs float error, so an exact position is not floored a tick early.
     const tick=realTick(Math.max(pos0,Math.floor(v+1e-6)));
     return {tick,v,seconds,room:room(tick),tps:rate,countIn:false,early:0};
   }
 
-  function pause(){if(state!=='playing')return;halt('paused');}
-  function stop(){token++;clearTimer();audio.cancelGroup(GROUP);pending=[];const was=state;position=0;state='stopped';if(was!=='stopped')emit('stopped',{tick:0});}
+  function pause(){if(state!=='playing'&&!preparing)return;preparing=false;halt('paused');}
+  function stop(){token++;preparing=false;clearTimer();audio.cancelGroup(GROUP);pending=[];runOptions={untilTick:null,boundary:'end',graceMs:GRACE_SECONDS*1000};const was=state;position=0;state='stopped';if(was!=='stopped')emit('stopped',{tick:0});}
   async function seek(tick){
     const wasPlaying=state==='playing';
-    token++;clearTimer();audio.cancelGroup(GROUP);pending=[];
+    token++;preparing=false;clearTimer();audio.cancelGroup(GROUP);pending=[];
     position=Math.max(0,Math.floor(tick));
     if(wasPlaying){state='paused';await play();}
   }
@@ -231,13 +248,13 @@ export function createTransport({getProject,audio,timer={set:(fn,ms)=>setInterva
     if(snap.audioSeconds<anchorAudio){
       for(const p of pending)if(!p.countIn)p.cancel();
       pending=pending.filter(p=>p.countIn);
-      project=getProject();plan=createPlan(project,{click:getClick()});scheduledV=pos0;includeCrossing=true;
+      project=getProject();refreshPlan();scheduledV=pos0;includeCrossing=true;
       pump();return;
     }
     const tick=currentTick();
     for(const p of pending)if(p.onset>snap.audioSeconds)p.cancel();
     pending=pending.filter(p=>p.onset<=snap.audioSeconds&&p.release>snap.audioSeconds);
-    project=getProject();plan=createPlan(project,{click:getClick()});
+    project=getProject();refreshPlan();
     // Notes starting at or before the playhead tick are already sounding; reschedule from the next tick.
     let p=tick,from=tick+1;
     if(plan.loop.enabled&&p>=plan.loop.end){p=plan.loop.start;from=p;}

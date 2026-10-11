@@ -18,14 +18,15 @@ const audio={
   scheduleVoices:(l)=>{audioLog.scheduled.push(...l);return [];},cancelGroup:()=>{audioLog.cancels++;},
   previewChord:(c,s)=>{audioLog.previews.push([c,s]);return Promise.resolve(true);},
 };
+let restoredFocus=null;
 const host={innerHTML:'',writes:0};
 Object.defineProperty(host,'html',{get(){return this.innerHTML;}});
-const hostProxy=new Proxy(host,{set(t,k,v){if(k==='innerHTML')t.writes++;t[k]=v;return true;},get(t,k){return k==='querySelector'?()=>null:t[k];}});
+const hostProxy=new Proxy(host,{set(t,k,v){if(k==='innerHTML')t.writes++;t[k]=v;return true;},get(t,k){return k==='querySelector'?selector=>selector.includes('[type="range"]')?{focus(){restoredFocus=selector;}}:null:t[k];}});
 const fields={meterNum:{value:'4'},meterDen:{value:'4'}};
-const position={textContent:''},cuesNode={textContent:''},blocks=[];
+const position={textContent:''},blocks=[];
 const fileInput={clicks:0,click(){this.clicks++;}};
 const doc={activeElement:null,
-  querySelector:s=>s==='[data-comp-position]'?position:s==='[data-comp-cues]'?cuesNode:s==='[data-comp-file]'?fileInput:s.startsWith('[data-comp-field=')?fields[s.slice(17,-1)]:null,
+  querySelector:s=>s==='[data-comp-position]'?position:s==='[data-comp-file]'?fileInput:s.startsWith('[data-comp-field=')?fields[s.slice(17,-1)]:null,
   querySelectorAll:s=>s==='.chord-block'?blocks:[]};
 let appState=structuredClone(meantone),tonic=220;
 const items=[
@@ -162,7 +163,8 @@ blocks.push({dataset:{start:'0',end:'1920'},classList:{toggled:[],toggle(n,on){t
 const writes=host.writes;clock.audioSeconds+=1;ws.paint();
 assert.equal(host.writes,writes,'playhead updates never rebuild the workspace');
 assert.match(position.textContent,/bar 1 · beat/);assert.deepEqual(blocks[0].classList.toggled.at(-1),['is-playing',true]);
-assert.match(cuesNode.textContent,/^Now:/);
+assert.match(html(),/data-comp-field="follow"/,'Compose retains Follow lights beside its board');
+assert.doesNotMatch(html(),/mode-practice|comp-practice|data-comp-cues/,'the deprecated Practice panel is removed');
 assert.ok(rafCallback,'a frame loop is running while playing');
 // an edit pauses playback; Stop and leaving Create release it
 press('note-cell',{tick:STEP_TICKS*8,a:0,b:0});assert.equal(ws.transport.state,'playing','an edit keeps playing');
@@ -218,11 +220,17 @@ assert.equal(P().context.scale.n,7,'the composition itself is unchanged');
 appState=structuredClone(meantone);
 
 // ---- practice targets export ----
+press('mode-game');assert.match(html(),/Export practice targets/,'target export is available in advanced Play tools');
+const speedAttributes={'data-comp-field':'gameSpeed',type:'range'};
+doc.activeElement={hasAttribute:a=>Object.hasOwn(speedAttributes,a),getAttribute:a=>speedAttributes[a]};
+set('gameSpeed',73);assert.equal(restoredFocus,'[data-comp-field="gameSpeed"][type="range"]','keyboard adjustment keeps focus on the linked speed slider');
+doc.activeElement=null;
 set('matchMode','any-degree');press('export-targets');
 const targets=JSON.parse(downloads.at(-1).t);
 assert.equal(targets.format,PRACTICE_FORMAT);assert.equal(targets.matchMode,'any-degree');
 assert.equal(targets.targets.length,ws.timeline().length);assert.ok(targets.targets.length>6);
 set('matchMode','bogus');press('export-targets');assert.equal(JSON.parse(downloads.at(-1).t).matchMode,'any-degree','unknown modes are ignored');
+press('mode-compose');
 
 // ---- Discover's focused chord ----
 const before2=chordClip().events.length;press('chord-add-focus');assert.equal(chordClip().events.length,before2);assert.match(notices.at(-1),/Select a chord in Discover first/);

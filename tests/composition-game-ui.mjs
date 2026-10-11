@@ -28,7 +28,7 @@ const doc={activeElement:null,body:{},documentElement:{},
 const clock={audioSeconds:100,state:'running',clockRevision:1,performanceMs:0,anchor:{audioSeconds:100,performanceMs:0}};
 const perfAt=heard=>(heard-clock.anchor.audioSeconds)*1000+clock.anchor.performanceMs;
 const scheduled=[];
-const audio={prepare:async()=>{},getClockSnapshot:()=>({...clock,anchor:{...clock.anchor}}),cancelGroup(){},
+const audio={prepare:async()=>{},getClockSnapshot:()=>({...clock,performanceMs:clock.anchor.performanceMs,anchor:{...clock.anchor}}),cancelGroup(){},
   scheduleVoices:(list,opts)=>{scheduled.push(...list.map(v=>({...v,group:opts.groupId,settings:opts.settings})));return list.map(v=>({voiceId:v.voiceId,cancel(){}}));},
   previewChord(){},startVoice:()=>()=>{}};
 const store=new Map(),storage={get:k=>store.has(k)?structuredClone(store.get(k)):null,set:(k,v)=>store.set(k,structuredClone(v))};
@@ -47,8 +47,12 @@ assert.match(host.innerHTML,/data-comp="mode-game"[^>]*aria-pressed="true"/);
 assert.match(host.innerHTML,/class="game is-setup"/);assert.match(host.innerHTML,/data-comp="game-start"/);
 assert.match(host.innerHTML,/class="composition-board hex-board game-board"/,'the board is drawn with approach rings');
 assert.match(host.innerHTML,/data-game-ring="\d+"/);
+const previewKeys=ws.deviceSnapshot().keys.filter(k=>k.lit&&!k.command);
+assert.ok(previewKeys.length&&previewKeys.every(k=>keyNode(k.index).classList.contains('game-now')),'setup previews highlight suggested screen keys');
+change('gameHints','',{checked:false});assert.ok(!ws.deviceSnapshot().keys.some(k=>k.lit&&!k.command),'Note hints can hide setup suggestions');
+change('gameHints','',{checked:true});
 assert.doesNotMatch(host.innerHTML,/data-comp-roll/,'the roll gives way to the game');
-assert.deepEqual(normalizeSettings({speed:73,part:'drums',countIn:9}),{...normalizeSettings({}),countIn:2},'settings are checked');
+assert.deepEqual(normalizeSettings({speed:73,part:'drums',countIn:9}),{...normalizeSettings({}),speed:73,countIn:2},'custom integer speeds are preserved and other settings are checked');
 change('gameSection','bars');change('gameFrom',1);change('gameTo',2);change('gameGuide','off');change('gameCountIn',0);change('gameClick','',{checked:false});
 assert.match(host.innerHTML,/data-comp-field="gameFrom"[^>]*value="1"/);
 assert.deepEqual(store.get('temperament-lab-game-settings').toBar,2,'settings are remembered');
@@ -76,16 +80,18 @@ const wrongKey=board.keys.find(k=>!k.command&&k.enabled&&!melodyTargets.some(t=>
 ws.pressKey(wrongKey,perfAt(heardTick(melodyTargets[1].tick)+.06));ws.releaseKey(wrongKey);
 // Time runs past the section: the skipped note is missed and the run ends.
 clock.audioSeconds=downbeat+2*3840/tps+.5;clock.anchor={audioSeconds:clock.audioSeconds-.02,performanceMs:perfAt(clock.audioSeconds-.02)};
-runFrames(3);
+ws.transport.pump();runFrames(3);
 assert.equal(game.phase,'results');assert.equal(ws.transport.state,'stopped');
 assert.match(host.innerHTML,/class="game is-results"/);
 const counts=Object.fromEntries([...host.innerHTML.matchAll(/<div class="is-(\w+)"><dt>[^<]*<\/dt><dd>(\d+)<\/dd>/g)].map(m=>[m[1],Number(m[2])]));
 assert.deepEqual(counts,{perfect:melodyTargets.length-1,great:0,good:0,miss:1},'every pressed note is Perfect and the skipped one is missed');
 assert.match(host.innerHTML,/<dt>Wrong notes<\/dt><dd>1<\/dd>/);
-assert.match(host.innerHTML,/Practise bars \d–\d/,'the bar with the miss is offered for practice');
+assert.match(host.innerHTML,/Wait on bars \d–\d/,'the bar with the miss is offered in Wait');
 const best=Object.values(store.get('temperament-lab-game-best'));
 assert.equal(best.length,1);assert.ok(best[0].score>0,'the score is kept as the best at these settings');
 assert.match(host.innerHTML,/First score at these settings/);
+press('game-practise',{from:'1',to:'2'});assert.equal(game.phase,'setup');assert.equal(game.settings.mode,'learn');assert.equal(game.settings.section,'bars');
+change('gameMode','play');
 
 // ---- Again; Escape ends a run ----
 press('game-again');await flush();assert.equal(game.phase,'running');
@@ -98,7 +104,7 @@ press('game-start');await flush();
 const first=ws.game.engine.targets[0],start=101+START_DELAY_SECONDS;
 frames.length=0;
 clock.audioSeconds=start+first.tick/tps+.03;clock.anchor={audioSeconds:clock.audioSeconds,performanceMs:perfAt(clock.audioSeconds)};
-ws.game.step();
+ws.transport.pump();ws.game.step();
 assert.equal(ws.transport.state,'paused','playback stops at the first note');assert.equal(ws.transport.position(),first.tick,'exactly on it');
 assert.match(overlay.textContent,/^Play /,'and asks for it');
 const wrong=board.keys.find(k=>!k.command&&k.enabled&&k.m.join()!==first.coordinate.join()).index;

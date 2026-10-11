@@ -1,5 +1,5 @@
 // Rhythm game engine: charts from a composition, judging, misses, holds, combo, calibration offset,
-// any-register matching, Learn mode and the results summary.
+// any-register matching, held-together Wait mode and the results summary.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {buildChart,createGame,gradeFor,WINDOWS,POINTS,HOLD_BONUS,NEAR_MS} from '../dist/composition-game.mjs';
@@ -84,16 +84,97 @@ const chart=buildChart(project,{part:'melody'});
   const loose=createGame(chart,{tps:TPS,match:'degree',context:ctx});assert.equal(loose.press('a',up(deg(0)),0).result,'perfect','any register of the degree when asked');
 }
 {
-  // Learn: no timing, the earliest notes still to play; wrong notes are counted.
+  // Wait: all selected parts at one onset form one group; duplicate pitches need one down.
   const both=buildChart(project,{part:'both'}),g=createGame(both,{tps:TPS,mode:'learn'});
   assert.deepEqual(g.pending().map(t=>t.tick),[0,0,0,0],'the melody note and the chord tones that start together');
-  assert.equal(g.press('a',deg(4),99999).result,'ok','timing does not matter');
+  assert.equal(g.waiting().required.length,3,'same-onset duplicates share one required pitch');
+  g.advance(0);
+  assert.equal(g.press('a',deg(4),0).kind,'partial');
   assert.equal(g.press('b',deg(6),0).kind,'wrong');
-  for(const m of [deg(0),deg(2)])g.press(`c${m}`,m,0);
-  assert.equal(g.pending().length,1,'one more to play');g.press('d',deg(0),0);
+  for(const m of [deg(0),deg(2)])assert.equal(g.press(`c${m}`,m,0).kind,'partial');
+  assert.equal(g.pending().length,4,'no tone is accepted until the entire group is held without extras');
+  assert.equal(g.waiting().missing.length,0);assert.equal(g.waiting().extras.length,1);
+  const hit=g.release('b',0);
+  assert.equal(hit.kind,'learn-hit');assert.equal(hit.result,'ok');assert.equal(hit.targets.length,4,'releasing the final extra accepts every tone in the onset');
+  assert.deepEqual(hit.holdIds.sort(),['a',`c${deg(0)}`,`c${deg(2)}`].sort(),'feedback identifies the actual fresh holds, excluding the released extra');
   assert.deepEqual(g.pending().map(t=>t.tick),[480],'then the next notes');
-  assert.deepEqual(g.advance(1e6),[],'nothing is missed while learning');
+  assert.equal(g.state().score,0);assert.equal(g.state().combo,0,'Wait is unscored');
+  assert.deepEqual(g.advance(1e6),[],'nothing is missed while waiting');assert.ok(g.pending().length);
   const s=g.summary();assert.equal(s.learned,4);assert.equal(s.wrong,1);assert.equal(s.accuracy,80);
+}
+
+const waitChart=rows=>({from:0,to:Math.max(...rows.map(([tick,endTick])=>endTick)),targets:rows.map(([tick,endTick,coordinate],index)=>({id:`w${index}`,index,tick,endTick,coordinate,keys:[],degreeKeys:[],group:`g${tick}`}))});
+const waitGame=(rows,opts={})=>createGame(waitChart(rows),{tps:TPS,mode:'learn',...opts});
+{
+  // Partial chords must be simultaneous; a released required tone goes missing again.
+  const g=waitGame([[0,480,deg(0)],[0,480,deg(2)]]);g.advance(0);
+  assert.equal(g.press('a',deg(0),0).kind,'partial');
+  assert.deepEqual(g.waiting().missing.map(t=>t.coordinate),[deg(2)]);
+  assert.equal(g.release('a',0).kind,'partial');
+  assert.equal(g.press('b',deg(2),0).kind,'partial');
+  assert.deepEqual(g.waiting().missing.map(t=>t.coordinate),[deg(0)]);
+  assert.equal(g.press('c',deg(0),0).kind,'learn-hit');assert.equal(g.state().done,true);assert.equal(g.waiting().tick,null);
+}
+{
+  // A future pitch is an extra at the current cue and never clears its own target early.
+  const g=waitGame([[0,480,deg(0)],[480,960,deg(2)]]);g.advance(0);
+  assert.equal(g.press('future',deg(2),0).kind,'wrong');
+  assert.equal(g.press('now',deg(0),0).kind,'partial');
+  assert.deepEqual(g.waiting().extras.map(h=>h.holdId),['future']);
+  assert.equal(g.release('future',0).kind,'learn-hit');
+  assert.equal(g.press('future2',deg(2),0).kind,'early');
+  assert.equal(g.targets[1].result,null,'the next cue cannot clear before its tick');
+  g.advance(480);assert.equal(g.targets[1].result,null,'a pre-due down stays extra when the cue becomes due');
+  assert.deepEqual(g.waiting().extras.map(h=>h.holdId).sort(),['future2','now']);
+  assert.equal(g.release('future2',480).kind,'partial');g.release('now',480);
+  assert.equal(g.press('fresh',deg(2),480).kind,'learn-hit');assert.equal(g.state().wrong,1,'early downs and releases do not count as wrong notes');
+}
+{
+  // Even the first cue requires activation; holding its pitch before due is not articulation.
+  const g=waitGame([[480,960,deg(0)]]);
+  assert.equal(g.press('early',deg(0),479).kind,'early');g.advance(480);
+  assert.equal(g.waiting().missing.length,1);assert.equal(g.waiting().extras.length,1);
+  assert.equal(g.press('duplicate',deg(0),480).kind,'partial','a fresh copy does not excuse a pre-due hold');
+  assert.equal(g.release('early',480).kind,'learn-hit');assert.equal(g.state().wrong,0);
+  const unarmed=waitGame([[0,480,deg(0)]]);
+  assert.equal(unarmed.press('a',deg(0),100000).kind,'early','input time alone cannot activate a cue');
+  assert.equal(unarmed.state().judged,0);
+}
+{
+  // Written overlapping sustains may accompany the next fresh onset.
+  const g=waitGame([[0,960,deg(0)],[480,960,deg(2)],[960,1440,deg(4)]]);g.advance(0);
+  assert.equal(g.press('sustain',deg(0),0).kind,'learn-hit');g.advance(480);
+  assert.equal(g.waiting().extras.length,0,'accepted holds are allowed strictly within their duration');
+  const next=g.press('next',deg(2),480);assert.equal(next.kind,'learn-hit');
+  assert.deepEqual(next.holdIds,['next'],'feedback excludes accepted holds sustained from prior onsets');g.advance(960);
+  assert.equal(g.waiting().extras.length,2,'written ends at the cue no longer overlap');
+  assert.equal(g.press('last',deg(4),960).kind,'partial');g.release('sustain',960);
+  assert.equal(g.release('next',960).kind,'learn-hit');assert.equal(g.state().done,true);
+}
+{
+  // Repeated onsets always need a fresh down, even where the prior note sustains across them.
+  const g=waitGame([[0,960,deg(0)],[480,1200,deg(0)],[960,1440,deg(0)]]);g.advance(0);
+  g.press('first',deg(0),0);g.advance(480);
+  assert.equal(g.waiting().missing.length,1);assert.equal(g.waiting().extras.length,0);
+  assert.equal(g.press('first',deg(0),480).kind,'partial','a duplicate holdId cannot provide a new articulation');
+  assert.equal(g.targets[1].result,null);
+  assert.equal(g.press('second',deg(0),480).kind,'learn-hit','a fresh hold of that pitch satisfies the repeated onset');g.advance(960);
+  assert.equal(g.press('third',deg(0),960).kind,'partial','the expired first hold blocks while the second may sustain');
+  assert.equal(g.release('first',960).kind,'learn-hit');assert.equal(g.state().wrong,0);
+}
+{
+  // Any-register matching is shared with Timed mode and deduplicates octave copies.
+  const rows=[[0,480,deg(0)],[0,480,up(deg(0))],[0,480,deg(2)]];
+  const strict=waitGame(rows,{context:ctx});strict.advance(0);assert.equal(strict.waiting().required.length,3);
+  const loose=waitGame(rows,{match:'degree',context:ctx});loose.advance(0);
+  assert.equal(loose.waiting().required.length,2);assert.equal(loose.press('a',up(up(deg(0))),0).kind,'partial');
+  const hit=loose.press('b',up(deg(2)),0);assert.equal(hit.kind,'learn-hit');assert.equal(hit.targets.length,3);assert.equal(loose.state().wrong,0);
+}
+{
+  // Pauses clear held input, keeping partial targets pending and requiring fresh downs afterward.
+  const g=waitGame([[0,480,deg(0)],[0,480,deg(2)]]);g.advance(0);g.press('a',deg(0),0);
+  g.clearHolds();assert.equal(g.waiting().missing.length,2);assert.equal(g.release('a',0),null);
+  assert.equal(g.press('b',deg(2),0).kind,'partial');assert.equal(g.press('a',deg(0),0).kind,'learn-hit');
 }
 assert.equal(gradeFor(96),'S');assert.equal(gradeFor(91),'A');assert.equal(gradeFor(80),'B');assert.equal(gradeFor(10),'D');
 assert.throws(()=>createGame(chart,{tps:0}),/tps/);

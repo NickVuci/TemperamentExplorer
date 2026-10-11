@@ -218,7 +218,7 @@ export function createRollInput({document:doc,ctl}){
     const t=event.target;
     const ruler=t?.closest?.('[data-comp-ruler]');
     if(ruler){startRuler(event,ruler);return;}
-    if(ctl.isPractice())return;
+    if(!ctl.canEdit())return;
     const note=t?.closest?.('.roll-note');
     if(note){startNote(event,note);return;}
     const chord=t?.closest?.('.chord-block');
@@ -278,7 +278,7 @@ export function createRollInput({document:doc,ctl}){
     const span=spanOf(row),raw=tickAt(event.clientX,rect(row),span),tick=snapAt(event,raw,'floor');
     const coordinate=[Number(row.dataset.a),Number(row.dataset.b)];
     ctl.hover(`${ctl.rowName(coordinate)} · ${formatBeat(meter(),surface?tick:Math.round(raw))}`);
-    if(!surface||ctl.ui.tool==='select'||ctl.isPractice()){if(ghost)hideGhost();return;}
+    if(!surface||ctl.ui.tool==='select'||!ctl.canEdit()){if(ghost)hideGhost();return;}
     if(!ghost&&doc.createElement){ghost=doc.createElement('span');ghost.className='roll-ghost';ghost.setAttribute('aria-hidden','true');}
     if(!ghost)return;
     if(ghost.parentElement!==row)row.appendChild(ghost);

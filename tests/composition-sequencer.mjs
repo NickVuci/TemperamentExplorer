@@ -23,7 +23,8 @@ const ws=createCompositionWorkspace({document:doc,audio,getState:()=>fixture.con
 const press=(comp,rest={})=>ws.click({dataset:{comp,...rest},closest(){return this;}});
 const change=(compField,value,rest={})=>ws.change({dataset:{compField,...rest},value:String(value)});
 ws.restore(fixture);ws.refresh();
-assert.match(host.innerHTML,/Compose and practise/);
+assert.match(host.innerHTML,/Compose and play/);
+assert.match(host.innerHTML,/data-comp="mode-game"[^>]*>Play<\/button>/);
 assert.match(host.innerHTML,/data-comp-roll/);
 assert.match(host.innerHTML,/composition-lower/);
 // The Compose board is a miniature of Play's: the layout's own colours, label ink and tonic marker.
@@ -67,20 +68,39 @@ const p=ws.getProject(),chord=p.clips[0].events[0];
 press('chord-select',{event:chord.id});
 const {board}=compositionBoard(p),fingers=compactFingerings(p,chord,board);
 for(const f of fingers)assert.deepEqual(f.keys.map(i=>board.keys[i].m),chord.tones.map(t=>t.coordinate),'Every fingering preserves exact pitches and registers.');
-press('loop-selected');assert.equal(ws.getProject().loop.startTick,chord.startTick);assert.equal(ws.getProject().loop.endTick,chord.startTick+chord.durationTick);
+// Drag the Compose ruler to define the selected chord's loop region.
+{
+  const span=rollWindow({project:ws.getProject()}).span;
+  const ruler={getBoundingClientRect:()=>({left:0,width:800}),closest:s=>s==='[data-comp-roll]'?{dataset:{span:String(span)}}:null};
+  const target={closest:s=>s==='[data-comp-ruler]'?ruler:null};
+  handlers.get('pointerdown')({button:0,target,pointerId:50,clientX:chord.startTick/span*800,clientY:0});
+  handlers.get('pointermove')({pointerId:50,clientX:(chord.startTick+chord.durationTick)/span*800,clientY:0,preventDefault(){}});
+  handlers.get('pointerup')({pointerId:50,type:'pointerup'});
+  assert.equal(ws.getProject().loop.startTick,chord.startTick);assert.equal(ws.getProject().loop.endTick,chord.startTick+chord.durationTick);
+  assert.equal(ws.getProject().loop.enabled,true);
+  await new Promise(r=>setTimeout(r,1));
+}
 change('bars',12);assert.equal(ws.getProject().clips[0].lengthTick,12*PPQ*4);assert.equal(rollWindow({project:ws.getProject()}).end,12*PPQ*4);press('undo');
-press('loop-off');assert.equal(ws.getProject().loop.enabled,false);
+ws.change({dataset:{compField:'loop'},checked:false});assert.equal(ws.getProject().loop.enabled,false);
 const low=chord.tones.reduce((a,b)=>resolveTone(p.context,a.coordinate).cents<=resolveTone(p.context,b.coordinate).cents?a:b);
 press('chord-invert',{event:chord.id});
 const inverted=ws.getProject().clips[0].events.find(e=>e.id===chord.id);
 for(const t of chord.tones)assert.deepEqual(inverted.tones.find(x=>x.toneId===t.toneId).coordinate,t.toneId===low.toneId?[t.coordinate[0]+1,t.coordinate[1]]:t.coordinate);
 assert.equal(inverted.startTick,chord.startTick);assert.equal(inverted.durationTick,chord.durationTick);
 press('undo');assert.deepEqual(ws.getProject().clips[0].events.find(e=>e.id===chord.id).tones,chord.tones);
-// Practice speed changes scheduling, never persisted musical tempo or context.
-const before=JSON.stringify(ws.getProject());change('practiceSpeed',50);press('mode-practice');
-await ws.transport.play();assert.equal(JSON.stringify(ws.getProject()),before);
-assert.ok(Math.abs((scheduled[0].releaseAudioSeconds-scheduled[0].onsetAudioSeconds)-chord.durationTick/PPQ*60/(p.tempo*.5))<1e-8,'50% practice speed doubles audible note duration.');ws.transport.pause();
-press('practice-start');await Promise.resolve();await Promise.resolve();assert.ok(previews.length);assert.deepEqual(previews.at(-1).s,undefined);
+// Play accepts custom speed and a bounded selected section without changing saved tempo or context.
+const before=JSON.stringify(ws.getProject());press('mode-game');
+change('gameSpeed',73);change('gamePart','chords');change('gameGuide','full');change('gameCountIn',0);change('gameSection','selected');
+ws.change({dataset:{compField:'gameClick'},checked:false});
+press('game-start');for(let i=0;i<12;i++)await Promise.resolve();
+assert.equal(ws.transport.state,'playing');assert.equal(JSON.stringify(ws.getProject()),before);
+assert.ok(scheduled.length>0);
+const sectionSeconds=chord.durationTick/PPQ*60/(p.tempo*.73);
+assert.ok(Math.abs((scheduled[0].releaseAudioSeconds-scheduled[0].onsetAudioSeconds)-sectionSeconds)<1e-8,'73% Play speed scales audible note duration.');
+assert.ok(scheduled.every(v=>v.releaseAudioSeconds<=scheduled[0].onsetAudioSeconds+sectionSeconds+1e-8),'selected-section backing releases stay within its boundary');
+press('game-quit');press('game-preview-first');press('game-preview-hear');
+assert.deepEqual(previews.at(-1).c,chord.tones.map(t=>resolveTone(p.context,t.coordinate).cents),'phrase preview hears the selected chord');
+assert.deepEqual(previews.at(-1).s,undefined);assert.equal(JSON.stringify(ws.getProject()),before,'preview preserves the saved tempo and context');
 press('mode-compose');
 const note=ws.getProject().clips[1].events[0],style={};
 const row={dataset:{a:'1',b:'2'},getBoundingClientRect:()=>({width:800})};
@@ -164,7 +184,7 @@ assert.equal(JSON.stringify(ws.getProject()),unchanged);
   const tick=ticks.find(t=>{const kinds=new Set(activeCues(tl,t).sounding.map(q=>q.trackKind));return kinds.has('chords')&&kinds.has('melody');});
   assert.ok(tick!==undefined,'the fixture has a moment where a chord and a melody note sound together');
   const cells=kind=>[...new Set(activeCues(tl,tick).sounding.filter(q=>!kind||q.trackKind===kind).flatMap(q=>q.cells))].sort((a,b)=>a-b);
-  press('mode-practice');await ws.transport.seek(tick);
+  press('mode-compose');await ws.transport.seek(tick);await ws.transport.play();
   assert.match(host.innerHTML,/data-comp="board-show"\s+data-value="both" aria-pressed="true"/,'both tracks are shown by default');
   assert.deepEqual(lit(),cells(null));
   press('board-show',{value:'chords'});assert.deepEqual(lit(),cells('chords'),'only the chord lights');
@@ -203,7 +223,7 @@ const dbl={target:{closest:s=>s==='.roll-note'?noteNode:null},prevented:false,pr
 handlers.get('dblclick')(dbl);
 assert.equal(dbl.prevented,true);assert.ok(!ws.getProject().clips[1].events.some(e=>e.id===current.id));
 press('undo');assert.ok(ws.getProject().clips[1].events.some(e=>e.id===current.id),'Double-click deletion is undoable.');
-press('mode-practice');handlers.get('dblclick')(dbl);assert.ok(ws.getProject().clips[1].events.some(e=>e.id===current.id),'Practice mode does not delete notes.');
+press('mode-game');handlers.get('dblclick')(dbl);assert.ok(ws.getProject().clips[1].events.some(e=>e.id===current.id),'Play mode does not delete notes.');
 ws.dispose();assert.equal(handlers.size,0);
 
 // Root lane: each chord's root degree under the roll; pick a root, then a directory harmony on it in any inversion.
@@ -272,4 +292,4 @@ ws.dispose();assert.equal(handlers.size,0);
   press2('root-cancel');assert.doesNotMatch(host2.innerHTML,/class="root-picker"/);
   ws2.dispose();
 }
-console.log('Composition sequencer: aligned timeline, exact fingerings, inversion, loops, frozen tempo, stepping, dragging and cleanup passed.');
+console.log('Composition sequencer: aligned timeline, exact fingerings, inversion, loops, Play speed and preview, dragging and cleanup passed.');
