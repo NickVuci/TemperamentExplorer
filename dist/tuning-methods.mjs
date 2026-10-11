@@ -1,6 +1,7 @@
 import {purePeriod,mapRatio,targets} from './engine.mjs';
 import {weilTune,optimize,tuneTargets,pureTune,supportingEdos,edoTune} from './tuning.mjs';
-import {target,assignment,candidates} from './assignments.mjs';
+import {target,assignment} from './assignments.mjs';
+import {candidates} from './approximation-compat.mjs';
 import {validateState} from './state.mjs';
 export const tuningMethods=['Weil–Euclidean','Minimax','Least Squares','EDO','JI Target'];
 export function tuningMethod(s){const method=s.tuning==='Manual'?s.tuneConfig?.method:s.tuning;return tuningMethods.includes(method)?method:/WE|CWE/.test(method||'')?'Weil–Euclidean':method==='Least squares'?'Least Squares':['Prime least squares','Prime Least Squares'].includes(method)?'Least Squares':method==='Pure intervals'||method==='Quarter comma'?'JI Target':/^EDO/.test(method||'')?'EDO':'Weil–Euclidean';}

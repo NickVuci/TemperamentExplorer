@@ -17,8 +17,7 @@ the generated hosting manifest is `dist/.openai/hosting.json`.
   calculation workloads against current or previous sources.
 
 The browser receives one bundled ES module instead of fetching its dependency
-tree. Individual module URLs remain available for compatibility. No new runtime
-or development dependency was added by the refactor.
+tree. Individual module URLs remain available for direct module consumers.
 
 ## Where things belong
 
@@ -30,7 +29,8 @@ or development dependency was added by the refactor.
 | Built-in temperament definitions and published tuning data | `catalog.mjs` |
 | Generated scales, odd-limit targets, interval classification | `engine.mjs` |
 | Comma kernels, EDO targets, fitting and tuning-method orchestration | `tuning.mjs`, `weil-tuning.mjs`, `tuning-methods.mjs` |
-| JI assignment compatibility and finite-scale approximations | `assignments.mjs` |
+| Finite diamond approximation compatibility views | `approximation-compat.mjs` |
+| JI assignment validation and mapping extensions | `assignments.mjs` |
 | Matrix spans, modes and pagination | `matrix.mjs` |
 | Chord inspection and scale discovery | `harmonic-inspection.mjs`, `chord-*v2.mjs` |
 | Board geometry, export, chord placement and layer colors | `hexboard*.mjs` calculation modules |
@@ -127,50 +127,10 @@ rotation/mirroring, audio routing, colors, chord placement, overlaps and exports
 - Matrix columns still fill their container, keep a fixed starting-note width,
   and scroll below the existing minimum cell width. Label modes share geometry.
 
-## Refactor verification
-
-This pass removed 69 selectors tied to retired UI, the old generator-slider
-handler, unused matrix-color/coverage helpers and unused controller imports.
-It did not change database schema, persisted preset/session formats, tuning
-methods, built-in definitions, supported scale filters or export formats.
-
-The baseline contained four failing tests: an implicit all-scales/MOS assumption,
-two references to retired UI text, and a DOM mock missing `hasAttribute`.
-These were corrected to test current behavior (including actual SVG highlighting),
-not by changing product behavior to satisfy obsolete expectations.
-
-Additional checks protect:
-
-- exact pre-refactor scales, JI classifications, mode approximations, chords and
-  HexBoard export data;
-- cache invalidation, immutability, rational arithmetic and HTML escaping;
-- audio envelopes, frequency bounds, held-note release, node disconnection,
-  latest-request cancellation and Stop during pending audio resume;
-- the retained CSS cascade after expanding extracted theme constants;
-- existing tuning, session/material, preset CRUD, private-site preset scope,
-  non-octave, large-scale, board color and pointer/sustain behavior.
-
-Example local benchmark, median of five rounds, same harness and matching result
-counts against the pre-refactor revision:
-
-| Workload | Before | After |
-| --- | ---: | ---: |
-| Ten complete 19-note matrix classifications | 13.14 ms | 5.66 ms |
-| Ten complete 81-note matrix classifications | 200.85 ms | 75.96 ms |
-| Five cold 81-note tetrad searches, 13-odd-limit, 18¢ | 369.03 ms | 34.03 ms |
-
-These are JavaScript calculation benchmarks, not end-to-end browser timings.
-Automated audio tests use a mock context, not an acoustic/listening test.
-
-## Deliberately retained / follow-up boundaries
+## Compatibility and limits
 
 Legacy session field migrations and tuning-name aliases remain: they are
 compatibility code, not dead code. Existing safety caps also remain (256 generated
 scale notes; automatic finite-scale chord discovery up to 96 notes; separate
-board-based chord discovery). Saved user data was not rewritten.
-
-The next useful structural step is extracting the remaining matrix/target view
-renderers and session orchestration from `app.mjs`. Some existing tests extract
-controller source into mocked DOM contexts; replace those with fuller DOM tests
-before a broad controller rewrite. This pass deliberately avoids a simultaneous
-UI redesign or state-format migration.
+board-based chord discovery). Saved sessions are read through the current
+compatibility paths without rewriting their stored formats.

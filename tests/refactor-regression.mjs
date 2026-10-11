@@ -5,7 +5,7 @@ import { presets, makeState, scale, targets, classifyTargets } from '../dist/eng
 import { fromCommas } from '../dist/tuning.mjs';
 import { matrixScale, matrixInterval } from '../dist/matrix.mjs';
 import { buildBoard, exportHexboard } from '../dist/hexboard.mjs';
-import { bestApproximations, bestModeApproximations } from '../dist/assignments.mjs';
+import { bestApproximations, bestModeApproximations } from '../dist/approximation-compat.mjs';
 import { discoverScaleChords } from '../dist/harmonic-inspection.mjs';
 import { diamondApproximation } from '../dist/tonality-diamond.mjs';
 

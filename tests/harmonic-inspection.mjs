@@ -61,4 +61,6 @@ ui.click({dataset:{chord:'invert'}});ui.click({dataset:{chord:'pin'}});const sav
 assert.equal(saved.pins.length,1);const restored=createChordWorkspace({getStates:()=>states,play:p=>played=p,refresh(){},notify:m=>assert.match(m,/Chord pinned/)});
 restored.restore(saved,()=>{});restored.click({dataset:{chord:'load-pin',i:'0'}});restored.click({dataset:{chord:'play'}});
 assert.equal(played.length,3);assert.match(restored.render(),/Coherent JI harmony/);
+restored.click({dataset:{chord:'clear'}});assert.match(restored.render(),/Select at least two notes/);
+restored.click({dataset:{chord:'note',i:String(degrees[0])}});assert.match(restored.render(),/Select at least two notes/);
 console.log('Shared manual/board inspection: ET proof, unknown, tuning independence, registers, divided/native periods, exhaustive-board oracle, bounds and pin/inversion round-trip passed.');

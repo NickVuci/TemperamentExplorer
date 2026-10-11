@@ -4,7 +4,7 @@ import {diamondLayout} from '../dist/diamond-layout.mjs';
 import {diamondRatios,renderDiamond,errorColor,diamondApproximation,maximumDiamondError,normalizeDiamondScope,renderDiamondTolerance} from '../dist/tonality-diamond.mjs';
 import {makeState,primeFilterForBasis} from '../dist/engine.mjs';
 import {fromCommas} from '../dist/tuning.mjs';
-import {bestApproximations,bestModeApproximations} from '../dist/assignments.mjs';
+import {bestApproximations,bestModeApproximations} from '../dist/approximation-compat.mjs';
 const ratios=diamondRatios(5);assert.equal(ratios.length,9);
 const primeLimited=diamondRatios(5,3);assert.equal(primeLimited.length,5);assert.ok(!primeLimited.some(t=>t.label==='5/4'));
 const porkypineFilter=primeFilterForBasis([2,3,5,11]),porkypineDiamond=diamondRatios(15,porkypineFilter);assert.ok(porkypineDiamond.some(t=>t.label==='11/8'));assert.ok(!porkypineDiamond.some(t=>t.label==='7/4'));

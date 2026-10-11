@@ -135,7 +135,7 @@ incidental interval approximations without changing canonical mappings. It
 retains canonical tuning error as a separate baseline, reports optional exact
 target-set collisions, and caps searches at generator coefficient ±256 (±32 by
 default). It also supplies shared exact-coordinate error records and ranking
-policies. `assignments.mjs#approximationDomain` exposes the unbounded search
+policies. `approximation-compat.mjs#approximationDomain` exposes the unbounded search
 descriptor, finite ordered scale-dyad coordinates, and tonic-relative mode-note
 coordinates (respecting the displayed matrix span). The existing assignment
 and diamond approximation functions now adapt through this shared engine with

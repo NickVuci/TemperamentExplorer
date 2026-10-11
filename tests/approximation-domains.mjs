@@ -3,7 +3,7 @@ import {makeState} from '../dist/engine.mjs';
 import {matrixScale} from '../dist/matrix.mjs';
 import {noteCoordinate,octavePeriods} from '../dist/pitch.mjs';
 import {fromCommas} from '../dist/tuning.mjs';
-import {approximationDomain,bestApproximations,bestModeApproximations} from '../dist/assignments.mjs';
+import {approximationDomain,bestApproximations,bestModeApproximations} from '../dist/approximation-compat.mjs';
 import {rankApproximationCoordinates} from '../dist/harmonic-approximations.mjs';
 
 const meantone=makeState('meantone');

@@ -1,7 +1,7 @@
 import {diamondLayout} from './diamond-layout.mjs';
 import {mapRatio} from './engine.mjs';
 import {diamondTargets,formatPrimeFilter} from './ji-limit-engine.mjs';
-import {bestApproximations,bestModeApproximations} from './assignments.mjs';
+import {bestApproximations,bestModeApproximations} from './approximation-compat.mjs';
 import {esc} from './ui.mjs';
 import {errorColor} from './ji-error-color.mjs';
 export {errorColor};
