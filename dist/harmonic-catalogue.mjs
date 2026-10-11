@@ -12,10 +12,10 @@ import {buildDyadIndex} from './harmonic-dyad-graph.mjs';
 import {CHORD_SPACE_SIZES,classifyChordSpace} from './harmonic-chord-space.mjs';
 import {enumerateMappingExtensions} from './harmonic-mappings.mjs';
 import {searchIntervalApproximations,searchChordApproximationsAsync} from './harmonic-approximations.mjs';
+import {eventLoopBoundary} from './harmonic-cooperative.mjs';
 
 export const CATALOGUE_VERSION='harmonic-catalogue-v1';
 const categories=['intervals','ji','chords','mappings','approximations'];
-const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
 const bounded=(value,fallback,max,name)=>{const n=value??fallback;if(!Number.isSafeInteger(n)||n<1||n>max)throw Error(`${name} must be from 1 through ${max}.`);return n;};
 const compare=(a,b)=>a<b?-1:a>b?1:0;
 const height=ratio=>ratio.split('/').reduce((product,value)=>product*Number(value),1);
@@ -53,7 +53,7 @@ export function catalogueContext(query){
 }
 
 /** Merge existing producers without changing their mathematical definitions. */
-export async function queryCatalogue(query,{signal,shouldCancel,onProgress,yieldControl=tick}={}){
+export async function queryCatalogue(query,{signal,shouldCancel,onProgress,yieldControl=eventLoopBoundary}={}){
  const context=catalogueContext(query),{mapping,tuning,targets,options}=context;
  const records=new Map(),sources=[],pending=new Map();let cancelled=false,recordCap=false;
  const isCancelled=()=>Boolean(signal?.aborted||shouldCancel?.());

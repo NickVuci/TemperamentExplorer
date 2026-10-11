@@ -2,6 +2,7 @@ import {chordIdentity,jiSubset,exactRatio} from './chord-identity-v2.mjs';
 import {DEFAULT_ODD_LIMIT,ratioWithinJILimits,validateJILimits} from './ji-limit-engine.mjs';
 import {analyzeChord} from './chord-analysis-v2.mjs';
 import {legacyJIChordCandidates} from './harmonic-ji-chords.mjs';
+import {eventLoopBoundary} from './harmonic-cooperative.mjs';
 // Transitional public entry for board-independent catalogue consumers. Legacy
 // Play discovery retains its verified scale/tolerance semantics until Stage 11.
 export {queryCatalogue,getHarmonicEntry,resolveSelection} from './harmonic-catalogue.mjs';
@@ -35,7 +36,7 @@ export async function discoverChords(s,config,emit=()=>{},cancelled=()=>false){
    const analysis=analyzeChord(s,candidate.text,{tolerance:c.maxError}),p=analysis.projection,o=analysis.occurrences;
    if(p.basisStatus==='mapped'&&p.maxErrorCents<=c.maxError&&p.generatorSpan<=c.maxSpan&&(c.collisions==='allow'||p.cardinalityStatus==='preserved')&&(c.occurrence==='any'||o.completeOccurrences.length))rows.push({...candidate,id:id.fingerprint,analysis:{projection:{basisStatus:p.basisStatus,maxErrorCents:p.maxErrorCents,rmsErrorCents:p.rmsErrorCents,generatorSpan:p.generatorSpan,cardinalityStatus:p.cardinalityStatus,temperedCardinality:p.temperedCardinality,temperedFingerprint:p.temperedFingerprint},occurrences:{completeCount:o.completeOccurrences.length,status:o.status}}});
   }
-  if(done%8===0){emit(report('loading'));await new Promise(r=>setTimeout(r,0));}
+  if(done%8===0){emit(report('loading'));await eventLoopBoundary();}
  }
  if(!cancelled())emit(report('ready'));
 }
