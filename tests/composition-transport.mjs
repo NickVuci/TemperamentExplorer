@@ -223,13 +223,35 @@ const make=(project,f)=>createTransport({getProject:()=>project,audio:f.audio,ti
   assert.equal(f.scheduled.length,0);assert.equal(t.state,'stopped','an empty project plays its bar and stops');
 }
 {
+  // An edit while playing carries on: only voices that have not started are replaced, from the playhead.
+  let project=demoProject();
+  const f=fake(),cancelled=[];
+  f.audio.scheduleVoices=(list,opts)=>{assert.equal(opts.groupId,GROUP);f.scheduled.push(...list);return list.map(v=>({voiceId:v.voiceId,cancel:()=>cancelled.push(v.voiceId)}));};
+  const t=createTransport({getProject:()=>project,audio:f.audio,timer:f.timer,onState:f.onState});
+  await t.play();
+  const at=()=>({future:f.scheduled.filter(v=>v.onsetAudioSeconds>f.clock.audioSeconds).map(v=>v.voiceId),sounding:f.scheduled.filter(v=>v.onsetAudioSeconds<=f.clock.audioSeconds&&v.releaseAudioSeconds>f.clock.audioSeconds).map(v=>v.voiceId)});
+  for(let i=0;i<200&&!(at().future.length&&at().sounding.length);i++)run(t,f,.05);
+  const now=f.clock.audioSeconds,before=t.position(),n=f.scheduled.length,{future,sounding}=at();
+  assert.ok(future.length>0&&sounding.length>0,'the fixture has sounding and upcoming voices');
+  project=setTempo(project,200);t.invalidate();
+  assert.equal(t.state,'playing','an edit keeps playing');
+  assert.deepEqual([...cancelled].sort(),[...future].sort(),'only voices that had not started are cancelled');
+  assert.ok(!f.cancels.includes(GROUP),'sounding notes are not cut');
+  assert.ok(Math.abs(t.position()-before)<=1,'the playhead keeps its place');
+  const again=f.scheduled.slice(n);
+  assert.ok(again.length>0&&again.every(v=>v.onsetAudioSeconds>=now-1e-9),'the rest is rescheduled from now');
+  assert.ok(!again.some(v=>sounding.includes(v.voiceId)),'a sounding note is never started twice');
+  run(t,f,.6);
+  assert.ok(Math.abs(t.position()-before-.6*200*PPQ/60)<=3,'and plays on at the new tempo');
+  t.stop();
+}
+{
   let project=demoProject();
   const f=fake(),t=createTransport({getProject:()=>project,audio:f.audio,timer:f.timer,onState:f.onState});
-  await t.play();run(t,f,1.5);
-  t.invalidate();
-  assert.equal(t.state,'paused','an edit pauses playback');
+  await t.play();run(t,f,1.5);t.pause();
   const pos=t.position();assert.ok(pos>0);
-  project=setTempo(project,200);                            // tempo edit while paused
+  project=setTempo(project,200);t.invalidate();              // tempo edit while paused
+  assert.equal(t.state,'paused','an edit while paused does not start playback');
   const n=f.scheduled.length;
   await t.play();run(t,f,.3);
   const after=f.scheduled.slice(n);

@@ -943,3 +943,58 @@ single, stable name per chord and placement. A tone index survives voicing edits
 **Consequences.** Bass entries and root entries share one shape (`bass`, `bassDegree`, `root`,
 `rootDegree`, `rootVoice`). Chords without a recorded root, from older projects or collected without a
 harmonic selection, are rooted on their first tone. Do not derive a root from the lowest sounding note.
+
+## D-043 — Piano roll: per-bar tuplet grids, saved beat groups and live edits
+
+**Decision.** The Compose roll places notes on a grid of a base division and an n:m feel (straight,
+dotted, triplet, quintuplet, septuplet or custom) with optional swing. The grid restarts at every bar,
+rounds tuplet lines to whole ticks and is editing state only. A meter may carry `groups` (beats per
+group, adding up to the numerator) inside the existing `temperament-lab-composition-v1` format; without
+them the grid uses defaults. Multi-note edits are one validated command, `editEvents`. A project edit
+during playback replans from the playhead (`composition-transport.mjs#invalidate`) instead of pausing.
+
+**Rationale.** Rhythms outside sixteenths (tuplets, swing, additive meters) need placement and
+quantizing targets rather than a finer fixed grid, and PPQ 960 is frozen, so tuplet lines are rounded:
+exact for 3s and 5s, within half a tick for 7s. Restarting at each barline keeps tuplets aligned with
+odd bars. Beat groups describe the music, so they are saved; an optional field keeps existing files and
+older readers valid. Pausing on every edit made loop-based editing impractical; replacing only voices
+that have not started avoids cutting or retriggering sounding notes.
+
+**Consequences.** Do not save grid settings in projects or return to a fixed sixteenth grid. Older apps
+ignore `meter.groups`. Mixed meters within one project are not supported.
+
+## D-044 — HexBoard input: one hold seam, heard time, takes merged into clips
+
+**Decision.** Notes enter Compose only from the board player's hold events (`onInput`), so the screen
+board, computer keys and the physical HexBoard enter notes identically. Recording places each hold at
+the tick heard when its key went down: the transport maps the event's performance-clock time through
+the audio output timestamp (`timeAt`, `heardSeconds`), so the device's output latency is compensated
+without calibration. A take is a pure reducer keyed by hold id (`composition-record.mjs`), committed
+when playback halts as one edit added to the track's existing clip; step entry commits a group when its
+last key comes up. Played chords are named and rooted by the chord directory (`matchPlayed`).
+
+**Rationale.** One input seam avoids per-device paths. Heard time is what a player responds to. Hold ids
+keep duplicate keys and sources apart, and Shift sustain records the length that sounded. Committing at
+the halt keeps live-edit replanning out of a take in progress.
+
+**Consequences.** A take is not a separate clip or take as the plan's Phase 4 describes: recording only
+adds notes, so existing material is kept, and undo removes the whole take. Do not key recorded pitch on
+button numbers or cents; the onset coordinate is the note.
+
+## D-045 — The rhythm game judges the cue timeline at heard time
+
+**Decision.** Game mode builds its chart from `buildCueTimeline` (one target per sounding tone) and judges
+presses with a pure engine (`composition-game.mjs`) in real-time windows of 40, 80 and 130 ms at the time
+heard, matching each press to the nearest unjudged target of the same exact pitch (or degree, when any
+octave counts). Early, late and repeated presses cost nothing; other presses are wrong notes. Learn mode
+pauses the transport at each due note instead of judging time. The backing is the composition with the
+player's part muted or quiet. One key per note is suggested, but every key with the pitch counts. A tap
+test measures the remaining input lag; it, the settings and best scores stay in the browser.
+
+**Rationale.** The cue timeline already carries exact pitch, keys and timing for this purpose. Real-time
+windows keep difficulty independent of tempo and speed. Heard time and the output timestamp remove most
+latency error, and the tap test measures the rest instead of assuming it. Lighting every copy of a pitch
+under period wrapping hid where to play, so a single route is shown.
+
+**Consequences.** Scores are not synchronised to accounts. `toPracticeTargets` remains the export for other
+consumers. Changing the windows or points changes every stored best score's meaning.

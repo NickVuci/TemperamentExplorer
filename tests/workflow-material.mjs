@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {withDefaultScale} from '../dist/default-scale.mjs';
 import {normalizeUnifiedCenter} from '../dist/discover-unified.mjs';
+import {normalizeScaleView} from '../dist/scale-view.mjs';
 import {scaleDefaultKey,scaleCoverageTarget} from '../dist/scale-milestones.mjs';
 import {makeState,scale} from '../dist/engine.mjs';
 import {validateState} from '../dist/state.mjs';
@@ -79,7 +80,7 @@ for(const [settings,want,center] of [
  [{view:'hexboard',lastViews:{create:'hexboard'}},'hexboard','diamond'],
  [{view:'composition',lastViews:{create:'composition'}},'composition','diamond'],[{view:'compare-matrices',lastViews:{discover:'targets'}},'unified','diamond'],[{},'unified','diamond']
 ]){
- const c=vm.createContext({normalizeUnifiedCenter,data:{settings},lastViews:{discover:'matrices',play:'hexboard',create:'composition'},view:'',unifiedCenter:'diamond'});vm.runInContext(restoreNavigation,c);assert.equal(c.view,want);assert.equal(c.unifiedCenter,center);assert.equal(c.lastViews.discover,'unified');assert.equal(c.lastViews.play,'hexboard');assert.equal(c.lastViews.create,'composition');assert.equal(Object.hasOwn(c.lastViews,'compare'),false);
+ const c=vm.createContext({normalizeUnifiedCenter,normalizeScaleView,data:{settings},lastViews:{discover:'matrices',play:'hexboard',create:'composition'},view:'',unifiedCenter:'diamond',scaleView:'horogram'});vm.runInContext(restoreNavigation,c);assert.equal(c.view,want);assert.equal(c.unifiedCenter,center);assert.equal(c.scaleView,'line','sessions without a scale view open on the line');assert.equal(c.lastViews.discover,'unified');assert.equal(c.lastViews.play,'hexboard');assert.equal(c.lastViews.create,'composition');assert.equal(Object.hasOwn(c.lastViews,'compare'),false);
 }
 // Temperament and tuning live in the header on every page; there is no setup row or top scale control.
 const header=htmlSource.slice(htmlSource.indexOf('<header class="app-header">'),htmlSource.indexOf('</header>'));

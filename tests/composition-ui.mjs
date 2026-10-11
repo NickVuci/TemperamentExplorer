@@ -3,7 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {createCompositionWorkspace} from '../dist/composition-ui.mjs';
 import {parseProject,PPQ} from '../dist/composition-project.mjs';
 import {PRACTICE_FORMAT} from '../dist/composition-cues.mjs';
-import {STEP_TICKS,gridRows,gridModel,formatPosition,renderComposition} from '../dist/composition-view.mjs';
+import {STEP_TICKS,gridRows,formatPosition,renderComposition} from '../dist/composition-view.mjs';
 
 const corpus=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-corpus.json',import.meta.url),'utf8'));
 const demo=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-demo.json',import.meta.url),'utf8'));
@@ -119,10 +119,12 @@ assert.equal(melodyClip().events.length,1);
 const n1=melodyClip().events[0];
 assert.equal(n1.startTick,STEP_TICKS*4);assert.equal(n1.durationTick,STEP_TICKS*2);assert.deepEqual(n1.tones[0].coordinate,degree2);assert.equal(n1.velocity,90);
 assert.equal(audioLog.previews.at(-1)[1],undefined);
-const model=gridModel(P(),melodyClip(),gridRows(P(),[0]),0);
-const rowIndex=gridRows(P(),[0]).findIndex(r=>r.coordinate[0]===degree2[0]&&r.coordinate[1]===degree2[1]);
-assert.equal(model.cells[rowIndex][4].start.id,n1.id);assert.equal(model.cells[rowIndex][5].sustained,true,'a two-step note is shown sustained');
-assert.equal(model.cells[rowIndex][6].sustained,false);
+{
+  const span=Number(html().match(/data-comp-roll data-start="0" data-span="(\d+)"/)[1]);
+  const drawn=html().match(new RegExp(`<button class="roll-note is-selected" data-comp="note-select" data-event="${n1.id}"[^>]*data-a="${degree2[0]}" data-b="${degree2[1]}" style="left:([0-9.]+)%;width:([0-9.]+)%`));
+  assert.ok(drawn,'the new note is drawn on its row and selected');
+  assert.ok(Math.abs(Number(drawn[1])-100*STEP_TICKS*4/span)<1e-9&&Math.abs(Number(drawn[2])-100*STEP_TICKS*2/span)<1e-9,'at its time, two steps long');
+}
 press('note-cell',{tick:STEP_TICKS*4,a:degree2[0],b:degree2[1]});
 assert.equal(melodyClip().events.length,0,'clicking a filled cell removes the note');
 press('note-cell',{tick:0,a:0,b:0});
@@ -163,7 +165,7 @@ assert.match(position.textContent,/bar 1 · beat/);assert.deepEqual(blocks[0].cl
 assert.match(cuesNode.textContent,/^Now:/);
 assert.ok(rafCallback,'a frame loop is running while playing');
 // an edit pauses playback; Stop and leaving Create release it
-press('note-cell',{tick:STEP_TICKS*8,a:0,b:0});assert.equal(ws.transport.state,'paused');
+press('note-cell',{tick:STEP_TICKS*8,a:0,b:0});assert.equal(ws.transport.state,'playing','an edit keeps playing');
 await ws.click(el({comp:'play'}));await new Promise(r=>setImmediate(r));assert.equal(ws.transport.state,'playing');
 ws.pause();assert.equal(ws.transport.state,'paused');
 await ws.click(el({comp:'play'}));await new Promise(r=>setImmediate(r));

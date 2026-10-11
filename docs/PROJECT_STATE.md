@@ -763,26 +763,47 @@ workflow structure.
 
 ## Composition suite (MVP)
 
-The Compose tab uses the approved **Compose and practise** layout: one four-bar
-chord/melody time ruler above three responsive panels (saved HexBoard, selected
-chord and compact exact fingerings, practice). Melody bars can be selected, moved
-between degrees or resized on a sixteenth-note grid; each drag is one undoable
-command. The roll's rows default to the HexBoard layout range: one row per in-scale pitch on the
-composition's saved layout (`boardRows`), with the home period and wider period ranges still selectable. Chord blocks drag along the chord lane and resize from their right edge on
-the same grid (overlaps are allowed), and are written root - chord (`chordName`), with the bass degree
+The Compose tab uses the approved **Compose and practise** layout: a piano roll (bar ruler, chord
+lane, melody rows, velocity lane, root lane) above three responsive panels (saved HexBoard, selection
+and compact exact fingerings, practice).
+
+Piano roll. Notes are placed on a time grid (`composition-grid.mjs`): a base division from 1/1 to 1/64,
+straight, dotted, triplet (3:2), quintuplet (5:4), septuplet (7:4) or any custom n:m tuplet, with
+optional swing (54–75%) on straight grids. Grid lines restart at every bar and round to whole ticks
+(exact for 3s and 5s, within half a tick for 7s). The meter's beat groups (`meter.groups`, set as
+"3+2+2" in Project; compound and odd eighth meters have defaults) are drawn and shaded. Snap can be
+turned off, and Alt places freely during a drag. The grid, tool, zoom and selection are editing
+state; none is saved. The Draw tool adds a note on press and sets its length by dragging (a click
+uses the grid step or the chosen new-note length); the Select tool drags a selection box, Shift
+adds to a selection. Dragging moves every selected note in time and by the same number of rows
+(stopping at the edge rows), Ctrl/⌘-drag copies, either edge resizes, and double-clicking a note
+deletes it. The velocity lane drags one bar or a selection, or draws across notes. The ruler seeks
+on click and sets the loop on drag. The Edit and Rhythm menus act on the selection
+(`composition-edit.mjs`): copy, cut, paste at the playhead, duplicate, delete, quantize starts or
+starts and ends with a strength, legato, retrograde, scale-step and period transposition, split each
+note into n equal notes, fit n in the time of m (time scaled by m/n from the first note), and a
+Euclidean fill (k hits over n equal steps, across the selection, the loop or the bar at the
+playhead, on the selection's or the last used row). Keyboard shortcuts work while focus is in the
+roll or nowhere in particular, never in a field; the roll's ? menu lists them. Zoom sets pixels per
+quarter note and row height, Fit shows the whole piece, and the view follows the playhead while
+playing. Each gesture or action is one undoable edit (`editEvents`). Rows default to the HexBoard
+layout range: one row per in-scale pitch on the composition's saved layout (`boardRows`), with
+period ranges still selectable; any other pitch a note uses gets its own marked row (× outside the
+scale), so no note is hidden (`rollRows`). Chord blocks drag along the chord lane and resize from
+their right edge on the same grid (overlaps are allowed), and are written root - chord (`chordName`), with the bass degree
 when it is not the root (`chordBass`). The root is the tone `source.rootTone` names, recorded from the
 directory entry or the collected chord's harmonic selection; chords without it are rooted on their first
 tone (`chordRoot`). Voicing edits keep tone order, so the root survives inversion. Below the chord lane,
 every melody row that sounds a note of a chord is tinted for that chord's span, and the root more strongly
 (`chordGuides`); notes match by octave class (exact without 2 in the basis), never by period. A Root
 lane under the melody rows shows each chord's root degree over its span. Clicking an empty spot picks a
-time on the sixteenth grid; clicking a chord's root picks that chord. Either opens a picker: choose a root
+time on the grid; clicking a chord's root picks that chord. Either opens a picker: choose a root
 (scale degree), then one of the directory's chords on that root, in root position or an inversion (the
 Play scale's root entries), with the root on that degree's home coordinate. The harmony is added at the time with the
 chosen add length, or replaces the picked chord at its time and length, as one undoable edit. Because the
 directory follows the app, the picker only lists harmonies while the app matches the composition's setup. Chord inversion raises the lowest sounding voice by the actual
 temperament period and preserves its tone identity. Missing exact fingerings are
-shown explicitly. The note list keeps outside-scale notes editable.
+shown explicitly. Outside-scale notes sit in marked rows and stay editable in the note list.
 
 Practice supports phrase stepping, visible-bar / selected-chord / whole-project
 loops and 25–100% playback speed. Speed is runtime UI state: it does not rewrite
@@ -790,8 +811,8 @@ the saved tempo or context. Playback paints the playhead and sounding notes in
 place. The composition board and the physical HexBoard read the composition's
 saved geometry and tuning while Compose is active; mouse/device auditions use
 the app's central tonic and sound through the shared audio engine. The header Audio menu controls all tabs; legacy project sound fields remain readable but do not override playback. Follow lights highlights
-exact-coordinate matches. This remains guided playback without performance
-judging. The board's Chords / Melody / Both toggle filters what it lights (sounding cues by track, and
+exact-coordinate matches. Practice is guided playback without judging; Game mode
+judges (below). The board's Chords / Melody / Both toggle filters what it lights (sounding cues by track, and
 the selected chord's fingering unless only the melody is shown); it is display-only and never changes
 playback. `composition-board.mjs` reuses `buildBoard`, `chordPlacements` and the
 existing colour engine; it does not define another pitch or fingering engine. Its board is a
@@ -799,9 +820,44 @@ miniature of Play's, drawn by the same `hexboard-view.mjs` picture and renderer 
 layout, and its keys play through the shared `hexboard-player.mjs` (hold, glide, Shift sustain;
 physical keys press it while a composition is open) (D-040).
 
+HexBoard input. Keys held on the composition board (mouse, Enter on a focused key, or a connected
+HexBoard) light their roll rows, and the roll status names the held pitches and the chord they make,
+read against the chord directory while the app matches the composition (`root - chord`, D-042). Row
+labels carry their layout key colour; during playback the rows of sounding notes glow, filtered by
+the board's Chords / Melody / Both choice. Selected melody notes light every key that plays their
+exact pitch. The roll's HexBoard group chooses where entries go, Melody or Chords. Step entry enters
+the held keys when the last one comes up, at the playhead and one step long (the new-note length, or
+the chord length in Chords), then moves the playhead on; Rest, Tie and Back (→, ←, Backspace) move
+and correct. Rec arms recording: Play counts in (off, 1 or 2 bars) and every hold heard after the
+downbeat is recorded with its played timing, from the tick heard when the key went down for as long
+as it sounded (Shift sustain included), cut where playback wraps. A press just before the downbeat
+starts on it. A take is one undoable edit added to the existing clip: a melody take becomes the
+selection, ready to quantize; in Chords, keys pressed together (within 0.12 s) form one chord, named
+and rooted from the directory and snapped to the grid while Snap is on, its played timing kept in
+`source.played`. The Click switch adds a metronome to any playback, accenting bars and beat groups
+(D-044).
+
+Game. A third Compose mode makes the composition a rhythm game (D-045). Setup chooses the part
+(melody, chords or both); Play (scored) or Learn (playback waits at each note until it is played);
+whether the exact pitch or the degree in any octave counts; speed 50-100%; how your part sounds in
+the backing (muted, quiet guide or full); how far ahead notes appear; count-in; metronome; the
+section (whole piece, loop region or bars); and a speed trainer that offers 5% more after a pass at
+90% or better. The stage shows a note highway (one lane per pitch in its key colour, a hit line) beside
+the board, where a ring closes onto one suggested key per note: the copy nearest the previous note,
+with a pull towards the centre and a chord's tones close together. Any key with the right pitch counts.
+Presses are judged at the time heard: Perfect within 40 ms, Great 80, Good 130; a note not played is
+missed after its window; the right pitch just outside it shows as early or late, and pressing a note
+just played again shows as a repeat, both without penalty; any other press is a wrong note and
+breaks the combo. Notes a quarter or longer add a hold bonus when kept down to their end. The
+multiplier rises every ten in a row, to ×2.5. Results give the grade (S, A, B, C, D by accuracy),
+counts, best combo, average timing and spread with a histogram, and the three weakest bars with a
+button to practise them. A connected HexBoard lights the suggested keys of the next notes, dims the
+others and flashes hits and misses. Calibration plays twelve clicks and stores the median lag of taps
+on the last eight; it is taken off every press. Settings, that offset and the best score per
+composition, part, match, speed and section are kept in this browser only.
 
 Create opens one composition at a time: a chord progression built from collected
-chords, a scale-degree melody grid, a looping tuned transport, and a game-ready cue
+chords, a scale-degree piano roll, a looping tuned transport, and a game-ready cue
 timeline. The authoritative plan, frozen limits and action log are in
 `docs/COMPOSITION_SUITE_PLAN.md`; the format and ownership decision is D-032.
 
@@ -809,7 +865,13 @@ timeline. The authoritative plan, frozen limits and action log are in
 | --- | --- |
 | Project schema, validation, limits, commands, bounded undo | `composition-project.mjs` |
 | Musical context snapshot, pitch resolver, degree annotation, guarded chord import | `composition-context.mjs` |
-| Clip expansion, integer-tick timing, loop/seek/pause pump | `composition-transport.mjs` |
+| Clip expansion, integer-tick timing, loop/seek/pause pump, live replanning after edits, count-in, metronome, heard position (`timeAt`) | `composition-transport.mjs` |
+| Recording takes, step-entry hold groups, recorded chords | `composition-record.mjs` |
+| Rhythm game chart, judging, scoring and results | `composition-game.mjs` |
+| Rhythm game runs, input, drawing, calibration, stored scores, LED cues / markup | `composition-game-ui.mjs` / `composition-game-view.mjs` |
+| Time grid (divisions, tuplets, swing), beat groups, snapping, length and position names, Euclidean patterns | `composition-grid.mjs` |
+| Note transforms: quantize, split, fit, legato, retrograde, transpose, Euclidean fill, copy/paste, velocity | `composition-edit.mjs` |
+| Piano-roll pointer gestures, hover readout and ghost note, wheel zoom | `composition-roll-input.mjs` |
 | Voice groups, scoped scheduling/cancellation, clock snapshot | `audio.mjs` (additive; legacy preview methods unchanged) |
 | Cue timeline, board-cell lookup, practice-target export | `composition-cues.mjs` |
 | Logical key down/up events with hold ids | `hexboard-player.mjs` (`onInput`, optional) |
@@ -824,8 +886,10 @@ button numbers are annotations, never identity. A project freezes its own contex
 selection changing never mutates it, and "Load the composition's setup" is an
 explicit action through the app's own state loader. Collected chords from a
 different tuning are refused, never retuned. Timing is 960 ticks per quarter; seconds
-are computed from integer ticks so loops do not drift. Project edits pause
-playback, keep the position and use the edited project on the next Play. Auditions in
+are computed from integer ticks so loops do not drift. A project edit during playback
+carries on from the playhead: voices that have not started are replaced with the edited
+project, sounding notes finish as scheduled, and an edited note crossing the playhead is
+heard from its next start. Stopped or paused, the next Play uses the edited project. Auditions in
 Create use the scoped `preview` voice group and never cancel the transport; global
 Stop/Escape cancels every group.
 
@@ -834,9 +898,8 @@ cents, Hz, degree/register, onset/release (ticks and seconds) and every enabled
 layout key whose `buildBoard` coordinate matches exactly. A pitch with no key stays
 audible and carries a stated reason. `toPracticeTargets` exports a versioned
 `temperament-lab-practice-targets-v1` file with an explicit match mode
-(`exact-coordinate`, `any-degree`, `button`). Judging, latency calibration and the
-physical HexBoard transport belong to the separate HexBoard integration plan; nothing
-here scores a performance.
+(`exact-coordinate`, `any-degree`, `button`) for other consumers. The rhythm game
+builds its chart from the same timeline.
 
 Sessions. A whole-app save with an open composition is `temperament-lab-v2` with a
 `composition` field; saves without one remain `temperament-lab-v1`. The loader
@@ -844,9 +907,10 @@ accepts both and validates the composition as a candidate before restoring any o
 session part. Standalone files use `temperament-lab-composition-v1`.
 
 Known limits. One chord track and one melody track with one clip each (the schema
-allows more); same-key presses from two sources share one voice; the melody grid is
-fixed at sixteenth-note resolution; no recording, arrangement, mixing, conversion,
-account storage or export. Browser behaviour was exercised in headless Chrome only
+allows more); same-key presses from two sources share one voice; one meter for the
+whole project (no meter changes); recording and step entry add to the existing melody
+and chord clips (no separate takes); no arrangement, mixing, conversion, account storage
+or export; game scores and calibration stay in the browser. Browser behaviour was exercised in headless Chrome only
 (see the plan log); listening, Edge/Safari, screen readers, physical HexBoard and DAW
 use are unverified.
 

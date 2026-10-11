@@ -56,7 +56,11 @@ assert.match(host.innerHTML,/composition-lower/);
   assert.equal(rowsShown().length,playable.size,'each pitch once');
   const cents=rowsShown().map(id=>resolveTone(ctx,id.split(',').map(Number)).cents);assert.ok(cents.every((c,i)=>!i||c<cents[i-1]),'highest first');
   assert.ok(playable.size>ctx.scale.degrees.length,'the layout spans more than one period');
-  change('registers','home');assert.equal(rowsShown().length,ctx.scale.degrees.length,'the other ranges are still available');
+  change('registers','home');
+  const home=new Set(ctx.scale.degrees.map(d=>d.coordinate.join(','))),used=new Set(ws.getProject().clips[1].events.flatMap(e=>e.tones.map(t=>t.coordinate.join(','))));
+  assert.deepEqual(new Set(rowsShown()),new Set([...home,...used]),'the other ranges are still available, with a row for each note outside them');
+  assert.equal((host.innerHTML.match(/class="roll-row[^"]*is-extra/g)||[]).length,[...used].filter(id=>!home.has(id)).length,'rows outside the chosen range are marked');
+  assert.ok([...used].some(id=>!home.has(id)),'the fixture melody leaves the home period');
   change('registers','board');assert.equal(rowsShown().length,playable.size);
 }
 const p=ws.getProject(),chord=p.clips[0].events[0];
@@ -169,8 +173,14 @@ assert.equal(JSON.stringify(ws.getProject()),unchanged);
   press('board-show',{value:'nonsense'});assert.deepEqual(lit(),cells('melody'),'an unknown choice changes nothing');
   assert.equal(JSON.stringify(ws.getProject()),JSON.stringify(pr),'a display choice never edits the composition');
   // Outside playback the selected chord's fingering shows unless only the melody is shown.
-  press('mode-compose');ws.transport.stop();press('chord-select',{event:pr.clips[0].events[0].id});
+  press('mode-compose');ws.transport.stop();
+  ws.keydown({key:'Escape',code:'Escape',target:undefined,preventDefault(){}},true);   // no melody notes selected
+  press('chord-select',{event:pr.clips[0].events[0].id});
   assert.deepEqual(lit(),[],'melody only: no chord fingering');
+  // A selected melody note lights every key that plays its exact pitch, unless only the chords are shown.
+  {const n=pr.clips[1].events[0],{board:b}=compositionBoard(pr),keys=b.keys.filter(k=>!k.command&&k.enabled&&k.m.join()===n.tones[0].coordinate.join()).map(k=>k.index);
+   press('note-select',{event:n.id});assert.deepEqual(lit(),keys,'the selected note lights its keys');assert.ok(keys.length>0);
+   ws.keydown({key:'Escape',code:'Escape',target:undefined,preventDefault(){}},true);assert.deepEqual(lit(),[]);}
   press('board-show',{value:'chords'});const fingering=lit();assert.ok(fingering.length>=2,'chords: the fingering lights');
   {const svg=host.innerHTML.match(/<svg class="composition-board hex-board([^"]*)"/)[1];assert.match(svg,/has-chord/,'the rest of the board dims, as on Play');
    const marked=[...host.innerHTML.matchAll(/<g class="comp-board-key[^"]*is-marked[^"]*"[^>]*data-comp-key="(\d+)"/g)].map(m=>Number(m[1])).sort((a,b)=>a-b);

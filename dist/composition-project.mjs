@@ -20,6 +20,8 @@ const fail=(path,message)=>{throw new Error(`Composition project: ${path}: ${mes
 const canonical=n=>n===0?0:n; // signed zero is the same coordinate as zero
 
 export const barTicks=meter=>PPQ*4*meter.numerator/meter.denominator;
+// Optional beat grouping of a bar (7/8 as [2,2,3]); absent means the grid's default grouping.
+const validGroups=(groups,numerator)=>Array.isArray(groups)&&groups.length>0&&groups.every(g=>isInt(g)&&g>=1)&&groups.reduce((a,b)=>a+b,0)===numerator;
 export const ticksToSeconds=(project,ticks)=>ticks*60/(project.tempo*PPQ);
 export const canonicalCoordinate=m=>[canonical(m[0]),canonical(m[1])];
 
@@ -82,6 +84,7 @@ export function validateProject(p){
   if(typeof p.tempo!=='number'||!Number.isFinite(p.tempo)||p.tempo<LIMITS.tempoMin||p.tempo>LIMITS.tempoMax)fail('tempo',`expected ${LIMITS.tempoMin}-${LIMITS.tempoMax} quarter notes per minute`);
   const m=p.meter;
   if(!m||!isInt(m.numerator)||m.numerator<1||m.numerator>LIMITS.meterNumeratorMax||!LIMITS.meterDenominators.includes(m.denominator))fail('meter',`expected numerator 1-${LIMITS.meterNumeratorMax} over one of ${LIMITS.meterDenominators.join(', ')}`);
+  if(m.groups!==undefined&&!validGroups(m.groups,m.numerator))fail('meter.groups',`expected whole beats adding up to ${m.numerator}`);
   validateContext(p.context);
   if(!Array.isArray(p.tracks)||p.tracks.length<1||p.tracks.length>LIMITS.tracksMax)fail('tracks',`expected 1-${LIMITS.tracksMax} tracks`);
   const ids=new Set([p.id]),claim=(id,path)=>{if(ids.has(id))fail(path,`duplicate id "${id}"`);ids.add(id);};
@@ -183,6 +186,23 @@ export const removeEvent=(project,clipId,eventId)=>commit(project,p=>{
   clip.events=clip.events.filter(e=>e.id!==eventId);
 });
 
+/**
+ * Several event changes as one validated edit: events listed in `remove` go, and each `put` event
+ * replaces the event with its id or is added. Clips grow by whole bars to fit.
+ */
+export const editEvents=(project,clipId,{remove=[],put=[]})=>commit(project,p=>{
+  const clip=clipOf(p,clipId),gone=new Set(remove),replaced=new Set(put.map(e=>e.id));
+  for(const id of gone)eventOf(clip,id);
+  clip.events=clip.events.filter(e=>!gone.has(e.id)&&!replaced.has(e.id));
+  for(const event of put){
+    const e=structuredClone(event);
+    e.tones=e.tones.map(t=>({...t,coordinate:canonicalCoordinate(t.coordinate)}));
+    growClip(p,clip,e.startTick+e.durationTick);
+    clip.events.push(e);
+  }
+  clip.events.sort((a,b)=>a.startTick-b.startTick||a.id.localeCompare(b.id));
+});
+
 /** Copies an event (new ids) to start at `startTick`. */
 export const duplicateEvent=(project,clipId,eventId,startTick)=>commit(project,p=>{
   const clip=clipOf(p,clipId),src=eventOf(clip,eventId),taken=allIds(p);
@@ -211,7 +231,12 @@ export const swapAdjacent=(project,clipId,eventId,direction)=>commit(project,p=>
 });
 
 export const setTempo=(project,tempo)=>commit(project,p=>{p.tempo=tempo;});
-export const setMeter=(project,meter)=>commit(project,p=>{p.meter={numerator:meter.numerator,denominator:meter.denominator};});
+/** `meter.groups`: an array, null to use the default grouping, or omitted to keep groups that still fit. */
+export const setMeter=(project,meter)=>commit(project,p=>{
+  const groups=meter.groups===undefined?p.meter.groups:meter.groups;
+  p.meter={numerator:meter.numerator,denominator:meter.denominator,...(validGroups(groups,meter.numerator)?{groups:[...groups]}:{})};
+  if(meter.groups&&!p.meter.groups)fail('meter.groups',`expected whole beats adding up to ${meter.numerator}`);
+});
 export const setName=(project,name)=>commit(project,p=>{p.name=String(name).slice(0,LIMITS.nameMax);});
 export const setLoop=(project,loop)=>commit(project,p=>{p.loop={enabled:!!loop.enabled,startTick:loop.startTick??0,endTick:loop.endTick??null};});
 export const setWave=(project,wave)=>commit(project,p=>{p.sound={...p.sound,wave};});
