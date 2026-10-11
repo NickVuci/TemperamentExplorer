@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createCompositionWorkspace} from '../dist/composition-ui.mjs';
-import {compositionBoard,compactFingerings,compositionDeviceSnapshot,boardMarkup} from '../dist/composition-board.mjs';
+import {compositionBoard,compositionDeviceSnapshot,boardMarkup} from '../dist/composition-board.mjs';
 import {mosLayers,textColor,keyAppearance} from '../dist/hexboard-colors.mjs';
 import {boardMatches} from '../dist/hexboard.mjs';
 import {resolveTone} from '../dist/composition-context.mjs';
@@ -66,8 +66,10 @@ assert.match(host.innerHTML,/composition-lower/);
 }
 const p=ws.getProject(),chord=p.clips[0].events[0];
 press('chord-select',{event:chord.id});
-const {board}=compositionBoard(p),fingers=compactFingerings(p,chord,board);
-for(const f of fingers)assert.deepEqual(f.keys.map(i=>board.keys[i].m),chord.tones.map(t=>t.coordinate),'Every fingering preserves exact pitches and registers.');
+const {board}=compositionBoard(p),chordKeys=ws.deviceSnapshot().keys.filter(k=>k.lit).map(k=>k.index);
+assert.deepEqual(chordKeys.map(i=>board.keys[i].m.join()).sort(),chord.tones.map(t=>t.coordinate.join()).sort(),'the chord shows one button per tone at its exact pitch and register');
+assert.match(host.innerHTML,/class="comp-chord-buttons">Buttons <b>\d+<\/b>/,'the panel names the buttons Play uses');
+assert.doesNotMatch(host.innerHTML,/data-comp="fingering"/,'there is no separate per-chord fingering choice');
 // Drag the Compose ruler to define the selected chord's loop region.
 {
   const span=rollWindow({project:ws.getProject()}).span;
@@ -183,10 +185,15 @@ assert.equal(JSON.stringify(ws.getProject()),unchanged);
   const ticks=[...pr.clips[1].events.map(e=>e.startTick),...pr.clips[0].events.map(e=>e.startTick)];
   const tick=ticks.find(t=>{const kinds=new Set(activeCues(tl,t).sounding.map(q=>q.trackKind));return kinds.has('chords')&&kinds.has('melody');});
   assert.ok(tick!==undefined,'the fixture has a moment where a chord and a melody note sound together');
-  const cells=kind=>[...new Set(activeCues(tl,tick).sounding.filter(q=>!kind||q.trackKind===kind).flatMap(q=>q.cells))].sort((a,b)=>a-b);
+  // Lit buttons are the composition's fingering, exactly as Play suggests it: one button per sounding note.
+  const route=ws.game.fingering(),sounding=kind=>activeCues(tl,tick).sounding.filter(q=>!kind||q.trackKind===kind);
+  const cells=kind=>[...new Set(sounding(kind).map(q=>route.get(q.cueId)))].sort((a,b)=>a-b);
+  assert.ok(sounding(null).every(q=>q.cells.includes(route.get(q.cueId))),'each button plays its note’s exact pitch');
+  assert.ok(sounding(null).some(q=>q.cells.length>1),'some sounding notes have other buttons that stay dark');
   press('mode-compose');await ws.transport.seek(tick);await ws.transport.play();
   assert.match(host.innerHTML,/data-comp="board-show"\s+data-value="both" aria-pressed="true"/,'both tracks are shown by default');
   assert.deepEqual(lit(),cells(null));
+  assert.equal(lit().length,new Set(sounding(null).map(q=>q.coordinate.join())).size,'one button per sounding pitch');
   press('board-show',{value:'chords'});assert.deepEqual(lit(),cells('chords'),'only the chord lights');
   assert.match(host.innerHTML,/data-comp="board-show"\s+data-value="chords" aria-pressed="true"/);
   press('board-show',{value:'melody'});assert.deepEqual(lit(),cells('melody'),'only the melody lights');
@@ -197,9 +204,9 @@ assert.equal(JSON.stringify(ws.getProject()),unchanged);
   ws.keydown({key:'Escape',code:'Escape',target:undefined,preventDefault(){}},true);   // no melody notes selected
   press('chord-select',{event:pr.clips[0].events[0].id});
   assert.deepEqual(lit(),[],'melody only: no chord fingering');
-  // A selected melody note lights every key that plays its exact pitch, unless only the chords are shown.
-  {const n=pr.clips[1].events[0],{board:b}=compositionBoard(pr),keys=b.keys.filter(k=>!k.command&&k.enabled&&k.m.join()===n.tones[0].coordinate.join()).map(k=>k.index);
-   press('note-select',{event:n.id});assert.deepEqual(lit(),keys,'the selected note lights its keys');assert.ok(keys.length>0);
+  // A selected melody note lights its button in the fingering, unless only the chords are shown.
+  {const n=pr.clips[1].events[0],key=route.get(tl.find(q=>q.toneId===n.tones[0].toneId).cueId);
+   press('note-select',{event:n.id});assert.deepEqual(lit(),[key],'the selected note lights its button');assert.notEqual(key,undefined);
    ws.keydown({key:'Escape',code:'Escape',target:undefined,preventDefault(){}},true);assert.deepEqual(lit(),[]);}
   press('board-show',{value:'chords'});const fingering=lit();assert.ok(fingering.length>=2,'chords: the fingering lights');
   {const svg=host.innerHTML.match(/<svg class="composition-board hex-board([^"]*)"/)[1];assert.match(svg,/has-chord/,'the rest of the board dims, as on Play');
@@ -208,7 +215,7 @@ assert.equal(JSON.stringify(ws.getProject()),unchanged);
    assert.equal((host.innerHTML.match(/class="hex-chord-tone-label"/g)||[]).length,fingering.length,'with chord-tone numbers, as on Play');}
   press('board-show',{value:'both'});assert.deepEqual(lit(),fingering);
 }
-const snapshot=compositionDeviceSnapshot(p,board,[fingers[0]?.keys[0]??65]);assert.equal(snapshot.keys.length,board.keys.length);
+const snapshot=compositionDeviceSnapshot(p,board,[chordKeys[0]??65]);assert.equal(snapshot.keys.length,board.keys.length);
 assert.ok(snapshot.keys.some(k=>k.lit));assert.deepEqual(ws.voiceSettings(),undefined);
 // Single selection preserves timeline nodes, allowing a native double-click to delete.
 await new Promise(r=>setTimeout(r,1));

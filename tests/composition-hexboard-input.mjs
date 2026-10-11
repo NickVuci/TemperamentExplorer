@@ -6,7 +6,7 @@ import {readFile} from 'node:fs/promises';
 import {createCompositionWorkspace} from '../dist/composition-ui.mjs';
 import {createProject,addEvent,PPQ} from '../dist/composition-project.mjs';
 import {captureContext,resolveTone} from '../dist/composition-context.mjs';
-import {compositionBoard} from '../dist/composition-board.mjs';
+import {compositionBoard,compositionDeviceSnapshot} from '../dist/composition-board.mjs';
 import {CLICK,START_DELAY_SECONDS} from '../dist/composition-transport.mjs';
 
 const demo=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-demo.json',import.meta.url),'utf8'));
@@ -153,5 +153,41 @@ press('record');press('input-target',{value:'melody'});
 press('mode-game');press('step-input');press('record');const frozen=JSON.stringify(P());down(deg(0));up(deg(0));assert.equal(JSON.stringify(P()),frozen,'Play auditions enter nothing');
 assert.doesNotMatch(host.innerHTML,/data-comp="record"|data-comp="step-input"/,'editing controls stay in Compose');
 press('mode-compose');
+// ---- Choose buttons: a selected pitch's other buttons are offered, and pressing one keeps it ----
+{
+  const note=mel()[0],id=note.tones[0].coordinate.join(),lit=()=>ws.deviceSnapshot().keys.filter(k=>k.lit).map(k=>k.index);
+  const copies=board.keys.filter(k=>!k.command&&k.enabled&&k.m.join()===id).map(k=>k.index);
+  const offered=()=>[...host.innerHTML.matchAll(/<g class="comp-board-key is-option[^"]*"[^>]*data-comp-key="(\d+)"/g)].map(m=>Number(m[1])).sort((a,b)=>a-b);
+  const choosing=on=>ws.change({dataset:{compField:'chooseButtons'},checked:on});
+  assert.ok(copies.length>1,'the wrapped layout plays the note on several buttons');
+  press('board-show',{value:'melody'});press('note-select',{event:note.id});   // a chord entered above stays selected
+  const [automatic]=lit(),other=copies.find(k=>k!==automatic);
+  assert.deepEqual(lit(),[automatic],'a selected note lights the one button Play suggests');assert.ok(copies.includes(automatic));
+  assert.deepEqual(offered(),[],'other buttons stay unmarked until choosing');
+  ws.pressKey(other,0);ws.releaseKey(other,1);assert.equal('fingering' in P(),false,'without Choose buttons a press only plays');
+  choosing(true);
+  assert.match(host.innerHTML,/data-comp-field="chooseButtons" checked/);
+  assert.deepEqual(offered(),copies.filter(k=>k!==automatic).sort((a,b)=>a-b),'every other button of the pitch is offered');
+  const plain=compositionDeviceSnapshot(P(),board,[automatic]);
+  for(const k of ws.deviceSnapshot().keys)if(!k.command&&k.enabled){
+    const dims=k.index!==automatic&&!copies.includes(k.index);
+    assert.equal(k.layoutColor!==plain.keys[k.index].layoutColor,dims,`the HexBoard ${dims?'dims':'keeps'} button ${k.index}`);
+  }
+  const elsewhere=board.keys.find(k=>!k.command&&k.enabled&&k.m.join()!==id).index,revision=P().revision;
+  ws.pressKey(elsewhere,2);ws.releaseKey(elsewhere,3);assert.equal(P().revision,revision,'a key of an unselected pitch only plays');
+  ws.pressKey(other,4);ws.releaseKey(other,5);
+  assert.deepEqual(P().fingering,{[id]:other},'the pressed button is saved as the pitch’s button');assert.equal(P().revision,revision+1);
+  assert.deepEqual(lit(),[other],'the board shows it');
+  const route=ws.game.fingering();
+  assert.ok(ws.timeline().filter(q=>q.coordinate.join()===id).every(q=>route.get(q.cueId)===other),'every note of the pitch uses it in Play');
+  assert.match(host.innerHTML,/1 selected pitch uses a chosen button/);assert.match(host.innerHTML,/1 pitch uses a chosen button/);
+  ws.pressKey(other,6);ws.releaseKey(other,7);assert.equal(P().revision,revision+1,'pressing the chosen button again changes nothing');
+  press('undo');assert.equal('fingering' in P(),false,'choosing is one undo step');assert.deepEqual(lit(),[automatic]);
+  press('redo');assert.deepEqual(P().fingering,{[id]:other});
+  press('buttons-auto');assert.equal('fingering' in P(),false,'Use automatic buttons clears the selected pitches');
+  ws.pressKey(other,8);ws.releaseKey(other,9);press('buttons-reset');assert.equal('fingering' in P(),false,'Reset all buttons clears every choice');
+  press('step-input');ws.pressKey(other,10);ws.releaseKey(other,11);assert.equal('fingering' in P(),false,'step entry keeps its presses');press('step-input');
+  choosing(false);assert.deepEqual(offered(),[]);press('board-show',{value:'both'});
+}
 ws.dispose();
 console.log('composition-hexboard-input: ok');

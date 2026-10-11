@@ -274,38 +274,26 @@ function boundaryProject(){
 {
   const f=fake(),t=make(boundaryProject(),f),anchor=100+START_DELAY_SECONDS;
   let interval;f.timer.set=fn=>(interval=fn,1);
-  await t.play({untilTick:960,boundary:'pause'});
-  assert.equal(f.scheduled.length,1,'only the crossing note starts before the boundary');
+  await t.play({untilTick:960,graceMs:0});
+  assert.equal(f.scheduled.length,1,'only the crossing note starts before the bound');
   assert.ok(Math.abs(f.scheduled[0].releaseAudioSeconds-(anchor+.6))<1e-9,'a crossing release is capped');
   f.clock.audioSeconds=anchor+.6;interval();
-  assert.equal(t.state,'paused','the transport timer reaches the boundary without an animation frame');
-  assert.equal(t.position(),960);assert.equal(t.timeAt().v,960);
-  assert.deepEqual(f.events.at(-1),['boundary',{tick:960}]);
-  t.pump();assert.equal(f.events.filter(([e])=>e==='boundary').length,1,'boundary fires once');
-  const n=f.scheduled.length;
-  await t.play({untilTick:1920,boundary:'pause'});
+  assert.equal(t.state,'stopped','the transport timer reaches the bound without an animation frame');
+  assert.equal(f.events.at(-1)[0],'ended');assert.equal(f.events.at(-1)[1].tick,960);
+  t.pump();assert.equal(f.events.filter(([e])=>e==='ended').length,1,'the end fires once');
+  await t.seek(960);const n=f.scheduled.length;
+  await t.play({untilTick:1920,graceMs:0});
   const secondAnchor=f.clock.audioSeconds+START_DELAY_SECONDS;
-  assert.equal(t.position(),960,'a bounded resume retains its absolute start despite the project loop');
-  assert.equal(f.scheduled.slice(n).filter(v=>v.voiceId.startsWith('boundary#')).length,1,'the excluded boundary onset starts exactly once on resume');
+  assert.equal(t.position(),960,'a bounded run keeps its absolute start despite the project loop');
+  assert.equal(f.scheduled.slice(n).filter(v=>v.voiceId.startsWith('boundary#')).length,1,'the onset at its start plays exactly once');
   f.clock.audioSeconds=secondAnchor+.6;t.pump();
-  assert.equal(t.position(),1920,'the saved project loop does not wrap a bounded run');
-  assert.ok(!f.scheduled.some(v=>v.voiceId.startsWith('later#')),'the next boundary onset remains excluded');
+  assert.equal(f.events.at(-1)[1].tick,1920,'the saved project loop does not wrap a bounded run');
+  assert.ok(!f.scheduled.some(v=>v.voiceId.startsWith('later#')),'an onset at the bound is excluded');
   t.stop();
 }
 {
   const f=fake({latency:.2}),t=make(boundaryProject(),f),anchor=100+START_DELAY_SECONDS;
-  await t.play({untilTick:960,boundary:'pause'});
-  f.clock.audioSeconds=anchor+.7;t.pump();
-  assert.equal(t.position(),960,'display is capped even while output is still arriving');
-  assert.equal(t.state,'playing','the generated audio clock cannot finish a heard-time boundary early');
-  assert.ok(Math.abs(t.timeAt().v-800)<1e-6);
-  f.clock.audioSeconds=anchor+.81;
-  assert.equal(t.timeAt().v,960,'a delayed pause pump cannot expose virtual ticks past the waiting note');
-  t.pump();assert.equal(t.state,'paused');assert.equal(f.events.at(-1)[0],'boundary');
-}
-{
-  const f=fake({latency:.2}),t=make(boundaryProject(),f),anchor=100+START_DELAY_SECONDS;
-  await t.play({untilTick:960,boundary:'end',graceMs:130});
+  await t.play({untilTick:960,graceMs:130});
   f.clock.audioSeconds=anchor+.6+.13;t.pump();
   assert.equal(t.state,'playing','the final grace runs after the listener reaches the end');
   f.clock.audioSeconds=anchor+.6+.2+.12;t.pump();
@@ -318,20 +306,15 @@ function boundaryProject(){
   assert.equal(detail.tps,1600);assert.equal(t.state,'stopped');assert.equal(t.position(),0);
 }
 {
-  const f=fake(),t=make(boundaryProject(),f);
-  await t.play({untilTick:960,boundary:'pause'});const n=f.scheduled.length;
-  f.clock.audioSeconds+=20;t.pump();
-  assert.equal(t.state,'paused');assert.equal(t.position(),960);
-  assert.equal(f.scheduled.length,n,'a delayed boundary pump never replays missed or excluded onsets');
   const g=fake(),u=make(boundaryProject(),g);
   await u.play({untilTick:960,graceMs:130});const m=g.scheduled.length;
   g.clock.audioSeconds+=20;u.pump();
-  assert.equal(u.state,'stopped');assert.equal(g.scheduled.length,m);
+  assert.equal(u.state,'stopped');assert.equal(g.scheduled.length,m,'a delayed end pump never replays missed or excluded onsets');
   assert.ok(g.events.at(-1)[1].v>960+.13*1600,'delayed end carries the final heard clock');
 }
 {
   const f=fake(),t=createTransport({getProject:boundaryProject,audio:f.audio,timer:f.timer,onState:f.onState,getClick:()=>true});
-  await t.play({countIn:1,untilTick:1000,boundary:'pause'});
+  await t.play({countIn:1,untilTick:1000,graceMs:0});
   const anchor=100+START_DELAY_SECONDS+2.4,endAudio=anchor+1000/1600;
   assert.equal(f.scheduled.filter(v=>v.voiceId.startsWith('count#')).length,4);
   assert.equal(t.countingIn().beats,4);
@@ -340,34 +323,34 @@ function boundaryProject(){
   assert.ok(lastClick,'the beat just before the bound is scheduled');
   assert.ok(Math.abs(lastClick.releaseAudioSeconds-endAudio)<1e-9,'even a short metronome click is capped at the bound');
   assert.ok(f.scheduled.every(v=>v.releaseAudioSeconds<=endAudio+1e-9),'count-in and arrangement voices respect the same cap');
-  f.clock.audioSeconds=endAudio;t.pump();assert.equal(t.position(),1000);assert.equal(t.state,'paused');
+  f.clock.audioSeconds=endAudio;t.pump();assert.equal(t.state,'stopped');assert.equal(f.events.at(-1)[1].tick,1000);
 }
 {
   let project=boundaryProject();const f=fake(),t=createTransport({getProject:()=>project,audio:f.audio,timer:f.timer,onState:f.onState});
-  await t.play({untilTick:960,boundary:'pause',graceMs:250});
+  await t.play({untilTick:960,graceMs:250});
   f.clock.audioSeconds+=.2;t.pause();
   await t.play();
   await t.seek(500);
   project=setTempo(project,200);t.invalidate();
   f.clock.audioSeconds+=1;t.pump();
-  assert.equal(t.state,'paused');assert.equal(t.position(),960,'pause/resume, seek and edits preserve the absolute boundary');
-  assert.equal(f.events.at(-1)[0],'boundary');
+  assert.equal(t.state,'stopped');assert.equal(f.events.at(-1)[0],'ended');
+  assert.equal(f.events.at(-1)[1].tick,960,'pause/resume, seek and edits preserve the absolute bound');
   t.stop();await t.play();
   f.clock.audioSeconds+=2;t.pump();
   assert.equal(t.state,'playing','Stop clears the bounded run options and restores the saved loop');t.stop();
 }
 {
   const f=fake(),t=make(boundaryProject(),f),gate=f.hold();
-  const preparing=t.play({untilTick:960,boundary:'pause'});
+  const preparing=t.play({untilTick:960,graceMs:0});
   t.pause();gate.resolve();await preparing;
   assert.equal(t.state,'paused');assert.equal(f.scheduled.length,0,'Pause invalidates audio preparation before any voice starts');
   await t.play();f.clock.audioSeconds+=2;t.pump();
-  assert.equal(t.position(),960,'a resumed pending run retains its boundary');
-  assert.equal(t.state,'paused');
+  assert.equal(f.events.at(-1)[1].tick,960,'a resumed pending run retains its bound');
+  assert.equal(t.state,'stopped');
 }
 {
   const f=fake(),t=make(boundaryProject(),f);
-  await t.play({untilTick:960,boundary:'end',graceMs:250});
+  await t.play({untilTick:960,graceMs:250});
   f.clock.audioSeconds+=.1;t.pause();await t.play();await t.seek(500);
   const endAudio=f.clock.audioSeconds+START_DELAY_SECONDS+(960-500)/1600;
   f.clock.audioSeconds=endAudio+.2;t.pump();

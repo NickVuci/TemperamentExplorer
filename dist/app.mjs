@@ -306,6 +306,7 @@ const compositionWorkspace=createCompositionWorkspace({document,window,
   return selection?{kind:'chord',state:getLayoutStates()[0],coords:selection.voicing.voices.map(voice=>voice.coordinate),label:selection.label??'Focused chord',exact:true,harmonicSelection:selection}:null;},
  onChordFocus:coordinates=>{harmonicWorkspace.focusExternal({coordinates});},
  getRootEntries:degree=>harmonicWorkspace.rootEntriesFor({scale:'play',degree}),matchPlayed:coordinates=>harmonicWorkspace.matchPlayed(coordinates),audio:audioEngine,getState:()=>getLayoutStates()[0],getLayout:()=>hexWorkspace.serialize().configs[0],getTonic:()=>audioSettings.tonic,getMaterial:()=>materialWorkspace.serialize(),getHost:()=>document.querySelector('.composition-suite'),notify:toast,download:(name,text,type)=>download(name,text,type),
+ onLights:()=>hexboardSync.schedule(),
  loadState:state=>{states[0]=validate(state);coverageSignature=scaleDefaultKey(states[0],coverageSettings(states[0]));layoutState=null;getLayoutStates();layoutState.state=validate({...layoutState.state,n:state.n,mode:state.mode});selected=null;stop();view='composition';lastViews.create='composition';render();toast('Composition setup loaded.');}});
 // Fingering practice: play each fingering of the chord on the Play board, one at a time.
 let fingeringUi;

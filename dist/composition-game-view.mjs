@@ -5,7 +5,7 @@ import {esc,option} from './ui.mjs';
 import {gameBoardMarkup} from './composition-board.mjs';
 import {barTicks} from './composition-project.mjs';
 import {beatTicks} from './composition-grid.mjs';
-import {SPEEDS,GUIDES,LEADS,SECTIONS,LANE_HEIGHT} from './composition-game-ui.mjs';
+import {SPEEDS,GUIDES,LEADS,SECTIONS,LIGHTS,LANE_HEIGHT} from './composition-game-ui.mjs';
 
 const btn=(action,text,extra='')=>`<button data-comp="${action}" ${extra}>${text}</button>`;
 const sup=r=>r?`<sup>${r>0?'+':''}${r}</sup>`:'';
@@ -14,29 +14,31 @@ const RESULT_LABELS=[['perfect','Perfect'],['great','Great'],['good','Good'],['m
 
 function setup(g,project,board){
   const s=g.settings,best=g.best,wait=s.mode==='learn',preview=g.preview??{text:'No notes to preview.',hasNotes:false};
+  // Wait has no backing or clock, so the timing settings apply to Timed only.
+  const timedOnly=wait?'disabled':'';
   const field=(label,name,options,current,extra='')=>`<label><span>${label}</span><select data-comp-field="${name}" ${extra}>${options.map(([v,l,disabled])=>option(v,l,current).replace('<option ',`<option ${disabled?'disabled ':''}`)).join('')}</select></label>`;
   const sectionOptions=SECTIONS.map(([k,l])=>[k,l,k==='loop'&&!g.hasLoop||k==='selected'&&!g.hasSelected]);
   const blocked=!!g.sectionUnavailable||!!g.unreachable?.length,bpm=Number.isFinite(g.bpm)?g.bpm:project.tempo*s.speed/100;
   const unreachable=[...new Map((g.unreachable??[]).map(t=>[`${t.tick}|${t.coordinate.join(',')}`,t])).values()];
   const unavailableNotes=unreachable.slice(0,8).map(t=>`<li>Bar ${Math.floor(t.tick/barTicks(project.meter))+1}: ${t.degree===null?`coordinate ${esc(t.coordinate.join(', '))}`:`degree ${t.degree}${sup(t.register)}`}</li>`).join('');
   return `<div class="game-setup"><div class="game-setup-form"><h3>Play the composition</h3>
-  <p class="viewnote">Timed scores your rhythm. Wait stops at each note until you play it. The highway shows when; board hints show where.</p>
+  <p class="viewnote">Timed scores your rhythm and lights each key as its note is due. Wait steps through the notes in order at your own pace, with no backing or timing, and lights only the next notes. The highway shows when; board hints show where.</p>
   ${g.message?`<p class="composition-notice" role="status">${esc(g.message)}</p>`:''}
   <div class="game-fields">
    ${field('Part','gamePart',[['melody','Melody'],['chords','Chords'],['both','Melody and chords']],s.part)}
    ${field('Mode','gameMode',[['play','Timed'],['learn','Wait']],s.mode)}
    ${field('Notes count when','gameMatch',[['exact','The exact pitch is played'],['degree','The degree is played in any octave']],s.match)}
-   <div class="game-speed-control"><div class="game-speed-heading"><label><span>Speed (%)</span><input type="number" data-comp-field="gameSpeed" min="10" max="200" step="1" value="${s.speed}"></label><output>${Number(bpm.toFixed(1))} BPM</output></div><label class="game-speed-range"><span class="sr-only">Speed percentage</span><input type="range" data-comp-field="gameSpeed" min="10" max="200" step="1" value="${s.speed}"></label><div class="game-speed-presets">${SPEEDS.map(n=>btn('game-speed-preset',`${n}%`,`data-speed="${n}" aria-pressed="${s.speed===n}"`)).join('')}</div></div>
-   ${field('Your part','gameGuide',GUIDES,s.guide)}
+   <div class="game-speed-control"><div class="game-speed-heading"><label><span>Speed (%)</span><input type="number" data-comp-field="gameSpeed" min="10" max="200" step="1" value="${s.speed}" ${timedOnly}></label><output>${Number(bpm.toFixed(1))} BPM</output></div><label class="game-speed-range"><span class="sr-only">Speed percentage</span><input type="range" data-comp-field="gameSpeed" min="10" max="200" step="1" value="${s.speed}" ${timedOnly}></label><div class="game-speed-presets">${SPEEDS.map(n=>btn('game-speed-preset',`${n}%`,`data-speed="${n}" aria-pressed="${s.speed===n}" ${timedOnly}`)).join('')}</div></div>
+   ${field('Your part','gameGuide',GUIDES,s.guide,timedOnly)}
    ${field('Notes arrive','gameLead',LEADS,s.lead)}
-   ${field('Count-in','gameCountIn',[[0,'Off'],[1,'1 bar'],[2,'2 bars']],s.countIn)}
+   ${field('Note hints','gameLights',LIGHTS,s.lights)}
+   ${field('Count-in','gameCountIn',[[0,'Off'],[1,'1 bar'],[2,'2 bars']],s.countIn,timedOnly)}
    ${field('Section','gameSection',sectionOptions,s.section)}
    ${s.section==='bars'?`<label><span>From bar</span><input type="number" data-comp-field="gameFrom" min="1" max="${g.bars}" value="${s.fromBar}"></label><label><span>To bar</span><input type="number" data-comp-field="gameTo" min="1" max="${g.bars}" value="${s.toBar}"></label>`:''}
-   <label class="game-check"><input type="checkbox" data-comp-field="gameClick" ${s.click?'checked':''}><span>Metronome click</span></label>
-   <label class="game-check"><input type="checkbox" data-comp-field="gameHints" ${s.hints?'checked':''}><span>Note hints</span></label>
+   <label class="game-check"><input type="checkbox" data-comp-field="gameClick" ${s.click?'checked':''} ${timedOnly}><span>Metronome click</span></label>
    <label class="game-check"><input type="checkbox" data-comp-field="gameRepeat" ${s.repeat?'checked':''}><span>Repeat section after each pass</span></label>
-   <label class="game-check"><input type="checkbox" data-comp-field="gameTrainer" ${s.trainer?'checked':''} ${wait?'disabled':''}><span>Speed trainer: 5% faster after a Timed pass at 90% or better</span></label>
-   ${s.trainer?`<label><span>Target speed (%)</span><input type="number" data-comp-field="gameTargetSpeed" min="10" max="200" step="1" value="${s.targetSpeed}" ${wait?'disabled':''}></label>`:''}
+   <label class="game-check"><input type="checkbox" data-comp-field="gameTrainer" ${s.trainer?'checked':''} ${timedOnly}><span>Speed trainer: 5% faster after a Timed pass at 90% or better</span></label>
+   ${s.trainer?`<label><span>Target speed (%)</span><input type="number" data-comp-field="gameTargetSpeed" min="10" max="200" step="1" value="${s.targetSpeed}" ${timedOnly}></label>`:''}
   </div>
   ${g.sectionUnavailable?`<p class="composition-notice" role="status">${esc(g.sectionUnavailable)}</p>`:''}
   ${unreachable.length?`<p class="composition-notice" role="status">${unreachable.length} ${unreachable.length===1?'note has':'notes have'} no playable keys on this layout for the chosen match rule. Change the part, section, match rule or layout before starting.</p><ul class="game-unreachable">${unavailableNotes}${unreachable.length>8?`<li>And ${unreachable.length-8} more.</li>`:''}</ul>`:''}
@@ -63,9 +65,9 @@ function stage(g,project,board){
    <div class="game-progress" aria-hidden="true"><i data-game-progress></i></div>
    <div class="game-controls">${wait?btn('game-hear-current','Hear current notes',g.waitingTick===null||g.waitingTick===undefined?'hidden':''):''}${btn('game-pause',g.paused?'▶ Resume':'Ⅱ Pause')}${btn('game-restart','Restart')}${btn('game-quit','Quit')}</div>
   </div>
-  ${wait?'<p class="viewnote game-wait-instructions">Play each note or chord to continue. Use Hear current to listen while waiting; there is no timing score.</p>':''}
+  ${wait?'<p class="viewnote game-wait-instructions">Play the lit notes in order, at your own pace: each note or chord moves you on to the next. Hear current notes plays them for you; there is no timing score.</p>':''}
   <div class="game-stage">
-   <div class="game-highway" style="--lanes:${lanes.length};--lane-h:${LANE_HEIGHT}px">
+   <div class="game-highway${wait?' is-step':''}" style="--lanes:${lanes.length};--lane-h:${LANE_HEIGHT}px">
     <div class="game-lanes" aria-hidden="true">${labels}</div>
     <div class="game-window" data-game-highway><div class="game-track" data-game-track>${lines.join('')}${notes}</div><i class="game-hitline" aria-hidden="true"></i></div>
     <output class="game-feedback" data-game-feedback aria-live="polite"></output>

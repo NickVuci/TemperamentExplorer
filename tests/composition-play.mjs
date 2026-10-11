@@ -3,17 +3,18 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {captureContext} from '../dist/composition-context.mjs';
-import {createProject,addEvent,PPQ} from '../dist/composition-project.mjs';
-import {compositionBoard} from '../dist/composition-board.mjs';
+import {createProject,addEvent,setFingering,PPQ} from '../dist/composition-project.mjs';
+import {compositionBoard,compositionDeviceSnapshot} from '../dist/composition-board.mjs';
 import {buildChart} from '../dist/composition-game.mjs';
 import {createTransport,START_DELAY_SECONDS} from '../dist/composition-transport.mjs';
 import {createGameController,normalizeSettings} from '../dist/composition-game-ui.mjs';
+import {ledFrame} from '../dist/hexboard-sync.mjs';
 
 const fixture=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-demo.json',import.meta.url),'utf8'));
 const context=captureContext(fixture.musicalContext.state,220),deg=d=>context.scale.degrees[d].coordinate;
 const SETTINGS='temperament-lab-game-settings',BEST='temperament-lab-game-best';
 const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
-function project(rows=[[0,480,0]],chords=[]){
+function project(rows=[[0,480,0]],chords=[],bars=1){
   let p=createProject({context,layout:fixture.layout,tempo:120});
   for(const [kind,events] of [['melody',rows],['chords',chords]]){
     const clip=p.clips[kind==='melody'?1:0].id;
@@ -22,7 +23,7 @@ function project(rows=[[0,480,0]],chords=[]){
       tones:(Array.isArray(pitches)?pitches:[pitches]).map((d,j)=>({toneId:`${kind}${i}t${j}`,coordinate:typeof d==='number'?deg(d):d})),
     });
   }
-  p.clips=p.clips.map(c=>({...c,lengthTick:3840}));
+  p.clips=p.clips.map(c=>({...c,lengthTick:3840*bars}));
   return p;
 }
 
@@ -33,7 +34,7 @@ function fakeElement(){
   }};
 }
 function harness({p=project(),settings={},selected=null,exportMatch='button',offsetMs=null}={}){
-  let wall=0,nextId=1,controller,currentProject=p,prepareGate=null,released=0;
+  let wall=0,nextId=1,controller,currentProject=p,prepareGate=null,released=0,lightChanges=0;
   const timers=new Map(),frames=new Map(),elements=new Map(),physicalHolds=new Map(),scheduled=[],previews=[],cancels=[],events=[],writes=[];
   const stored=new Map([[SETTINGS,{countIn:0,click:false,guide:'full',...settings}],['temperament-lab-game-offset',offsetMs]]);
   const document={querySelector(selector){if(!elements.has(selector))elements.set(selector,fakeElement());return elements.get(selector);}};
@@ -54,7 +55,7 @@ function harness({p=project(),settings={},selected=null,exportMatch='button',off
       for(const [holdId,coordinate] of [...physicalHolds].reverse()){
         physicalHolds.delete(holdId);controller?.input({type:'up',holdId,coordinate,keyId:0,t:wall});
       }
-    },refresh(){},storage:{get:key=>stored.get(key)??null,set:(key,value)=>{stored.set(key,structuredClone(value));writes.push(key);}},
+    },refresh(){},onLights(){lightChanges++;},storage:{get:key=>stored.get(key)??null,set:(key,value)=>{stored.set(key,structuredClone(value));writes.push(key);}},
     setTimer:(fn,ms)=>set(fn,ms),clearTimer:id=>timers.delete(id),now:()=>wall,
     raf:fn=>{const id=nextId++;frames.set(id,fn);return id;},cancel:id=>frames.delete(id),
   });
@@ -79,7 +80,7 @@ function harness({p=project(),settings={},selected=null,exportMatch='button',off
     async start(){controller.start();await flush();},
     async go(tick){const at=transport.timeAt();assert.ok(at.tps>0,'transport must be playing');await advance(Math.max(0,(tick-at.v)/at.tps*1000));},
     gate(){let resolve,reject;const promise=new Promise((r,j)=>{resolve=r;reject=j;});prepareGate={promise,resolve,reject};return prepareGate;},
-    setProject:value=>{currentProject=value;},get wall(){return wall;},get released(){return released;},
+    setProject:value=>{currentProject=value;},get wall(){return wall;},get released(){return released;},get lightChanges(){return lightChanges;},
     close(){controller.leave();},
   };
 }
@@ -132,21 +133,21 @@ await test('navigation pauses setup auditions and repeat countdowns',async()=>{
   await repeating.advance(5000);assert.equal(repeating.controller.phase,'results');assert.equal(repeating.controller.view().repeatCountdown.paused,true);repeating.close();
 });
 
-await test('Wait activates from transport timer and release-last completes',async()=>{
-  const h=harness({p:project([[480,480,0]],[[480,480,[0,2]]]),settings:{mode:'learn',part:'both'}});await h.start();
-  assert.equal(h.controller.engine.waiting().due,false);h.down('pre',0);assert.equal(h.controller.engine.state().judged,0);
-  await h.advance(350);assert.equal(h.transport.state,'paused');assert.equal(h.controller.view().waitingTick,480);
-  assert.ok(h.events.some(([e,d])=>e==='boundary'&&d.tick===480));
+await test('Wait starts on its first notes without the transport, and release-last completes',async()=>{
+  const h=harness({p:project([[480,480,0],[960,480,4]],[[480,480,[0,2]]]),settings:{mode:'learn',part:'both'}});await h.start();
+  assert.equal(h.controller.view().waitingTick,480,'the first notes are due at once');
+  assert.equal(h.transport.state,'stopped');
   h.controller.click('game-hear-current');assert.equal(h.previews.at(-1).length,2,'Hear current deduplicates target pitches');
-  h.down('a',0);h.down('b',2);h.down('wrong',6);assert.equal(h.controller.engine.state().judged,0);
-  h.up('pre');assert.equal(h.controller.engine.state().judged,0);h.up('wrong');await flush();
-  assert.equal(h.controller.engine.state().judged,3,'duplicate same-onset pitches clear together');
-  assert.equal(h.controller.view().waitingTick,null);assert.equal(h.transport.state,'playing');assert.equal(h.controller.engine.state().wrong,1);
+  h.down('wrong',6);h.down('a',0);h.down('b',2);assert.equal(h.controller.engine.state().judged,0,'a stray held note blocks the chord');
+  h.up('wrong');await flush();
+  assert.equal(h.controller.engine.state().judged,3,'releasing it completes the chord: duplicate same-onset pitches clear together');
+  assert.equal(h.controller.view().waitingTick,960,'and the next notes are due straight away');assert.equal(h.controller.engine.state().wrong,1);
+  assert.equal(h.transport.state,'stopped');assert.equal(h.scheduled.length,0,'no backing, count-in or click plays');
   assert.equal(h.document.querySelector('[data-game-combo]').textContent,'');assert.equal(h.document.querySelector('[data-game-accuracy]').textContent,'');h.close();
 });
 
 await test('Note hints off preserves feedback on the actual matching copy',async()=>{
-  const p=project([[0,480,0]]),h=harness({p,settings:{mode:'learn',match:'degree',hints:false}});
+  const p=project([[0,480,0]]),h=harness({p,settings:{mode:'learn',match:'degree',lights:'off'}});
   await h.start();await h.advance(100);
   const t=h.controller.engine.targets[0],suggested=h.controller.view().route.get(t.index);
   const actual=t.degreeKeys.find(i=>i!==suggested),board=compositionBoard(p).board;
@@ -157,6 +158,72 @@ await test('Note hints off preserves feedback on the actual matching copy',async
   assert.deepEqual(lit,[actual],'correctness flashes the played copy without suggesting another key');
   assert.ok(h.document.querySelector(`[data-comp-key="${actual}"]`).classList.contains('game-flash-ok'));
   assert.ok(!h.document.querySelector(`[data-comp-key="${suggested}"]`).classList.contains('game-flash-ok'));h.close();
+});
+
+// The HexBoard keys lit now: hints, flashes and held keys alike.
+const litKeys=h=>h.controller.deviceSnapshot().keys.filter(k=>k.lit&&!k.command).map(k=>k.index).sort((a,b)=>a-b);
+const keyNode=(h,k)=>h.document.querySelector(`[data-comp-key="${k}"]`);
+
+await test('Timed lights each key only while its note is due',async()=>{
+  // Every note is inside the 2 s lead time from the start; only the due one may light.
+  const p=project([[0,480,0],[1920,480,2],[3840,480,4]]),h=harness({p});await h.start();
+  const route=h.controller.view().route,[k0,k2,k4]=[0,1,2].map(i=>route.get(i));
+  assert.equal(new Set([k0,k2,k4]).size,3,'three different buttons');
+  h.controller.step();assert.deepEqual(litKeys(h),[],'nothing is lit before the first note is due');
+  await h.go(0);h.controller.step();
+  assert.deepEqual(litKeys(h),[k0],'the due note lights alone, not the later notes');
+  assert.ok(keyNode(h,k0).classList.contains('game-now'),'the screen fills the due key');
+  assert.ok(!keyNode(h,k2).classList.contains('game-now')&&!keyNode(h,k4).classList.contains('game-now'),'and only that key');
+  const changes=h.lightChanges;h.down('first',0,k0);await flush();h.up('first');
+  assert.equal(h.controller.engine.targets[0].result,'perfect');
+  assert.ok(h.lightChanges>changes,'a played note asks the HexBoard to update at once');
+  await h.advance(300);h.controller.step();assert.deepEqual(litKeys(h),[],'a played note goes out');
+  await h.go(1920);h.controller.step();assert.deepEqual(litKeys(h),[k2]);
+  await h.advance(140);h.controller.step();
+  assert.equal(h.controller.engine.targets[1].result,'miss');
+  assert.ok(!keyNode(h,k2).classList.contains('game-now'),'a missed note goes out');
+  assert.equal(h.controller.deviceSnapshot().keys[k2].layoutColor,'#ff4d4d','and flashes its miss');
+  h.controller.finish();assert.deepEqual(litKeys(h),[],'results show the layout alone');h.close();
+});
+
+await test('Wait lights only the next notes to play',async()=>{
+  const p=project([[0,480,0],[480,480,2],[960,480,4]]),h=harness({p,settings:{mode:'learn'}});await h.start();
+  const route=h.controller.view().route,[k0,k2,k4]=[0,1,2].map(i=>route.get(i));
+  assert.equal(new Set([k0,k2,k4]).size,3,'three different buttons');
+  h.controller.step();assert.equal(h.controller.view().waitingTick,0);
+  assert.deepEqual(litKeys(h),[k0],'only the notes to play now are lit, not the later notes');
+  for(const k of [k2,k4])assert.ok(!keyNode(h,k).classList.contains('game-now')&&!keyNode(h,k).classList.contains('game-soon'),'later notes have no screen hint');
+  h.down('first',0,k0);await flush();
+  const after=litKeys(h);
+  assert.ok(after.includes(k2)&&!after.includes(k4),'the following notes light as soon as the current ones are played');
+  assert.ok(!keyNode(h,k0).classList.contains('game-now'),'played notes go out');h.close();
+});
+
+await test('Note hints light the HexBoard dark, over the layout or not at all',async()=>{
+  assert.equal(normalizeSettings({}).lights,'dark');assert.equal(normalizeSettings({hints:true}).lights,'dark');
+  assert.equal(normalizeSettings({hints:false}).lights,'off','a saved Note hints switch that was off becomes the hard layout');
+  assert.equal(normalizeSettings({lights:'layout',hints:false}).lights,'layout');assert.equal(normalizeSettings({lights:'bright'}).lights,'dark');
+  assert.equal('hints' in normalizeSettings({hints:false}),false);
+  const p=project(),board=compositionBoard(p).board,plain=ledFrame(compositionDeviceSnapshot(p,board));
+  for(const lights of ['dark','layout','off']){
+    const h=harness({p,settings:{lights}});await h.start();await h.go(0);h.controller.step();
+    const key=h.controller.view().route.get(0),frame=ledFrame(h.controller.deviceSnapshot());
+    const others=board.keys.filter(k=>!k.command&&k.enabled&&k.index!==key).map(k=>k.index);
+    assert.deepEqual(litKeys(h),lights==='off'?[]:[key],`${lights}: lit keys`);
+    if(lights==='dark')assert.ok(others.every(i=>frame.get(i).v===0),'dark: every other key is off');
+    else assert.ok(others.every(i=>JSON.stringify(frame.get(i))===JSON.stringify(plain.get(i))),`${lights}: every other key shows the layout`);
+    if(lights==='off')assert.deepEqual(frame.get(key),plain.get(key),'off: the key to play shows the layout too');
+    else assert.ok(frame.get(key).v>plain.get(key).v,`${lights}: the key to play shines brighter than the layout`);
+    h.close();
+  }
+});
+
+await test('a press during the count-in lights nothing early',async()=>{
+  const p=project(),board=compositionBoard(p).board,h=harness({p,settings:{countIn:1}});await h.start();await h.advance(500);
+  assert.ok(h.transport.countingIn(),'still counting in');
+  const key=h.controller.view().route.get(0),other=board.keys.find(k=>!k.command&&k.enabled&&k.m.join()!==board.keys[key].m.join());
+  h.down('early',other.m,other.index);await flush();assert.equal(h.controller.view().route.get(0),key);
+  assert.ok(!litKeys(h).includes(key),'the first note is not lit before it is due');h.close();
 });
 
 await test('played buttons guide the current piece across setup, restarts and repeats',async()=>{
@@ -194,17 +261,67 @@ await test('automatic repeat keeps the chosen button for the piece',async()=>{
   assert.equal(h.controller.view().pass,2);assert.equal(h.controller.view().route.get(0),copy);h.close();
 });
 
+await test('hints keep each pitch on one button across melody and chords',async()=>{
+  const p=project([[480,240,2],[1440,240,0]],[[0,960,[0,2,4]],[960,960,[0,2,6]],[1920,960,[0,2,4]]]);
+  for(const match of ['exact','degree']){
+    const h=harness({p,settings:{mode:'learn',part:'both',match}});await h.start();
+    assert.equal(h.controller.phase,'running');
+    const {route}=h.controller.view(),{targets}=h.controller.engine,buttons=new Map();
+    for(const degree of [0,2])assert.equal(targets.filter(t=>t.degree===degree).length,4,'the melody and every chord share the tone');
+    for(const t of targets){
+      const id=match==='degree'?t.degree:t.coordinate.join(','),button=route.get(t.index);
+      assert.notEqual(button,undefined);
+      if(!buttons.has(id))buttons.set(id,new Set());
+      buttons.get(id).add(button);
+    }
+    assert.ok([...buttons.values()].every(used=>used.size===1),`${match} hints keep each pitch on one button`);
+    h.close();
+  }
+});
+
+await test('buttons chosen in Compose fix their pitch in every hint',async()=>{
+  const base=project([[0,480,0],[480,480,2],[960,480,0]],[[1440,960,[0,2,4]]]),board=compositionBoard(base).board;
+  const copies=board.keys.filter(k=>!k.command&&k.enabled&&k.m.join()===deg(0).join()).map(k=>k.index);
+  const auto=harness({p:base,settings:{mode:'learn',part:'both'}});await auto.start();
+  const automatic=auto.controller.view().route.get(0);auto.close();
+  const pick=copies.find(k=>k!==automatic),p=setFingering(base,[{coordinate:deg(0),key:pick}]);
+  assert.ok(pick!==undefined,'the tonic has another button to choose');
+  for(const match of ['exact','degree']){
+    const h=harness({p,settings:{mode:'learn',part:'both',match}});await h.start();
+    const {route}=h.controller.view(),tonic=h.controller.engine.targets.filter(t=>t.coordinate.join()===deg(0).join());
+    assert.equal(tonic.length,3);assert.ok(tonic.every(t=>route.get(t.index)===pick),`${match}: every tonic note suggests the chosen button`);
+    h.close();
+  }
+  const played=harness({p,settings:{mode:'learn',part:'both'}}),other=copies.find(k=>k!==pick);
+  played.down('elsewhere',board.keys[other].m,other);played.up('elsewhere');await played.start();
+  assert.equal(played.controller.view().route.get(0),pick,'a played button does not override a chosen one');
+  played.close();
+});
+
+await test('sections and parts use the whole piece’s fingering',async()=>{
+  const p=project([[0,480,0],[480,480,2],[3840,480,4],[4320,480,0]],[[0,1920,[0,2,4]],[3840,1920,[0,2,6]]],2);
+  const whole=harness({p,settings:{mode:'learn',part:'both'}});await whole.start();
+  const byCue=new Map(whole.controller.engine.targets.map(t=>[t.id,whole.controller.view().route.get(t.index)]));whole.close();
+  assert.ok([...byCue.values()].every(k=>k!==undefined));
+  for(const settings of [{part:'melody'},{part:'chords'},{part:'both',section:'bars',fromBar:2,toBar:2}]){
+    const h=harness({p,settings:{mode:'learn',...settings}});await h.start();
+    const {route}=h.controller.view(),{targets}=h.controller.engine;
+    assert.ok(targets.length>0&&targets.every(t=>route.get(t.index)===byCue.get(t.id)),`${JSON.stringify(settings)} shows the same buttons`);
+    h.close();
+  }
+});
+
 await test('piece changes clear preferences with Note hints off',async()=>{
-  const p=project(),h=harness({p,settings:{match:'degree',hints:false}}),board=compositionBoard(p).board;
+  const p=project(),h=harness({p,settings:{match:'degree',lights:'off'}}),board=compositionBoard(p).board;
   const copy=buildChart(p,{part:'melody'}).targets[0].degreeKeys.at(-1);
   h.down('copy',board.keys[copy].m,copy);h.up('copy');h.setProject({...p,id:'another-piece'});h.controller.view();
-  h.setProject(p);h.change('gameHints',true);const fresh=harness({p,settings:{match:'degree'}});
+  h.setProject(p);h.change('gameLights','dark');const fresh=harness({p,settings:{match:'degree'}});
   h.controller.view();fresh.controller.view();assert.deepEqual(h.controller.deviceSnapshot().keys.filter(k=>k.lit).map(k=>k.index),fresh.controller.deviceSnapshot().keys.filter(k=>k.lit).map(k=>k.index));
   h.close();fresh.close();
 });
 
 await test('quick Wait correction replaces and expires earlier feedback',async()=>{
-  const p=project([[0,20,6],[20,480,0]]),h=harness({p,settings:{mode:'learn',hints:false}}),board=compositionBoard(p).board;
+  const p=project([[0,20,6],[20,480,0]]),h=harness({p,settings:{mode:'learn',lights:'off'}}),board=compositionBoard(p).board;
   const key=d=>board.keys.find(k=>!k.command&&k.enabled&&k.m.join()===deg(d).join()).index;
   await h.start();await h.advance(100);h.down('wrong-first',0,key(0));h.up('wrong-first');
   const node=h.document.querySelector(`[data-comp-key="${key(0)}"]`);
@@ -215,14 +332,14 @@ await test('quick Wait correction replaces and expires earlier feedback',async()
   await h.advance(270);h.controller.step();assert.ok(!node.classList.contains('game-flash-ok'));h.close();
 });
 
-await test('manual pause during Wait clears partial holds without resuming past the cue',async()=>{
+await test('manual pause during Wait clears partial holds and ignores presses until resumed',async()=>{
   const h=harness({p:project([],[[0,960,[0,2]]]),settings:{mode:'learn',part:'chords'}});await h.start();await h.advance(100);
   h.down('a',0);assert.equal(h.controller.engine.waiting().missing.length,1);
   const releases=h.released;h.controller.click('game-pause');assert.equal(h.controller.view().paused,true);assert.ok(h.released>releases);
   assert.equal(h.controller.engine.waiting().missing.length,2);h.down('ignored',2);assert.equal(h.controller.engine.state().judged,0);
-  h.controller.click('game-pause');assert.equal(h.controller.view().paused,false);assert.equal(h.transport.state,'paused');
+  h.controller.click('game-pause');assert.equal(h.controller.view().paused,false);assert.equal(h.controller.view().waitingTick,0);
   h.down('b',2);assert.equal(h.controller.engine.state().judged,0);h.down('fresh',0);await flush();
-  assert.equal(h.controller.engine.state().judged,2);assert.equal(h.transport.state,'playing');h.close();
+  assert.equal(h.controller.engine.state().judged,2);assert.equal(h.transport.state,'stopped');h.close();
 });
 
 await test('release-all during pause cannot complete a blocked Wait group',async()=>{
@@ -236,23 +353,24 @@ await test('release-all during pause cannot complete a blocked Wait group',async
   assert.equal(h.controller.engine.waiting().missing.length,2);assert.equal(h.controller.view().waitingTick,0);h.close();
 });
 
-await test('delayed boundary is never activated by frames or input',async()=>{
-  const h=harness({p:project([[480,480,0]]),settings:{mode:'learn'}});await h.start();
-  await h.advance(1000,{pump:false});h.controller.step();h.down('early',0);
-  assert.equal(h.controller.engine.waiting().due,false);assert.equal(h.controller.engine.state().judged,0);
-  assert.equal(h.controller.view().waitingTick,null);h.transport.pump();
-  assert.equal(h.controller.view().waitingTick,480);assert.equal(h.transport.position(),480);
-  assert.equal(h.controller.engine.waiting().extras.length,1);h.up('early');h.down('fresh',0);await flush();
-  assert.equal(h.controller.engine.state().judged,1);h.close();
+await test('Wait counts each next note as soon as it is played, however quickly',async()=>{
+  const h=harness({p:project([[0,480,0],[480,480,2],[960,480,4]]),settings:{mode:'learn'}});await h.start();
+  for(const [id,d] of [['a',0],['b',2],['c',4]]){h.down(id,d);await flush();}
+  assert.equal(h.controller.engine.state().judged,3,'no press is too early, and earlier notes may stay held');
+  assert.equal(h.controller.engine.state().wrong,0);
+  h.down('after',6);assert.equal(h.controller.engine.state().wrong,0,'presses after the last notes do not count');
+  assert.equal(h.controller.phase,'running','the last notes ring for a moment');await h.advance(1000);
+  assert.equal(h.controller.phase,'results');assert.equal(h.controller.view().summary.learned,3);h.close();
+  const paused=harness({p:project(),settings:{mode:'learn'}});await paused.start();paused.down('a',0);await flush();
+  paused.controller.click('game-pause');await paused.advance(2000);assert.equal(paused.controller.phase,'running','pausing holds the results back');
+  paused.controller.click('game-pause');assert.equal(paused.controller.phase,'results','resuming after the last notes shows them');paused.close();
 });
 
-await test('count-in input and future held notes cannot clear later Wait cues',async()=>{
-  const h=harness({p:project([[0,480,0],[480,480,2]]),settings:{mode:'learn',countIn:1}});await h.start();
-  h.down('count',0);assert.equal(h.controller.engine.waiting().due,false);await h.advance(2100);
-  assert.equal(h.controller.view().waitingTick,0);h.up('count');h.down('fresh0',0);await flush();
-  h.down('future',2);assert.equal(h.controller.engine.state().judged,1);await h.advance(350);
-  assert.equal(h.controller.view().waitingTick,480);assert.equal(h.controller.engine.waiting().missing.length,1);
-  h.up('future');h.up('fresh0');h.down('fresh2',2);await flush();assert.equal(h.controller.engine.state().judged,2);h.close();
+await test('Wait ignores the Timed count-in, metronome, backing and speed',async()=>{
+  const h=harness({p:project([[0,480,0]],[[0,960,[0,2]]]),settings:{mode:'learn',countIn:2,click:true,guide:'full',speed:50}});await h.start();
+  assert.equal(h.controller.view().waitingTick,0);await h.advance(3000);
+  assert.equal(h.transport.state,'stopped');assert.equal(h.scheduled.length,0,'no count-in, click or backing plays');
+  assert.equal(h.controller.engine.tps,120*PPQ/60,'its highway uses the composition tempo, whatever the speed');h.close();
 });
 
 await test('finite section caps backing and judges final misses without RAF',async()=>{
@@ -285,10 +403,11 @@ await test('Timed repeat countdown pauses, resumes and cancels',async()=>{
   const q=harness({settings:{repeat:true}});await perfectPass(q);q.controller.quit();await q.advance(4000);assert.equal(q.controller.phase,'setup');assert.equal(q.timers.size,0);q.close();
 });
 
-await test('Wait repeats after its finite tail without scoring or saving best',async()=>{
-  const h=harness({settings:{mode:'learn',repeat:true,countIn:1}});await h.start();await h.advance(2100);h.down('a',0);await flush();
-  await h.advance(2500);assert.equal(h.controller.phase,'running');assert.equal(h.controller.view().pass,2);
-  assert.ok(h.transport.countingIn(),'the next Wait pass has the configured count-in');
+await test('Wait repeats a moment after its last notes without scoring or saving best',async()=>{
+  const h=harness({settings:{mode:'learn',repeat:true,countIn:1}});await h.start();h.down('a',0);await flush();
+  assert.equal(h.controller.view().pass,1);await h.advance(1000);
+  assert.equal(h.controller.phase,'running');assert.equal(h.controller.view().pass,2);
+  assert.equal(h.controller.view().waitingTick,0,'the next pass starts on its first notes at once');
   assert.ok(!h.writes.includes(BEST));assert.equal(h.controller.engine.state().score,0);h.close();
 });
 

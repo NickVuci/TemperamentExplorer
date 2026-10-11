@@ -4,7 +4,7 @@ import {captureContext} from '../dist/composition-context.mjs';
 import {
   COMPOSITION_FORMAT,LIMITS,PPQ,barTicks,ticksToSeconds,createProject,validateProject,serializeProject,parseProject,
   addEvent,updateEvent,removeEvent,duplicateEvent,insertGap,swapAdjacent,setTempo,setMeter,setLoop,setClipLength,
-  contentEndTick,createHistory,makeEvent,allIds,
+  contentEndTick,createHistory,makeEvent,allIds,setFingering,
 } from '../dist/composition-project.mjs';
 
 const demo=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-demo.json',import.meta.url),'utf8'));
@@ -158,5 +158,22 @@ sized.execute('a',p=>setTempo(p,110));sized.execute('b',p=>setTempo(p,120));
 assert.equal(sized.depth,0,'history is bounded by size as well');
 const loaded=createHistory(empty);loaded.execute('x',p=>setTempo(p,110));
 loaded.reset(built);assert.equal(loaded.canUndo,false);assert.equal(loaded.project,built);
+
+// --- chosen buttons: exact pitch → button on the saved layout, optional, validated and undoable ---
+{
+  assert.equal('fingering' in built,false,'no buttons are chosen at first');
+  const chosen=setFingering(built,[{coordinate:[-0,0],key:65},{coordinate:[-2,4],key:67}]);
+  assert.deepEqual(chosen.fingering,{'0,0':65,'-2,4':67});assert.equal(chosen.revision,built.revision+1);
+  assert.equal('fingering' in built,false,'the command leaves its input alone');
+  assert.deepEqual(parseProject(serializeProject(chosen)).fingering,chosen.fingering,'chosen buttons survive save and open');
+  const fewer=setFingering(chosen,[{coordinate:[0,0],key:null},{coordinate:[-2,4],key:68}]);
+  assert.deepEqual(fewer.fingering,{'-2,4':68},'a choice can be cleared or replaced');
+  assert.equal('fingering' in setFingering(fewer,[{coordinate:[-2,4],key:null}]),false,'clearing the last choice removes the field');
+  for(const bad of [[],null,7,{'0,0':-1},{'0,0':1.5},{'0,0':LIMITS.buttonMax+1},{'-0,0':1},{'01,0':1},{x:1},{'0,0,0':1},{[`${LIMITS.coordinateMax+1},0`]:1}])
+    assert.throws(()=>validateProject({...chosen,fingering:bad}),/fingering/,`rejects ${JSON.stringify(bad)}`);
+  assert.throws(()=>validateProject({...chosen,fingering:Object.fromEntries(Array.from({length:LIMITS.fingeringMax+1},(_,i)=>[`0,${i}`,1]))}),/at most/);
+  const history=createHistory(built);history.execute('Choose button',p=>setFingering(p,[{coordinate:[0,0],key:65}]));
+  history.undo();assert.equal('fingering' in history.project,false,'choosing a button is one undo step');
+}
 
 console.log('composition-project: ok');

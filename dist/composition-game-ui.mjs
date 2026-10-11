@@ -1,26 +1,31 @@
 // Play controller for Compose. It runs the engine (composition-game.mjs) over the
-// open composition: the shared transport plays the backing (your part muted, quiet or full) with its
-// count-in and metronome, and the board player's holds (screen board, computer keys, physical
-// HexBoard) are judged at the time the player heard. It draws the note highway and the approach
-// rings each frame, waits at each note in Learn mode, calibrates timing, keeps best scores and lights
-// the physical HexBoard. Rendering of each phase lives in composition-game-view.mjs.
+// open composition. In Timed the shared transport plays the backing (your part muted, quiet or full)
+// with its count-in and metronome, and the board player's holds (screen board, computer keys, physical
+// HexBoard) are judged at the time the player heard. Wait runs no transport: it steps from one onset
+// to the next as each is played. It draws the note highway and the approach rings each frame,
+// calibrates timing, keeps best scores and lights the physical HexBoard. Rendering of each phase lives
+// in composition-game-view.mjs.
 import {buildChart,createGame,WINDOWS,PARTS,MATCHES,MODES} from './composition-game.mjs';
 import {heardSeconds,CLICK} from './composition-transport.mjs';
 import {PPQ,barTicks,contentEndTick} from './composition-project.mjs';
 import {degreeOf,resolveTone} from './composition-context.mjs';
 import {mosLayers,keyColor} from './hexboard-colors.mjs';
 import {compositionDeviceSnapshot} from './composition-board.mjs';
-import {suggestedRoute} from './composition-game-route.mjs';
+import {pieceFingering} from './composition-game-route.mjs';
 
 export const SPEEDS=[50,75,100];
 export const GUIDES=[['off','Muted'],['quiet','Quiet guide'],['full','Full']];
 export const LEADS=[[1.2,'Close'],[2,'Normal'],[3,'Far']];
 export const SECTIONS=[['all','Whole piece'],['loop','Loop region'],['bars','Bars'],['selected','Selected chord']];
+// Note hints during a run: the keys to play lit on an otherwise dark HexBoard, lit over the layout,
+// or none at all (the layout only, on the HexBoard and the screen).
+export const LIGHTS=[['dark','Keys to play lit, rest dark'],['layout','Keys to play lit over the layout'],['off','Off: layout only (hard)']];
 export const LANE_HEIGHT=30,HIT_X=96;
 const SETTINGS_KEY='temperament-lab-game-settings',OFFSET_KEY='temperament-lab-game-offset',BEST_KEY='temperament-lab-game-best';
 const CAL_CLICKS=12,CAL_SKIP=4,CAL_BPM=90;
-const DEFAULTS=Object.freeze({part:'melody',match:'exact',mode:'play',speed:100,guide:'quiet',click:true,countIn:1,lead:2,section:'all',fromBar:1,toBar:4,trainer:false,targetSpeed:100,repeat:false,hints:true});
-const FLASH_MS=260,FEEDBACK_MS=700;
+const DEFAULTS=Object.freeze({part:'melody',match:'exact',mode:'play',speed:100,guide:'quiet',click:true,countIn:1,lead:2,section:'all',fromBar:1,toBar:4,trainer:false,targetSpeed:100,repeat:false,lights:'dark'});
+const FLASH_MS=260,FEEDBACK_MS=700,WAIT_END_MS=1000;
+const FLASH_COLORS={perfect:'#3ddc84',great:'#3ddc84',good:'#9be35b',ok:'#3ddc84',miss:'#ff4d4d',wrong:'#ff4d4d',near:'#ffb347'};
 const RESULT_TEXT={perfect:'Perfect',great:'Great',good:'Good',miss:'Miss',ok:'Yes'};
 
 function browserStorage(){
@@ -35,23 +40,26 @@ export function normalizeSettings(s={}){
     speed:int(s.speed,10,200,DEFAULTS.speed),guide:pick(GUIDES.map(g=>g[0]),s.guide,DEFAULTS.guide),click:s.click===undefined?DEFAULTS.click:!!s.click,
     countIn:int(s.countIn,0,2,DEFAULTS.countIn),lead:pick(LEADS.map(l=>l[0]),Number(s.lead),DEFAULTS.lead),section:pick(SECTIONS.map(x=>x[0]),s.section,DEFAULTS.section),
     fromBar:int(s.fromBar,1,9999,DEFAULTS.fromBar),toBar:int(s.toBar,1,9999,DEFAULTS.toBar),trainer:!!s.trainer,
-    targetSpeed:int(s.targetSpeed,10,200,DEFAULTS.targetSpeed),repeat:!!s.repeat,hints:s.hints===undefined?DEFAULTS.hints:!!s.hints,
+    targetSpeed:int(s.targetSpeed,10,200,DEFAULTS.targetSpeed),repeat:!!s.repeat,
+    // Settings saved before the lights choice kept a Note hints switch: off is the hard layout.
+    lights:pick(LIGHTS.map(l=>l[0]),s.lights,s.hints===false?'off':DEFAULTS.lights),
   };
 }
 const median=list=>{const s=[...list].sort((a,b)=>a-b),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2;};
 const signedMs=ms=>`${ms>0?'+':ms<0?'−':''}${Math.abs(Math.round(ms))} ms`;
-// A colour pulled towards black, for keys that are not part of the next notes.
-const dim=(hex,f)=>`#${[1,3,5].map(i=>Math.round(parseInt(hex.slice(i,i+2),16)*f).toString(16).padStart(2,'0')).join('')}`;
 
 export function createGameController({document:doc,audio,transport,getProject,getBoard,refresh,notify=()=>{},
   getSelectedSection=()=>null,getExportMatch=()=> 'exact-coordinate',releaseHeld=()=>{},
+  // Told when a run's lit keys change, so a connected HexBoard can show them at once.
+  onLights=()=>{},
   raf=globalThis.requestAnimationFrame?.bind(globalThis),cancel=globalThis.cancelAnimationFrame?.bind(globalThis),
   storage=browserStorage(),setTimer=(fn,ms)=>setTimeout(fn,ms),clearTimer=id=>clearTimeout(id),now=()=>globalThis.performance?.now?.()??Date.now()}){
   let settings=normalizeSettings(storage.get(SETTINGS_KEY)??{}),offsetMs=Number.isFinite(storage.get(OFFSET_KEY))?storage.get(OFFSET_KEY):null;
   let phase='setup',chart=null,engine=null,summary=null,message='',frame=null,stopping=false,paused=false,waitingTick=null;
-  let calibration=null,calTimer=null,ppt=0,rings=new Set(),feedback=null,route=new Map();
-  let run=null,revision=0,pass=0,previewTick=null,repeatTimer=null,repeatCountdown=null;
-  let fingeringProject=null,fingeringIdentity=null,buttonUse=0,preferenceVersion=0,previewRouteCache=null;
+  // rings: keys with an on-screen hint; lit: a run's keys to play now (Timed) or next (Wait).
+  let calibration=null,calTimer=null,ppt=0,rings=new Set(),lit=new Set(),feedback=null,route=new Map();
+  let run=null,revision=0,pass=0,previewTick=null,repeatTimer=null,repeatCountdown=null,endTimer=null;
+  let fingeringProject=null,fingeringIdentity=null,buttonUse=0,preferenceVersion=0,pieceCache=null;
   const playedButtons=new Map();
   const flashes=new Map(),inputKeys=new Map(); // key index → flash; hold id → actual board key
   const quiet=fn=>{stopping=true;try{fn();}finally{stopping=false;}};
@@ -126,22 +134,32 @@ export function createGameController({document:doc,audio,transport,getProject,ge
   function syncFingering(p,board){
     if(p===fingeringProject)return;
     const identity=p?JSON.stringify([p.id,board?.keys.map(k=>[k.enabled,k.m])]):null;
-    if(identity!==fingeringIdentity){playedButtons.clear();buttonUse=0;preferenceVersion++;previewRouteCache=null;fingeringIdentity=identity;}
+    if(identity!==fingeringIdentity){playedButtons.clear();buttonUse=0;preferenceVersion++;fingeringIdentity=identity;}
     fingeringProject=p;
   }
-  /** Suggest straight fingerings, giving the player's previously used matching buttons priority. */
-  function routeFor(p,targets,board){
+  /**
+   * The composition's fingering (cue id → button) under the active match rule: buttons chosen in
+   * Compose, then the player's previously used matching buttons, then the automatic route. Compose
+   * shows it too. `pinned` cue ids keep their buttons.
+   */
+  function fingering(p=getProject(),board=getBoard(),pinned=new Map()){
     syncFingering(p,board);
-    return suggestedRoute(targets,board,{center:p?.layout?.center??65,match:active().match,played:playedButtons});
+    if(!p||!board)return new Map();
+    const match=active().match;
+    if(pinned.size)return pieceFingering(p,board,{match,played:playedButtons,pinned});
+    if(pieceCache?.project!==p||pieceCache.board!==board||pieceCache.match!==match||pieceCache.version!==preferenceVersion)
+      pieceCache={project:p,board,match,version:preferenceVersion,route:pieceFingering(p,board,{match,played:playedButtons})};
+    return pieceCache.route;
+  }
+  /** Each chart target's button, read from the composition's fingering so every section and part agrees. */
+  function routeFor(p,targets,board,pinned){
+    const piece=fingering(p,board,pinned);
+    return new Map(targets.filter(t=>piece.has(t.id)).map(t=>[t.index,piece.get(t.id)]));
   }
   function previewKeys(info,notes){
-    const p=getProject(),board=getBoard(),s=active();syncFingering(p,board);
-    if(!active().hints)return new Set();
-    const {from,to}=info.section??{},cached=previewRouteCache;
-    if(!cached||cached.project!==p||cached.part!==s.part||cached.match!==s.match||cached.from!==from||cached.to!==to||cached.version!==preferenceVersion){
-      previewRouteCache={project:p,part:s.part,match:s.match,from,to,version:preferenceVersion,route:routeFor(p,info.targets,board)};
-    }
-    const suggested=previewRouteCache.route;
+    const p=getProject(),board=getBoard();syncFingering(p,board);
+    if(active().lights==='off')return new Set();
+    const suggested=routeFor(p,info.targets,board);
     return new Set(notes.map(t=>suggested.get(t.index)).filter(k=>k!==undefined));
   }
   function rememberButton(event){
@@ -184,16 +202,22 @@ export function createGameController({document:doc,audio,transport,getProject,ge
 
   // ---- a run ----
   function cancelRepeat(){clearTimer(repeatTimer);repeatTimer=null;repeatCountdown=null;}
+  function cancelEnd(){clearTimer(endTimer);endTimer=null;}
   function cleanAudio(){engine?.clearHolds();inputKeys.clear();releaseHeld();audio.cancelGroup?.('preview');}
-  function nextBoundary(){
-    const next=active().mode==='learn'?engine.pending()[0]:null;
-    return {untilTick:next?.tick??chart.to,boundary:next?'pause':'end',graceMs:next?0:WINDOWS.good+Math.max(0,run.offsetMs)+1};
-  }
+  // Timed plays the backing through the section and then its last judging window. Wait runs no clock.
   async function playRun(countIn=0){
     const mine=revision;
-    await transport.play({...nextBoundary(),countIn});
+    await transport.play({untilTick:chart.to,graceMs:WINDOWS.good+Math.max(0,run.offsetMs)+1,countIn});
     if(mine!==revision)return;
     if(transport.state==='playing')loop();
+  }
+  // Wait stands at the next notes to play (the section end once all are played); Timed at the time heard.
+  const stepTick=()=>engine.pending()[0]?.tick??chart.to;
+  const position=()=>active().mode==='learn'?stepTick():transport.state==='playing'?transport.timeAt().v:transport.position();
+  // After Wait's last notes, the results follow a moment later so those notes can ring.
+  function endSoon(){
+    const mine=revision;cancelEnd();
+    endTimer=setTimer(()=>{endTimer=null;if(mine===revision&&phase==='running'&&!paused)finish();},WAIT_END_MS);
   }
   function start({repeating=false}={}){
     const p=getProject();if(!p)return;
@@ -205,18 +229,23 @@ export function createGameController({document:doc,audio,transport,getProject,ge
     if(info.unreachable.length){message='Some notes have no playable key. Change the matching rule, section or composition layout.';refresh();return;}
     const mine=++revision;
     quiet(()=>transport.stop());
-    cleanAudio();
+    cancelEnd();cleanAudio();
     run={project:p,board:getBoard(),settings:{...settings},offsetMs:offsetMs??0,section:{from,to},bestKey:bestKey(p,settings,{from,to})};
     pass=repeating?pass+1:1;
-    chart=c;summary=null;message='';paused=false;waitingTick=null;feedback=null;flashes.clear();rings=new Set();ppt=0;
-    engine=createGame(chart,{tps:p.tempo*run.settings.speed/100*PPQ/60,match:run.settings.match,context:p.context,mode:run.settings.mode,offsetMs:run.offsetMs,meter:p.meter});
+    chart=c;summary=null;message='';paused=false;waitingTick=null;feedback=null;flashes.clear();rings=new Set();lit=new Set();ppt=0;
+    const wait=run.settings.mode==='learn';
+    // Wait has no tempo, so its highway is drawn at the composition's own tempo whatever Timed's speed.
+    engine=createGame(chart,{tps:p.tempo*(wait?100:run.settings.speed)/100*PPQ/60,match:run.settings.match,context:p.context,mode:run.settings.mode,offsetMs:run.offsetMs,meter:p.meter});
     route=routeFor(p,engine.targets,run.board);
-    phase='running';refresh();
+    phase='running';
+    // Wait starts at once on its first notes: no backing, count-in or clock.
+    if(wait){waitingTick=stepTick();refresh();return;}
+    refresh();
     void transport.seek(from).then(()=>{if(mine===revision&&phase==='running'&&!paused)return playRun(run.settings.countIn);});
   }
   function finish(){
     if(phase!=='running'||!engine)return;
-    ++revision;
+    ++revision;cancelEnd();
     quiet(()=>transport.stop());stopLoop();
     summary=engine.summary();
     const s=active();
@@ -252,7 +281,7 @@ export function createGameController({document:doc,audio,transport,getProject,ge
     if(phase==='calibrating'){quit();return;}
     if(phase==='results'&&repeatCountdown){repeatCountdown.paused=true;clearTimer(repeatTimer);repeatTimer=null;refresh();return;}
     if(phase!=='running'||paused)return;
-    ++revision;paused=true;quiet(()=>transport.pause());cleanAudio();paintOverlay();refresh();
+    ++revision;cancelEnd();paused=true;quiet(()=>transport.pause());cleanAudio();paintOverlay();refresh();
   }
   function togglePause(){
     if(phase==='results'&&repeatCountdown){
@@ -262,10 +291,10 @@ export function createGameController({document:doc,audio,transport,getProject,ge
     if(phase!=='running')return;
     if(!paused){pause();return;}
     paused=false;
-    if(waitingTick===null)void playRun(active().countIn?1:0);
+    if(active().mode==='play')void playRun(active().countIn?1:0);
+    else if(waitingTick===null){finish();return;}
     paintOverlay();refresh();
   }
-  const goodTicks=()=>WINDOWS.good/1000*engine.tps;
 
   // ---- input from the board player ----
   function input(event){
@@ -274,17 +303,23 @@ export function createGameController({document:doc,audio,transport,getProject,ge
     if(phase==='setup'){if(remembered)updatePreviewHints();return;}
     if(phase!=='running'||!engine||!event?.holdId)return;
     if(remembered){
-      const fixed=engine.targets.map(t=>t.result&&route.has(t.index)?{...t,keys:[route.get(t.index)],degreeKeys:[route.get(t.index)]}:t);
-      route=routeFor(run.project,fixed,run.board);
+      const judged=new Map(engine.targets.filter(t=>t.result&&route.has(t.index)).map(t=>[t.id,route.get(t.index)]));
+      route=routeFor(run.project,engine.targets,run.board,judged);
     }
     const v=transport.timeAt(event.t).v;
     if(paused){if(event.type==='up')engine.release(event.holdId,v);return;}
+    // Wait's notes are all played and its results are about to show: presses no longer count.
+    if(active().mode==='learn'&&waitingTick===null)return;
     if(event.type==='down')inputKeys.set(event.holdId,event.keyId);else inputKeys.delete(event.holdId);
-    // The timer owns due activation; input cannot advance ahead during count-in or between cues.
     const r=event.type==='down'?engine.press(event.holdId,event.coordinate,v):engine.release(event.holdId,v);
     react(r,event.keyId);
-    if(r?.kind==='learn-hit'&&waitingTick!==null){waitingTick=null;audio.cancelGroup?.('preview');void playRun();}
-    if(phase==='running')paint(transport.position());
+    // Wait moves straight on to the next notes.
+    if(r?.kind==='learn-hit'){
+      audio.cancelGroup?.('preview');waitingTick=engine.pending()[0]?.tick??null;
+      if(waitingTick===null)endSoon();
+    }
+    // Painted where the run is, as each frame is, so a press never lights notes early.
+    if(phase==='running')paint(position());
   }
   function flash(keys,cls){
     const until=now()+FLASH_MS;
@@ -308,7 +343,7 @@ export function createGameController({document:doc,audio,transport,getProject,ge
       markNote(r.target);
     }else if(r.kind==='miss'){flash(route.has(r.target.index)?[route.get(r.target.index)]:[],'miss');say('Miss','miss');markNote(r.target);}
     else if(r.kind==='wrong'){flash(keys,'wrong');say('Wrong note','wrong');}
-    else if(r.kind==='early'||r.kind==='late'){flash(keys,'near');say(active().mode==='learn'?'Wait for the next notes':r.kind==='early'?'Too early':'Too late','near');}
+    else if(r.kind==='early'||r.kind==='late'){flash(keys,'near');say(r.kind==='early'?'Too early':'Too late','near');}
     else if(r.kind==='hold'&&r.held)say('Held','held');
   }
   function markNote(t){const el=doc.querySelector?.(`[data-game-note="${t.index}"]`);if(el)el.className=`game-note is-${t.result}`;}
@@ -323,7 +358,7 @@ export function createGameController({document:doc,audio,transport,getProject,ge
     if(transport.state==='playing'&&!at.countIn&&active().mode==='play'){
       for(const e of engine.advance(at.v))react(e);
     }
-    paint(transport.state==='playing'?at.v:transport.position());
+    paint(active().mode==='learn'?stepTick():transport.state==='playing'?at.v:transport.position());
     loop();
   }
   function paint(v){
@@ -334,25 +369,35 @@ export function createGameController({document:doc,audio,transport,getProject,ge
       if(next&&Math.abs(next-ppt)>1e-9){ppt=next;track.style.setProperty('--ppt',String(ppt));}
       track.style.transform=`translateX(${HIT_X-(v-chart.from)*ppt}px)`;
     }
-    // Approach rings: each suggested key's next note shrinks its ring onto the key over the lead time;
-    // the key outlines as the note gets close and fills when it is due.
-    const lead=s.lead*engine.tps,soon=new Map();
-    if(s.hints)for(const t of engine.targets){
-      if(t.tick<v-goodTicks())continue;
-      if(t.tick>v+lead)break;
-      const k=route.get(t.index);
-      if(t.result||k===undefined)continue;
-      if(!soon.has(k))soon.set(k,(t.tick-v)/lead);
+    // Hints never light a later note beside a current one. Timed lights a suggested key only while its
+    // note is due and not yet played or missed; on screen its ring still closes onto the key over the
+    // lead time and outlines it as the note gets close. Wait lights and rings only the next notes to play.
+    const lead=s.lead*engine.tps,soon=new Map(),light=new Set();
+    if(s.lights!=='off'){
+      if(s.mode==='learn')for(const t of engine.pending()){
+        const k=route.get(t.index);
+        if(k!==undefined){soon.set(k,(t.tick-v)/lead);light.add(k);}
+      }else{
+        const missed=v-(WINDOWS.good+Math.max(0,run.offsetMs))/1000*engine.tps;
+        for(const t of engine.targets){
+          if(t.tick<missed)continue;
+          if(t.tick>v+lead)break;
+          const k=route.get(t.index);
+          if(t.result||k===undefined)continue;
+          if(!soon.has(k))soon.set(k,(t.tick-v)/lead);
+          if(t.tick<=v)light.add(k);
+        }
+      }
     }
     for(const k of rings)if(!soon.has(k)){const ring=doc.querySelector?.(`[data-game-ring="${k}"]`);if(ring){ring.style.opacity='0';ring.style.transform='';}const key=doc.querySelector?.(`[data-comp-key="${k}"]`);key?.classList.remove('game-soon');key?.classList.remove('game-now');}
-    const nowFraction=Math.min(.08,WINDOWS.great/1000*engine.tps/lead);
     for(const [k,f] of soon){
       const ring=doc.querySelector?.(`[data-game-ring="${k}"]`);
-      if(ring){const x=Math.max(0,f);ring.style.opacity=String(Math.min(1,.3+.7*(1-x)));ring.style.transform=`scale(${1+1.6*x})`;}
+      if(ring){const x=Math.min(1,Math.max(0,f));ring.style.opacity=String(.3+.7*(1-x));ring.style.transform=`scale(${1+1.6*x})`;}
       const key=doc.querySelector?.(`[data-comp-key="${k}"]`);
-      key?.classList.toggle('game-soon',f<.4);key?.classList.toggle('game-now',Math.abs(f)<=nowFraction);
+      key?.classList.toggle('game-soon',f<.4);key?.classList.toggle('game-now',light.has(k));
     }
     rings=new Set(soon.keys());
+    if(light.size!==lit.size||[...light].some(k=>!lit.has(k))){lit=light;onLights();}
     const t=now();
     for(const [k,f] of flashes){const el=doc.querySelector?.(`[data-comp-key="${k}"]`);if(f.until<t){el?.classList.remove(`game-flash-${f.cls}`);flashes.delete(k);}else el?.classList.add(`game-flash-${f.cls}`);}
     paintHud(v);paintOverlay();
@@ -411,18 +456,19 @@ export function createGameController({document:doc,audio,transport,getProject,ge
     calibration=null;audio.cancelGroup?.('calibration');phase='setup';refresh();
   }
 
-  // ---- the physical HexBoard: the next notes lit, the rest dimmed, hits and misses flashed ----
+  // ---- the physical HexBoard: a run's lit keys on a dark board or over the layout, hits and misses flashed ----
   function deviceSnapshot(held=[]){
     const p=playingProject(),board=playingBoard();
     if(!p||!board)return null;
-    const snap=compositionDeviceSnapshot(p,board,[...rings,...held]);
-    if(phase!=='running')return snap;
-    const flashColor={perfect:'#3ddc84',great:'#3ddc84',good:'#9be35b',ok:'#3ddc84',miss:'#ff4d4d',wrong:'#ff4d4d',near:'#ffb347'};
+    // Setup lights the previewed notes over the layout; results and calibration show the layout alone.
+    const running=phase==='running',snap=compositionDeviceSnapshot(p,board,[...(running?lit:phase==='setup'?rings:[]),...held]);
+    if(!running)return snap;
+    const dark=active().lights==='dark';
     for(const key of snap.keys){
       if(key.command||!key.enabled)continue;
       const f=flashes.get(key.index);
-      if(f){key.color=key.layoutColor=flashColor[f.cls]??key.color;key.lit=true;continue;}
-      if(active().hints&&!rings.has(key.index)&&key.layoutColor)key.layoutColor=dim(key.layoutColor,.35);
+      if(f){key.color=key.layoutColor=FLASH_COLORS[f.cls]??key.color;key.lit=true;continue;}
+      if(dark&&!key.lit)key.layoutColor='#000000';
     }
     return snap;
   }
@@ -431,14 +477,8 @@ export function createGameController({document:doc,audio,transport,getProject,ge
   function onTransport(event,detail){
     if(phase!=='running'||stopping)return;
     if(event==='error'){leave();message=`Audio could not start${detail?.error?.message?`: ${detail.error.message}`:''}. Try Start again.`;refresh();return;}
-    if(event==='boundary'){
-      waitingTick=detail.tick;
-      for(const r of engine.advance(waitingTick))react(r);
-      paint(waitingTick);return;
-    }
     if(event==='ended'){
       for(const r of engine.advance(detail?.v??chart.to+(WINDOWS.good+Math.max(0,run.offsetMs)+1)/1000*engine.tps))react(r);
-      if(active().mode==='learn'&&engine.pending().length){leave();message='Playback stopped before all notes were completed. Try Start again.';refresh();return;}
       finish();return;
     }
     if(event==='stopped'){quit();return;}
@@ -468,9 +508,9 @@ export function createGameController({document:doc,audio,transport,getProject,ge
   }
   function change(field,el){
     if(phase!=='setup')return true;
-    const value=el.value,map={gamePart:'part',gameMatch:'match',gameMode:'mode',gameSpeed:'speed',gameTargetSpeed:'targetSpeed',gameGuide:'guide',gameCountIn:'countIn',gameLead:'lead',gameSection:'section',gameFrom:'fromBar',gameTo:'toBar'};
+    const value=el.value,map={gamePart:'part',gameMatch:'match',gameMode:'mode',gameSpeed:'speed',gameTargetSpeed:'targetSpeed',gameGuide:'guide',gameCountIn:'countIn',gameLead:'lead',gameSection:'section',gameFrom:'fromBar',gameTo:'toBar',gameLights:'lights'};
     if(['gameSpeed','gameTargetSpeed','gameFrom','gameTo'].includes(field)&&(String(value).trim()===''||!Number.isFinite(Number(value)))){refresh();return true;}
-    const checks={gameClick:'click',gameTrainer:'trainer',gameRepeat:'repeat',gameHints:'hints'};
+    const checks={gameClick:'click',gameTrainer:'trainer',gameRepeat:'repeat'};
     if(checks[field])settings=normalizeSettings({...settings,[checks[field]]:!!el.checked});
     else if(map[field])settings=normalizeSettings({...settings,[map[field]]:value});
     else return false;
@@ -497,12 +537,13 @@ export function createGameController({document:doc,audio,transport,getProject,ge
       summary,calibration:calibration?{clicks:CAL_CLICKS,skip:CAL_SKIP,taps:calibration.taps.length}:null};
   }
   function leave(){
-    ++revision;cancelRepeat();
+    ++revision;cancelRepeat();cancelEnd();
     quiet(()=>transport.stop());stopLoop();clearTimer(calTimer);calTimer=null;
     phase='setup';paused=false;waitingTick=null;calibration=null;
-    cleanAudio();audio.cancelGroup?.('calibration');engine=null;chart=null;run=null;rings.clear();flashes.clear();feedback=null;summary=null;previewTick=null;
+    cleanAudio();audio.cancelGroup?.('calibration');engine=null;chart=null;run=null;rings.clear();lit=new Set();flashes.clear();feedback=null;summary=null;previewTick=null;
   }
   return {view,start,finish,quit,pause,input,click,change,keydown,onTransport,playbackProject,deviceSnapshot,finishCalibration,leave,
+    fingering:()=>fingering(),
     /** After the host rebuilds the page: carry on drawing. */
     resume(){
       if(phase==='running')loop();

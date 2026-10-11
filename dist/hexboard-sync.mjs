@@ -42,7 +42,8 @@ export function createHexboardSync({
 
   const delays=[];               // recent input-to-sound times (ms), for the latency probe
   function held(){return new Set([...appHeld,...down.keys()]);}
-  // One LED update per input event, queued so it runs after the sound has started.
+  // One LED update per input event, queued so it runs after the sound has started. `schedule` queues
+  // the same update when the picture changes between events (a Play run's lit keys).
   let queued=false;
   function scheduleSync(){if(queued)return;queued=true;queue(()=>{queued=false;sync();});}
 
@@ -106,5 +107,5 @@ export function createHexboardSync({
   /** Sets the overall LED brightness (clamped to BRIGHTNESS.min..max) and repaints a connected board. */
   function setBrightness(value){level=clampBrightness(value);scheduleSync();return level;}
 
-  return {keyDown,keyUp,setActive,sync,start,stop,releaseAll,inputDelay,setBrightness,get brightness(){return level;},get held(){return held();},get running(){return timers!==null;}};
+  return {keyDown,keyUp,setActive,sync,schedule:scheduleSync,start,stop,releaseAll,inputDelay,setBrightness,get brightness(){return level;},get held(){return held();},get running(){return timers!==null;}};
 }

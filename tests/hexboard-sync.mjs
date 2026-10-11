@@ -57,6 +57,8 @@ function setup({withNode=true,hiddenNode=false}={}){
   t.sync.setBrightness(1);t.flush();
   assert.equal(t.sync.inputDelay(),6,'the probe reports MIDI arrival to sound');
   t.sync.keyDown(66);t.sync.keyDown(67);assert.equal(t.queued.length,1,'changes within one event share one LED update');t.flush();
+  const sent=t.sentFrames.length;t.sync.schedule();t.sync.schedule();
+  assert.equal(t.queued.length,1,'a picture change between events queues one LED update');t.flush();assert.equal(t.sentFrames.length,sent+1);
   t.sync.keyUp(67);t.sync.keyUp(65);
   assert.deepEqual(t.events.at(-1),['release',65],'release goes to that same key');
   assert.deepEqual([...t.sync.held],[66]);

@@ -5,7 +5,7 @@
 import {captureContext,matchesApp,materialToChordEvent,resolveTone,tuningKey,degreeOf} from './composition-context.mjs';
 import {
   PPQ,LIMITS,barTicks,createProject,parseProject,serializeProject,createHistory,makeEvent,allIds,addEvent,updateEvent,removeEvent,
-  duplicateEvent,insertGap,swapAdjacent,setProjectBars,setTempo,setMeter,setName,setLoop,editEvents,contentEndTick,
+  duplicateEvent,insertGap,swapAdjacent,setProjectBars,setTempo,setMeter,setName,setLoop,setFingering,editEvents,contentEndTick,
 } from './composition-project.mjs';
 import {createTransport} from './composition-transport.mjs';
 import {boardSnapshot,buildCueTimeline,activeCues,toPracticeTargets,MATCH_MODES} from './composition-cues.mjs';
@@ -16,7 +16,8 @@ import {rootedChordName} from './harmonic-bass.mjs';
 import {shiftEvents,transposeEvents,quantizeEvents,splitEvents,scaleEvents,legatoEvents,reverseEvents,euclidEvents,copyEvents,pasteEvents,velocityEvents} from './composition-edit.mjs';
 import {createRollInput} from './composition-roll-input.mjs';
 import {createGameController} from './composition-game-ui.mjs';
-import {compositionBoard,compactFingerings,compositionDeviceSnapshot,boardMarkup} from './composition-board.mjs';
+import {compositionBoard,compositionDeviceSnapshot,boardMarkup} from './composition-board.mjs';
+import {hexDistance} from './hexboard-chords.mjs';
 import {createHexboardPlayer} from './hexboard-player.mjs';
 
 const FOCUS_ATTRS=['data-comp','data-comp-field','type','data-event','data-tick','data-a','data-b','data-n'];
@@ -34,10 +35,12 @@ export function createCompositionWorkspace({
   matchPlayed=()=>null,
   // Where the rhythm game keeps settings, best scores and the timing offset (default: this browser).
   gameStorage,
+  // Told when a Play run's lit keys change, so a connected HexBoard can show them at once.
+  onLights=()=>{},
   raf=globalThis.requestAnimationFrame?.bind(globalThis),timer,
 }){
-  let history=null,message='',cache=null,frame=null,boardCache=null,placementCache=null,suppressClick=false,clipboard=null,input=null;
-  const ui={selectedChord:null,addLength:4,collection:0,noteDuration:'grid',registers:'board',matchMode:'exact-coordinate',mode:'compose',follow:true,boardLabels:true,fingering:0,boardShow:'both',
+  let history=null,message='',cache=null,frame=null,boardCache=null,suppressClick=false,clipboard=null,input=null;
+  const ui={selectedChord:null,addLength:4,collection:0,noteDuration:'grid',registers:'board',matchMode:'exact-coordinate',mode:'compose',follow:true,boardLabels:true,chooseButtons:false,boardShow:'both',
     // Root lane picker: {tick, replace: chord id or null, degree: scale degree or null, all: show every harmony}.
     rootPick:null,
     // Piano roll: the time grid, tool, zoom, the selected melody notes and the open toolbar menu.
@@ -49,7 +52,6 @@ export function createCompositionWorkspace({
   // A display choice only: playback always sounds every track.
   const BOARD_SHOW=['chords','melody','both'];
   const showsTrack=kind=>ui.boardShow==='both'||kind===ui.boardShow;
-  const soundingCells=tick=>activeCues(timeline(),tick).sounding.filter(q=>showsTrack(q.trackKind)).flatMap(q=>q.cells);
   const project=()=>history?.project??null;
   const canEdit=()=>ui.mode==='compose';
   const transport=createTransport({getProject:()=>{const p=project();return p&&ui.mode==='game'?game.playbackProject(p):p;},audio,...(timer?{timer}:{}),
@@ -67,7 +69,7 @@ export function createCompositionWorkspace({
 
   const game=createGameController({document:doc,audio,transport,getProject:()=>project(),getBoard:()=>boardModel().board,refresh:()=>refresh(),notify,
     getSelectedSection:()=>{const p=project(),clip=p&&clipOf(p,'chords'),e=clip?.events.find(e=>e.id===ui.selectedChord);return e?{from:clip.startTick+e.startTick,to:clip.startTick+e.startTick+e.durationTick}:null;},
-    getExportMatch:()=>ui.matchMode,releaseHeld:()=>keyPlayer.reset(),
+    getExportMatch:()=>ui.matchMode,releaseHeld:()=>keyPlayer.reset(),onLights,
     ...(raf?{raf}:{raf:null}),...(gameStorage?{storage:gameStorage}:{})});
 
   const trackOf=(p,kind)=>p.tracks.find(t=>t.kind===kind);
@@ -88,10 +90,43 @@ export function createCompositionWorkspace({
     if(boardCache?.project!==p)boardCache={project:p,...compositionBoard(p)};
     return boardCache;
   }
-  function fingerings(){
-    const p=project(),event=p?clipOf(p,'chords').events.find(e=>e.id===ui.selectedChord):null;
-    if(placementCache?.project!==p||placementCache?.event!==event)placementCache={project:p,event,items:compactFingerings(p,event,boardModel().board)};
-    return placementCache.items;
+  // ---- fingering: the composition's buttons, one per pitch, exactly as Play suggests them ----
+  const fingering=()=>game.fingering();
+  // Each tone's first cue, where its button is read.
+  function toneCues(){
+    timeline();
+    if(!cache.toneCues){cache.toneCues=new Map();for(const q of cache.timeline)if(!cache.toneCues.has(q.toneId))cache.toneCues.set(q.toneId,q.cueId);}
+    return cache.toneCues;
+  }
+  /** Each of the event's tones' buttons, in tone order (undefined where no key plays it). */
+  const toneKeys=event=>{const route=fingering(),cues=toneCues();return event.tones.map(t=>route.get(cues.get(t.toneId)));};
+  const soundingKeys=tick=>{const route=fingering();return activeCues(timeline(),tick).sounding.filter(q=>showsTrack(q.trackKind)).map(q=>route.get(q.cueId)).filter(k=>k!==undefined);};
+  const selectedChordEvent=()=>{const p=project();return p?clipOf(p,'chords').events.find(e=>e.id===ui.selectedChord)??null:null;};
+  // The selected chord's and notes' exact pitches, as the board shows them.
+  function selectedPitches(){
+    const chord=showsTrack('chords')?selectedChordEvent():null;
+    const pitches=[...(chord?.tones??[]),...(showsTrack('melody')?selectedEvents().flatMap(e=>e.tones):[])].map(t=>t.coordinate);
+    return [...new Map(pitches.map(m=>[m.join(','),m])).values()];
+  }
+  // Choose buttons: every other key that plays a selected pitch is offered.
+  function optionKeys(){
+    const board=boardModel().board;
+    if(!ui.chooseButtons||!board)return [];
+    const pitches=new Set(selectedPitches().map(m=>m.join(','))),shown=new Set([...selectedKeys(),...noteKeys()]);
+    return board.keys.filter(k=>!k.command&&k.enabled&&pitches.has(k.m.join(','))&&!shown.has(k.index)).map(k=>k.index);
+  }
+  /** Pressing a key of a selected pitch while choosing makes it that pitch's button throughout the piece. */
+  function chooseButton(event){
+    if(!ui.chooseButtons||event.type!=='down'||take||ui.stepInput||!canEdit())return false;
+    const index=Number(event.keyId),key=boardModel().board?.keys[index],id=key?.m.join(',');
+    if(!key||key.command||!key.enabled||!selectedPitches().some(m=>m.join(',')===id))return false;
+    if(project().fingering?.[id]!==index)edit('Choose button',pr=>setFingering(pr,[{coordinate:key.m,key:index}]));
+    return true;
+  }
+  /** Returns pitches to automatic buttons: the selected ones, or with `all` every chosen one. */
+  function automaticButtons(all){
+    const chosen=project()?.fingering??{},pitches=all?Object.keys(chosen).map(id=>id.split(',').map(Number)):selectedPitches().filter(m=>chosen[m.join(',')]!==undefined);
+    if(pitches.length)edit(all?'Reset buttons':'Automatic buttons',pr=>setFingering(pr,pitches.map(m=>({coordinate:m,key:null}))));
   }
   // Directory chords on the picked root, in every inversion, with the root from that degree's home
   // coordinate in the composition's scale. Only offered while the app matches the composition (the directory
@@ -117,23 +152,30 @@ export function createCompositionWorkspace({
       newId=ev.id;return addEvent(old?removeEvent(pr,clip.id,old.id):pr,clip.id,ev);
     });
     if(!ok)return;
-    ui.rootPick=null;ui.selectedChord=newId;ui.fingering=0;
+    ui.rootPick=null;ui.selectedChord=newId;
     const e=find(clipOf(project(),'chords'),newId);if(e){audio.previewChord?.(centsOf(project(),e));onChordFocus(e.tones.map(t=>[...t.coordinate]));}
     refresh();
   }
-  function selectedKeys(){return showsTrack('chords')?fingerings()[ui.fingering]?.keys??[]:[];}
-  // Every key that plays a selected melody note's exact pitch.
+  // The selected chord's buttons in tone order, and the selected melody notes' buttons.
+  function selectedKeys(){const e=showsTrack('chords')?selectedChordEvent():null;return e?toneKeys(e).filter(k=>k!==undefined):[];}
   function noteKeys(){
-    const board=boardModel().board;
-    if(!board||!ui.selected.size||!showsTrack('melody'))return [];
-    const ids=new Set(selectedEvents().flatMap(e=>e.tones.map(t=>t.coordinate.join(','))));
-    return board.keys.filter(k=>!k.command&&k.enabled&&ids.has(k.m.join(','))).map(k=>k.index);
+    if(!ui.selected.size||!showsTrack('melody'))return [];
+    return [...new Set(selectedEvents().flatMap(toneKeys).filter(k=>k!==undefined))];
+  }
+  /** The selected chord's buttons as Play uses them: each tone's key, whether it was chosen, and the reach. */
+  function chordButtons(){
+    const e=selectedChordEvent(),board=boardModel().board;
+    if(!e||!board)return null;
+    const chosen=project().fingering??{},keys=toneKeys(e).map((key,i)=>({key,chosen:key!==undefined&&chosen[e.tones[i].coordinate.join(',')]===key}));
+    const placed=keys.filter(k=>k.key!==undefined).map(k=>board.keys[k.key]);
+    return {keys,reach:Math.max(0,...placed.flatMap(a=>placed.map(b=>hexDistance(a,b))))};
   }
   function deviceSnapshot(){
     const p=project();if(!p)return null;
     if(ui.mode==='game')return game.deviceSnapshot(Array.from(held.values(),h=>h.index));
-    const active=transport.state==='playing'?soundingCells(transport.position()):[];
-    return compositionDeviceSnapshot(p,boardModel().board,[...new Set([...(ui.follow&&active.length?active:[...selectedKeys(),...noteKeys()]),...Array.from(held.values(),h=>h.index)])]);
+    const active=transport.state==='playing'?soundingKeys(transport.position()):[],following=ui.follow&&active.length>0;
+    const options=ui.chooseButtons&&!following&&selectedPitches().length?optionKeys():null;
+    return compositionDeviceSnapshot(p,boardModel().board,[...new Set([...(following?active:[...selectedKeys(),...noteKeys()]),...Array.from(held.values(),h=>h.index)])],options);
   }
 
   // ---- piano roll helpers ----
@@ -174,8 +216,9 @@ export function createCompositionWorkspace({
       transportState:transport.state,position:tick,
       chordClip:p?clipOf(p,'chords'):null,melodyClip:p?clipOf(p,'melody'):null,
       selectedChord:ui.selectedChord,selected:new Set(ui.selected),addLength:ui.addLength,collectionIndex:ui.collection,
-      mode:ui.mode,follow:ui.follow,boardLabels:ui.boardLabels,boardShow:ui.boardShow,fingering:ui.fingering,rootPick:ui.rootPick,rootHarmonies:ui.rootPick?rootHarmonies():[],
-      board:boardModel().board,boardReason:boardModel().reason,fingerings:fingerings(),selectedKeys:selectedKeys(),noteKeys:noteKeys(),
+      mode:ui.mode,follow:ui.follow,boardLabels:ui.boardLabels,boardShow:ui.boardShow,chooseButtons:ui.chooseButtons,rootPick:ui.rootPick,rootHarmonies:ui.rootPick?rootHarmonies():[],
+      board:boardModel().board,boardReason:boardModel().reason,selectedKeys:selectedKeys(),noteKeys:noteKeys(),optionKeys:optionKeys(),chordButtons:chordButtons(),
+      chosenButtons:Object.keys(p?.fingering??{}).length,selectionChosen:p?selectedPitches().filter(m=>p.fingering?.[m.join(',')]!==undefined).length:0,
       inputTarget:ui.inputTarget,stepInput:ui.stepInput,record:ui.record,recording:!!take,countIn:ui.countIn,click:ui.click,
       collection:items.map(x=>({label:x.item.label,compatible:!!p&&tuningKey(x.item.state)===tuningKey(p.context)})),
       focused:(()=>{const item=getFocusedChord();return item?{label:item.label,compatible:!!p&&tuningKey(item.state)===tuningKey(p.context)}:null;})(),
@@ -209,7 +252,7 @@ export function createCompositionWorkspace({
     panel.outerHTML=renderSelectionPanel(v);
     const bar=doc.querySelector?.('.roll-toolbar');if(bar)bar.outerHTML=renderRollToolbar(v);
     const status=doc.querySelector?.('.roll-status');if(status){status.outerHTML=renderRollStatus(v);paint();}
-    const board=doc.querySelector?.('.composition-board');if(board&&v.board){board.outerHTML=boardMarkup(v.project,v.board,v.selectedKeys,v.boardLabels,v.noteKeys);paint();}
+    const board=doc.querySelector?.('.composition-board');if(board&&v.board){board.outerHTML=boardMarkup(v.project,v.board,v.selectedKeys,v.boardLabels,v.noteKeys,v.optionKeys);paint();}
   }
   function select(ids,mode='replace'){
     if(mode==='replace')ui.selected=new Set(ids);
@@ -219,7 +262,7 @@ export function createCompositionWorkspace({
     syncSelection();
   }
   function say(text){message=text;notify(text);refresh();}
-  function changed(){transport.invalidate();cache=null;placementCache=null;ui.fingering=0;message='';refresh();}
+  function changed(){transport.invalidate();cache=null;message='';refresh();}
   function edit(label,command){
     if(!canEdit())return false;
     try{history.execute(label,command);changed();return true;}
@@ -374,6 +417,7 @@ export function createCompositionWorkspace({
       else take.rec.up(event.holdId,at);
       return;
     }
+    if(chooseButton(event))return;
     if(!ui.stepInput||transport.state==='playing')return;
     if(event.type==='down'){stepGroup.down(event.holdId,event.coordinate);return;}
     if(event.reason==='reset'){stepGroup.cancel();paint();return;}
@@ -445,7 +489,7 @@ export function createCompositionWorkspace({
       }
     }
     if(roll)paintInput(roll);
-    const sounding=new Set(ui.follow&&canEdit()&&transport.state==='playing'?soundingCells(tick):[]);
+    const sounding=new Set(ui.follow&&canEdit()&&transport.state==='playing'?soundingKeys(tick):[]);
     for(const entry of held.values())sounding.add(entry.index);
     for(const key of doc.querySelectorAll?.('[data-comp-key]')??[])key.classList.toggle('is-playing',sounding.has(Number(key.dataset.compKey)));
   }
@@ -480,7 +524,7 @@ export function createCompositionWorkspace({
   function chordAction(action,el){
     const p=project(),clip=clipOf(p,'chords'),id=el.dataset.event,e=id?find(clip,id):null,end=e?e.startTick+e.durationTick:0;
     switch(action){
-      case 'chord-select':ui.selectedChord=id;ui.fingering=0;if(e)onChordFocus(e.tones.map(tone=>[...tone.coordinate]));refresh();return;
+      case 'chord-select':ui.selectedChord=id;if(e)onChordFocus(e.tones.map(tone=>[...tone.coordinate]));refresh();return;
       case 'chord-invert':{
         if(!e)return;
         const low=e.tones.reduce((a,b)=>resolveTone(p.context,a.coordinate).cents<=resolveTone(p.context,b.coordinate).cents?a:b);
@@ -618,7 +662,7 @@ export function createCompositionWorkspace({
         case 'root-block':{
           const e=find(clipOf(project(),'chords'),el.dataset.event);if(!e||!canEdit())return true;
           const root=chordRoot(project(),e);
-          ui.selectedChord=e.id;ui.fingering=0;ui.rootPick={tick:e.startTick,replace:e.id,degree:root?.degree??null,all:false};
+          ui.selectedChord=e.id;ui.rootPick={tick:e.startTick,replace:e.id,degree:root?.degree??null,all:false};
           onChordFocus(e.tones.map(t=>[...t.coordinate]));refresh();return true;
         }
         case 'root-degree':if(ui.rootPick){const d=Number(el.dataset.degree);if(Number.isInteger(d)&&d>=0&&d<project().context.scale.degrees.length){ui.rootPick={...ui.rootPick,degree:d,all:false};}}refresh();return true;
@@ -626,7 +670,8 @@ export function createCompositionWorkspace({
         case 'root-more':if(ui.rootPick)ui.rootPick={...ui.rootPick,all:!ui.rootPick.all};refresh();return true;
         case 'root-cancel':ui.rootPick=null;refresh();return true;
         case 'board-show':if(BOARD_SHOW.includes(el.dataset.value))ui.boardShow=el.dataset.value;refresh();return true;
-        case 'fingering':ui.fingering=Math.max(0,Math.min(Number(el.dataset.index)||0,fingerings().length-1));refresh();return true;
+        case 'buttons-auto':automaticButtons(false);return true;
+        case 'buttons-reset':automaticButtons(true);return true;
         case 'seek':void transport.seek(Number(el.dataset.tick)).then(refresh);return true;
         case 'play':startPlayback();return true;
         case 'record':toggleRecord();return true;
@@ -781,6 +826,7 @@ export function createCompositionWorkspace({
         case 'registers':if(REGISTER_CHOICES.some(r=>r[0]===value))ui.registers=value;refresh();return true;
         case 'follow':ui.follow=!!el.checked;refresh();return true;
         case 'boardLabels':ui.boardLabels=!!el.checked;refresh();return true;
+        case 'chooseButtons':ui.chooseButtons=!!el.checked;refresh();return true;
         case 'matchMode':if(MATCH_MODES.includes(value))ui.matchMode=value;return true;
         case 'gridDivision':ui.grid=normalizeGrid({...ui.grid,division:Number(value)});refresh();return true;
         case 'gridFeel':ui.grid=normalizeGrid({...ui.grid,feel:value});refresh();return true;

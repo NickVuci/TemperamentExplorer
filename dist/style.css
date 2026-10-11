@@ -3491,10 +3491,14 @@ footer {
 .composition-board.hex-board{width:100%;min-width:0;display:block;max-height:410px;touch-action:pan-y}
 .composition-board .comp-board-key[aria-disabled=true]{pointer-events:none}
 .composition-board .comp-board-key:focus-visible polygon{stroke:#fff}
-.comp-fingerings{display:grid;gap:8px}
-.comp-fingering{display:grid;grid-template-columns:1fr auto;gap:5px;text-align:left;padding:12px;background:var(--surface2);font-size:14px;white-space:normal}
-.comp-fingering small{grid-column:1/-1;color:var(--muted);font-size:12px}
-.comp-fingering[aria-pressed=true]{border:2px solid #e1bd65;background:rgba(206,163,65,.1)}
+/* Choose buttons: a selected pitch's other buttons keep their colour, with a dashed outline, while the rest dims. */
+.composition-board .comp-board-key.is-option polygon{stroke:#e1bd65;stroke-width:2.5;stroke-dasharray:4 3}
+.composition-board.hex-board.has-chord g.is-option:not(.is-marked) polygon{filter:none}
+.composition-board.hex-board.has-chord g.is-option:not(.is-marked) text{opacity:1}
+.comp-chord-buttons{margin:4px 0 10px;font-size:14px}
+.comp-chord-buttons small{color:var(--muted);font-size:12px}
+.comp-buttons-auto{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:14px}
+.comp-board-panel .viewnote button{margin-left:6px;font-size:13px}
 .comp-panel .chord-editor{gap:8px;font-size:14px}
 .comp-panel .chord-editor button{font-size:14px}
 .comp-panel details{background:transparent;margin-top:12px}
@@ -4068,6 +4072,8 @@ footer {
 .game-lanes sup { font-size: 9px; }
 .game-window { position: relative; height: calc(var(--lanes) * var(--lane-h)); overflow: hidden; background: repeating-linear-gradient(to bottom, rgba(255,255,255,.035) 0 var(--lane-h), transparent var(--lane-h) calc(2 * var(--lane-h))); }
 .game-track { position: absolute; top: 0; left: 0; height: 100%; width: 1px; will-change: transform; }
+/* Wait steps from one onset to the next: the highway glides there instead of jumping. */
+.game-highway.is-step .game-track { transition: transform .18s ease-out; }
 .game-bar, .game-beat { position: absolute; top: 0; bottom: 0; left: calc(var(--x) * var(--ppt, 0) * 1px); width: 1px; background: rgba(205,215,235,.22); }
 .game-beat { background: rgba(205,215,235,.07); }
 .game-note { position: absolute; top: calc(var(--lane) * var(--lane-h) + 4px); height: calc(var(--lane-h) - 8px); left: calc(var(--x) * var(--ppt, 0) * 1px); width: max(10px, calc(var(--w) * var(--ppt, 0) * 1px - 2px)); box-sizing: border-box; border-radius: 6px; background: var(--key); border: 1px solid rgba(255,255,255,.55); box-shadow: 0 0 10px color-mix(in srgb, var(--key) 55%, transparent); overflow: hidden; }
@@ -4125,7 +4131,7 @@ footer {
 .game-calibrate .game-big { color: var(--text); margin: 14px 0; }
 @media (max-width: 1000px) { .game-setup, .game-stage { grid-template-columns: minmax(0,1fr); } }
 @media (max-width: 560px) { .game-fields { grid-template-columns: minmax(0,1fr); } .game-results { grid-template-columns: minmax(0,1fr); justify-items: start; } .game-repeat { width: 100%; box-sizing: border-box; } .game-hud { gap: 8px 14px; } .game-hud b { font-size: 20px; } .game-preview-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); } .game-controls { width: 100%; } .game-controls button { flex: 1; } }
-@media (prefers-reduced-motion: reduce) { .game-note { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .game-note, .game-highway.is-step .game-track { transition: none; } }
 @media (max-width: 700px) {
   .roll-toolbar { gap: 8px; }
   .roll-grid-controls { flex-wrap: wrap; }

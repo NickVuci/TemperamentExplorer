@@ -100,7 +100,7 @@ export function createTransport({getProject,audio,timer={set:(fn,ms)=>setInterva
   // Cancel tokens of scheduled voices with their onsets, so a live edit can replace the ones not yet
   // sounding. Count-in clicks are marked so an edit during the count-in keeps them.
   let pending=[],countFrom=0;
-  let runOptions={untilTick:null,boundary:'end',graceMs:GRACE_SECONDS*1000},preparing=false;
+  let runOptions={untilTick:null,graceMs:GRACE_SECONDS*1000},preparing=false;
 
   const tps=()=>project.tempo*PPQ/60;
   const emit=(event,detail)=>onState(event,detail);
@@ -133,12 +133,11 @@ export function createTransport({getProject,audio,timer={set:(fn,ms)=>setInterva
     if(snap.state!=='running'||snap.clockRevision!==anchorClock){halt('suspended');return;}
     const rate=tps(),nowV=pos0+(snap.audioSeconds-anchorAudio)*rate;
     const heard=heardSeconds(snap),heardV=pos0+(heard-anchorAudio)*rate;
-    const pauseBoundary=bounded()&&runOptions.boundary==='pause';
     const completionV=bounded()?heardV:nowV;
-    if(!plan.loop.enabled&&completionV>=plan.end+(pauseBoundary?0:runOptions.graceMs/1000*rate)-1e-6){
+    if(!plan.loop.enabled&&completionV>=plan.end+runOptions.graceMs/1000*rate-1e-6){
       token++;clearTimer();audio.cancelGroup(GROUP);pending=[];
-      position=pauseBoundary?plan.end:0;state=pauseBoundary?'paused':'stopped';
-      emit(pauseBoundary?'boundary':'ended',pauseBoundary?{tick:plan.end}:{tick:plan.end,v:heardV,seconds:heard,tps:rate});return;
+      position=0;state='stopped';
+      emit('ended',{tick:plan.end,v:heardV,seconds:heard,tps:rate});return;
     }
     const hiV=Math.floor(nowV+lookahead*rate)+1;
     let loV=scheduledV,resynced=false;
@@ -172,12 +171,12 @@ export function createTransport({getProject,audio,timer={set:(fn,ms)=>setInterva
     if(Array.isArray(tokens))for(const t of tokens){const v=byId.get(t.voiceId);if(v)pending.push({cancel:t.cancel,onset:v.onsetAudioSeconds,release:v.releaseAudioSeconds,countIn});}
   }
 
-  /** Count-in bars precede playback. A finite absolute `untilTick` bounds audio to [position, tick).
-   * `boundary: 'pause'` waits there; 'end' finishes after heard-time `graceMs`. Bare resume keeps bounds. */
+  /** Count-in bars precede playback. A finite absolute `untilTick` bounds audio to [position, tick);
+   * playback ends `graceMs` of heard time after it. Bare resume keeps bounds. */
   async function play(options={}){
     if(state==='playing')return;
-    const {countIn=0,untilTick=runOptions.untilTick,boundary=runOptions.boundary,graceMs=runOptions.graceMs}=options;
-    runOptions={untilTick:Number.isFinite(untilTick)?Math.max(0,Math.floor(untilTick)):null,boundary:boundary==='pause'?'pause':'end',graceMs:Number.isFinite(graceMs)?Math.max(0,graceMs):GRACE_SECONDS*1000};
+    const {countIn=0,untilTick=runOptions.untilTick,graceMs=runOptions.graceMs}=options;
+    runOptions={untilTick:Number.isFinite(untilTick)?Math.max(0,Math.floor(untilTick)):null,graceMs:Number.isFinite(graceMs)?Math.max(0,graceMs):GRACE_SECONDS*1000};
     const mine=++token;
     preparing=true;
     try{await audio.prepare();}catch(error){if(mine===token){preparing=false;emit('error',{error});}return;}
@@ -219,7 +218,7 @@ export function createTransport({getProject,audio,timer={set:(fn,ms)=>setInterva
   function timeAt(performanceMs){
     const snap=audio.getClockSnapshot(),seconds=heardSeconds(snap,performanceMs);
     if(state!=='playing'||!plan)return {tick:position,v:position,seconds,room:Infinity,tps:0,countIn:false,early:0};
-    const rate=tps(),rawV=pos0+(seconds-anchorAudio)*rate,v=bounded()&&runOptions.boundary==='pause'?Math.min(rawV,plan.end):rawV,room=t=>plan.loop.enabled&&t<plan.loop.end?plan.loop.end-t:Math.max(1,plan.end-t);
+    const rate=tps(),v=pos0+(seconds-anchorAudio)*rate,room=t=>plan.loop.enabled&&t<plan.loop.end?plan.loop.end-t:Math.max(1,plan.end-t);
     if(seconds<anchorAudio)return {tick:pos0,v,seconds,room:room(pos0),tps:rate,countIn:true,early:anchorAudio-seconds};
     // A millionth of a tick absorbs float error, so an exact position is not floored a tick early.
     const tick=realTick(Math.max(pos0,Math.floor(v+1e-6)));
@@ -227,7 +226,7 @@ export function createTransport({getProject,audio,timer={set:(fn,ms)=>setInterva
   }
 
   function pause(){if(state!=='playing'&&!preparing)return;preparing=false;halt('paused');}
-  function stop(){token++;preparing=false;clearTimer();audio.cancelGroup(GROUP);pending=[];runOptions={untilTick:null,boundary:'end',graceMs:GRACE_SECONDS*1000};const was=state;position=0;state='stopped';if(was!=='stopped')emit('stopped',{tick:0});}
+  function stop(){token++;preparing=false;clearTimer();audio.cancelGroup(GROUP);pending=[];runOptions={untilTick:null,graceMs:GRACE_SECONDS*1000};const was=state;position=0;state='stopped';if(was!=='stopped')emit('stopped',{tick:0});}
   async function seek(tick){
     const wasPlaying=state==='playing';
     token++;preparing=false;clearTimer();audio.cancelGroup(GROUP);pending=[];

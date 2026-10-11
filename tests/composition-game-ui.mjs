@@ -49,8 +49,10 @@ assert.match(host.innerHTML,/class="composition-board hex-board game-board"/,'th
 assert.match(host.innerHTML,/data-game-ring="\d+"/);
 const previewKeys=ws.deviceSnapshot().keys.filter(k=>k.lit&&!k.command);
 assert.ok(previewKeys.length&&previewKeys.every(k=>keyNode(k.index).classList.contains('game-now')),'setup previews highlight suggested screen keys');
-change('gameHints','',{checked:false});assert.ok(!ws.deviceSnapshot().keys.some(k=>k.lit&&!k.command),'Note hints can hide setup suggestions');
-change('gameHints','',{checked:true});
+assert.match(host.innerHTML,/data-comp-field="gameLights"/,'Note hints offer the board lighting choices');
+change('gameLights','off');assert.ok(!ws.deviceSnapshot().keys.some(k=>k.lit&&!k.command),'Note hints can hide setup suggestions');
+assert.match(host.innerHTML,/<option value="off" selected>/);assert.equal(store.get('temperament-lab-game-settings').lights,'off','the hint choice is remembered');
+change('gameLights','dark');
 assert.doesNotMatch(host.innerHTML,/data-comp-roll/,'the roll gives way to the game');
 assert.deepEqual(normalizeSettings({speed:73,part:'drums',countIn:9}),{...normalizeSettings({}),speed:73,countIn:2},'custom integer speeds are preserved and other settings are checked');
 change('gameSection','bars');change('gameFrom',1);change('gameTo',2);change('gameGuide','off');change('gameCountIn',0);change('gameClick','',{checked:false});
@@ -97,20 +99,19 @@ change('gameMode','play');
 press('game-again');await flush();assert.equal(game.phase,'running');
 ws.stop();assert.equal(game.phase,'setup','Escape (the app stop) ends the run');assert.match(host.innerHTML,/class="game is-setup"/);
 
-// ---- Learn: the music waits at each note until it is played ----
-change('gameMode','learn');change('gameGuide','quiet');
-clock.audioSeconds=101;clock.anchor={audioSeconds:101,performanceMs:perfAt(101)};
+// ---- Wait: the notes in order at the player's pace, with no backing ----
+change('gameMode','learn');
+assert.match(host.innerHTML,/data-comp-field="gameCountIn" disabled/,'Timed-only settings are off in Wait');
+assert.match(host.innerHTML,/data-comp-field="gameSpeed"[^>]*disabled/);
 press('game-start');await flush();
-const first=ws.game.engine.targets[0],start=101+START_DELAY_SECONDS;
-frames.length=0;
-clock.audioSeconds=start+first.tick/tps+.03;clock.anchor={audioSeconds:clock.audioSeconds,performanceMs:perfAt(clock.audioSeconds)};
-ws.transport.pump();ws.game.step();
-assert.equal(ws.transport.state,'paused','playback stops at the first note');assert.equal(ws.transport.position(),first.tick,'exactly on it');
-assert.match(overlay.textContent,/^Play /,'and asks for it');
-const wrong=board.keys.find(k=>!k.command&&k.enabled&&k.m.join()!==first.coordinate.join()).index;
-ws.pressKey(wrong,0);ws.releaseKey(wrong);assert.equal(ws.transport.state,'paused','a wrong key changes nothing');
+const [first,second]=ws.game.engine.targets;
+assert.equal(ws.transport.state,'stopped','Wait plays no backing');
+ws.game.step();assert.match(overlay.textContent,/^Play /,'it asks for the first notes at once');
+const wrong=board.keys.find(k=>!k.command&&k.enabled&&![first,second].some(t=>t.coordinate.join()===k.m.join())).index;
+ws.pressKey(wrong,0);ws.releaseKey(wrong);assert.equal(first.result,null,'a wrong key changes nothing');
 ws.pressKey(keyFor(first.coordinate),0);await flush();
-assert.equal(ws.transport.state,'playing','the right key carries on');ws.releaseKey(keyFor(first.coordinate));
+assert.equal(first.result,'ok','the right key counts');assert.equal(ws.game.view().waitingTick,second.tick,'and the next notes are due at once');
+ws.releaseKey(keyFor(first.coordinate));
 press('game-quit');assert.equal(ws.game.phase,'setup');assert.equal(ws.transport.state,'stopped');
 
 // ---- Space starts and pauses ----
@@ -123,7 +124,7 @@ assert.match(overlay.textContent,/Paused/);
 assert.equal(ws.keydown({key:'Delete',code:'Delete',target:doc.body,preventDefault(){}},true),false,'editing keys do nothing in the game');
 press('game-quit');
 
-// ---- the physical HexBoard: the next note's key lit, the rest dimmed ----
+// ---- the physical HexBoard: the due note's key lit, the rest dark ----
 change('gameCountIn',0);
 clock.audioSeconds=110;clock.anchor={audioSeconds:110,performanceMs:perfAt(110)};
 press('game-start');await flush();
@@ -132,8 +133,8 @@ clock.audioSeconds=clock.anchor.audioSeconds=110+START_DELAY_SECONDS;
 ws.game.step();   // a frame on the downbeat: the first note is due
 const snap=ws.deviceSnapshot(),lit=snap.keys.filter(k=>k.lit&&!k.command).map(k=>k.index);
 assert.ok(lit.length>=1&&lit.some(i=>board.keys[i].m.join()===next.coordinate.join()),'the next note’s key is lit');
-const plain=snap.keys.find(k=>!k.command&&k.enabled&&!k.lit),layout=board.keys[plain.index];
-assert.notEqual(plain.layoutColor,undefined);assert.ok(parseInt(plain.layoutColor.slice(1,3),16)<=200,'other keys are dimmed');
+const plain=snap.keys.find(k=>!k.command&&k.enabled&&!k.lit);
+assert.equal(plain.layoutColor,'#000000','other keys are dark');
 press('game-quit');
 
 // ---- calibration: taps 30 ms after each click set a +30 ms offset ----

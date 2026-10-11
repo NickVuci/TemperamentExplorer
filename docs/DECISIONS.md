@@ -988,17 +988,20 @@ button numbers or cents; the onset coordinate is the note.
 engine (`composition-game.mjs`) builds charts from `buildCueTimeline`, one target per sounding tone.
 Timed judges presses in real-time windows of 40, 80 and 130 ms at the time heard, matching each press
 to the nearest unjudged target of the same exact pitch (or degree, when any octave counts). Early,
-late and repeated presses cost nothing; other presses are wrong notes. Wait pauses the transport at
-each due onset until its distinct matching pitches are held together, with unrelated extras released.
-Only fresh presses at the current onset satisfy it; accepted written sustains may overlap later cues.
-Wait reports note completion without scoring. The persisted
-browser mode values remain `play` and `learn`. Both modes share section selection, 10–200% runtime
-speed, backing, board hints and repeat. Timed repeat shows results during a three-second pausable
-intermission; Wait repeat restarts immediately with its configured count-in. Speed training applies
+late and repeated presses cost nothing; other presses are wrong notes. Wait steps through the onsets
+in order without a clock (D-048) and reports note completion without scoring. The persisted
+browser mode values remain `play` and `learn`. Both modes share section selection, board hints and
+repeat; 10–200% runtime speed, backing, count-in and metronome apply to Timed. Timed repeat shows
+results during a three-second pausable intermission; Wait repeat restarts at once. Speed training applies
 only to Timed. One key per note is suggested when hints are enabled, but every key matching the chosen
-rule counts. Suggestions prefer the player's most recently used matching button for the open piece,
-then straight chord shapes and continued melody lines before reach and travel. These runtime button
-choices survive restarts and repeats, and reset for another piece or physical pitch layout. The
+rule counts. Each pitch under the matching rule keeps one suggested button for the whole composition,
+melody and chords alike (D-046). Buttons chosen in Compose fix their pitches, then the player's most
+recently used matching button; judged notes keep their buttons. The remaining buttons minimize one chart-wide cost: 1.5 hexes per bent
+chord shape or melody line, 2 per hex of chord reach, plus travel, with centre distance breaking
+ties. The search starts from time-ordered greedy passes (one per leading first-onset fingering) and
+from nearest-copy placements around the most used pitch, then moves single pitches and whole chords
+while the cost falls. These runtime button choices
+survive restarts and repeats, and reset for another piece or physical pitch layout. The
 display-only route helper consumes chart matching keys and shared hex geometry; it does not resolve
 pitch or judge input. A tap test measures remaining input lag; it, settings and best scores stay in the browser. Compose retains
 its saved-tempo transport and loop editing. Standalone practice targets are exported from Play's
@@ -1007,11 +1010,70 @@ Advanced controls with their existing independent match rule and schema.
 **Rationale.** The cue timeline already carries exact pitch, keys and timing for this purpose. Real-time
 windows keep difficulty independent of tempo and speed. Heard time and the output timestamp remove most
 latency error, and the tap test measures the rest instead of assuming it. Lighting every copy of a pitch
-under period wrapping hid where to play, so a single route is shown. Guided learning and timed runs
-share notes, input, section and speed controls, so a single controller owns their lifecycle rather
+under period wrapping hid where to play, so a single route is shown. Per-onset choices moved a
+repeated pitch between copies and broke common tones, so buttons are fixed per pitch. Sharing them
+across the chart turns fingering into chart-wide trade-offs: the former strict order (straight
+shapes before reach and travel) then preferred unplayable stretches or lines of distant jumps over
+compact shapes, so the criteria are weighed together. Guided learning and timed runs
+share notes, input, section and hint controls, so a single controller owns their lifecycle rather
 than a separate guided-playback practice view.
 
 **Consequences.** Scores are not synchronised to accounts. Runtime speed and Play settings never change
 saved tempo, context or composition/session schemas. `toPracticeTargets` remains the export for other
 consumers. Changing the windows or points changes every stored best score's meaning. Do not add a
 parallel practice transport or duplicate controller; extend Play's Timed/Wait lifecycle.
+
+## D-046 — One composition fingering; chosen buttons are composition data
+
+**Decision.** `pieceFingering` (`composition-game-route.mjs`) routes both parts of the whole timeline
+once, keyed by cue id. Compose's board and every Play section and part read that one fingering, which
+the Play controller caches with its runtime played-button preferences. Buttons chosen in Compose are
+the project's optional `fingering` map, exact coordinate → key index on the project's own saved layout,
+set by `setFingering` as undoable edits. A chosen button outranks a played one; a choice whose key no
+longer plays its pitch is ignored. The per-chord compact fingering list is removed: choosing happens
+on the board.
+
+**Rationale.** Per-chart routes made a practice section or a single part suggest other buttons than
+the whole piece and Compose. A deliberate choice belongs with the music, so it is saved and undone
+with it, while Play's played buttons stay runtime state. Coordinates remain pitch identity (D-032);
+the frozen layout makes stored key indices meaningful. Independent per-chord compact fingerings
+contradicted one button per pitch.
+
+## D-047 — Play hints light only the notes to play now
+
+**Decision.** During a Play run a suggested key lights only for the notes to play now. Timed lights it
+from its note's heard onset until the note is played or missed; Wait lights only the next onset's keys,
+from when they become next until they are completed. On screen, Timed rings still close onto upcoming
+keys over the lead time, and Wait rings only the next notes. Note hints choose how a connected HexBoard
+shows them: lit on a dark board (the default), lit a level brighter over the layout, or off (the layout
+alone, with no suggested-key cues on screen or device). The browser setting `lights` replaces the
+former `hints` switch, and a saved `hints: false` reads as off. Lit-key changes are pushed to the
+board at once instead of waiting for the 100 ms sample.
+
+**Rationale.** Lighting every note inside the lead time made a key due now look the same on the
+HexBoard as one due seconds later, because the board cannot draw approach rings; Wait also lit later
+notes beside the ones it was waiting for. The screen's graded rings already tell now from later. A lit
+key is a timing cue, so a sampled update could arrive up to 100 ms after its onset.
+
+**Consequences.** The HexBoard gives no advance notice in Timed; anticipation comes from the highway
+and the screen's rings. Do not light device keys ahead of their onset, or later notes in Wait.
+
+## D-048 — Wait steps through the notes without a clock
+
+**Decision.** Wait runs no transport, backing, count-in or metronome. Its first onset is due when the
+run starts and each next onset as soon as the one before it is complete; an onset completes when all
+its distinct matching pitches are held together with fresh presses and no stray notes. Notes already
+accepted may stay held into later onsets whatever their written length, but never count for them, so
+a repeated pitch needs a new press. The highway glides from onset to onset, and the results follow a
+second after the last one so its notes can ring. The transport's pause-at-boundary option, which only
+Wait used, is removed; bounded runs end after their grace window.
+
+**Rationale.** Wait previously played the backing between onsets and paused the transport at each one.
+Restarting it after every completed onset made the highway and board jump, presses made before the
+transport reached the next onset were rejected as early, and written durations decided which held
+notes blocked the next one. Wait is for learning which buttons to play in order, so rhythm is left to
+Timed.
+
+**Consequences.** Wait gives no musical accompaniment; Hear current notes auditions the notes to play.
+Do not reintroduce transport pacing, early presses or duration-based holds in Wait; rhythm practice
+belongs in Timed.

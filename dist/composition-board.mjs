@@ -1,6 +1,5 @@
-// Composition board and compact fingerings use the saved project, never the live app setup.
+// The composition board uses the saved project, never the live app setup.
 import {buildBoard} from './hexboard.mjs';
-import {chordPlacements} from './hexboard-chords.mjs';
 import {boardPicture,boardSvg,deviceFrame} from './hexboard-view.mjs';
 import {resolveTone} from './composition-context.mjs';
 
@@ -9,20 +8,17 @@ export function compositionBoard(project){
  try{return {board:buildBoard(project.context.state,project.layout),reason:''};}
  catch(e){return {board:null,reason:e.message};}
 }
-export function compactFingerings(project,event,board){
- if(!board||!event||event.tones.length<2)return [];
- try{return chordPlacements(board,event.tones.map(t=>t.coordinate),project.layout.center??65,{exact:true})
-  .sort((a,b)=>a.reach-b.reach||a.keys[0]-b.keys[0]).slice(0,12);}
- catch{return [];}
-}
+/** A colour pulled towards black by factor `f`, for keys outside what is being shown. */
+export const dimColor=(hex,f)=>`#${[1,3,5].map(i=>Math.round(parseInt(hex.slice(i,i+2),16)*f).toString(16).padStart(2,'0')).join('')}`;
 // A miniature of Play's board, drawn by the same picture and renderer (hexboard-view) from the saved
 // layout: colours, outlines, labels, tonic marker and highlight rule all match. `keys` is the shown chord
-// fingering, in chord-tone order; `lit` are other keys to highlight (the selected melody notes). Its keys
-// play through the shared HexBoard player (data-comp-key).
-export function boardMarkup(project,board,keys=[],labels=true,lit=[]){
+// fingering, in chord-tone order; `lit` are other keys to highlight (the selected melody notes);
+// `options` are other buttons offered while choosing. Its keys play through the shared HexBoard player
+// (data-comp-key).
+export function boardMarkup(project,board,keys=[],labels=true,lit=[],options=[]){
  if(!board)return '';
- const picture=boardPicture(project.context.state,project.layout,board,{overlay:keys.length?{keys}:null,chord:lit,labels});
- return boardSvg(picture,{className:'composition-board hex-board',ariaLabel:'Composition HexBoard',keyClass:()=>'comp-board-key',keyData:look=>`data-comp-key="${look.index}"`,focusDisabled:false});
+ const picture=boardPicture(project.context.state,project.layout,board,{overlay:keys.length?{keys}:null,chord:lit,labels}),offered=new Set(options);
+ return boardSvg(picture,{className:'composition-board hex-board',ariaLabel:'Composition HexBoard',keyClass:look=>offered.has(look.index)?'comp-board-key is-option':'comp-board-key',keyData:look=>`data-comp-key="${look.index}"`,focusDisabled:false});
 }
 // The rhythm game's board: the same picture, with an approach ring on every playable key that the game
 // shrinks onto the key as its note arrives. Keys keep data-comp-key, so they play exactly as in Compose.
@@ -33,7 +29,13 @@ export function gameBoardMarkup(project,board,labels=true){
   keyExtra:(look,x,y,r)=>look.key.enabled?`<circle class="game-ring" data-game-ring="${look.index}" cx="${x}" cy="${y}" r="${r}" aria-hidden="true"/>`:''});
 }
 // The physical board shows the composition with the same picture as the screen, at its tuned pitches.
-export function compositionDeviceSnapshot(project,board,highlight=[]){
+// With `options` (choosing buttons), the offered buttons keep their colour and every other unlit key dims.
+export function compositionDeviceSnapshot(project,board,highlight=[],options=null){
  if(!board)return null;
- return deviceFrame(boardPicture(project.context.state,project.layout,board,{chord:highlight}),{cents:k=>resolveTone(project.context,k.m).cents});
+ const snap=deviceFrame(boardPicture(project.context.state,project.layout,board,{chord:highlight}),{cents:k=>resolveTone(project.context,k.m).cents});
+ if(options){
+  const kept=new Set([...highlight,...options]);
+  for(const key of snap.keys)if(!key.command&&key.enabled&&!kept.has(key.index)&&key.layoutColor)key.layoutColor=dimColor(key.layoutColor,.35);
+ }
+ return snap;
 }

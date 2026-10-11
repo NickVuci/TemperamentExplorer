@@ -765,7 +765,7 @@ workflow structure.
 
 The composition workspace has two views: **Compose** and **Play**. Compose shows a piano roll
 (bar ruler, chord lane, melody rows, velocity lane, root lane) above two responsive panels: the saved
-HexBoard and the selection with compact exact fingerings. Play owns guided learning and timed runs.
+HexBoard and the selection. Play owns guided learning and timed runs.
 
 Piano roll. Notes are placed on a time grid (`composition-grid.mjs`): a base division from 1/1 to 1/64,
 straight, dotted, triplet (3:2), quintuplet (5:4), septuplet (7:4) or any custom n:m tuplet, with
@@ -802,27 +802,35 @@ time on the grid; clicking a chord's root picks that chord. Either opens a picke
 Play scale's root entries), with the root on that degree's home coordinate. The harmony is added at the time with the
 chosen add length, or replaces the picked chord at its time and length, as one undoable edit. Because the
 directory follows the app, the picker only lists harmonies while the app matches the composition's setup. Chord inversion raises the lowest sounding voice by the actual
-temperament period and preserves its tone identity. Missing exact fingerings are
+temperament period and preserves its tone identity. Chord notes no key plays are
 shown explicitly. Outside-scale notes sit in marked rows and stay editable in the note list.
 
 Compose playback uses the saved tempo and loop region. Playback paints the playhead and sounding notes in
 place. The composition board and the physical HexBoard read the composition's
 saved geometry and tuning while Compose is active; mouse/device auditions use
-the app's central tonic and sound through the shared audio engine. The header Audio menu controls all tabs; legacy project sound fields remain readable but do not override playback. Follow lights highlights
-exact-coordinate matches. The board's Chords / Melody / Both toggle filters what it lights (sounding cues by track, and
-the selected chord's fingering unless only the melody is shown); it is display-only and never changes
-playback. `composition-board.mjs` reuses `buildBoard`, `chordPlacements` and the
-existing colour engine; it does not define another pitch or fingering engine. Its board is a
+the app's central tonic and sound through the shared audio engine. The header Audio menu controls all tabs; legacy project sound fields remain readable but do not override playback. The board lights
+the composition's fingering, the one button per pitch that Play suggests (D-045, D-046): Follow lights
+shows the sounding notes' buttons, and otherwise the selected chord's and melody notes' buttons light,
+with the chord panel naming the chord's buttons and their reach. The board's Chords / Melody / Both
+toggle filters what it lights (sounding notes by track, and the selection); it is display-only and
+never changes playback. `composition-board.mjs` reuses `buildBoard` and the existing colour engine,
+and the buttons come from the shared route; it defines no other pitch or fingering engine. Its board is a
 miniature of Play's, drawn by the same `hexboard-view.mjs` picture and renderer from the saved
 layout, and its keys play through the shared `hexboard-player.mjs` (hold, glide, Shift sustain;
 physical keys press it while a composition is open) (D-040).
+
+Choose buttons (a board setting) also outlines every other key of the selected chord's and melody
+notes' exact pitches; the physical HexBoard keeps those keys' colour and dims the rest. Pressing an
+outlined or lit key of a selected pitch makes it that pitch's button throughout the composition, in
+Compose and in every Play hint, as one undoable edit saved with the composition. The other buttons
+adapt around chosen ones. Use automatic buttons returns the selected pitches to automatic choice, and
+Reset all buttons every chosen pitch. Step entry and recording keep their presses, and other keys only play.
 
 HexBoard input. Keys held on the composition board (mouse, Enter on a focused key, or a connected
 HexBoard) light their roll rows, and the roll status names the held pitches and the chord they make,
 read against the chord directory while the app matches the composition (`root - chord`, D-042). Row
 labels carry their layout key colour; during playback the rows of sounding notes glow, filtered by
-the board's Chords / Melody / Both choice. Selected melody notes light every key that plays their
-exact pitch. The roll's HexBoard group chooses where entries go, Melody or Chords. Step entry enters
+the board's Chords / Melody / Both choice. Selected melody notes light their buttons. The roll's HexBoard group chooses where entries go, Melody or Chords. Step entry enters
 the held keys when the last one comes up, at the playhead and one step long (the new-note length, or
 the chord length in Chords), then moves the playhead on; Rest, Tie and Back (→, ←, Backspace) move
 and correct. Rec arms recording: Play counts in (off, 1 or 2 bars) and every hold heard after the
@@ -836,28 +844,41 @@ and rooted from the directory and snapped to the grid while Snap is on, its play
 
 Play (D-045). Setup chooses Timed or Wait; the part (melody, chords or both); whether the exact pitch
 or the degree in any octave counts; integer speed from 10–200%, with the resulting BPM; the backing
-level of your part (muted, quiet guide or full); note lead time; count-in; metronome; Note hints;
-repeat; and the section (whole piece, loop region, bars or selected chord). A missing loop or selected
+level of your part (muted, quiet guide or full); note lead time; count-in; metronome; Note hints
+(keys to play lit on a dark HexBoard, lit over the layout, or off for the layout alone); repeat; and the section (whole piece, loop region, bars or selected chord). Speed, backing,
+count-in, metronome and the speed trainer apply to Timed and are disabled for Wait. A missing loop or selected
 chord is unavailable, and notes with no playable key under the chosen match rule prevent starting.
 First, Previous, Next and Hear preview each onset on the saved board without starting a run.
 Advanced exports the existing practice-target format with its independent exact-coordinate,
 any-degree or button match rule. Speed is browser runtime state and never changes the saved tempo
-or musical context. Defaults are Timed, 100% speed, repeat off, board hints on, trainer off and a
-100% trainer target; existing browser preferences remain in effect. Musical editing, recording and
+or musical context. Defaults are Timed, 100% speed, repeat off, hints lit on a dark board, trainer off
+and a 100% trainer target; existing browser preferences remain in effect (a saved hints-off switch reads as Off). Musical editing, recording and
 step entry are available only in Compose; Play auditions never enter composition notes.
 
 The stage shows a note highway (one lane per pitch in its key colour and a hit line) beside the board.
-With board hints on, a ring closes onto one suggested key per note. Suggestions prioritize buttons
-the player has used for matching notes, then straight chord fingerings and continuing a melody's
-physical line, with reach, travel and proximity to the centre as tie-breakers. The most recently
-played matching button takes priority across setup previews, restarts and repeat passes of the open
-piece. These choices remain runtime state and reset for a different piece or physical pitch layout.
-Every key matching the chosen rule still counts. Wait pauses at each due onset until all distinct matching pitches are held together. Released
-taps do not accumulate, and extra notes must be released. Previously accepted notes may remain held
-while their written durations overlap the cue; a new onset of the same pitch needs a new press.
-Future inputs cannot complete upcoming cues. Wait shows the required notes, missing tones and notes
-to release, with completed-note progress and Hear current notes while waiting. Its results show completed notes and wrong notes; it has no
-timing score, accuracy, combo or grade. Both modes support Pause, Restart and Quit.
+With hints on, keys light only for the notes to play now, never beside later ones (D-047): in Timed a
+suggested key lights from its note's onset until it is played or missed, while on screen its ring
+closes onto it over the lead time; in Wait only the next onset's keys are lit and ringed, from the
+moment they become next until they are completed. Each pitch (each degree when any
+octave counts) keeps one suggested button for the whole composition, in melody and chords alike, so
+repeated notes and common chord tones stay put and every section and part shows the same buttons as
+Compose. Buttons chosen in Compose fix their pitches; next, a button the player has used for a
+matching note takes priority for every note of that pitch; the others are chosen over the whole piece, weighing
+bent chord shapes and melody lines, chord reach and travel together, with proximity to the centre
+as the tie-breaker (D-045). The most recently played matching button takes
+priority across setup previews, restarts and repeat passes of the open piece; notes already judged
+keep their buttons when another is chosen during a run. These choices remain runtime state and
+reset for a different piece or physical pitch layout.
+Every key matching the chosen rule still counts. Wait steps through the notes in order at the
+player's pace (D-048): it plays no backing, count-in or metronome and runs no clock. The first onset is
+due as soon as the run starts and each next onset as soon as the one before it is complete, so a
+press is never early. An onset completes when all its distinct matching pitches are held together.
+Released taps do not accumulate, and stray notes must be released; notes already played may stay held
+into later onsets but never count for them, so a repeated pitch needs a new press. The highway glides
+to each next onset, and the results follow a second after the last one. Wait shows the required
+notes, missing tones and notes to release, with completed-note progress and Hear current notes. Its
+results show completed notes and wrong notes; it has no timing score, accuracy, combo or grade. Both
+modes support Pause, Restart and Quit.
 
 Timed judges presses at the time heard: Perfect within 40 ms, Great 80, Good 130; a note not played is
 missed after its window. The right pitch just outside it shows as early or late, and pressing a note
@@ -866,11 +887,13 @@ the combo. Notes a quarter or longer add a hold bonus when kept down to their en
 rises every ten in a row, to ×2.5. Results give the grade (S, A, B, C, D by accuracy), counts, best combo,
 average timing and spread with a histogram, and the three weakest bars with buttons opening those
 bars in Wait setup. Timed repeat keeps the completed pass's results visible during a three-second
-intermission, with Pause repeat and Stop repeating. Wait repeat restarts immediately with the configured
-count-in. The pass number is shown during runs and in results. In Timed, the speed trainer offers 5%
+intermission, with Pause repeat and Stop repeating. Wait repeat restarts at once on its first notes.
+The pass number is shown during runs and in results. In Timed, the speed trainer offers 5%
 more after a pass at 90% or better, capped at its target speed; it is disabled in Wait. A connected
-HexBoard mirrors hints and feedback; disabling hints
-removes suggested-key cues from the screen and device. Calibration plays twelve clicks and stores
+HexBoard shows the lit keys and flashes hits and misses: on a dark board every other key is off; over
+the layout the lit keys shine a level brighter than the rest; Off shows the layout alone and removes
+suggested-key cues from the screen and device. Setup lights its previewed notes over the layout, and
+results show the layout. Calibration plays twelve clicks and stores
 the median lag of taps on the last eight; it is taken off every Timed press. Settings, that offset and
 the best score per composition, part, match, speed and section stay in this browser only.
 
@@ -886,7 +909,7 @@ timeline. The authoritative plan, frozen limits and action log are in
 | Clip expansion, integer-tick timing, loop/seek/pause pump, live replanning after edits, count-in, metronome, heard position (`timeAt`) | `composition-transport.mjs` |
 | Recording takes, step-entry hold groups, recorded chords | `composition-record.mjs` |
 | Play chart, Timed judging/scoring, Wait completion and results | `composition-game.mjs` |
-| Display-only straight fingering routes using chart matching keys and played-button preferences | `composition-game-route.mjs` |
+| Display-only composition fingering, one button per pitch over the whole piece, from chart matching keys, chosen buttons and played-button preferences | `composition-game-route.mjs` |
 | Play setup, section preview, runs, repeat/trainer, input, drawing, calibration, stored scores, LED cues / markup | `composition-game-ui.mjs` / `composition-game-view.mjs` |
 | Time grid (divisions, tuplets, swing), beat groups, snapping, length and position names, Euclidean patterns | `composition-grid.mjs` |
 | Note transforms: quantize, split, fit, legato, retrograde, transpose, Euclidean fill, copy/paste, velocity | `composition-edit.mjs` |
@@ -895,12 +918,10 @@ timeline. The authoritative plan, frozen limits and action log are in
 | Cue timeline, board-cell lookup, practice-target export | `composition-cues.mjs` |
 
 Play freezes settings and absolute section bounds for each pass. The shared transport accepts
-`play({countIn, untilTick, boundary, graceMs})`; bounded scheduling caps onsets and releases at
-`untilTick`. A `pause` boundary stops before its onset and resumes from that tick once; an `end`
-boundary retains the judging clock through `graceMs` after the backing ends. Wait cues are activated
-by the transport timer independently of animation frames. Stop, project changes and navigation
-cancel deferred starts, auditions, calibration and repeat timers; navigation pauses an active pass
-or repeat countdown.
+`play({countIn, untilTick, graceMs})`; bounded scheduling caps onsets and releases at `untilTick`,
+and the judging clock runs on through `graceMs` after the backing ends. Only Timed uses the
+transport; Wait advances on input alone. Stop, project changes and navigation cancel deferred starts,
+auditions, calibration, repeat and Wait's end timers; navigation pauses an active pass or repeat countdown.
 | Logical key down/up events with hold ids | `hexboard-player.mjs` (`onInput`, optional) |
 | Workspace markup / controller | `composition-view.mjs` / `composition-ui.mjs` |
 | `temperament-lab-v1` / `-v2` session envelope rules | `composition-session.mjs` |
@@ -931,7 +952,8 @@ builds its chart from the same timeline.
 Sessions. A whole-app save with an open composition is `temperament-lab-v2` with a
 `composition` field; saves without one remain `temperament-lab-v1`. The loader
 accepts both and validates the composition as a candidate before restoring any other
-session part. Standalone files use `temperament-lab-composition-v1`.
+session part. Standalone files use `temperament-lab-composition-v1`; a composition's chosen buttons are
+its optional `fingering` map (exact coordinate → button on the saved layout).
 
 Known limits. One chord track and one melody track with one clip each (the schema
 allows more); same-key presses from two sources share one voice; one meter for the
@@ -978,7 +1000,8 @@ so `ledFrame` scales every LED value it sends.
 
 Keeping the board current. After entering host mode the app waits 300 ms for the board to settle,
 then paints. LEDs travel in paced messages of at most 32 LEDs. While connected, the app is sampled every
-100 ms and changed LEDs are sent immediately; the whole picture is resent every 1.5 s, so a message the
+100 ms and changed LEDs are sent immediately; a Play run's lit keys are also sent as soon as they change
+(`hexboard-sync.mjs#schedule`); the whole picture is resent every 1.5 s, so a message the
 board missed repairs itself and nothing depends on delivery being acknowledged (the protocol has no
 acknowledgement). Disconnecting blanks the LEDs in the same small messages, then exits host mode.
 

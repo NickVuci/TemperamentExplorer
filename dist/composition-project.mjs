@@ -8,7 +8,7 @@ export const PPQ=960;
 export const LIMITS=Object.freeze({
   tempoMin:20,tempoMax:400,meterNumeratorMax:32,meterDenominators:[1,2,4,8,16,32],
   tracksMax:16,clipsMax:512,eventsMax:16384,tonesMax:8,repeatMax:128,coordinateMax:10000,
-  velocityMin:1,velocityMax:127,nameMax:80,
+  velocityMin:1,velocityMax:127,nameMax:80,fingeringMax:4096,buttonMax:4095,
   timelineQuarterNotesMax:32768,timelineSecondsMax:7200,bytesMax:8000000,
   undoCommands:100,undoBytes:32*1024*1024,
 });
@@ -73,6 +73,18 @@ function validateEvent(e,path,clip){
   if(e.source!==undefined&&(e.source===null||typeof e.source!=='object'||Array.isArray(e.source)))fail(path+'.source','expected an object');
 }
 
+// Chosen buttons: exact coordinate "period,generator" → key index on the project's own saved layout.
+function validateFingering(f){
+  if(!f||typeof f!=='object'||Array.isArray(f))fail('fingering','expected an object of chosen buttons');
+  const entries=Object.entries(f);
+  if(entries.length>LIMITS.fingeringMax)fail('fingering',`expected at most ${LIMITS.fingeringMax} chosen buttons`);
+  for(const [id,key] of entries){
+    const m=/^(-?\d+),(-?\d+)$/.exec(id);
+    if(!m||`${Number(m[1])},${Number(m[2])}`!==id||Math.abs(Number(m[1]))>LIMITS.coordinateMax||Math.abs(Number(m[2]))>LIMITS.coordinateMax)fail(`fingering["${id}"]`,`expected a canonical coordinate "period,generator" within ±${LIMITS.coordinateMax}`);
+    if(!isInt(key)||key<0||key>LIMITS.buttonMax)fail(`fingering["${id}"]`,`expected a button number 0-${LIMITS.buttonMax}`);
+  }
+}
+
 /** Throws a descriptive Error naming the first problem; never mutates its input. */
 export function validateProject(p){
   if(!p||typeof p!=='object')fail('project','expected an object');
@@ -121,6 +133,7 @@ export function validateProject(p){
   const l=p.loop;
   if(!l||typeof l.enabled!=='boolean'||!isInt(l.startTick)||l.startTick<0||(l.endTick!==null&&(!isInt(l.endTick)||l.endTick<=l.startTick)))fail('loop','expected {enabled, startTick, endTick > startTick or null}');
   if(!p.sound||!WAVES.includes(p.sound.wave))fail('sound.wave',`expected one of ${WAVES.join(', ')}`);
+  if(p.fingering!==undefined)validateFingering(p.fingering);
   return p;
 }
 
@@ -241,6 +254,12 @@ export const setName=(project,name)=>commit(project,p=>{p.name=String(name).slic
 export const setLoop=(project,loop)=>commit(project,p=>{p.loop={enabled:!!loop.enabled,startTick:loop.startTick??0,endTick:loop.endTick??null};});
 export const setWave=(project,wave)=>commit(project,p=>{p.sound={...p.sound,wave};});
 export const setClipLength=(project,clipId,lengthTick)=>commit(project,p=>{clipOf(p,clipId).lengthTick=lengthTick;});
+/** Chooses the button each listed exact pitch uses, or with `key: null` returns it to automatic choice. */
+export const setFingering=(project,changes)=>commit(project,p=>{
+  const next={...p.fingering};
+  for(const {coordinate,key} of changes){const id=canonicalCoordinate(coordinate).join(',');if(key===null)delete next[id];else next[id]=key;}
+  if(Object.keys(next).length)p.fingering=next;else delete p.fingering;
+});
 
 /** Resize the arrangement without removing notes or changing repeated clip content. */
 export const setProjectBars=(project,bars)=>commit(project,p=>{
