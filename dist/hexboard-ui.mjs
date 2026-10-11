@@ -19,6 +19,7 @@ import {mod} from './pitch.mjs';
 import {equivalencePolicy,quotientCoordinate} from './harmonic-equivalence.mjs';
 import {frequencyFor} from './audio.mjs';
 import {esc,option} from './ui.mjs';
+import {rootedChordName} from './harmonic-bass.mjs';
 const fmt=(x,n=3)=>Number(x).toFixed(n);
 const signed=x=>(x>=0?'+':'')+x;
 const defaults=()=>({periodWrapping:true,showPeriodLabels:false,periodPlacement:null,copyPeriodStep:1,registerAlignment:'scale',base:7,scaleFilter:'2',offset:0,style:'bosanquet',rotation:0,mirror:false,flipHorizontal:false,flipVertical:false,center:65,register:0,deviceRotation:1,outside:false,ap:1,ag:0,bp:0,bg:1,tolerance:10,limit:DEFAULT_ODD_LIMIT,primeLimit:null,root:65,selected:65,chord:[],selectChord:false,palette:'spectrum',layerGrowth:'balanced',layerColors:{},keyColors:{},degreeColors:{}});
@@ -39,7 +40,7 @@ export function createHexboardWorkspace({matchPlayed=()=>null,getJI,setJI,getSta
  let colorScope='key',configs=[defaults()],finders=[freshFinder()],defaultScope='',buttonColorContext=null;
  const state=()=>getStates()[0];
 
- const harmonicPlay=createHarmonicPlayWorkspace({getState:state,getBoard:()=>buildBoard(state(),config()),getNear:()=>config().center,refresh,notify,play,onCollect,onBrowse:onBrowseHarmony,onFitScale:onFitHarmonicScale,onHighlight:value=>{harmonicHighlight=value;scaleHighlight=null;}});
+ const harmonicPlay=createHarmonicPlayWorkspace({getState:state,getBoard:()=>boardFor(state(),config()),getNear:()=>config().center,refresh,notify,play,onCollect,onBrowse:onBrowseHarmony,onFitScale:onFitHarmonicScale,onHighlight:value=>{harmonicHighlight=value;scaleHighlight=null;}});
  function config(){const s=state(),cfg=configs[0],bs=baseOptions(s);if(getJI){const ji=getJI(s);cfg.limit=ji.limit;cfg.primeLimit=ji.primeLimit??null;cfg.tolerance=ji.tol;}const target=getJI?{limit:cfg.limit,primeLimit:cfg.primeLimit}:undefined,defaultKey=scaleDefaultKey(s,target);// The automatic base follows mapping and JI-target changes, never a retuning.
 if(defaultKey!==coverageKey){const coverage=findScaleMilestones(s,target);if(!keepRestoredBase&&bs.some(v=>v.n===coverage.intervalMOS?.n)){cfg.base=coverage.intervalMOS.n;cfg.offset=0;}coverageKey=defaultKey;keepRestoredBase=false;}if(!bs.some(v=>v.n===cfg.base))cfg.base=(bs.find(v=>v.n===7)||bs.filter(v=>v.n<s.n).at(-1)||bs[0])?.n||2;if(!bs.length&&['bosanquet','compressed'].includes(cfg.style))cfg.style='period';cfg.base=Math.min(cfg.base,s.n);cfg.offset=Math.max(0,Math.min(cfg.offset,s.n-cfg.base));return cfg;}
  function buttonColorContextKey(){const s=state(),cfg=config();return JSON.stringify([mappingKey(s),s.n,s.mode,layoutKey(cfg),cfg.layerGrowth]);}
@@ -81,7 +82,7 @@ if(defaultKey!==coverageKey){const coverage=findScaleMilestones(s,target);if(!ke
  function boardSignature(s,cfg){return JSON.stringify([s.basis,s.rows,s.p,s.g,s.n,s.mode,cfg.base,cfg.offset,cfg.style,cfg.rotation,cfg.mirror,cfg.flipHorizontal,cfg.flipVertical,cfg.deviceRotation,cfg.center,cfg.register,cfg.outside,cfg.ap,cfg.ag,cfg.bp,cfg.bg,cfg.tolerance,cfg.limit,cfg.primeLimit,cfg.periodWrapping,cfg.periodPlacement,cfg.copyPeriodStep,cfg.registerAlignment]);}
  function finderState(s,cfg){
   const f=finders[0],signature=boardSignature(s,cfg);
-  if(f.signature!==signature){f.groups=[];f.selected=-1;f.placement=0;f.signature=signature;if(f.imported?.identity===tuningIdentity(s)){const g=f.imported;f.groups=[{...g,placements:chordPlacements(buildBoard(s,cfg),g.coordinates,cfg.center,g).sort((a,b)=>a.reach-b.reach)}];f.selected=0;}else f.imported=null;}return f;
+  if(f.signature!==signature){f.groups=[];f.selected=-1;f.placement=0;f.signature=signature;if(f.imported?.identity===tuningIdentity(s)){const g=f.imported;f.groups=[{...g,placements:chordPlacements(buildBoard(s,cfg),g.coordinates,cfg.center,g)}];f.selected=0;}else f.imported=null;}return f;
  }
  function highlighted(s,cfg){if(harmonicHighlight)return harmonicHighlight;const f=finderState(s,cfg);return f.groups[f.selected]?.placements[f.placement]||null;}
  function finderMarkup(s,cfg){const f=finderState(s,cfg),g=f.groups[f.selected],p=g?.placements[f.placement];let assessment='';if(g){const coordinates=g.coordinates??g.shape;if(coordinates?.length){const key=JSON.stringify([s.basis,s.rows,s.p,s.g,cfg.limit,cfg.primeLimit,cfg.tolerance,coordinates]);if(g.analysisKey!==key){g.analysis=inspectCoordinateChord(s,coordinates,{limit:cfg.limit,primeLimit:cfg.primeLimit,tolerance:cfg.tolerance,other:false});g.analysisKey=key;}assessment=renderCoordinateAssessment(g.analysis);}}if(!g)return '';return `<section class="hex-chord-finder">  ${g?`<p role="status"><b>${esc(g.label)}</b> · ${g.placements.length?p?`Placement ${f.placement+1}/${g.placements.length} · buttons ${p.keys.join(', ')} · reach ${p.reach}${g.exact?` · register ${p.periodShift>=0?'+':''}${p.periodShift} periods`:''}`:'Choose a placement':'No complete placement on the enabled keys. Try another voicing or layout.'}</p><div class="panelactions"><button data-hex-action="chords-prev" ${g.placements.length>1?'':'disabled'}>← Previous placement</button><button data-hex-action="chords-next" ${g.placements.length>1?'':'disabled'}>Next placement →</button><button data-hex-action="chords-play" ${p?'':'disabled'}>▶ Hear highlighted chord</button><button data-hex-action="chords-clear">Clear highlight</button></div>`:''}
@@ -143,7 +144,9 @@ if(!Array.isArray(data.configs)||![1,2].includes(data.configs.length))throw Erro
   const columns=pressed.map(({key,pitch},i)=>{const ratio=played.noteLabels?.[key.m.join(',')];return `<section class="live-note-column" aria-label="Button ${key.index}">${ratio?`<strong class="live-ratio-member" ${i?'data-ratio-colon':''}>${esc(ratio)}</strong>`:''}<span title="Button number">#${key.index}</span><span title="Scale degree">${key.degree>=0?'Deg '+key.degree:'Outside'}</span><span title="Cents modulo period">${fmt(mod(pitch,s.p),2)} ¢</span><span title="Sounding frequency">${fmt(frequencyFor(pitch,getHz()),2)} Hz</span></section>`;}).join('');
   const notes=[played.doubled?'with doubled notes':'',played.source==='proof'?'not in the current directory list':''].filter(Boolean).map(text=>`<small>${text}</small>`).join('');
   let heading='';
-  if(played.status==='chord')heading=`<div class="live-note-chord" aria-label="Chord"><strong>${esc(played.label)}</strong> <span class="form-badge ${played.form}">${esc(played.formLabel)}</span>${played.rotation&&played.rotation!==played.label?`<small>played as ${esc(played.rotation)}</small>`:''}${notes}${played.alternatives?.length?`<details><summary>Also reads as</summary>${played.alternatives.map(label=>`<p>${esc(label)}</p>`).join('')}</details>`:''}</div>`;
+  // A listed chord is written root - chord with its root's scale degree, when the root is a scale note.
+  const rootDegree=played.rootNote?pressed.find(({key})=>key.m.join(',')===played.rootNote)?.key.degree:undefined;
+  if(played.status==='chord')heading=`<div class="live-note-chord" aria-label="Chord"><strong>${esc(rootedChordName(rootDegree>=0?rootDegree:null,played.label))}</strong> <span class="form-badge ${played.form}">${esc(played.formLabel)}</span>${played.rotation&&played.rotation!==played.label?`<small>played as ${esc(played.rotation)}</small>`:''}${notes}${played.alternatives?.length?`<details><summary>Also reads as</summary>${played.alternatives.map(label=>`<p>${esc(label)}</p>`).join('')}</details>`:''}</div>`;
   else if(played.status==='interval')heading=`<div class="live-note-chord" aria-label="Interval"><strong>${esc(played.label)}</strong><small>interval</small>${played.readings.length>1?`<small>also ${played.readings.slice(1,4).map(esc).join(', ')}</small>`:''}${notes}</div>`;
   else if(played.status==='none')heading=`<p class="live-notes-empty">${esc(played.reason)}${played.contains?.length?` · contains ${played.contains.map(item=>esc(item.label)).join(', ')}`:''}</p>`;
   host.innerHTML=`${heading}<div class="live-note-columns">${columns}</div>`;
@@ -243,13 +246,15 @@ if(!Array.isArray(data.configs)||![1,2].includes(data.configs.length))throw Erro
  // The fingerings of the chord now on the Play board, from whichever source holds it
  // (the harmonic selection or the finder), and a way to light one of them. Lighting goes
  // through the normal highlight, so the screen and a physical board both follow.
+ // Polled several times a second, so the placements are the sources' own lists, not copies:
+ // callers must not modify them.
  function fingerings(){
   let harmonic=null,finder=null;
-  const m=harmonicPlay.model();
-  if(m.selection&&m.placements.length)harmonic={source:'harmonic',label:m.selection.label??'Chord',index:m.fingering,placements:m.placements.map(p=>({keys:[...p.keys],reach:p.reach,periodShift:p.periodShift}))};
   try{
+   const m=harmonicPlay.model();
+   if(m.selection&&m.placements.length)harmonic={source:'harmonic',label:m.selection.label??'Chord',index:m.fingering,placements:m.placements};
    const f=finderState(state(),config()),g=f.groups[f.selected];
-   if(g&&g.placements.length)finder={source:'finder',label:g.label,index:f.placement,placements:g.placements.map(p=>({keys:[...p.keys],reach:p.reach,periodShift:p.periodShift}))};
+   if(g&&g.placements.length)finder={source:'finder',label:g.label,index:f.placement,placements:g.placements};
   }catch{/* no buildable layout: no fingerings */}
   // A fingering already highlighted from the harmonic selection wins; otherwise whichever source holds a chord.
   return harmonic&&(harmonicHighlight||!finder)?harmonic:finder??harmonic;
@@ -259,7 +264,8 @@ if(!Array.isArray(data.configs)||![1,2].includes(data.configs.length))throw Erro
   if(!f)return false;
   if(f.source==='harmonic'){if(!harmonicPlay.select(index))return false;}
   else{if(!Number.isInteger(index)||index<0||index>=f.placements.length)return false;finders[0].placement=index;}
-  refresh();return true;
+  // Only the highlight moves, so keys being played keep sounding through the redraw.
+  refresh('highlight');return true;
  }
  // What a physical board should show: the same picture as the screen, as plain data.
  // Read-only; null when the current layout cannot be built.

@@ -5,7 +5,7 @@ import {searchShapeOccurrences,occurrenceShape} from './chord-occurrence-v2.mjs'
 import {realizeShape} from './chord-realization-v2.mjs';
 import {chordIdentity} from './chord-identity-v2.mjs';
 import {chordRotations,rotationRootKey} from './harmonic-ji-chords.mjs';
-import {bassInversions,chordClasses,inversionName} from './harmonic-bass.mjs';
+import {bassInversions,chordClasses,inversionName,rootInversions,rootedChordName} from './harmonic-bass.mjs';
 import {matchPlayedChord,rowsByShape} from './played-chord.mjs';
 import {assessET} from './harmonic-et.mjs';
 import {equivalencePolicy,harmonicIdentity,quotientCoordinate,shapeKey} from './harmonic-equivalence.mjs';
@@ -93,7 +93,7 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
  let selectedRoot='',inversion=0,style='original',periodShift=0,sourceSelection=null,directInputs=[],pendingRestore=null;
  // bass: the shared "chords on this bass note" filter, {scale:'discover'|'play', degree}; bassChoice: the
  // bass entry last chosen from that list, so the analysis can name its bass.
- let bass=null,bassChoice=null,bassMemo=null;
+ let bass=null,bassChoice=null;const degreeMemo={bass:null,root:null};
  let sizeMin=3,sizeMax=6,directoryFormFilter='all',recent=[];const closedGroups=new Set(),openGroups=new Set(),expandedGroups=new Set();let favourites=loadFavourites();
  function saveFavourites(){try{globalThis.localStorage?.setItem('temperament-lab-chord-favourites',JSON.stringify(favourites));}catch{}}
  function remember(row){const input=row?rowInput(row):null;if(!input)return;recent=[{input,label:rowLabel(row)},...recent.filter(r=>r.input!==input)].slice(0,6);}
@@ -117,38 +117,46 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
   const key=rotationRootKey(tone.n,tone.d,octave);
   return Math.max(0,chordRotations(row.interpretation.identity,octave).findIndex(r=>r.root===key));
  }
- /** Every inversion of the listed chords that can stand on the bass degree (see harmonic-bass.mjs). */
- function bassEntries(rows,value=bass){
+ /**
+  * Every inversion of the listed chords that can stand on a scale degree as its bass (`by` 'bass') or
+  * as its root ('root'), see harmonic-bass.mjs. Each entry is named root - chord (`label`, the chord in
+  * its directory spelling) with its role: root position, or the inversion and its rotation's spelling.
+  */
+ function degreeEntries(rows,value,by='bass'){
   if(!value)return [];
   const s=value.scale==='play'?getPlayState():getState();if(value.degree>=s.n)return [];
-  const octave=s.basis.includes(2),key=JSON.stringify([value,s.basis,s.rows,s.n,s.mode,rows.map(row=>row.id)]);
-  if(bassMemo?.result===result&&bassMemo.key===key)return bassMemo.entries;
-  const entries=[];
+  const octave=s.basis.includes(2),key=JSON.stringify([value,s.basis,s.rows,s.n,s.mode,rows.map(row=>row.id)]),memo=degreeMemo[by];
+  if(memo?.result===result&&memo.key===key)return memo.entries;
+  const entries=[],inversions=by==='root'?rootInversions:bassInversions;
   for(const row of rows){
-   let found,list;try{found=occurrencesIn(s,row);if(!found)continue;list=bassInversions(s,found.geometry.shape.coordinates,found.geometry.tones,found.found,value.degree);}catch{continue;}
+   let found,list;try{found=occurrencesIn(s,row);if(!found)continue;list=inversions(s,found.geometry.shape.coordinates,found.geometry.tones,found.found,value.degree);}catch{continue;}
    for(const e of list){
     const index=rotationIndexFor(row,found.geometry,e.member,octave),r=row.kind==='ji'?chordRotations(row.interpretation.identity,octave)[index]:null;
-    entries.push({...e,row,rotation:index,label:r?rotationText(row,r):rowLabel(row),of:rowLabel(row),role:e.rootPosition?'root position':`${inversionName(e.inversion)} of ${rowLabel(row)}`});
+    const chord=rowLabel(row),spelling=r?rotationText(row,r):chord;
+    entries.push({...e,row,rotation:index,chord,spelling,label:rootedChordName(e.rootDegree,chord),of:chord,
+     role:e.rootPosition?'root position':`${inversionName(e.inversion)}${spelling===chord?'':` (${spelling})`}`});
    }
   }
   // Root positions first, then inversions; the directory's own order within each.
   entries.sort((a,b)=>(a.inversion>0)-(b.inversion>0));
-  bassMemo={result,key,entries};return entries;
+  degreeMemo[by]={result,key,entries};return entries;
  }
+ const bassEntries=(rows,value=bass)=>degreeEntries(rows,value,'bass');
  // The bass list over the directory's visible rows (size range and type filters applied).
- const directoryBassEntries=(value=bass)=>value?bassEntries(filtered().filter(row=>directorySize(row)>=sizeMin&&directorySize(row)<=sizeMax&&formMatches(row,directoryFormFilter)),value):[];
+ const directoryRows=()=>filtered().filter(row=>directorySize(row)>=sizeMin&&directorySize(row)<=sizeMax&&formMatches(row,directoryFormFilter));
+ const directoryBassEntries=(value=bass)=>value?bassEntries(directoryRows(),value):[];
  // Opens a bass entry in the analysis on its inversion, remembering its bass.
  function chooseBassEntry(pick,value=bass){
   // The voicing's bass (realization variant ids are bass member indices) follows the chosen inversion.
   entry=pick.row;selected=pick.row.id;inversion=pick.member;sourceSelection=null;rotation=pick.rotation;remember(entry);
-  bassChoice={rowId:pick.row.id,member:pick.member,inversion:pick.inversion,...value};
+  bassChoice={rowId:pick.row.id,member:pick.member,inversion:pick.inversion,rootDegree:pick.rootDegree,...value};
   // The analysis shows this occurrence when its scale filter reads the same scale as the bass.
   selectedRoot=(value.scale==='play')===scope.startsWith('play')?pick.occurrenceId:'';
  }
  function setBass(value){
   const next=value&&['discover','play'].includes(value.scale)&&Number.isInteger(value.degree)&&value.degree>=0?{scale:value.scale,degree:value.degree}:null;
   const s=next?(next.scale==='play'?getPlayState():getState()):null;
-  bass=next&&next.degree<s.n?next:null;bassMemo=null;bassChoice=null;
+  bass=next&&next.degree<s.n?next:null;degreeMemo.bass=null;bassChoice=null;
   return bass;
  }
  const bassWhere=()=>`${bass.scale==='play'?'Play':'Discover'} scale degree ${bass.degree}`;
@@ -157,7 +165,7 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
   const sizes=[...new Set(entries.map(e=>e.classCount))].sort((a,b)=>a-b);
   return `<p class="bass-summary">${entries.length} chord${entries.length===1?'':'s'} with ${esc(bassWhere())} as the bass</p><div class="directory-tree bass-list" aria-label="Chords on this bass">${sizes.map(size=>{
    const items=entries.filter(e=>e.classCount===size),group='bass-'+size,shown=expandedGroups.has(group)?items:items.slice(0,DIRECTORY_GROUP_PAGE);
-   return `<section class="bass-group"><h5>${SIZE_LABELS[size]??`${size}-note chords`} <small>${items.length}</small></h5><div class="directory-chords">${shown.map(e=>`<div class="directory-chord-row">${button('bass-select',`<span>${esc(e.label)}</span><small>${e.rootPosition?'root position':`${inversionName(e.inversion)} of ${esc(rowLabel(e.row))}`}</small>`,`class="directory-chord bass-chord" data-id="${esc(e.row.id)}" data-member="${e.member}" aria-pressed="${selected===e.row.id&&bassChoice?.member===e.member}"`)}</div>`).join('')}${shown.length<items.length?button('directory-more',`Show all ${items.length}`,`class="directory-more" data-group="${group}"`):''}</div></section>`;
+   return `<section class="bass-group"><h5>${SIZE_LABELS[size]??`${size}-note chords`} <small>${items.length}</small></h5><div class="directory-chords">${shown.map(e=>`<div class="directory-chord-row">${button('bass-select',`<span>${esc(e.label)}</span><small>${esc(e.role)}</small>`,`class="directory-chord bass-chord" data-id="${esc(e.row.id)}" data-member="${e.member}" aria-pressed="${selected===e.row.id&&bassChoice?.member===e.member}"`)}</div>`).join('')}${shown.length<items.length?button('directory-more',`Show all ${items.length}`,`class="directory-more" data-group="${group}"`):''}</div></section>`;
   }).join('')}</div>`;
  }
  async function run({force=false,direct=null}={}){
@@ -208,8 +216,8 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
   const found=scopeOccurrences(entry),root=found.completeOccurrences.find(row=>row.id===selectedRoot),voice=root?realizeShape(s,geometry.shape,root,{inversion,style,periodShift},{tones:geometry.tones,tolerance:tolerance()}):null;
   return {entry,geometry,occurrences:found,root,voice,state:s};}
  function currentSelection(){if(sourceSelection)return sourceSelection;const m=detailModel();if(!m.geometry)return null;return harmonicSelection(m.state,entry,{voicing:m.voice??sourceShapeVoicing(m.state,rotatedShape(m))});}
- // Without a chosen voicing the selection sounds the focused rotation: its root lowest, every other
- // member within the octave above it.
+ // Without a chosen voicing the selection sounds the focused rotation: its first note in the bass,
+ // every other member within the octave above it.
  function rotatedShape(m){
   const s=m.state,shape=m.geometry.shape,k=rotations(m)[rotation]?.index??0,octave=s.basis.includes(2)?mapRatio(2,1,s):null;
   if(!k||!octave)return shape;
@@ -300,7 +308,8 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
    ${others.length?`<details class="harmony-aliases"><summary>Also written as (${others.length})</summary><p>${others.map(esc).join(' · ')}</p></details>`:''}`;
  }
  // The selected rotation, beneath the directory chord it belongs to, named as an inversion of that
- // chord (its directory spelling is root position) and, when chosen from the bass list, with its bass.
+ // chord (its directory spelling is root position), written root - chord when a placement on the scale
+ // fixes its root (the bass-list choice, or the chosen occurrence), and with its bass from the bass list.
  function rotationMember(m,current){
   if(entry.kind!=='ji')return current.index;
   const octave=m.state.basis.includes(2);
@@ -311,9 +320,10 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
   const current=list[rotation]??list[0];let role='';
   try{
    const member=rotationMember(m,current),classes=member>=0?chordClasses(m.state,m.geometry.shape.coordinates,entry.kind==='ji'?m.geometry.tones:null).classes:[];
-   const k=classes.findIndex(c=>c.member===member);
-   if(k>=0)role=k===0?' · root position':` · ${inversionName(k)} of ${esc(rowLabel(entry))}`;
-   if(bassChoice?.rowId===entry.id&&bassChoice.member===member)role+=` · bass on ${bassChoice.scale==='play'?'Play':'Discover'} scale degree ${bassChoice.degree}`;
+   const k=classes.findIndex(c=>c.member===member),chosen=bassChoice?.rowId===entry.id&&bassChoice.member===member;
+   const root=chosen?bassChoice.rootDegree:m.root?.root,chord=esc(rootedChordName(root,rowLabel(entry)));
+   if(k>=0)role=k===0?` · root position${root==null?'':` of ${chord}`}`:` · ${inversionName(k)} of ${chord}`;
+   if(chosen)role+=` · bass on ${bassChoice.scale==='play'?'Play':'Discover'} scale degree ${bassChoice.degree}`;
   }catch{}
   return `<p class="harmony-current-rotation" aria-live="polite">Rotation <b>${esc(current.display??current.label)}</b>${role}</p>`;
  }
@@ -368,7 +378,7 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
    ${entry.kind==='ji'?otherReadings():''}
    ${!geometry?`<p>Outside the mapping subgroup · missing primes ${entry.missingPrimes?.join(', ')??'unknown'}. No sounding coordinates are available.</p>`:`
     ${commas.length?`<p>Commas joining these intervals: ${commas.map(esc).join(', ')}</p>`:''}
-    ${m.occurrences.completeOccurrences.length?`<label>Occurrence<select data-harmony-field="root"><option value="">Choose a root for voicing</option>${m.occurrences.completeOccurrences.map(root=>option(root.id,`Degree ${root.root}${root.tonicAnchored?' · tonic':''}`,selectedRoot)).join('')}</select></label>`:`<p>Mapped harmony is absent from this scale. Generator span ${m.occurrences.generatorSpan}; at least ${m.occurrences.minimumChainSize} consecutive generator positions are needed.</p>`}
+    ${m.occurrences.completeOccurrences.length?`<label>Occurrence<select data-harmony-field="root"><option value="">Choose a root for voicing</option>${m.occurrences.completeOccurrences.map(root=>option(root.id,`${rootedChordName(root.root,rowLabel(entry))}${root.tonicAnchored?' · tonic':''}`,selectedRoot)).join('')}</select></label>`:`<p>Mapped harmony is absent from this scale. Generator span ${m.occurrences.generatorSpan}; at least ${m.occurrences.minimumChainSize} consecutive generator positions are needed.</p>`}
     ${m.voice?`<div class="harmony-controls">${select('inversion','Bass / inversion',inversion,m.voice.variants.map(v=>[v.id,v.label]))}${select('style','Spacing',style,[['original','Original spelling'],['compact','Compact'],['open','Open']])}<label>Shift · periods<input type="number" data-harmony-field="periodShift" min="-8" max="8" value="${periodShift}"></label></div><p>${m.voice.voices.length} voices · ${esc(m.voice.reference.label)} · ${m.voice.ratios?.map(esc).join(' : ')??'Coordinate-only voicing'}${m.voice.maxErrorCents==null?'':` · worst voiced pair ${number(m.voice.maxErrorCents)}¢`}</p>`:''}
 `}`;
  }
@@ -442,6 +452,8 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
  return {render,renderParts,change,click,sync,setEnabled,openInput,focus,focusExternal,matchPlayed,
   /** Sets (or clears, with null) the shared bass filter {scale:'discover'|'play', degree}; returns the applied value. */
   setBass(value){const applied=setBass(value);refresh();return applied;},bass:()=>bass?{...bass}:null,bassEntries:()=>directoryBassEntries(),
+  // The directory's chords with a scale degree as their root (every inversion); null while listing.
+  rootEntriesFor(value){sync();if(!result||status==='loading')return null;const s=value?.scale==='play'?getPlayState():getState();if(!value||!Number.isInteger(value.degree)||value.degree<0||value.degree>=s.n)return [];return degreeEntries(directoryRows(),{scale:value.scale==='play'?'play':'discover',degree:value.degree},'root');},
   /** The directory's chords on any bass, without changing the shared filter; null until the directory is listed. */
   bassEntriesFor(value){sync();if(!result||status==='loading')return null;const s=value?.scale==='play'?getPlayState():getState();if(!value||!Number.isInteger(value.degree)||value.degree<0||value.degree>=s.n)return [];return directoryBassEntries({scale:value.scale==='play'?'play':'discover',degree:value.degree});},
   /** Opens the directory chord rowId on the inversion with member `member` in the bass (as a bass entry). */

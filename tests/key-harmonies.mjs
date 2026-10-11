@@ -39,8 +39,8 @@ const r=bassWs.harmoniesAt({size:3,reach:6}),b=board(),tonic=b.keys[65];
 assert.equal(r.key.index,65);assert.equal(r.key.degree,0);assert.equal(r.size,3);assert.equal(r.reach,6);assert.equal(r.loading,false);
 const directory=r.harmonies.filter(h=>h.source==='directory'),others=r.harmonies.filter(h=>h.source==='layout');
 assert.ok(directory.length>=3,`several directory chords stand on the tonic key (${directory.length})`);
-assert.ok(directory.some(h=>h.label==='4:5:6'&&h.role==='root position'),'major in root position');
-assert.ok(directory.some(h=>/inversion of/.test(h.role)),'and inversions of other chords');
+assert.ok(directory.some(h=>h.label==='0 - 4:5:6'&&h.role==='root position'),'major in root position, written root - chord');
+assert.ok(directory.some(h=>/inversion/.test(h.role)&&!h.label.startsWith('0 - ')),'and inversions of chords rooted on other degrees');
 assert.deepEqual(r.harmonies.map(h=>h.source),[...directory.map(()=>'directory'),...others.map(()=>'layout')],'directory chords come first');
 // Every place has the selected key as its lowest note, stays within reach, and plays the exact close voicing.
 const entries=catalogue.bassEntriesFor({scale:'play',degree:0});

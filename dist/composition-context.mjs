@@ -68,6 +68,16 @@ export function matchesApp(ctx,state){
 }
 
 /**
+ * The voice of a harmonic selection that sounds its root: the shape's first member, the lowest note of the
+ * chord's default rotation. Voices follow the collected coordinates; when none matches, the first is the root.
+ */
+export function selectionRootTone(selection,count){
+  const id=selection?.shape?.members?.[0]?.memberId??'member:0',voices=selection?.voicing?.voices;
+  const i=Array.isArray(voices)&&voices.length===count?voices.findIndex(v=>v?.memberId===id):-1;
+  return i>=0?i:0;
+}
+
+/**
  * Builds a chord event from a collected chord, copying its exact coordinates and any
  * provenance. Items collected in another tuning are rejected rather than retuned.
  */
@@ -79,6 +89,6 @@ export function materialToChordEvent(ctx,item,{startTick,durationTick,velocity=9
   return {
     startTick,durationTick,velocity,
     tones:item.coords.map(m=>({coordinate:[m[0]===0?0:m[0],m[1]===0?0:m[1]]})),
-    source:{kind:'collection',label:item.label,...(item.exact?{exact:true}:{}),...(item.harmonicSelection?{harmonicSelection:structuredClone(item.harmonicSelection)}:{})},
+    source:{kind:'collection',label:item.label,...(item.harmonicSelection?{rootTone:selectionRootTone(item.harmonicSelection,item.coords.length)}:{}),...(item.exact?{exact:true}:{}),...(item.harmonicSelection?{harmonicSelection:structuredClone(item.harmonicSelection)}:{})},
   };
 }

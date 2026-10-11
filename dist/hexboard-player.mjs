@@ -50,6 +50,8 @@ export function createHexboardPlayer({document:doc,window:win,press,startVoice,o
   const pointer='board:'+id;pointers.set(pointer,play(node,pointer,t));publishActiveNotes();return true;
  }
  function releaseKey(id,t){const pointer='board:'+id;if(!pointers.has(pointer))return false;pointers.delete(pointer);releaseUnused(t);publishActiveNotes();return true;}
+ // After the board's keys are redrawn without stopping play: marks the held keys as playing again.
+ function repaint(){for(const id of held.keys())paint(id,true);}
  function destroy(){reset();for(const [target,type,fn,options] of listeners.splice(0))target.removeEventListener?.(type,fn,options);}
- return {reset,retune,pressKey,releaseKey,destroy};
+ return {reset,retune,pressKey,releaseKey,repaint,destroy};
 }

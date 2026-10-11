@@ -3,10 +3,14 @@ import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
 import {makeState} from '../dist/engine.mjs';
 import {createFingeringGame} from '../dist/fingering-game.mjs';
 import {ledFrame} from '../dist/hexboard-sync.mjs';
+import {getHarmonicEntry} from '../dist/harmonic-catalogue.mjs';
+import {harmonicSelection} from '../dist/harmonic-selection.mjs';
+
+const TRIAD=[[0,0],[-2,4],[0,1]];
 
 const state=makeState('meantone');
-let refreshes=0;
-const ws=createHexboardWorkspace({getStates:()=>[state],play:()=>{},refresh:()=>{refreshes++;},notify:m=>{throw Error(m);},getHz:()=>220});
+let refreshes=0;const refreshModes=new Set();
+const ws=createHexboardWorkspace({getStates:()=>[state],play:()=>{},refresh:mode=>{refreshes++;refreshModes.add(mode);},notify:m=>{throw Error(m);},getHz:()=>220});
 const litKeys=()=>ws.deviceSnapshot().keys.filter(k=>k.lit).map(k=>k.index).sort((a,b)=>a-b);
 
 // No chord yet.
@@ -37,6 +41,7 @@ for(const i of [3,7,f.placements.length-1,0]){
   assert.equal(ws.fingerings().index,i);
 }
 assert.equal(refreshes-before,4,'each change redraws the board once');
+assert.deepEqual([...refreshModes],['highlight'],'a highlight-only redraw, so the keys being played keep sounding');
 assert.equal(ws.showFingering(-1),false);assert.equal(ws.showFingering(f.placements.length),false);assert.equal(ws.showFingering(1.5),false);
 assert.equal(ws.fingerings().index,0,'a refused index changes nothing');
 
@@ -69,17 +74,58 @@ void frame;
   game.start();assert.equal(game.state().total,f.placements.length);game.stop();
 }
 
-// The app runs with harmonic discovery on. A chord placed through the finder (a collected chord
-// without harmonic provenance) must still have its fingerings listed and lit.
+const fresh=()=>createHexboardWorkspace({getStates:()=>[state],play:()=>{},refresh:()=>{},notify:m=>{throw Error(m);},getHz:()=>220});
+const keysOf=f=>f.placements.map(p=>p.keys.join(','));
+const moveTonic=(w,value)=>w.change({dataset:{hexField:'center'},value:String(value)});
+
+// A layout change keeps the board's order: the rebuilt list matches placing the chord on that layout.
 {
-  const wsH=createHexboardWorkspace({getStates:()=>[state],play:()=>{},refresh:()=>{},notify:m=>{throw Error(m);},getHz:()=>220});
-  assert.equal(wsH.fingerings(),null,'nothing placed yet');
-  wsH.showChord([[0,0],[-2,4],[0,1]],'major triad',{exact:true});
-  const fh=wsH.fingerings();
-  assert.ok(fh,'fingerings are found with harmonic mode on');assert.equal(fh.source,'finder');assert.equal(fh.label,'major triad');
-  assert.equal(wsH.showFingering(4),true);
-  assert.deepEqual(wsH.deviceSnapshot().keys.filter(k=>k.lit).map(k=>k.index).sort((a,b)=>a-b),[...fh.placements[4].keys].sort((a,b)=>a-b));
-  assert.equal(wsH.fingerings().index,4);
+  const a=fresh(),b=fresh();
+  a.showChord(TRIAD,'major triad',{exact:true});moveTonic(a,66);
+  moveTonic(b,66);b.showChord(TRIAD,'major triad',{exact:true});
+  assert.deepEqual(keysOf(a.fingerings()),keysOf(b.fingerings()),'same fingerings in the same order after a layout change');
+}
+
+// A layout change during a game ends it rather than waiting for keys that are no longer lit.
+{
+  const w=fresh();w.showChord(TRIAD,'major triad',{exact:true});
+  const game=createFingeringGame({getFingerings:()=>w.fingerings(),showFingering:i=>w.showFingering(i)});
+  game.start({count:5});game.onHeld(new Set(game.state().target));game.onHeld(new Set());
+  moveTonic(w,66);game.check();
+  assert.equal(game.state().phase,'idle');assert.match(game.state().message,/layout changed/);
+}
+
+// Choosing another chord during a game keeps the place the player chose for it.
+{
+  const w=fresh();w.showChord(TRIAD,'major triad',{exact:true});
+  const game=createFingeringGame({getFingerings:()=>w.fingerings(),showFingering:i=>w.showFingering(i)});
+  game.start({count:5});
+  w.showChord([[0,0],[2,-3],[0,1]],'minor triad',{exact:false});w.showFingering(3);
+  game.check();
+  assert.equal(game.state().phase,'idle');assert.equal(w.fingerings().label,'minor triad');assert.equal(w.fingerings().index,3);
+}
+
+// A chord sent from Discover: its fingerings come from the harmonic selection, start with none
+// chosen, and a finished game clears the highlight again.
+{
+  const s19={...makeState('meantone'),n:19,mode:0};
+  const w=createHexboardWorkspace({getStates:()=>[s19],play:()=>{},refresh:()=>{},notify:m=>{throw Error(m);},getHz:()=>220});
+  w.acceptHarmonicSelection(harmonicSelection(s19,await getHarmonicEntry({state:s19},'4:5:6')));
+  const h=w.fingerings();
+  assert.equal(h.source,'harmonic');assert.equal(h.index,-1,'no fingering is chosen silently');assert.ok(h.placements.length>=3);
+  const lit=()=>w.deviceSnapshot().keys.filter(k=>k.lit).map(k=>k.index).sort((a,b)=>a-b);
+  const game=createFingeringGame({getFingerings:()=>w.fingerings(),showFingering:i=>w.showFingering(i)});
+  game.start({count:3});
+  for(let round=0;round<3;round++){
+    assert.deepEqual([...game.state().target].sort((a,b)=>a-b),lit(),`Discover fingering ${round} is lit`);
+    assert.equal(w.fingerings().index,round);
+    game.onHeld(new Set(lit()));game.onHeld(new Set());
+  }
+  assert.equal(game.state().phase,'done');
+  assert.equal(w.fingerings().index,-1,'the highlight goes back to none chosen');assert.deepEqual(lit(),[]);
+  // A placed chord does not take over while a Discover fingering is highlighted.
+  w.showFingering(1);w.showChord(TRIAD,'major triad',{exact:true});
+  assert.equal(w.fingerings().source,'finder','placing a chord replaces the Discover highlight');
 }
 
 console.log('fingering-board: ok');

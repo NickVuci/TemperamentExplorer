@@ -3762,12 +3762,12 @@ footer {
 /* Compose chord lane: drag a chord to move it, drag its right edge to change its length. */
 .roll-chord-lane .chord-block{overflow:hidden;text-overflow:ellipsis;min-width:6px;touch-action:none;cursor:grab;box-sizing:border-box}
 .roll-chord-lane .chord-block-type{display:block;overflow:hidden;text-overflow:ellipsis;font-weight:600}
-.roll-chord-lane .chord-block-root{font-family:var(--font-mono);color:#fff7dd}
-.roll-chord-lane .chord-block-root sup{font-size:9px}
+.roll-chord-lane .chord-block-bass{font-family:var(--font-mono);color:#fff7dd}
+.roll-chord-lane .chord-block-bass sup{font-size:9px}
 .roll-chord-lane .chord-block-grip{position:absolute;top:0;right:0;bottom:0;width:8px;cursor:ew-resize;border-left:1px solid transparent}
 .roll-chord-lane .chord-block:hover .chord-block-grip,.roll-chord-lane .chord-block[aria-pressed=true] .chord-block-grip{border-left-color:#f4ce72;background:rgba(244,206,114,.25)}
 .roll-chord-lane .chord-block.is-dragging{opacity:.85;z-index:4;cursor:grabbing}
-.chord-root-note{font-size:13px;font-weight:400;color:var(--muted);font-family:var(--font-mono)}
+.chord-bass-note{font-size:13px;font-weight:400;color:var(--muted);font-family:var(--font-mono)}
 /* Chords on a bass note: the bass degree on the scale line, the directory's bass list, Play's sections. */
 .scale-line .scale-line-note.is-bass { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px #f4ce72; }
 .scale-line-note.is-bass span { color: #f4ce72; font-weight: 600; }

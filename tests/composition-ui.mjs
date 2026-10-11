@@ -71,7 +71,7 @@ assert.equal(chordClip().events.length,1);
 let c1=chordClip().events[0];
 assert.deepEqual(c1.tones.map(t=>t.coordinate),[[0,0],[-2,4],[0,1]],'exact coordinates copied');
 assert.equal(c1.durationTick,4*PPQ);assert.equal(c1.startTick,0);
-assert.deepEqual(c1.source,{kind:'collection',label:'major <triad>',exact:true,harmonicSelection:{sourceChord:'4:5:6'}});
+assert.deepEqual(c1.source,{kind:'collection',label:'major <triad>',rootTone:0,exact:true,harmonicSelection:{sourceChord:'4:5:6'}});
 items[0].coords[0][0]=99;assert.deepEqual(chordClip().events[0].tones[0].coordinate,[0,0],'later edits to the collection do not change the composition');
 items[0].coords[0][0]=0;
 const before=JSON.stringify(P());

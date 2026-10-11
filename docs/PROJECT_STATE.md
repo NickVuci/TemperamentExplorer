@@ -445,11 +445,18 @@ returns that shape in the active temperament. The analysis shows a form badge (o
 essentially tempered, unresolved), the otonal and utonal spellings, pitch classes and
 merged spellings, and the chord's rotations, each labelled in the chord's form
 (a utonal chord's as `1/a:b:c`, otonal and ambitonal ones as `a:b:c`). The directory chord stays in the
-heading with the selected rotation beneath it; choosing a rotation re-roots the focus and
-sounds it bass-first within an octave. It lists, for every member pair, the tempered
+heading with the selected rotation beneath it; choosing a rotation puts that note in the bass of the
+focus and sounds it bass-first within an octave. It lists, for every member pair, the tempered
 interval and each JI interval mapped to it with its tempering error, marking the readings a
 JI chord uses, the commas closing an ET chord's conflicting cycles (`assessET`), and other
 JI chords on the same shape.
+
+Root and bass (D-042). A chord's root is the lowest note of its default rotation, the directory
+spelling's member 0; its bass is its lowest sounding note. Wherever a placement fixes the root's scale
+degree, the chord is written `root - chord` (`harmonic-bass.mjs#rootedChordName`): `0 - 4:5:6` is major on
+degree 0 in any inversion. Bass entries, Discover occurrences, the analysis rotation line (with a chosen
+occurrence or bass entry), Play's Note → chords and occurrence lists, the Play readout of held keys
+(`played-chord.mjs` reports the played `rootNote`) and Compose all use it.
 
 Chords on a bass note. One shared bass filter, `{scale:'discover'|'play', degree}`, owned by the
 harmony workspace and saved in sessions, lists the directory's chords that can be built with that scale
@@ -461,10 +468,15 @@ never renumbers inversions) and tuned pitches for ET shapes; voicings keep every
 octave above the bass (not the period, so divided-octave temperaments keep their JI meaning); chords
 without 2 in the basis are exact and only their lowest note can be the bass. Entries come from the
 existing occurrence search, respect the directory's size, type and search filters, and list root
-positions first. The directory shows them in place of the tree when a bass is set (Bass note control, or
-a click on a Discover scale-line degree). Choosing one opens the chord on that rotation, with the voicing
-bass, occurrence and analysis heading ("1st inversion of 4:5:6 · bass on … degree d") to match. The
+positions first. Each entry is written root - chord with its inversion and rotation
+(`5 - 4:5:6`, `1st inversion (5:6:8)`) and carries `bassDegree`, `rootDegree`, `root` and `rootVoice`.
+The directory shows them in place of the tree when a bass is set (Bass note control, or a click on a
+Discover scale-line degree). Choosing one opens the chord on that rotation, with the voicing bass,
+occurrence and analysis heading ("1st inversion of 5 - 4:5:6 · bass on … degree d") to match. The
 analysis names every rotation as root position or an inversion of the directory chord.
+`rootInversions` lists the other direction, every inversion with its root on a degree
+(`rootEntriesFor`): root position is voiced close above the root, and inversion k raises the k lowest
+notes of that voicing by an octave.
 
 The harmony workspace owns the focused harmony: its selected row, rotation and scale
 occurrence (`focus()`). `harmonic-focus.mjs` projects it without changing other selections:
@@ -484,7 +496,7 @@ default) is on. Shift-clicking interval-matrix cells collects their scale degree
 three or more focus that chord; a plain click clears them and inspects the interval.
 
 The focus is shared with Play and Compose. Without a chosen voicing the selection sounds the
-focused rotation (root lowest, the rest within the octave above). Entering Play with a newly
+focused rotation (its first note in the bass, the rest within the octave above). Entering Play with a newly
 focused chord hands it to Play's harmony panel once; Send to Play does the same at once.
 Held Play notes (screen or HexBoard), three or more and held 250 ms, focus their chord in
 Discover while following is on, and a chord focused from Play is not handed back. Compose
@@ -757,14 +769,16 @@ chord and compact exact fingerings, practice). Melody bars can be selected, move
 between degrees or resized on a sixteenth-note grid; each drag is one undoable
 command. The roll's rows default to the HexBoard layout range: one row per in-scale pitch on the
 composition's saved layout (`boardRows`), with the home period and wider period ranges still selectable. Chord blocks drag along the chord lane and resize from their right edge on
-the same grid (overlaps are allowed), and show the chord's label with its root as a
-scale degree: the first tone, which inversion keeps (`chordRoot`). Below the chord lane, every melody
-row that sounds a note of a chord is tinted for that chord's span, and the root more strongly
+the same grid (overlaps are allowed), and are written root - chord (`chordName`), with the bass degree
+when it is not the root (`chordBass`). The root is the tone `source.rootTone` names, recorded from the
+directory entry or the collected chord's harmonic selection; chords without it are rooted on their first
+tone (`chordRoot`). Voicing edits keep tone order, so the root survives inversion. Below the chord lane,
+every melody row that sounds a note of a chord is tinted for that chord's span, and the root more strongly
 (`chordGuides`); notes match by octave class (exact without 2 in the basis), never by period. A Root
 lane under the melody rows shows each chord's root degree over its span. Clicking an empty spot picks a
 time on the sixteenth grid; clicking a chord's root picks that chord. Either opens a picker: choose a root
-(scale degree), then one of the directory's chords built on it as the bass (the shared bass entries for the
-Play scale), voiced close above that degree's home coordinate. The harmony is added at the time with the
+(scale degree), then one of the directory's chords on that root, in root position or an inversion (the
+Play scale's root entries), with the root on that degree's home coordinate. The harmony is added at the time with the
 chosen add length, or replaces the picked chord at its time and length, as one undoable edit. Because the
 directory follows the app, the picker only lists harmonies while the app matches the composition's setup. Chord inversion raises the lowest sounding voice by the actual
 temperament period and preserves its tone identity. Missing exact fingerings are
@@ -886,7 +900,8 @@ A panel at the foot of Play's side panel turns the chord on the board into a sho
 its fingerings to practise (3, 5, 10 or all), press Start, and the first fingering lights up; play
 all its keys together and the next lights up, until the set is finished (time, wrong keys and skips are
 shown; Skip and Stop are available). The panel is hidden and any running game ends when the player leaves
-the Play view, changes the chord, or clears the highlight (Escape).
+the Play view, changes the chord, changes the layout so that the game's fingerings move, or clears the
+highlight (Escape).
 
 | Concern | Owner |
 | --- | --- |
@@ -895,11 +910,15 @@ the Play view, changes the chord, or clears the highlight (Escape).
 | The chord's fingerings and lighting one | `hexboard-ui.mjs#fingerings` / `#showFingering` (harmonic selection or finder) |
 
 Lighting reuses the Play board's normal highlight, so the screen and a connected HexBoard both follow
-without any extra code. Held keys come from the board player's callback, so mouse and HexBoard play are
-treated the same. A fingering counts only when exactly its keys are held; extra keys block it, and keys
-held from the previous fingering must be lifted before the next one counts. The game's order is the
-board's own (nearest the tonic first). Not covered: scoring or timing targets, a saved history, and
-fingering practice away from the Play view.
+without any extra code. Lighting the next fingering is a highlight-only redraw (`refresh('highlight')`,
+`renderWorkspace({keepNotes:true})` in `app.mjs`): held keys keep sounding and stay marked, and the Now
+playing readout is redrawn. Held keys come from the board player's callback, so mouse and HexBoard play
+are treated the same. A fingering counts only when exactly its keys are held; extra keys block it, and
+keys held from the previous fingering must be lifted before the next one counts. The game plays the first
+fingerings in the order the Chords panel lists them. The game's chord is identified by its name and the
+keys of each of its fingerings; when either changes the game ends without moving the new chord's
+highlight, and otherwise stopping or finishing puts back the fingering lit before the game. Not covered:
+scoring or timing targets, a saved history, and fingering practice away from the Play view.
 
 ## Note → chords (Play)
 

@@ -924,3 +924,22 @@ placement, and that Find places gives exactly the old Map selected keys placemen
 **Consequences.** Searching for chords on the layout starts from a key. Do not reintroduce a
 board-wide chord list; extend Note → chords or the directory. `hexboard-chords.mjs#discoverBoardChords`
 remains only as the reference for that equivalence test.
+
+## D-042 — Root and bass are distinct; a rooted chord is written root - chord
+
+**Decision.** A chord's root is the lowest note of its default rotation, the directory spelling's member 0
+(D-038). Its bass is simply its lowest sounding note. Wherever a placement on a scale fixes the root's
+degree, the chord is written `root - chord`, the root as a scale degree and the chord in its directory
+spelling: `0 - 4:5:6` is a major chord on degree 0 in any inversion, and the inversion and its rotation
+(`1st inversion (5:6:8)`) are named beside it. `harmonic-bass.mjs#rootedChordName` owns the notation.
+Compose chord events record their root as `source.rootTone`, the index of the root tone; Compose's root
+lane picks a root and lists `rootInversions` (every inversion with that root), not bass entries.
+
+**Rationale.** Treating a chord's first or lowest tone as its root mislabelled every inversion: the 1st
+inversion of a major chord on degree 0 was shown rooted on the third. Directory rows are already one
+chord per rotation family, so naming the root by degree and the chord by its directory spelling gives a
+single, stable name per chord and placement. A tone index survives voicing edits, which keep tone order.
+
+**Consequences.** Bass entries and root entries share one shape (`bass`, `bassDegree`, `root`,
+`rootDegree`, `rootVoice`). Chords without a recorded root, from older projects or collected without a
+harmonic selection, are rooted on their first tone. Do not derive a root from the lowest sounding note.

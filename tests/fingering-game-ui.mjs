@@ -75,7 +75,7 @@ function setup({fingerings={label:'major <triad>',index:0,placements},playView=t
   assert.equal(t.host.hidden,true);assert.equal(t.game.state().phase,'idle','the game does not keep running out of sight');
   t.view=true;t.tick();assert.equal(t.host.hidden,false);
   t.click('start');t.fingerings={label:'minor triad',index:0,placements};t.tick();
-  assert.equal(t.game.state().phase,'idle');assert.match(t.host.innerHTML,/chord changed/);assert.match(t.host.innerHTML,/minor triad/);
+  assert.equal(t.game.state().phase,'idle');assert.match(t.host.innerHTML,/chord or layout changed/);assert.match(t.host.innerHTML,/minor triad/);
 }
 
 // Short chords offer just "All", and a stale length choice is clamped.

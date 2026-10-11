@@ -5,7 +5,7 @@ import {createKeyHarmoniesUi} from '../dist/key-harmonies-ui.mjs';
 const placements=n=>Array.from({length:n},(_,i)=>({keys:[65,70+i,80+i],reach:3}));
 const dir=(label,role,n,extra={})=>({source:'directory',label,role,rowId:'row:'+label,member:1,shape:[],placements:placements(n),reach:3,...extra});
 const layout=(label,role,n,max=1.5)=>({source:'layout',label,role,shape:[],placements:placements(n),reach:3,max,mapped:3,total:3});
-const base=[dir('4:5:6','root position',4),dir('5:6:8','1st inversion of 4:5:6',1),layout('1/1 · 4/3 · 8/5','not in the directory',2,5.25)];
+const base=[dir('0 - 4:5:6','root position',4),dir('5 - 4:5:6','1st inversion (5:6:8)',1),layout('1/1 · 4/3 · 8/5','not in the directory',2,5.25)];
 function setup({harmonies=base,key={index:65,cents:0,degree:0},loading=false}={}){
   const handlers={},calls=[],ticks=[];
   let result={key,size:3,reach:6,harmonies,count:harmonies.length,loading,settings:{limit:15,tolerance:10}};
@@ -39,8 +39,8 @@ function setup({harmonies=base,key={index:65,cents:0,degree:0},loading=false}={}
   const t=setup();
   const rows=[...t.host.innerHTML.matchAll(/<b>([^<]*)<\/b>\s*<span>([^<]*)</g)].map(m=>[m[1],m[2]]);
   assert.deepEqual(rows,[
-    ['4:5:6','root position · 4 places · reach 3'],
-    ['5:6:8','1st inversion of 4:5:6 · 1 place · reach 3'],
+    ['0 - 4:5:6','root position · 4 places · reach 3'],
+    ['5 - 4:5:6','1st inversion (5:6:8) · 1 place · reach 3'],
     ['1/1 · 4/3 · 8/5','not in the directory · 2 places · reach 3 · worst error 5.3 ¢ · 3/3 mapped'],   // 5.25.toFixed(1) is 5.3
   ]);
   assert.equal((t.host.innerHTML.match(/More on this layout<\/li>/g)||[]).length,1,'one heading before the layout-only shapes');
@@ -56,7 +56,7 @@ function setup({harmonies=base,key={index:65,cents:0,degree:0},loading=false}={}
   const t=setup();
   t.click('pick',{i:'0'});
   assert.deepEqual(t.calls.find(c=>c[0]==='show'),['show',0,0,{size:3,reach:6}],'the board is asked to light placement 0');
-  assert.deepEqual(t.calls.find(c=>c[0]==='pick'),['pick','4:5:6',65],'a directory chord also opens in the directory');
+  assert.deepEqual(t.calls.find(c=>c[0]==='pick'),['pick','0 - 4:5:6',65],'a directory chord also opens in the directory');
   assert.match(t.host.innerHTML,/aria-pressed="true"/);assert.match(t.host.innerHTML,/Place 1 of 4 · keys 65, 70, 80/);
   t.click('next');assert.match(t.host.innerHTML,/Place 2 of 4 · keys 65, 71, 81/);
   t.click('prev');t.click('prev');assert.match(t.host.innerHTML,/Place 4 of 4 · keys 65, 73, 83/,'Previous wraps to the last place');

@@ -112,14 +112,20 @@ click('rotation',{index:'1'});assert.match(ui.render(),/Rotation <b>5:6:8<\/b> �
   assert.match(list,/with Discover scale degree 2 as the bass/);
   {const firstInversion=entries.findIndex(e=>!e.rootPosition);assert.ok(firstInversion>0&&entries.slice(firstInversion).every(e=>!e.rootPosition),'root positions are listed before inversions');}
   const majorOn2=entries.find(e=>e.row.preferredLabel==='4:5:6'),minorOn2=entries.find(e=>e.row.preferredLabel==='1/6:5:4');
-  assert.ok(majorOn2&&majorOn2.inversion===1&&majorOn2.label==='5:6:8','major stands on degree 2 in 1st inversion, written 5:6:8');
-  assert.match(list,/<span>5:6:8<\/span><small>1st inversion of 4:5:6<\/small>/);
-  const minorRoots=[];for(let d=0;d<state.n;d++){ui.setBass({scale:'discover',degree:d});if(ui.bassEntries().some(e=>e.row.preferredLabel==='1/6:5:4'&&e.rootPosition&&e.label==='1/6:5:4'))minorRoots.push(d);}
+  assert.ok(majorOn2&&majorOn2.inversion===1&&majorOn2.spelling==='5:6:8','major stands on degree 2 in 1st inversion, the rotation 5:6:8');
+  const majorRoot=majorOn2.rootDegree;
+  assert.ok(Number.isInteger(majorRoot)&&majorRoot!==2&&majorOn2.bassDegree===2,'its root is another degree than its bass');
+  assert.equal(majorOn2.label,`${majorRoot} - 4:5:6`,'entries are written root - chord');
+  assert.ok(list.includes(`<span>${majorRoot} - 4:5:6</span><small>1st inversion (5:6:8)</small>`),'the list names the root and the inversion');
+  const minorRoots=[];for(let d=0;d<state.n;d++){ui.setBass({scale:'discover',degree:d});if(ui.bassEntries().some(e=>e.row.preferredLabel==='1/6:5:4'&&e.rootPosition&&e.label===`${d} - 1/6:5:4`))minorRoots.push(d);}
   assert.ok(minorRoots.length,'minor stands in root position, written in its utonal form, on some degree');ui.setBass({scale:'discover',degree:2});
   assert.ok(entries.length>2&&entries.every(e=>e.degrees[0]===2&&e.degree===2),'every listed chord has degree 2 in the bass');
   click('bass-select',{id:majorOn2.row.id,member:String(majorOn2.member)});
   assert.equal(heading(),'4:5:6');assert.equal(currentRotation(),'5:6:8','choosing an entry opens its chord on that inversion');
-  assert.match(ui.render(),/1st inversion of 4:5:6 · bass on Discover scale degree 2/);
+  assert.match(ui.render(),new RegExp(`1st inversion of ${majorRoot} - 4:5:6 · bass on Discover scale degree 2`));
+  {const onRoot=ui.rootEntriesFor({scale:'discover',degree:majorRoot}).filter(e=>e.row.preferredLabel==='4:5:6');
+   assert.deepEqual(onRoot.map(e=>[e.inversion,e.rootDegree,e.label]),[0,1,2].map(k=>[k,majorRoot,`${majorRoot} - 4:5:6`]),'chords on a root list every inversion that keeps the root');
+   assert.deepEqual(onRoot.map(e=>e.bassDegree),onRoot[0].degrees,'each inversion moves the bass up the root-position chord');}
   const voice=ui.model().detail.voice;assert.ok(voice,'the entry’s occurrence is chosen for voicing');
   assert.equal(voice.inversion,majorOn2.member,'the voicing has the same note in the bass');
   assert.equal(voice.degrees[voice.pitches.indexOf(Math.min(...voice.pitches))],2,'Hear voicing and Send to Play sound degree 2 in the bass');

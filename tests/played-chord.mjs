@@ -23,6 +23,8 @@ assert.deepEqual(Object.values(played.noteLabels),['1/1','5/4','3/2']);
 played=match([E,G,at(1,1,1)]);
 assert.equal(played.label,'4:5:6','an inversion is the same chord');assert.equal(played.rotation,'5:6:8');assert.equal(played.bassRatio,'5/4');
 assert.deepEqual(Object.values(played.noteLabels),['1/1','6/5','8/5']);
+assert.equal(played.rootNote,at(1,1,1).join(','),'the root is the played note on the first member of 4:5:6, not the bass');assert.equal(played.bassMember,1);
+assert.equal(match([C,E,G]).rootNote,C.join(','),'root position has its root in the bass');
 played=match([C,E,G,at(5,4,1),at(1,1,-1)]);assert.equal(played.label,'4:5:6');assert.equal(played.doubled,true,'register and doublings do not change the match');
 assert.equal(match([C,E,G,at(7,4)]).label,'4:5:6:7');
 
@@ -33,6 +35,7 @@ assert.equal(match([C]).status,'note');assert.equal(match([]).status,'empty');
 // Essentially tempered chords from the directory, and shapes proved on the spot.
 const et=result.items.find(row=>row.kind==='tempered'&&row.status==='essentially-tempered'&&row.shape.coordinates.length===4);
 played=match(et.shape.coordinates);assert.equal(played.status,'chord');assert.equal(played.kind,'tempered');assert.equal(played.form,'et');assert.equal(played.label,et.preferredLabel);
+assert.equal(played.rootNote,et.shape.coordinates[0].join(','),'an ET chord is rooted on its first directory member');
 const heptad=[C,at(9,8),E,at(4,3),G,at(5,3),at(15,8)];played=match(heptad);
 assert.equal(played.status,'chord');assert.equal(played.source,'proof','a chord outside the directory list is classified here');assert.ok(['ji','tempered'].includes(played.kind));
 
@@ -55,7 +58,7 @@ try{
  const keys=buildBoard(state,hex.serialize().configs[0]).keys.filter(k=>k.enabled),find=point=>keys.find(key=>key.m[0]===point[0]&&key.m[1]===point[1])??keys.find(key=>key.m[1]===point[1]);
  const triad=[E,G,at(1,1,1)].map(find);assert.ok(triad.every(Boolean));
  hex.updateLiveChord({status:'no-match',matches:[]},triad.map(key=>({id:String(key.index),coordinate:key.m,cents:key.c})));
- assert.match(host.innerHTML,/<strong>4:5:6<\/strong> <span class="form-badge otonal">Otonal<\/span>/);
+ assert.match(host.innerHTML,/<strong>0 - 4:5:6<\/strong> <span class="form-badge otonal">Otonal<\/span>/,'written with its root degree, not its bass');
  assert.equal((host.innerHTML.match(/class="live-note-column"/g)||[]).length,3);assert.equal((host.innerHTML.match(/class="live-ratio-member"/g)||[]).length,3);
  const pair=[C,G].map(find);hex.updateLiveChord({status:'no-match',matches:[]},pair.map(key=>({id:String(key.index),coordinate:key.m,cents:key.c})));
  assert.match(host.innerHTML,/<strong>3\/2<\/strong><small>interval<\/small>/);

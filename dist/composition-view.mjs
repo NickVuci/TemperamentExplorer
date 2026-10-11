@@ -4,6 +4,7 @@ import {PPQ,ticksToSeconds,barTicks,contentEndTick} from './composition-project.
 import {resolveTone,degreeOf} from './composition-context.mjs';
 import {boardMarkup} from './composition-board.mjs';
 import {equivalencePolicy,quotientCoordinate} from './harmonic-equivalence.mjs';
+import {rootedChordName} from './harmonic-bass.mjs';
 
 export const STEP_TICKS=PPQ/4;          // melody grid resolution: one sixteenth note
 export const PAGE_STEPS=16;             // columns per grid page
@@ -66,13 +67,38 @@ export const outsideScale=(project,clip)=>clip.events.filter(e=>e.tones.some(t=>
 
 const quarter=ticks=>Number((ticks/PPQ).toFixed(4));
 const chordLabel=(e,i)=>e.source?.label?String(e.source.label):`Chord ${i+1}`;
-// A chord's root is its first tone (collected chords list the root first; inversion keeps tone order).
-// Shown as its scale degree, with any period displacement as a signed register.
-export function chordRoot(project,e){
- const tone=e.tones[0];if(!tone)return null;
- const d=degreeOf(project.context,tone.coordinate);
+// A chord's root is the lowest note of its default rotation (its directory spelling's first note): the
+// tone `source.rootTone` names, recorded when the chord is added. Older chords without it, and collected
+// chords whose spelling is unknown, are rooted on their first tone. Voicing edits keep tone order, so the
+// root survives inversion. The bass is simply the lowest sounding tone.
+export function chordRootTone(e){
+ const i=e.source?.rootTone;
+ return Number.isInteger(i)&&i>=0&&i<e.tones.length?i:0;
+}
+// A tone as its scale degree, with any period displacement as a signed register.
+function toneDegree(project,tone){
+ const d=tone&&degreeOf(project.context,tone.coordinate);
  return d?{degree:d.degree,register:d.register,text:`${d.degree}${d.register?(d.register>0?'+':'')+d.register:''}`}:{degree:null,register:0,text:'outside scale'};
 }
+export function chordRoot(project,e){
+ const tone=e.tones[chordRootTone(e)];return tone?toneDegree(project,tone):null;
+}
+// Octave-class key of a coordinate when the basis has 2 (a period apart is not the same class), else exact.
+function classKey(project){
+ let policy=null;
+ try{policy=project.context.basis.includes(2)?equivalencePolicy(project.context,'octave'):null;}catch{policy=null;}
+ return coordinate=>policy?quotientCoordinate(policy,coordinate).key:JSON.stringify(coordinate);
+}
+/** The lowest sounding tone as a degree, or null when it is the root's own pitch class (root position). */
+export function chordBass(project,e){
+ if(!e.tones.length)return null;
+ let low=e.tones[0],lowCents=Infinity;
+ for(const t of e.tones){let c;try{c=resolveTone(project.context,t.coordinate).cents;}catch{continue;}if(c<lowCents){low=t;lowCents=c;}}
+ const key=classKey(project);
+ return key(low.coordinate)===key(e.tones[chordRootTone(e)].coordinate)?null:toneDegree(project,low);
+}
+/** root - chord, e.g. `0 - 4:5:6`, the chord in its directory spelling; the label alone without a root degree. */
+export const chordName=(project,e,i)=>rootedChordName(chordRoot(project,e)?.degree,chordLabel(e,i));
 const rootMarkup=root=>root?.degree===null?'outside scale':`${root.degree}${root.register?`<sup>${root.register>0?'+':''}${root.register}</sup>`:''}`;
 
 
@@ -80,24 +106,22 @@ const rootMarkup=root=>root?.degree===null?'outside scale':`${root.degree}${root
  * Melody guide from the chord lane: for each chord, the pitch classes it holds, so the roll can tint the
  * rows that sound a chord note for as long as the chord lasts. Octave-equivalent when the basis has 2
  * (any register of a chord note is a chord tone; a period apart is not, so divided octaves keep their
- * meaning), otherwise exact. The chord's first tone, its root, is marked separately.
+ * meaning), otherwise exact. The chord's root is marked separately.
  */
 export function chordGuides(project,chords){
- let policy=null;
- try{policy=project.context.basis.includes(2)?equivalencePolicy(project.context,'octave'):null;}catch{policy=null;}
- const key=coordinate=>policy?quotientCoordinate(policy,coordinate).key:JSON.stringify(coordinate);
- return {key,chords:chords.map(e=>({event:e,keys:new Set(e.tones.map(t=>key(t.coordinate))),root:e.tones[0]?key(e.tones[0].coordinate):null}))};
+ const key=classKey(project);
+ return {key,chords:chords.map(e=>({event:e,keys:new Set(e.tones.map(t=>key(t.coordinate))),root:e.tones.length?key(e.tones[chordRootTone(e)].coordinate):null}))};
 }
 
 // Root lane: each chord's root as a scale degree over its span; the empty lane opens the harmony picker.
 function rootLane(v,w,chords,pct){
  const p=v.project,practice=v.mode==='practice';
  const blocks=chords.map(e=>{const lo=Math.max(w.start,e.startTick),hi=Math.min(w.end,e.startTick+e.durationTick),root=chordRoot(p,e);
-  return `<button class="root-block${v.rootPick?.replace===e.id?' is-picking':''}" data-comp="root-block" data-event="${esc(e.id)}" style="left:${pct(lo)}%;width:${100*(hi-lo)/w.span}%" aria-pressed="${v.selectedChord===e.id}" ${practice?'disabled':''} aria-label="Root ${esc(root?.text??'unknown')} of ${esc(e.source?.label??'chord')}, ${esc(formatPosition(p,e.startTick))}. Choose to change its harmony" title="Root ${esc(root?.text??'—')} · click to change the harmony">${rootMarkup(root)}</button>`;}).join('');
+  return `<button class="root-block${v.rootPick?.replace===e.id?' is-picking':''}" data-comp="root-block" data-event="${esc(e.id)}" style="left:${pct(lo)}%;width:${100*(hi-lo)/w.span}%" aria-pressed="${v.selectedChord===e.id}" ${practice?'disabled':''} aria-label="Root ${esc(root?.text??'unknown')} of ${esc(chordName(p,e,0))}, ${esc(formatPosition(p,e.startTick))}. Choose to change its harmony" title="Root ${esc(root?.text??'—')} · click to change the harmony">${rootMarkup(root)}</button>`;}).join('');
  const marker=v.rootPick&&!v.rootPick.replace?`<span class="root-pick-marker" style="left:${pct(v.rootPick.tick)}%" aria-hidden="true"></span>`:'';
  return `<div class="roll-root-lane"><b>Root</b><div><button class="roll-root-surface" aria-label="Pick a root and a harmony at a time in the project" ${practice?'disabled':''}></button>${marker}${blocks}</div></div>`;
 }
-// Harmony picker for the root lane: a root (scale degree), then a directory chord built on it as the bass.
+// Harmony picker for the root lane: a root (scale degree), then a directory chord on that root in any inversion.
 const PICKER_ROWS=48;
 function rootPicker(v){
  const pick=v.rootPick;if(!pick||!v.project)return '';
@@ -105,16 +129,16 @@ function rootPicker(v){
  const head=`<div class="root-picker-head"><b>${pick.replace?'Change the harmony':'Add a harmony'} at ${esc(formatPosition(p,pick.tick))}</b>${btn('root-cancel','Close')}</div>`;
  if(!v.matchesApp)return `<section class="root-picker" aria-label="Harmony on a root">${head}<p class="composition-notice" role="status">Harmonies come from the chord directory, which follows the app's setup. ${btn('load-context','Load the composition’s setup into the app')}</p></section>`;
  const roots=`<div class="root-degrees" role="group" aria-label="Root (scale degree)"><span>Root</span>${degrees.map(d=>btn('root-degree',String(d.degree),false,`data-degree="${d.degree}" aria-pressed="${pick.degree===d.degree}"`)).join('')}</div>`;
- let list='<p class="viewnote">Choose a root, then a harmony built on it with that degree as the bass.</p>';
+ let list='<p class="viewnote">Choose a root, then a harmony built on it, in root position or an inversion.</p>';
  if(pick.degree!=null){
   const items=v.rootHarmonies;
   if(items==null)list='<p class="viewnote" role="status">Listing the chord directory…</p>';
   else if(!items.length)list=`<p class="viewnote">No directory chord is built on degree ${pick.degree} in this scale. Widen the directory’s size or type filters in Discover.</p>`;
   else{
    const shown=pick.all?items:items.slice(0,PICKER_ROWS),sizes=[...new Set(shown.map(h=>h.size))].sort((a,b)=>a-b);
-   list=sizes.map(size=>`<div class="root-harmony-group"><h5>${size} notes</h5><div class="root-harmonies">${shown.filter(h=>h.size===size).map(h=>btn('root-harmony',`<b>${esc(h.label)}</b><small>${esc(h.role)}</small>`,false,`data-index="${h.index}"`)).join('')}</div></div>`).join('')+
+   list=sizes.map(size=>`<div class="root-harmony-group"><h5>${size} notes</h5><div class="root-harmonies">${shown.filter(h=>h.size===size).map(h=>btn('root-harmony',`<b>${esc(h.label)}</b><small>${esc(h.role)}${h.bass==null?'':` · bass ${h.bass}`}</small>`,false,`data-index="${h.index}"`)).join('')}</div></div>`).join('')+
     (items.length>PICKER_ROWS?btn('root-more',pick.all?`Show the first ${PICKER_ROWS}`:`Show all ${items.length}`):'')+
-    '<p class="viewnote">From the chord directory (its size and type filters apply), voiced close above the root.</p>';
+    '<p class="viewnote">From the chord directory (its size and type filters apply). Root position is voiced close above the root; an inversion raises the notes below its bass by an octave.</p>';
   }
  }
  return `<section class="root-picker" aria-label="Harmony on a root">${head}${roots}${list}</section>`;
@@ -142,8 +166,8 @@ function timelineSection(v){
  const chords=v.chordClip.events.filter(e=>e.startTick<w.end&&e.startTick+e.durationTick>w.start);
  const guide=chordGuides(p,chords);
  const events=v.melodyClip.events,head=Array.from({length:w.bars},(_,i)=>`<button data-comp="seek" data-tick="${w.start+i*w.bar}" style="left:${i*100/w.bars}%;width:${100/w.bars}%" aria-label="Seek to bar ${i+1}">${i+1}</button>`).join('');
- const chordBlocks=chords.map((e,i)=>{const lo=Math.max(w.start,e.startTick),hi=Math.min(w.end,e.startTick+e.durationTick),label=chordLabel(e,i),root=chordRoot(p,e);
-  return `<button class="chord-block" data-comp="chord-select" data-event="${esc(e.id)}" data-start="${e.startTick}" data-end="${e.startTick+e.durationTick}" style="left:${pct(lo)}%;width:${100*(hi-lo)/w.span}%" aria-pressed="${v.selectedChord===e.id}" title="${esc(label)} · root ${esc(root?.text??'—')} · ${quarter(e.durationTick)} beats · drag to move, drag the right edge to resize" aria-label="${esc(label)}, root degree ${esc(root?.text??'unknown')}, ${esc(formatPosition(p,e.startTick))}, ${quarter(e.durationTick)} beats"><b class="chord-block-type">${esc(label)}</b><small><span class="chord-block-root">root ${rootMarkup(root)}</span> · ${quarter(e.durationTick)} beats</small>${v.mode==='practice'?'':'<span class="chord-block-grip" data-comp-resize="" aria-hidden="true"></span>'}</button>`;}).join('');
+ const chordBlocks=chords.map((e,i)=>{const lo=Math.max(w.start,e.startTick),hi=Math.min(w.end,e.startTick+e.durationTick),label=chordName(p,e,i),bass=chordBass(p,e);
+  return `<button class="chord-block" data-comp="chord-select" data-event="${esc(e.id)}" data-start="${e.startTick}" data-end="${e.startTick+e.durationTick}" style="left:${pct(lo)}%;width:${100*(hi-lo)/w.span}%" aria-pressed="${v.selectedChord===e.id}" title="${esc(label)}${bass?` · bass ${esc(bass.text)}`:''} · ${quarter(e.durationTick)} beats · drag to move, drag the right edge to resize" aria-label="${esc(label)}${bass?`, bass degree ${esc(bass.text)}`:''}, ${esc(formatPosition(p,e.startTick))}, ${quarter(e.durationTick)} beats"><b class="chord-block-type">${esc(label)}</b><small>${bass?`<span class="chord-block-bass">bass ${rootMarkup(bass)}</span> · `:''}${quarter(e.durationTick)} beats</small>${v.mode==='practice'?'':'<span class="chord-block-grip" data-comp-resize="" aria-hidden="true"></span>'}</button>`;}).join('');
  const body=rows.map(row=>{
   const rowKey=guide.key(row.coordinate),guides=guide.chords.filter(c=>c.keys.has(rowKey)).map(c=>{
    const lo=Math.max(w.start,c.event.startTick),hi=Math.min(w.end,c.event.startTick+c.event.durationTick);
@@ -170,7 +194,8 @@ export function renderSelectionPanel(v){
  const p=v.project,clip=v.chordClip,events=[...clip.events].sort((a,b)=>a.startTick-b.startTick),sel=events.find(e=>e.id===v.selectedChord),idx=sel?events.indexOf(sel):-1;
  const note=v.melodyClip.events.find(e=>e.id===v.selectedNote);
  const add=`<details class="composition-add" ${events.length?'':'open'}><summary>Add a collected chord</summary><div class="chord-add"><label>Chord <select data-comp-field="collection">${v.collection.length?v.collection.map((it,i)=>`<option value="${i}" ${v.collectionIndex===i?'selected':''} ${it.compatible?'':'disabled'}>${esc(it.label)}${it.compatible?'':' (other tuning)'}</option>`).join(''):'<option>Collect chords in Discover to add them here</option>'}</select></label><label>Length <select data-comp-field="addLength">${[1,2,4,8].map(n=>option(n,`${n} quarter notes`,v.addLength)).join('')}</select></label>${btn('chord-add','Add to end',!v.collection.some(i=>i.compatible))}${btn('chord-add-focus',v.focused?`Add focused chord ${esc(v.focused.label)}`:'Add focused chord',!v.focused?.compatible)}</div></details>`;
- const chord=sel?`<h4>${esc(chordLabel(sel,idx))} <small class="chord-root-note">root ${rootMarkup(chordRoot(p,sel))}</small></h4><div class="comp-fingerings">${v.fingerings.slice(0,3).map((f,i)=>`<button class="comp-fingering" data-comp="fingering" data-index="${i}" aria-pressed="${v.fingering===i}"><b>${i===0?'Compact':`Alternate ${i}`}</b><span>${f.keys.map(k=>v.board.keys[k].degree).join(' · ')}</span><small>${f.reach} hex steps · keys ${f.keys.join(', ')}</small></button>`).join('')||'<p class="viewnote">No complete fingering for these exact pitches on the saved layout.</p>'}</div><div class="chord-editor">${btn('chord-hear','Hear chord',false,`data-event="${esc(sel.id)}"`)}${btn('chord-invert','Raise lowest note',false,`data-event="${esc(sel.id)}"`)}<label>Length <input type="number" data-comp-field="chordLength" data-event="${esc(sel.id)}" min="0.25" step="0.25" value="${quarter(sel.durationTick)}"> beats</label></div><details><summary>Arrange chord</summary><div class="chord-editor">${btn('chord-earlier','Move earlier',idx===0,`data-event="${esc(sel.id)}"`)}${btn('chord-later','Move later',idx===events.length-1,`data-event="${esc(sel.id)}"`)}${btn('chord-duplicate','Duplicate after',false,`data-event="${esc(sel.id)}"`)}${btn('chord-rest','Rest after (1 quarter)',false,`data-event="${esc(sel.id)}"`)}${btn('chord-delete','Delete',false,`data-event="${esc(sel.id)}"`)}</div></details>`:'<p class="viewnote">Select a chord in the timeline to explore its fingerings.</p>';
+ const selBass=sel?chordBass(p,sel):null;
+ const chord=sel?`<h4>${esc(chordName(p,sel,idx))}${selBass?` <small class="chord-bass-note">bass ${rootMarkup(selBass)}</small>`:''}</h4><div class="comp-fingerings">${v.fingerings.slice(0,3).map((f,i)=>`<button class="comp-fingering" data-comp="fingering" data-index="${i}" aria-pressed="${v.fingering===i}"><b>${i===0?'Compact':`Alternate ${i}`}</b><span>${f.keys.map(k=>v.board.keys[k].degree).join(' · ')}</span><small>${f.reach} hex steps · keys ${f.keys.join(', ')}</small></button>`).join('')||'<p class="viewnote">No complete fingering for these exact pitches on the saved layout.</p>'}</div><div class="chord-editor">${btn('chord-hear','Hear chord',false,`data-event="${esc(sel.id)}"`)}${btn('chord-invert','Raise lowest note',false,`data-event="${esc(sel.id)}"`)}<label>Length <input type="number" data-comp-field="chordLength" data-event="${esc(sel.id)}" min="0.25" step="0.25" value="${quarter(sel.durationTick)}"> beats</label></div><details><summary>Arrange chord</summary><div class="chord-editor">${btn('chord-earlier','Move earlier',idx===0,`data-event="${esc(sel.id)}"`)}${btn('chord-later','Move later',idx===events.length-1,`data-event="${esc(sel.id)}"`)}${btn('chord-duplicate','Duplicate after',false,`data-event="${esc(sel.id)}"`)}${btn('chord-rest','Rest after (1 quarter)',false,`data-event="${esc(sel.id)}"`)}${btn('chord-delete','Delete',false,`data-event="${esc(sel.id)}"`)}</div></details>`:'<p class="viewnote">Select a chord in the timeline to explore its fingerings.</p>';
  const selectedNote=note?`<div class="comp-note-inspector"><h4>Selected note</h4><label>Length <select data-comp-field="noteLength" data-event="${esc(note.id)}">${[...new Set([...NOTE_LENGTHS.map(x=>x[1]),note.durationTick])].sort((a,b)=>a-b).map(t=>option(t,`${quarter(t)} beats`,note.durationTick)).join('')}</select></label><label>Velocity <input type="number" data-comp-field="noteVelocity" data-event="${esc(note.id)}" min="1" max="127" value="${note.velocity}"></label>${btn('note-hear','Hear',false,`data-event="${esc(note.id)}"`)}${btn('note-delete','Delete note',false,`data-event="${esc(note.id)}"`)}</div>`:'';
  return `<section class="comp-panel comp-selection"><h3>Selected chord</h3>${chord}${selectedNote}${add}</section>`;
 }

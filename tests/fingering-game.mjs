@@ -110,13 +110,35 @@ assert.deepEqual(countOptions(1),[1]);
   t.game.check();
   assert.equal(t.lights.at(-1),1,'the target fingering is lit again');
   t.game.check();assert.equal(t.lights.length,3,'nothing more is done when it is already lit');
-  t.chord={label:'minor triad',index:0,placements};
+  const lit=t.lights.length;
+  t.chord={label:'minor triad',index:3,placements};   // the player chose place 3 of another chord
   t.game.check();
-  assert.equal(t.game.state().phase,'idle');assert.match(t.game.state().message,/chord changed/);
+  assert.equal(t.game.state().phase,'idle');assert.match(t.game.state().message,/chord or layout changed/);
+  assert.equal(t.lights.length,lit,'the new chord keeps the place the player chose');assert.equal(t.chord.index,3);
+  t.game.stop();assert.equal(t.lights.length,lit,'stopping afterwards lights nothing');
   const cleared=setup();cleared.game.start({count:2});cleared.chord=null;cleared.game.check();
   assert.equal(cleared.game.state().phase,'idle','clearing the highlight ends the game');
+  assert.match(cleared.game.state().message,/highlight was cleared/);
   const fewer=setup();fewer.game.start({count:4});fewer.chord={...fewer.chord,placements:placements.slice(0,2)};fewer.game.check();
   assert.equal(fewer.game.state().phase,'idle','a shorter fingering list ends the game');
+  // Same chord name, but the layout moved its keys: the lit keys would no longer be the target.
+  const moved=setup();moved.game.start({count:3});
+  moved.chord={...moved.chord,placements:placements.map(p=>({keys:p.keys.map(k=>k+1)}))};
+  const movedLights=moved.lights.length;moved.game.check();
+  assert.equal(moved.game.state().phase,'idle','a layout change that moves the fingerings ends the game');
+  assert.equal(moved.lights.length,movedLights,'and does not light an old place on the new layout');
+  // Fingerings after the game's last one may change freely.
+  const longer=setup();longer.game.start({count:2});
+  longer.chord={...longer.chord,placements:[...placements.slice(0,2),{keys:[1,2,3]}]};longer.game.check();
+  assert.equal(longer.game.state().phase,'playing');
+}
+
+// ---- a game that ends normally on a chord that changed meanwhile does not move its highlight ----
+{
+  const t=setup({chord:{label:'c',index:2,placements}});t.game.start({count:1});
+  t.chord={label:'other',index:1,placements};
+  const lit=t.lights.length;t.game.onHeld(held(10,20,30));
+  assert.equal(t.game.state().phase,'done');assert.equal(t.lights.length,lit);
 }
 
 // ---- stop restores the highlight and is harmless when idle ----
@@ -129,12 +151,14 @@ assert.deepEqual(countOptions(1),[1]);
   t.game.onHeld(held(10,20,30));assert.equal(t.game.state().phase,'idle','keys do nothing when no game is running');
 }
 
-// ---- re-entrancy: lighting a fingering can reset the held keys; that must not break the game ----
+// ---- re-entrancy: a host that reports held keys while lighting must not break the game ----
+// (Play keeps keys sounding through a highlight redraw; this covers a host that releases them.
+// Keys it reports as released really are up, so the next fingering may count at once.)
 {
   let game;const lights=[];
   game=createFingeringGame({
     getFingerings:()=>({label:'c',index:0,placements}),
-    showFingering:i=>{lights.push(i);game.onHeld(new Set());},   // the board player resets held notes when it redraws
+    showFingering:i=>{lights.push(i);game.onHeld(new Set());},
   });
   game.start({count:3});
   game.onHeld(held(10,20,30));

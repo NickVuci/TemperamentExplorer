@@ -67,7 +67,10 @@ const item={kind:'chord',state:structuredClone(meantone.state),coords:[[0,0],[-2
 const event=materialToChordEvent(ctx,item,{startTick:0,durationTick:3840,velocity:92});
 assert.deepEqual(event.tones.map(t=>t.coordinate),[[0,0],[-2,4],[0,1]]);
 assert.equal(event.startTick,0);assert.equal(event.durationTick,3840);assert.equal(event.velocity,92);
-assert.deepEqual(event.source,{kind:'collection',label:'major triad',exact:true,harmonicSelection:{sourceChord:'4:5:6',occurrenceId:'occ-1'}});
+assert.deepEqual(event.source,{kind:'collection',label:'major triad',rootTone:0,exact:true,harmonicSelection:{sourceChord:'4:5:6',occurrenceId:'occ-1'}});
+// The root is the voice sounding the selection's first shape member, wherever it sits in the voicing.
+{const rotated={kind:'chord',state:meantone.state,coords:[[0,1],[1,0],[0,4]],label:'4:5:6',harmonicSelection:{shape:{members:[{memberId:'input:0'},{memberId:'input:1'},{memberId:'input:2'}]},voicing:{voices:[{memberId:'input:2'},{memberId:'input:0'},{memberId:'input:1'}]}}};
+ assert.equal(materialToChordEvent(ctx,rotated,{startTick:0,durationTick:960}).source.rootTone,1);}
 item.coords[0][0]=99;item.harmonicSelection.sourceChord='changed';
 assert.deepEqual(event.tones[0].coordinate,[0,0],'event is independent of the collection item');
 assert.equal(event.source.harmonicSelection.sourceChord,'4:5:6');

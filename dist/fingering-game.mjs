@@ -12,6 +12,8 @@ export function countOptions(available){
   return out;
 }
 
+const sameKeys=(a,b)=>Array.isArray(a)&&a.length===b.length&&a.every((k,i)=>k===b[i]);
+
 export function createFingeringGame({getFingerings,showFingering,now=()=>Date.now(),onChange=()=>{}}){
   let phase='idle',queue=[],position=0,label='',total=0,original=-1;
   let armed=false,busy=false,lastHeld=new Set(),mistakes=0,skipped=0,startedAt=0,endedAt=0,message='',played=0,wrongNow=new Set();
@@ -21,9 +23,13 @@ export function createFingeringGame({getFingerings,showFingering,now=()=>Date.no
     phase,label,total,position,played,mistakes,skipped,message,armed,
     target:phase==='playing'?[...current().keys]:[],
     index:phase==='playing'?current().index:-1,
-    seconds:((phase==='playing'?now():endedAt)-startedAt)/1000,
+    seconds:phase==='idle'?0:((phase==='playing'?now():endedAt)-startedAt)/1000,
   });
   const emit=()=>onChange(snapshot());
+
+  // The game's chord is still on the board when it has the same name and every fingering in the
+  // game still has the same keys at the same place in the list (a layout change moves them).
+  const unchanged=f=>!!f&&f.label===label&&f.placements.length>=total&&queue.every(q=>sameKeys(f.placements[q.index]?.keys,q.keys));
 
   /** Begins a game over the first `count` fingerings of the chord now on the board. */
   function start({count}={}){
@@ -31,26 +37,30 @@ export function createFingeringGame({getFingerings,showFingering,now=()=>Date.no
     if(!f||!f.placements.length){message='Select a chord on the Play board first.';emit();return false;}
     const n=Math.max(1,Math.min(count??f.placements.length,f.placements.length));
     queue=f.placements.slice(0,n).map((p,index)=>({index,keys:[...p.keys]}));
-    label=f.label;total=n;position=0;played=0;mistakes=0;skipped=0;message='';original=f.index;
+    label=f.label;total=n;position=0;played=0;mistakes=0;skipped=0;message='';original=f.index;wrongNow=new Set();
     startedAt=now();endedAt=0;phase='playing';
-    light();
+    light(current().index);
     armed=lastHeld.size===0;
     emit();return true;
   }
 
-  function light(){
+  function light(index){
     busy=true;
-    try{showFingering(current().index);}finally{busy=false;}
+    try{showFingering(index);}finally{busy=false;}
   }
+
+  // Puts back the fingering that was lit before the game, unless the chord itself has gone or
+  // changed: then the board already shows what the player chose, and that is left alone.
+  function restore(){if(unchanged(getFingerings()))light(original);}
 
   function advance(){
     position++;
     if(position>=queue.length){
       phase='done';endedAt=now();message='';
-      busy=true;try{showFingering(original);}finally{busy=false;}
+      restore();
       return;
     }
-    light();
+    light(current().index);
     // Keys still held from the last fingering must be lifted before the next one counts.
     armed=lastHeld.size===0;
   }
@@ -73,18 +83,21 @@ export function createFingeringGame({getFingerings,showFingering,now=()=>Date.no
     skipped++;message='';wrongNow=new Set();advance();emit();
   }
 
+  function end(reason){phase='idle';queue=[];message=reason;wrongNow=new Set();emit();}
+
   /** Ends the game (or abandons it) and puts the board's highlight back as it was. */
   function stop(reason=''){
-    if(phase==='playing'){busy=true;try{showFingering(original);}finally{busy=false;}}
-    phase='idle';queue=[];message=reason;wrongNow=new Set();emit();
+    if(phase==='playing')restore();
+    end(reason);
   }
 
   /** Called regularly: keeps the board on the target fingering and ends the game if the chord changed. */
   function check(){
     if(phase!=='playing')return;
     const f=getFingerings();
-    if(!f||f.label!==label||f.placements.length<total){stop('The chord changed, so the game stopped.');return;}
-    if(f.index!==current().index)light();
+    if(!f){end('The highlight was cleared, so the game stopped.');return;}
+    if(!unchanged(f)){end('The chord or layout changed, so the game stopped.');return;}
+    if(f.index!==current().index)light(current().index);
   }
 
   return {start,onHeld,skip,stop,check,state:snapshot,get active(){return phase==='playing';}};

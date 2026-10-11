@@ -19,8 +19,8 @@ export function createCompositionWorkspace({
   document:doc,window:win=globalThis.window,audio,getState,getLayout,getTonic,getMaterial,loadState,getHost,notify=()=>{},download=()=>{},
   // The chord focused in Discover, as a collected-chord item, and a hook told which chord is selected here.
   getFocusedChord=()=>null,onChordFocus=()=>{},
-  // The chord directory's chords built on a scale degree of the app's Play scale (bass entries); null while listing.
-  getBassEntries=()=>[],
+  // The chord directory's chords rooted on a scale degree of the app's Play scale, every inversion; null while listing.
+  getRootEntries=()=>[],
   raf=globalThis.requestAnimationFrame?.bind(globalThis),timer,
 }){
   let history=null,message='',cache=null,frame=null,boardCache=null,placementCache=null,suppressClick=false;
@@ -70,24 +70,24 @@ export function createCompositionWorkspace({
     if(placementCache?.project!==p||placementCache?.event!==event)placementCache={project:p,event,items:compactFingerings(p,event,boardModel().board)};
     return placementCache.items;
   }
-  // Directory chords on the picked root, voiced from that degree's home coordinate in the composition's
-  // scale. Only offered while the app matches the composition (the directory follows the app); null while
-  // the directory is still listing.
+  // Directory chords on the picked root, in every inversion, with the root from that degree's home
+  // coordinate in the composition's scale. Only offered while the app matches the composition (the directory
+  // follows the app); null while the directory is still listing.
   let rootRetry=null;
   function rootHarmonies(){
     const p=project(),pick=ui.rootPick;
     if(!p||pick?.degree==null||!matchesApp(p.context,getState()))return [];
-    const entries=getBassEntries(pick.degree);
+    const entries=getRootEntries(pick.degree);
     if(entries==null){if(!rootRetry)rootRetry=setTimeout(()=>{rootRetry=null;if(ui.rootPick)refresh();},400);return null;}
     const home=p.context.scale.degrees[pick.degree]?.coordinate;
-    return entries.map((e,index)=>({e,index})).filter(({e})=>home&&e.bass?.[0]===home[0]&&e.bass?.[1]===home[1]&&e.coords.length<=8)
-      .map(({e,index})=>({index,label:e.label,role:e.role,size:e.classCount,coords:e.coords}));
+    return entries.map((e,index)=>({e,index})).filter(({e})=>home&&e.root?.[1]===home[1]&&e.coords.length<=8)
+      .map(({e,index})=>({index,label:e.label,chord:e.chord??e.label,role:e.role,bass:e.rootPosition?null:e.bassDegree,size:e.classCount,coords:e.coords,rootTone:e.rootVoice??0}));
   }
   function pickHarmony(index){
     const p=project(),pick=ui.rootPick,h=rootHarmonies()?.find(x=>x.index===index);
     if(!p||!pick||!h)return;
     const clip=clipOf(p,'chords'),old=pick.replace?find(clip,pick.replace):null;
-    const source={kind:'directory',label:h.label,role:h.role};
+    const source={kind:'directory',label:h.chord,role:h.role,rootTone:h.rootTone};
     let newId=null;
     const ok=edit(old?'Change harmony':'Add harmony',pr=>{
       const ev=makeEvent({startTick:old?old.startTick:pick.tick,durationTick:old?old.durationTick:ui.addLength*PPQ,velocity:old?.velocity??90,tones:h.coords.map(coordinate=>({coordinate})),source},allIds(pr));

@@ -8,7 +8,7 @@ import {chordIdentity} from './chord-identity-v2.mjs';
 // What is being played, read against the harmony directory. Notes are reduced to pitch classes
 // through the temperament mapping, so register, doublings and spacing never change the match; the
 // lowest note decides the bass and so the rotation. A chord the directory lists is named as the
-// directory names it; any other dyadic shape is proved JI or ET on the spot; anything else reports
+// directory names it, with the played note that is its root (the first note of that spelling); any other dyadic shape is proved JI or ET on the spot; anything else reports
 // the pair outside the limit and the largest directory chords it contains.
 
 const MAX_PLAYED_CLASSES=8;
@@ -82,24 +82,33 @@ export function matchPlayedChord({state,coordinates,index,byShape,geometry}){
 
 function labelsFrom(notes,classOf,byClass){const labels={};for(const point of notes)labels[point.join(',')]=byClass[classOf(point)]??null;return labels;}
 
-// A listed chord: its directory name and form, which rotation the bass gives, and each note's ratio.
+// A listed shape on the played classes: the member the bass plays, classes read from it, and the played
+// note ("a,b") on the directory spelling's first member, the chord's root. Null when the shape is absent.
+function placeShape(shape,{state,members,notes,classOf,octave}){
+ if(!shape?.coordinates?.length)return null;
+ const policy=equivalencePolicy(state,octave?'octave':'exact'),key=point=>quotientCoordinate(policy,point).key,played=new Set(members.map(point=>classOf(point)));
+ for(let bassMember=0;bassMember<shape.coordinates.length;bassMember++){
+  const anchor=shape.coordinates[bassMember],relativeKey=point=>key([point[0]-anchor[0],point[1]-anchor[1]]);
+  if(!shape.coordinates.every(point=>played.has(relativeKey(point))))continue;
+  const rootClass=relativeKey(shape.coordinates[0]);
+  return {bassMember,relativeKey,rootNote:notes.find(point=>classOf(point)===rootClass)?.join(',')??null};
+ }
+ return null;
+}
+
+// A listed chord: its directory name and form, which rotation the bass gives, its root note and each
+// note's ratio.
 function describeRow(row,{state,members,bass,notes,classOf,index,geometry,octave,doubled}){
  const form=formOfRow(row),base={status:'chord',source:'directory',rowId:row.id,kind:row.kind,label:row.preferredLabel,form,formLabel:PLAYED_FORM_LABELS[form],doubled};
- const shape=geometry?.(row);
+ const shape=geometry?.(row),placed=placeShape(shape,{state,members,notes,classOf,octave});
  if(row.kind==='ji'&&shape?.tones){
-  // Find which member of the listed chord the bass is, then read every note from that root.
-  const policy=equivalencePolicy(state,octave?'octave':'exact'),key=point=>quotientCoordinate(policy,point).key,played=new Set(members.map(point=>classOf(point)));
-  for(let root=0;root<shape.coordinates.length;root++){
-   const anchor=shape.coordinates[root],relativeKey=point=>key([point[0]-anchor[0],point[1]-anchor[1]]);
-   if(!shape.coordinates.every(point=>played.has(relativeKey(point))))continue;
-   const labels={};shape.coordinates.forEach((point,i)=>{labels[relativeKey(point)]=relative(shape.tones[i].label,shape.tones[root].label,octave);});
-   const rotation=shape.coordinates.map((point,i)=>labels[relativeKey(point)]).sort((a,b)=>height(a)-height(b));
-   return {...base,bassRatio:shape.tones[root].label,rotation:rotationLabel(labels,octave),root,noteLabels:labelsFrom(notes,classOf,labels)};
-  }
-  return base;
+  if(!placed)return base;
+  const {bassMember,relativeKey,rootNote}=placed,labels={};
+  shape.coordinates.forEach((point,i)=>{labels[relativeKey(point)]=relative(shape.tones[i].label,shape.tones[bassMember].label,octave);});
+  return {...base,bassRatio:shape.tones[bassMember].label,rotation:rotationLabel(labels,octave),bassMember,rootNote,noteLabels:labelsFrom(notes,classOf,labels)};
  }
  const labels={};members.forEach(point=>{labels[classOf(point)]=classOf(point)===classOf(bass)?'1/1':simplest(index.byClassKey[classOf(point)])?.ratio??'?';});
- return {...base,noteLabels:labelsFrom(notes,classOf,labels)};
+ return {...base,...(placed?{rootNote:placed.rootNote}:{}),noteLabels:labelsFrom(notes,classOf,labels)};
 }
 // The rotation as integer terms (e.g. 5:6:8), read from the bass.
 function rotationLabel(labels,octave){

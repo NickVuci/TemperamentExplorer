@@ -7,7 +7,7 @@ import {boardMatches} from '../dist/hexboard.mjs';
 import {resolveTone} from '../dist/composition-context.mjs';
 import {PPQ,createProject,addEvent} from '../dist/composition-project.mjs';
 import {captureContext} from '../dist/composition-context.mjs';
-import {rollWindow,STEP_TICKS,chordRoot,chordGuides} from '../dist/composition-view.mjs';
+import {rollWindow,STEP_TICKS,chordRoot,chordBass,chordGuides,chordName} from '../dist/composition-view.mjs';
 import {makeState} from '../dist/engine.mjs';
 import {activeCues} from '../dist/composition-cues.mjs';
 import {createHarmonicCatalogueWorkspace} from '../dist/harmonic-catalogue-ui.mjs';
@@ -102,14 +102,14 @@ handlers.get('pointerdown')({button:0,target,pointerId:3,clientX:100,clientY:100
 handlers.get('pointermove')({pointerId:3,clientX:170,clientY:110,preventDefault(){}});
 handlers.get('pointerup')({pointerId:3,type:'pointercancel'});
 assert.equal(JSON.stringify(ws.getProject()),unchanged);
-// Chord blocks show their type and root degree, and drag along the chord lane on the 1/16 grid.
+// Chord blocks are written root - chord, and drag along the chord lane on the 1/16 grid.
 {
   ws.refresh();
   const blockFor=e=>host.innerHTML.match(new RegExp(`<button class="chord-block"[^>]*data-event="${e.id}"[^]*?</button>`))[0];
   const c0=ws.getProject().clips[0].events[0],root=chordRoot(ws.getProject(),c0);
   assert.ok(root&&root.degree!==null,'the fixture chord root is a scale degree');
-  assert.match(blockFor(c0),/class="chord-block-type">[^<]+<\/b>/,'the block names the chord');
-  assert.match(blockFor(c0),new RegExp(`class="chord-block-root">root ${root.degree}`),'the block shows the root degree');
+  assert.ok(blockFor(c0).includes(`class="chord-block-type">${root.degree} - ${c0.source?.label??'Chord 1'}</b>`),'the block names the chord with its root degree');
+  assert.equal(chordName(ws.getProject(),c0,0),`${root.degree} - ${c0.source?.label??'Chord 1'}`);
   assert.match(blockFor(c0),/data-comp-resize/,'the block has a resize grip');
   const lane={getBoundingClientRect:()=>({width:800})},span=String(PPQ*16);
   const block={dataset:{event:c0.id},classList:{add(){}},style:{},parentElement:lane,closest:s=>s==='[data-comp-roll]'?{dataset:{span}}:null};
@@ -128,7 +128,7 @@ assert.equal(JSON.stringify(ws.getProject()),unchanged);
   await new Promise(r=>setTimeout(r,1));
   press('undo');assert.equal(JSON.stringify(ws.getProject()),settled,'each chord drag is one undoable edit');
   press('undo');press('undo');assert.equal(chordAt().startTick,c0.startTick);assert.equal(chordAt().durationTick,c0.durationTick);
-  press('chord-select',{event:c0.id});assert.match(host.innerHTML+(doc.querySelector('.comp-selection')?.outerHTML??''),/chord-root-note">root /,'the selected chord heading shows its root');
+  press('chord-select',{event:c0.id});assert.ok((host.innerHTML+(doc.querySelector('.comp-selection')?.outerHTML??'')).includes(`<h4>${chordName(ws.getProject(),c0,0)}`),'the selected chord heading is written root - chord');
 }
 // Melody guide: each row that sounds a note of a chord is tinted under that chord, in every register.
 {
@@ -196,7 +196,7 @@ press('undo');assert.ok(ws.getProject().clips[1].events.some(e=>e.id===current.i
 press('mode-practice');handlers.get('dblclick')(dbl);assert.ok(ws.getProject().clips[1].events.some(e=>e.id===current.id),'Practice mode does not delete notes.');
 ws.dispose();assert.equal(handlers.size,0);
 
-// Root lane: each chord's root degree under the roll; pick a root, then a directory harmony built on it.
+// Root lane: each chord's root degree under the roll; pick a root, then a directory harmony on it in any inversion.
 {
   let appState=fixture.context.state;
   const catalogue=createHarmonicCatalogueWorkspace({getState:()=>appState,getPlayState:()=>appState,getSettings:()=>({limit:15,primeLimit:null,tol:10})});
@@ -204,7 +204,7 @@ ws.dispose();assert.equal(handlers.size,0);
   {const start=Date.now();while(!['complete','incomplete'].includes(catalogue.model().status)){assert.ok(Date.now()-start<20000);assert.notEqual(catalogue.model().status,'error',catalogue.model().error);await new Promise(r=>setTimeout(r,5));}}
   const handlers2=new Map(),host2={innerHTML:'',querySelector:()=>null},doc2={activeElement:null,querySelector:()=>null,querySelectorAll:()=>[],addEventListener:(k,f)=>handlers2.set(k,f),removeEventListener:k=>handlers2.delete(k)};
   const ws2=createCompositionWorkspace({document:doc2,audio,getState:()=>appState,getLayout:()=>fixture.layout,getTonic:()=>220,getMaterial:()=>[],getHost:()=>host2,raf:null,timer:{set:()=>0,clear(){}},
-    getBassEntries:degree=>catalogue.bassEntriesFor({scale:'play',degree})});
+    getRootEntries:degree=>catalogue.rootEntriesFor({scale:'play',degree})});
   const press2=(comp,rest={})=>ws2.click({dataset:{comp,...rest},closest(){return this;}});
   ws2.restore(fixture);ws2.refresh();
   const pr=ws2.getProject(),chords=pr.clips[0].events;
@@ -218,22 +218,38 @@ ws.dispose();assert.equal(handlers.size,0);
   assert.match(host2.innerHTML,/Add a harmony at /);assert.match(host2.innerHTML,/class="root-pick-marker"/);
   assert.match(host2.innerHTML,/Choose a root, then a harmony/);
   press2('root-degree',{degree:'0'});
-  const entries=catalogue.bassEntriesFor({scale:'play',degree:0}),offered=[...host2.innerHTML.matchAll(/data-comp="root-harmony"\s+data-index="(\d+)"><b>([^<]*)<\/b><small>([^<]*)</g)];
+  const entries=catalogue.rootEntriesFor({scale:'play',degree:0}),offered=[...host2.innerHTML.matchAll(/data-comp="root-harmony"\s+data-index="(\d+)"><b>([^<]*)<\/b><small>([^<]*)</g)];
   assert.ok(offered.length>0,'harmonies built on degree 0 are offered');
-  for(const [,index,label,role] of offered.slice(0,10)){const e=entries[Number(index)];assert.equal(label,e.label);assert.equal(role,e.role);assert.equal(e.degrees[0],0,'each is built on the chosen root');}
-  const [,chosen]=offered[0],entry=entries[Number(chosen)],before=chords.length;
+  for(const [,index,label,role] of offered){const e=entries[Number(index)];assert.equal(label,`0 - ${e.chord}`,'written root - chord');assert.equal(role,e.rootPosition?e.role:`${e.role} · bass ${e.bassDegree}`);assert.equal(e.rootDegree,0,'each is rooted on the chosen degree');}
+  assert.ok(offered.some(([,index])=>!entries[Number(index)].rootPosition),'inversions on the root are offered too');
+  // An inversion keeps its root: the lane shows the root, the block names the bass.
+  {const [,inv]=offered.find(([,index])=>!entries[Number(index)].rootPosition),e=entries[Number(inv)];
+   press2('root-harmony',{index:inv});
+   const added=ws2.getProject().clips[0].events.find(x=>x.source?.kind==='directory'&&x.startTick===tick);
+   assert.equal(added.source.label,e.chord,'the chord is stored in its directory spelling');
+   assert.equal(chordRoot(ws2.getProject(),added).degree,0,'its root stays on degree 0');
+   assert.equal(chordBass(ws2.getProject(),added)?.degree,e.bassDegree,'and its bass is the inversion’s lowest note');
+   assert.notEqual(e.bassDegree,0);
+   assert.ok(host2.innerHTML.includes(`<span class="chord-block-bass">bass ${e.bassDegree}`),'the block shows the bass');
+   const lane=host2.innerHTML.match(new RegExp(`class="root-block"[^>]*data-event="${added.id}"[^>]*>([^<]*)<`));assert.equal(lane[1],'0','the root lane shows the root, not the bass');
+   const raised=ws2.getProject().clips[0].events.find(x=>x.id===added.id);press2('chord-invert',{event:added.id});
+   assert.equal(chordRoot(ws2.getProject(),ws2.getProject().clips[0].events.find(x=>x.id===raised.id)).degree,0,'raising the lowest note keeps the root');
+   press2('undo');press2('undo');press2('root-cancel');
+   handlers2.get('click')({target:{closest:s=>s==='.roll-root-surface'?surface:null},clientX:130});press2('root-degree',{degree:'0'});}
+  const [,chosen]=offered[0],entry=entries[Number(chosen)],before=chords.length;assert.ok(entry.rootPosition,'root positions come first');
   press2('root-harmony',{index:chosen});
   const added=ws2.getProject().clips[0].events.find(e=>e.source?.kind==='directory'&&e.startTick===tick);
   assert.ok(added,'the harmony is added at the picked time');assert.equal(ws2.getProject().clips[0].events.length,before+1);
   assert.deepEqual(added.tones.map(t=>t.coordinate),entry.coords,'with the directory voicing, root in the bass');
-  assert.equal(added.source.label,entry.label);assert.equal(chordRoot(ws2.getProject(),added).degree,0,'and its root lane shows degree 0');
+  assert.equal(added.source.label,entry.chord);assert.equal(chordRoot(ws2.getProject(),added).degree,0,'and its root lane shows degree 0');
+  assert.equal(chordBass(ws2.getProject(),added),null,'root position has no separate bass');
   assert.doesNotMatch(host2.innerHTML,/class="root-picker"/,'the picker closes');assert.match(host2.innerHTML,new RegExp(`class="root-block"[^>]*data-event="${added.id}"[^>]*aria-pressed="true"`));
   press2('undo');assert.equal(ws2.getProject().clips[0].events.length,before,'adding is undoable');
   // Choosing a chord's root opens the picker on it; a new harmony replaces it in place.
   const target=ws2.getProject().clips[0].events[1],targetRoot=chordRoot(ws2.getProject(),target).degree;
   press2('root-block',{event:target.id});
   assert.match(host2.innerHTML,/Change the harmony at /);assert.match(host2.innerHTML,new RegExp(`data-comp="root-degree"\\s+data-degree="${targetRoot}" aria-pressed="true"`),'its root is preselected');
-  const replacements=catalogue.bassEntriesFor({scale:'play',degree:targetRoot}),pickIndex=[...host2.innerHTML.matchAll(/data-comp="root-harmony"\s+data-index="(\d+)"/g)].at(-1)[1];
+  const replacements=catalogue.rootEntriesFor({scale:'play',degree:targetRoot}),pickIndex=[...host2.innerHTML.matchAll(/data-comp="root-harmony"\s+data-index="(\d+)"/g)].at(-1)[1];
   press2('root-harmony',{index:pickIndex});
   const after=ws2.getProject().clips[0].events,replaced=after.find(e=>e.source?.kind==='directory');
   assert.equal(after.length,before,'replacing keeps the number of chords');assert.ok(!after.some(e=>e.id===target.id));
