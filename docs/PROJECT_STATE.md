@@ -662,10 +662,11 @@ geometry, no custom colours):
   base MOS's large step up-right, small step down-right, chroma straight up.
 - Wicki-Hayden (`builtin:<preset>:wicki-hayden`): rows level, a whole-tone-sized
   step right, the fifth up-right, the fourth up-left. Only where that step and the
-  fifth reach every note: the meantone, dreamtone, porcupine, schismic and garibaldi
-  presets.
+  fifth reach every note: the meantone, septimal meantone, huygens, dreamtone,
+  porcupine, schismic, garibaldi, mavila, superpyth, archy and semaphore presets.
 
-Conventional layouts target the smallest MOS of at most 41 notes per octave that
+Conventional layouts target the smallest MOS of at most 41 notes per octave (or the
+default scale, when that is larger) that
 covers most of the board, let keys outside it play, and put the root where every
 degree is on the board. A built-in cannot be updated, renamed, deleted or made the default; saving it creates the
 user's own copy. There is no layout search or scoring. `layout-chooser.mjs` renders
@@ -701,7 +702,12 @@ verification with an external software Web Audio renderer; `tests/audio.mjs`
 covers the lifecycle and pointer integration without that dependency.
 
 Built-in and saved temperaments appear in the same Discover selector. Built-ins
-come from `catalog.mjs`; saved snapshots are browser-local records with
+come from `catalog.mjs`: Xen Wiki temperaments and their main extensions (meantone,
+porcupine, magic, miracle, pajara, schismic, augmented, diminished, kleismic,
+orwell, sensi, gamelismic and other families, plus 2.3.7 and 2.3.11 subgroup
+temperaments), with documented generators reduced by whole periods;
+`tests/catalog.mjs` cross-checks computed CWE tunings against published values.
+Saved snapshots are browser-local records with
 optimistic revisions (D-049). Settings → Export saved presets writes a
 `temperament-lab-presets-v1` backup of temperaments, layouts and default layouts;
 Import saved presets validates each record, replaces records with the same id and

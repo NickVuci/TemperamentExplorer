@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
+import {presets,makeState} from '../dist/engine.mjs';
 import {buildBoard,cents} from '../dist/hexboard.mjs';
 import {layoutPresetSnapshot,layoutPresetForState,mappingKey} from '../dist/layout-preset-data.mjs';
 import {BUILTIN_LAYOUTS,builtinLayoutsFor} from '../dist/builtin-layouts.mjs';
@@ -18,8 +18,8 @@ for(const preset of BUILTIN_LAYOUTS){
  for(let degree=0;degree<fit.state.n;degree++)assert.ok(played.some(k=>k.degree===degree),`${preset.id} reaches degree ${degree}`);
 }
 assert.ok(BUILTIN_LAYOUTS.every(p=>/ · (?:Recommended|Bosanquet|Wicki-Hayden)$/.test(p.name)));
-assert.ok(new Set(BUILTIN_LAYOUTS.map(p=>mappingKey(p.state.context))).size>=20,'every built-in temperament has a recommended layout');
-assert.ok(BUILTIN_LAYOUTS.filter(p=>p.id.endsWith(':bosanquet')).length>=20,'every built-in temperament has a Bosanquet layout');
+for(const key of Object.keys(presets))for(const id of ['builtin:'+key,`builtin:${key}:bosanquet`])assert.ok(BUILTIN_LAYOUTS.some(p=>p.id===id),`${key} has ${id}`);
+assert.equal(new Set(BUILTIN_LAYOUTS.map(p=>mappingKey(p.state.context))).size,Object.keys(presets).length,'each built-in temperament has its own mapping');
 
 // Conventional layouts point the conventional way on screen (meantone): Wicki-Hayden has the whole tone
 // to the right, the fifth up-right and the fourth up-left; Bosanquet has the chroma straight up.

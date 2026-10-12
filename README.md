@@ -124,7 +124,9 @@ rotation/mirroring, audio routing, colors, chord placement, overlaps and exports
 - Current-scale-and-mode JI approximations use tonic-relative mode notes.
   Do not replace them with all transpositions/pairs of the scale.
 - Numerical comparison tolerances and tie-breaking rules were intentionally
-  preserved. Snapshot tests cover every built-in preset plus a non-octave example.
+  preserved. Frozen snapshot tests cover twenty built-in presets plus a non-octave
+  example; `tests/catalog.mjs` checks every preset's comma kernel, generator basis
+  and published CWE tuning.
 
 ## UI and audio rules
 

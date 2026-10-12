@@ -11,7 +11,10 @@ import { diamondApproximation } from '../dist/tonality-diamond.mjs';
 
 const digest = values => createHash('sha256').update(JSON.stringify(values)).digest('hex');
 const scales = [], matches = [], approximations = [], boards = [], chords = [];
-const states = [...Object.keys(presets).map(makeState), fromCommas('245/243', '3.5.7')];
+// The digests were frozen over the original built-in presets; later presets are covered by tests/catalog.mjs.
+const FROZEN_PRESETS = ['meantone','dreamtone','septimal','porcupine','magic','hanson','porcupine11','porcupine7','porkypine','porcupinefowl','porcupinefish','magic7','magic11','miracle7','miracle11','pajara7','pajara11','diaschismic','schismic','garibaldi'];
+assert.ok(FROZEN_PRESETS.every(key => presets[key]));
+const states = [...FROZEN_PRESETS.map(makeState), fromCommas('245/243', '3.5.7')];
 const ts = targets(13);
 for (const original of states) {
   for (const n of [7, 19, 31, 81, 128, 256]) for (const mode of [0, Math.floor(n / 2), n - 1]) {
