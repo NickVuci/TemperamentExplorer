@@ -1,6 +1,5 @@
 import {performance} from 'node:perf_hooks';
 import {cpus} from 'node:os';
-import {writeFileSync} from 'node:fs';
 import {makeState} from '../dist/engine.mjs';
 import {chordIdentity} from '../dist/chord-identity-v2.mjs';
 import {projectChord} from '../dist/chord-projection-v2.mjs';
@@ -22,5 +21,4 @@ const miracle=makeState('miracle11'),a=analyzeChord(miracle,text),o=a.occurrence
 await measure('voicing six members',()=>realizeChord(miracle,a,o,{style:'original'}));
 await measure('wrapped placement six members / 133 buttons',()=>placeRealization(miracle,v,b));
 report.notes='Node managed execution environment, not a browser performance guarantee. Includes first cold sample. Discovery uses a module worker with 8-candidate progress batches; yielding fallback and cancellation supported. Exact occurrence data remains separate from layout.';
-if(process.argv.includes('--write'))writeFileSync('docs/chord-v2-performance.json',JSON.stringify(report,null,2)+'\n');
 console.log(JSON.stringify(report,null,2));
