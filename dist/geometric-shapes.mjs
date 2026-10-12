@@ -39,7 +39,6 @@ export function canonicalGeometricShape(cells){
  const indices=new Map(ordered.map((point,index)=>[point.join(','),index]));
  return {version:1,id:'hex-shape-v1:'+JSON.stringify(relative),cells:relative,origin:[...origin],cellIndices:points.map(point=>indices.get(point.join(','))),metrics:geometricMetrics(relative)};
 }
-export const geometricShape=canonicalGeometricShape;
 
 // The hexagonal lattice's twelve symmetries in axial cells: six 60° turns, each optionally mirrored.
 const turn=([q,r])=>[-r,q+r],mirror=([q,r])=>[r,q];

@@ -252,7 +252,6 @@ export const setMeter=(project,meter)=>commit(project,p=>{
 });
 export const setName=(project,name)=>commit(project,p=>{p.name=String(name).slice(0,LIMITS.nameMax);});
 export const setLoop=(project,loop)=>commit(project,p=>{p.loop={enabled:!!loop.enabled,startTick:loop.startTick??0,endTick:loop.endTick??null};});
-export const setWave=(project,wave)=>commit(project,p=>{p.sound={...p.sound,wave};});
 export const setClipLength=(project,clipId,lengthTick)=>commit(project,p=>{clipOf(p,clipId).lengthTick=lengthTick;});
 /** Chooses the button each listed exact pitch uses, or with `key: null` returns it to automatic choice. */
 export const setFingering=(project,changes)=>commit(project,p=>{

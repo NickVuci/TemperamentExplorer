@@ -252,4 +252,3 @@ export function* identifySelectedShapeSteps(options={}){
   relatedShapes:(catalogue?.shapes??[]).filter(shape=>shape.id!==geometry.id&&shape.associations.some(association=>chordIds.has(association.chordId))).map(shape=>shape.id)};
 }
 export function identifySelectedShape(options){return finishSearch(identifySelectedShapeSteps(options));}
-export function identifySelectedShapeAsync(options,cooperative={}){return finishSearchAsync(identifySelectedShapeSteps(options),cooperative);}

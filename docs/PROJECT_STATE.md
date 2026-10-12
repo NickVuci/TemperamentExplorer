@@ -768,8 +768,6 @@ Compatibility aliases and narrow session migrations are intentional.
   screen-reader, and acoustic acceptance remain manual.
 - Manual/board analytical rules are fully migrated to shared services; older
   session and degree APIs remain intentional compatibility adapters.
-- `chord-discovery-v2.mjs#discoverChords` has no app consumer since D-039; only its
-  tests and `scripts/profile-chord-v2.mjs` use it.
 - The material collection can save, play, inspect, and place scales/chords.
   Composition (progressions, melodies, playback and practice) lives in the
   composition workspace described below.
