@@ -1,0 +1,14 @@
+import {createPresetId} from '../presets/preset-data.mjs';
+import {layoutContext,layoutPresetSnapshot,mappingKey} from './layout-preset-data.mjs';
+import {browserPresetStore} from '../presets/preset-store.mjs';
+// Layouts share the revision-protected preset store, separately from temperaments.
+export function createLayoutPresets({refresh,notify,store=browserPresetStore}){
+ let items=[],defaults={},defaultsRevision=0,status='idle',error='',busy=false;
+ async function init(){if(status==='loading')return;status='loading';error='';try{const [layouts,settings]=await Promise.all([store.list('layout'),store.layoutDefaults()]);items=layouts;defaults=settings.defaults;defaultsRevision=settings.revision;status='ready';}catch(e){status='error';error=e.message;}refresh();}
+ async function save(name,state,config,id=null,{quiet=false}={}){if(busy)return null;let snapshot;try{snapshot=layoutPresetSnapshot(name,{context:layoutContext(state),config});}catch(e){error=e.message;notify(error);refresh();return null;}
+ const old=id?items.find(p=>p.id===id):null,recordId=old?.id||createPresetId();busy=true;error='';refresh();
+ try{const preset=await store.save('layout',recordId,{name:snapshot.name,state:snapshot,revision:old?.revision||0});items=[...items.filter(p=>p.id!==recordId),preset].sort((a,b)=>a.name.localeCompare(b.name));status='ready';if(!quiet)notify(`Saved layout “${preset.name}”.`);return preset;}catch(e){error=e.message;notify(error);return null;}finally{busy=false;refresh();}}
+ async function setDefault(id,state){if(busy)return false;const preset=items.find(p=>p.id===id),key=mappingKey(state);if(!preset||mappingKey(preset.state.context)!==key){error='Save a layout for the selected temperament before setting its default.';notify(error);refresh();return false;}if(defaults[key]===id){notify(`Updated the default layout for ${state.name}.`);return true;}busy=true;error='';refresh();try{const result=await store.setLayoutDefault(key,id,defaultsRevision);defaults=result.defaults;defaultsRevision=result.revision;notify(`“${preset.name}” is now the default layout for ${state.name}.`);return true;}catch(e){error=e.message;try{const latest=await store.layoutDefaults();defaults=latest.defaults;defaultsRevision=latest.revision;}catch{}notify(error);return false;}finally{busy=false;refresh();}}
+ async function remove(id){const p=items.find(p=>p.id===id);if(busy||!p)return false;busy=true;error='';refresh();try{await store.remove('layout',id,p.revision);items=items.filter(p=>p.id!==id);try{const latest=await store.layoutDefaults();defaults=latest.defaults;defaultsRevision=latest.revision;}catch{defaults=Object.fromEntries(Object.entries(defaults).filter(([,value])=>value!==id));}notify('Layout preset removed.');return true;}catch(e){error=e.message;notify(error);return false;}finally{busy=false;refresh();}}
+ return {init,save,setDefault,remove,catalog:()=>({items,defaults,status,error,busy})};
+}

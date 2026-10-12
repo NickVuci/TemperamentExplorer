@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {validateMappingVariant,previewMappingVariant} from '../dist/harmonic-mappings.mjs';
-import {mappingContext} from '../dist/harmonic-context.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {validateMappingVariant,previewMappingVariant} from '../src/harmonic/harmonic-mappings.mjs';
+import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
 
 const meantone=makeState('meantone');
 const active=mappingContext(meantone);

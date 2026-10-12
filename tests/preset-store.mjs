@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {presetSnapshot} from '../dist/preset-data.mjs';
-import {mappingKey} from '../dist/layout-preset-data.mjs';
-import {BUILTIN_LAYOUTS} from '../dist/builtin-layouts.mjs';
-import {createPresetStore,PRESET_STORAGE_KEY,PRESET_BACKUP_FORMAT} from '../dist/preset-store.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {presetSnapshot} from '../src/presets/preset-data.mjs';
+import {mappingKey} from '../src/hexboard/layout-preset-data.mjs';
+import {BUILTIN_LAYOUTS} from '../src/hexboard/builtin-layouts.mjs';
+import {createPresetStore,PRESET_STORAGE_KEY,PRESET_BACKUP_FORMAT} from '../src/presets/preset-store.mjs';
 const memory=()=>{const values=new Map();return {values,getItem:k=>values.has(k)?values.get(k):null,setItem:(k,v)=>values.set(k,String(v))};};
 const temperament=(name,key='meantone')=>presetSnapshot(name,makeState(key));
 const layout=(name,key='meantone')=>({...structuredClone(BUILTIN_LAYOUTS.find(p=>p.id==='builtin:'+key).state),name});

@@ -10,14 +10,16 @@ interval/JI, chord, and HexBoard-layout application.
 
 - The application is a client-only browser ES-module interface deployed as a
   static site (D-049). It has no server code or server-side storage.
-- Top-level `dist/*` files are authored source. `scripts/build.mjs` writes the
-  static site to `site/`: the page, manifest and icons, minified bundles of
-  `app.mjs`, `comma-worker.mjs` and `chord-v2-worker.mjs`, minified CSS, and `sw.js`
-  with its shell list and a content-hash version.
-- `dist/app.mjs` is the main controller and owns navigation, primary temperament
+- Source lives in `src/`, with modules grouped into subsystem folders (see the
+  README). `scripts/build.mjs` writes the static site to `site/`: the page,
+  manifest and icons, minified bundles of `app.mjs`, `comma-worker.mjs` and
+  `chord-worker.mjs`, minified CSS, and `sw.js` with its shell list and a
+  content-hash version. Workers are created through `src/workers.mjs`, which sits
+  beside the worker scripts in both layouts.
+- `src/app.mjs` is the main controller and owns navigation, primary temperament
   state, shared JI controls, session import/export, matrix rendering, and workspace
   integration.
-- `npm run dev` serves `dist/` through Vite for interaction QA; `npm run preview`
+- `npm run dev` serves `src/` through Vite for interaction QA; `npm run preview`
   serves the built `site/`.
 - Calculation modules are UI-independent where practical; `*-ui.mjs` modules own
   rendering and event adapters.
@@ -227,7 +229,7 @@ equivalence and producer bounds enter the context; scale/mode/layout do not.
 `harmonic-cooperative.mjs` drives the same generator algorithms synchronously
 for compatibility or asynchronously for jobs. Graph traversal, CSP states/
 compatibility checks and chord-approximation combinations yield every 256 work
-items. `chord-v2-worker.mjs` runs these jobs.
+items. `chord-worker.mjs` runs these jobs.
 
 The application currently supports prime-basis rank-2 mappings. Arbitrary composite
 or fractional basis elements and higher-rank scale enumeration are not supported.
@@ -548,10 +550,10 @@ The canonical pipeline is:
 
 `exact JI identity → temperament projection → finite-scale occurrence → voicing → HexBoard placement`
 
-- `chord-identity-v2.mjs` parses exact 2–8-tone rational chords. Identity is an
+- `chord-identity.mjs` parses exact 2–8-tone rational chords. Identity is an
   unordered proportional set; original spelling/order and repeated members are
   metadata. Identity is not reduced by octave or temperament period.
-- `chord-projection-v2.mjs` maps members and reports basis, tuning-quality,
+- `chord-projection.mjs` maps members and reports basis, tuning-quality,
   cardinality/collision, and generator-span results independently.
 - `live-chord-recognition.mjs` maps the HexBoard player's held/sustained notes to
   complete chord-catalogue shapes using the full `[period, generator]` offsets
@@ -563,7 +565,7 @@ The canonical pipeline is:
   triad-subset label. B mapping matches remain eligible above tolerance; the
   canonical spelling error is disclosed separately. The readout does not select
   a harmony or claim acoustic purity. A keeps register-sensitive tolerance gating.
-- `chord-occurrence-v2.mjs` finds exact occurrences in the selected scale and mode.
+- `chord-occurrence.mjs` finds exact occurrences in the selected scale and mode.
   Occurrence uses mapped coordinates, never cent tolerance or board availability.
   `searchShapeOccurrences` is the shared JI/coordinate-only engine. It searches
   period-repeated membership and retains every source member, octave residue,
@@ -571,13 +573,13 @@ The canonical pipeline is:
   `tonicAnchored` and the tonic subset are separate from anywhere-in-scale counts.
   `searchOccurrences` preserves legacy JI IDs/order/counts as a compatibility
   adapter. `analyzeShape` supplies shape analysis without requiring a ratio root.
-- `chord-discovery-v2.mjs` searches a bounded catalogue of curated chords, harmonic
+- `chord-discovery.mjs` searches a bounded catalogue of curated chords, harmonic
   segments, and reciprocals, with shared odd/prime-limit filters and worker-backed
   progress/cancellation.
 - Otonal and exact reciprocal utonal forms are displayed as one family while
   retaining distinct exact identities. Compact utonal spelling uses forms such as
   `1/6:5:4`.
-- `chord-realization-v2.mjs` applies root, inversion, harmonic-spelling (default),
+- `chord-realization.mjs` applies root, inversion, harmonic-spelling (default),
   compact/open spacing, ordering, period shifts, and register bounds, then finds
   alternate physical fingerings without changing occurrence truth.
   `realizeShape` and the `realizeChord` adapter use `chord-voicings.mjs#shapeVoicings`.
@@ -1109,7 +1111,7 @@ focused in Discover (it replaces the shown one), and the same chords again after
 reopening the open shape when it still fits. Cancel stops this, and clearing the chords does not pick one
 again.
 
-Four records stay separate: the exact JI source (`chord-identity-v2`), its mapped coordinates, the
+Four records stay separate: the exact JI source (`chord-identity`), its mapped coordinates, the
 geometric shape, and a reading that links each source member to a key. A geometric shape is a set of
 axial cells (`q = (x − y)/2, r = y`) with translation removed; its ID keeps orientation, so rotations and
 reflections are different shapes (`shapeOrientations` lists the twelve as their own IDs for optional
@@ -1160,7 +1162,7 @@ targets or limits clears them.
 | Board placement index and cooperative key assignment (shared with `chordPlacements`) | `hexboard-chords.mjs` |
 | Forward search, reverse identification, reference lifts, doublings | `chord-shapes.mjs` |
 | Bounded JI source universe for searches | `shape-targets.mjs` |
-| Worker/fallback jobs, structural cache keys, retune presentation | `shape-jobs.mjs` (via `chord-v2-worker.mjs`) |
+| Worker/fallback jobs, structural cache keys, retune presentation | `shape-jobs.mjs` (via `chord-worker.mjs`) |
 | Saved-shape certificates | `shape-preset-data.mjs`, stored by `preset-store.mjs` |
 | Shapes view, reading groups, highlights, saving, session settings | `shape-explorer-ui.mjs` |
 

@@ -29,9 +29,8 @@ history or planning documents without confirming it is still canonical.
   Expand the search only when dependencies or unexpected behavior require it.
 - Record significant unrelated risks; fix them only when they block the task or
   threaten correctness.
-- The top-level files in `dist/` are authored source. Do not delete or regenerate
-  them as disposable build output. `npm run build` writes the static site to
-  `site/`.
+- Source lives in `src/`, grouped into subsystem folders listed in the README.
+  `npm run build` writes the static site to `site/`, which is generated output.
 
 ## Model routing and delegation
 

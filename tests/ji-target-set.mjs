@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import {diamondTargets,mapRatio,targetId,targetSet,targetSetIdentity,targets,validateJILimits,primeFilterForBasis} from '../dist/engine.mjs';
-import {targetSetKey} from '../dist/harmonic-types.mjs';
+import {diamondTargets,mapRatio,targetId,targetSet,targetSetIdentity,targets,validateJILimits,primeFilterForBasis} from '../src/core/engine.mjs';
+import {targetSetKey} from '../src/harmonic/harmonic-types.mjs';
 
 const spec={oddLimit:3,primeFilter:null,mappingSubgroup:[2,3],representationPolicy:'octave'};
 const set=targetSet(spec);

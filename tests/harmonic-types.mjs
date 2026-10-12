@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
-import {makeState,presets} from '../dist/engine.mjs';
-import {mappingContext} from '../dist/harmonic-context.mjs';
-import {equivalencePolicy,shapeKey} from '../dist/harmonic-equivalence.mjs';
+import {makeState,presets} from '../src/core/engine.mjs';
+import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
+import {equivalencePolicy,shapeKey} from '../src/harmonic/harmonic-equivalence.mjs';
 import {
  canonicalHarmonicJSON,harmonicMappingKey,tuningKey,targetSetKey,
  scaleContextKey,harmonicLayoutKey,validateMappingContext,
  validateTemperedShape,validateHarmonicSelection,validateAssessment,
-} from '../dist/harmonic-types.mjs';
+} from '../src/harmonic/harmonic-types.mjs';
 
 const state=makeState('meantone'),context=mappingContext(state),mappingId=context.id;
 assert.deepEqual(validateMappingContext(context),context);

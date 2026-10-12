@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import {fromCommas,ratios,supportingEdos,edoTune,optimize,tuneTargets,pureTune} from '../dist/tuning.mjs';
-import {mapRatio,scale,interval,purePeriod,gcd,makeState} from '../dist/engine.mjs';
-import {checkAssignments} from '../dist/assignments.mjs';
-import {selectionRank} from '../dist/comma-search.mjs';
+import {fromCommas,ratios,supportingEdos,edoTune,optimize,tuneTargets,pureTune} from '../src/core/tuning.mjs';
+import {mapRatio,scale,interval,purePeriod,gcd,makeState} from '../src/core/engine.mjs';
+import {checkAssignments} from '../src/core/assignments.mjs';
+import {selectionRank} from '../src/core/comma-search.mjs';
 
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-6,`${a} != ${b}`);
 for(const [commas,basis,q,reference] of [

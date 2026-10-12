@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import {makeState,scale} from '../dist/engine.mjs';
-import {buildBoard,fillBoard,exportHexboard} from '../dist/hexboard.mjs';
-import {chordCoordinates,chordPlacements,discoverBoardChords,hexDistance} from '../dist/hexboard-chords.mjs';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
-import {createChordWorkspace} from '../dist/chord-ui.mjs';
+import {makeState,scale} from '../src/core/engine.mjs';
+import {buildBoard,fillBoard,exportHexboard} from '../src/hexboard/hexboard.mjs';
+import {chordCoordinates,chordPlacements,discoverBoardChords,hexDistance} from '../src/hexboard/hexboard-chords.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
+import {createChordWorkspace} from '../src/ui/chord-ui.mjs';
 const cfg={base:7,style:'bosanquet',center:65,rotation:0,offset:0,register:0,outside:false};
 const s=makeState('meantone'),ns=scale(s).notes,ds=[0,ns.findIndex(t=>t.k===4),ns.findIndex(t=>t.k===1)],coords=chordCoordinates(s,ds);
 for(const rotation of [0,2,5]){

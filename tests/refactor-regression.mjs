@@ -1,13 +1,13 @@
 // Frozen pre-refactor results protect mathematical output, modes and exports.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { presets, makeState, scale, targets, classifyTargets } from '../dist/engine.mjs';
-import { fromCommas } from '../dist/tuning.mjs';
-import { matrixScale, matrixInterval } from '../dist/matrix.mjs';
-import { buildBoard, exportHexboard } from '../dist/hexboard.mjs';
-import { bestApproximations, bestModeApproximations } from '../dist/approximation-compat.mjs';
-import { discoverScaleChords } from '../dist/harmonic-inspection.mjs';
-import { diamondApproximation } from '../dist/tonality-diamond.mjs';
+import { presets, makeState, scale, targets, classifyTargets } from '../src/core/engine.mjs';
+import { fromCommas } from '../src/core/tuning.mjs';
+import { matrixScale, matrixInterval } from '../src/core/matrix.mjs';
+import { buildBoard, exportHexboard } from '../src/hexboard/hexboard.mjs';
+import { bestApproximations, bestModeApproximations } from '../src/core/approximation-compat.mjs';
+import { discoverScaleChords } from '../src/harmonic/harmonic-inspection.mjs';
+import { diamondApproximation } from '../src/diamond/tonality-diamond.mjs';
 
 const digest = values => createHash('sha256').update(JSON.stringify(values)).digest('hex');
 const scales = [], matches = [], approximations = [], boards = [], chords = [];

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {DEFAULT_ODD_LIMIT,MANUAL_PRIME_LIMIT_VALUES,ODD_LIMIT_VALUES,PRIME_LIMIT_VALUES,diamondTargets,formatPrimeFilter,primeFilterForBasis,primeLimitForBasis,ratioWithinJILimits,targetId,targetSet,targetSetIdentity,targets,validateJILimits} from '../dist/engine.mjs';
+import {DEFAULT_ODD_LIMIT,MANUAL_PRIME_LIMIT_VALUES,ODD_LIMIT_VALUES,PRIME_LIMIT_VALUES,diamondTargets,formatPrimeFilter,primeFilterForBasis,primeLimitForBasis,ratioWithinJILimits,targetId,targetSet,targetSetIdentity,targets,validateJILimits} from '../src/core/engine.mjs';
 
 assert.equal(DEFAULT_ODD_LIMIT,15);
 assert.deepEqual(MANUAL_PRIME_LIMIT_VALUES,[3,5,7,11,13]);
@@ -48,7 +48,7 @@ for(const value of [[],[2,2],[2,4],[2,101],[2,'3']])assert.throws(()=>validateJI
 for(const invalid of [[0,1],[1,0],[-3,2],[1.5,1]])assert.throws(()=>ratioWithinJILimits(...invalid,{oddLimit:13}));
 console.log('Odd and prime limits share one validated target engine; optional prime filtering intersects the mandatory odd-limit bound.');
 
-const {parsePrimeFilterInput}=await import('../dist/ji-limit-engine.mjs');
+const {parsePrimeFilterInput}=await import('../src/core/ji-limit-engine.mjs');
 assert.equal(parsePrimeFilterInput('11',[2,3,5]),11);
 assert.deepEqual(parsePrimeFilterInput('2.3.5.11',[2,3,5]),[2,3,5,11]);
 assert.deepEqual(parsePrimeFilterInput('11, 2, 5',[2,3,5]),[2,5,11]);

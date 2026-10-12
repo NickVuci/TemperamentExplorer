@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
-import {makeState,mapRatio} from '../dist/engine.mjs';
-import {queryCatalogue} from '../dist/harmonic-catalogue.mjs';
-import {buildDyadIndex} from '../dist/harmonic-dyad-graph.mjs';
-import {targetSet} from '../dist/ji-limit-engine.mjs';
-import {mappingContext} from '../dist/harmonic-context.mjs';
-import {harmonicEntryGeometry} from '../dist/harmonic-selection.mjs';
-import {matchPlayedChord,rowsByShape} from '../dist/played-chord.mjs';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
-import {buildBoard} from '../dist/hexboard.mjs';
+import {makeState,mapRatio} from '../src/core/engine.mjs';
+import {queryCatalogue} from '../src/harmonic/harmonic-catalogue.mjs';
+import {buildDyadIndex} from '../src/harmonic/harmonic-dyad-graph.mjs';
+import {targetSet} from '../src/core/ji-limit-engine.mjs';
+import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
+import {harmonicEntryGeometry} from '../src/harmonic/harmonic-selection.mjs';
+import {matchPlayedChord,rowsByShape} from '../src/chords/played-chord.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
+import {buildBoard} from '../src/hexboard/hexboard.mjs';
 
 const state={...makeState('septimal'),n:12,mode:0},spec={oddLimit:15,primeFilter:null,mappingSubgroup:state.basis,representationPolicy:'octave'};
 const result=await queryCatalogue({state,categories:['ji','chords'],targetSpec:spec,maxRecords:20000,chordSizes:[3,4,5,6]});

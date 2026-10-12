@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import {baseOptions,baseSteps,buildBoard,boardMatches,exportHexboard,layoutCandidates,commands,cents,det,fillBoard,tuningMenuName} from '../dist/hexboard.mjs';
-import {fromCommas,edoTune} from '../dist/tuning.mjs';
-import {makeState,scale} from '../dist/engine.mjs';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
+import {baseOptions,baseSteps,buildBoard,boardMatches,exportHexboard,layoutCandidates,commands,cents,det,fillBoard,tuningMenuName} from '../src/hexboard/hexboard.mjs';
+import {fromCommas,edoTune} from '../src/core/tuning.mjs';
+import {makeState,scale} from '../src/core/engine.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
 const cfg={base:7,offset:0,style:'bosanquet',rotation:0,mirror:false,center:65,register:0,deviceRotation:1,outside:false};
 const close=(a,b,tol=1e-7)=>assert.ok(Math.abs(a-b)<tol,`${a} != ${b}`);
 const examples=[makeState('meantone'),{...makeState('meantone'),n:31},makeState('dreamtone'),makeState('porcupine11'),fromCommas('128/125'),fromCommas('2048/2025'),fromCommas('245/243','3.5.7')];

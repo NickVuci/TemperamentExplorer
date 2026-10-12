@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
-import {createHarmonicCatalogueWorkspace,renderCatalogueList,catalogueListGroups,renderDirectoryTree} from '../dist/harmonic-catalogue-ui.mjs';
-import {curatedJIChords} from '../dist/harmonic-ji-chords.mjs';
-import {chordIdentity} from '../dist/chord-identity-v2.mjs';
-import {coordinateCents,mod} from '../dist/pitch.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
+import {createHarmonicCatalogueWorkspace,renderCatalogueList,catalogueListGroups,renderDirectoryTree} from '../src/harmonic/harmonic-catalogue-ui.mjs';
+import {curatedJIChords} from '../src/harmonic/harmonic-ji-chords.mjs';
+import {chordIdentity} from '../src/chords/chord-identity.mjs';
+import {coordinateCents,mod} from '../src/core/pitch.mjs';
 // Pair by exact reciprocal identity before paging, independently of the ranking
 // order or which half survives a search/scale filter.
 const cards=curatedJIChords().map(seed=>({id:seed.identity.fingerprint,kind:'ji',interpretationId:seed.interpretation.id,exactDualId:seed.exactDualId,interpretation:seed.interpretation,preferredLabel:seed.label}));

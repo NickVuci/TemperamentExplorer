@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {createKeyHarmoniesUi} from '../dist/key-harmonies-ui.mjs';
+import {createKeyHarmoniesUi} from '../src/hexboard/key-harmonies-ui.mjs';
 
 // A fake board API for key 65: two directory chords built on it, then one other shape on the layout.
 const placements=n=>Array.from({length:n},(_,i)=>({keys:[65,70+i,80+i],reach:3}));

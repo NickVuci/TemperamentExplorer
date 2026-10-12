@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 
-const html=readFileSync('dist/index.html','utf8');
-const app=readFileSync('dist/app.mjs','utf8');
-const style=readFileSync('dist/style.css','utf8').split(String.fromCharCode(13,10)).join(String.fromCharCode(10));
+const html=readFileSync('src/index.html','utf8');
+const app=readFileSync('src/app.mjs','utf8');
+const style=readFileSync('src/style.css','utf8').split(String.fromCharCode(13,10)).join(String.fromCharCode(10));
 
 assert.equal((html.match(/id="target-controls"/g)||[]).length,1);
 assert.equal((html.match(/id="targetfilter"/g)||[]).length,1);
@@ -35,7 +35,7 @@ let hasToleranceClass=false;const toleranceHost={hidden:true,innerHTML:'',parent
 for(const view of ['matrices','targets','scales','chords']){placement.placeDiamondTolerance(view,{tol:7.25});assert.equal(toleranceHost.hidden,false,`${view} keeps the tolerance control visible`);assert.equal(hasToleranceClass,true);assert.equal(toleranceHost.innerHTML,'tolerance 7.25');}
 for(const view of ['hexboard','composition']){placement.placeDiamondTolerance(view,{tol:7.25});assert.equal(toleranceHost.hidden,true,`${view} hides the tolerance control`);assert.equal(hasToleranceClass,false);assert.equal(toleranceHost.innerHTML,'');}
 assert.ok(app.includes("function settings(s=states[0]){const cfg=coverageSettings(s),autoTolerance=automaticTolerance(),tol=manualTolerance??autoTolerance;$('#tolerance').value=String(tol);return {...cfg,layout:$('#layout').value,labels:$('#labels').value,ts:targets(cfg.limit,cfg.primeLimit),tol,maxError:tol,autoTolerance,toleranceAutomatic:manualTolerance===null,filter:$('#targetfilter').value,outside:true};}"));
-assert.equal((app.match(/getJI:settings/g)||[]).length,2,'both chord and HexBoard workspaces use the shared JI settings getter');assert.match(readFileSync(new URL('../dist/hexboard-ui.mjs',import.meta.url),'utf8'),/if\(getJI\)\{const ji=getJI\(s\)/,'HexBoard chord search uses the shared JI settings getter');
+assert.equal((app.match(/getJI:settings/g)||[]).length,2,'both chord and HexBoard workspaces use the shared JI settings getter');assert.match(readFileSync(new URL('../src/hexboard/hexboard-ui.mjs',import.meta.url),'utf8'),/if\(getJI\)\{const ji=getJI\(s\)/,'HexBoard chord search uses the shared JI settings getter');
 assert.doesNotMatch(style,/#play-view \.sectionhead\.has-diamond-tolerance/,'the Play tab has no tolerance-control layout rule');
 assert.ok(app.includes('placeDiamondTolerance(null);'),'tolerance control hides before view changes, including Create');
 assert.ok(app.includes('placeDiamondTolerance(c,cfg);'),'tolerance control is rendered for the active centre view');
@@ -59,10 +59,10 @@ assert.doesNotMatch(app,/querySelector\('\.harmony-heading'\)/,'diamond controls
 assert.ok(app.includes("placeMatrixControls(c);placeTargetControls(c);placeJIControls(c);"),'controls follow the unified centre view');
 assert.equal(app.includes('.toolbar'),false);
 
-const diamond=readFileSync('dist/diamond-workspace.mjs','utf8');
+const diamond=readFileSync('src/diamond/diamond-workspace.mjs','utf8');
 for(const control of ['Pointer action','Diamond layout options','Harmonics in display order','Select otonal line','Select utonal line'])assert.ok(diamond.includes(control));
 assert.match(diamond,/data-diamond-settings/);
-const diamondRender=readFileSync('dist/tonality-diamond.mjs','utf8');
+const diamondRender=readFileSync('src/diamond/tonality-diamond.mjs','utf8');
 assert.doesNotMatch(diamondRender,/Pure · 0¢/);
 assert.match(diamondRender,/class="diamond-canvas"><div class="diamond-canvas-tools"/);
 

@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
-import {mappingContext} from '../dist/harmonic-context.mjs';
-import {targetSet} from '../dist/ji-limit-engine.mjs';
-import {mapMonzo,ratioMonzo} from '../dist/ji-monzo.mjs';
-import {enumerateMappingExtensions,validateMappingVariant} from '../dist/harmonic-mappings.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
+import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
+import {targetSet} from '../src/core/ji-limit-engine.mjs';
+import {mapMonzo,ratioMonzo} from '../src/core/ji-monzo.mjs';
+import {enumerateMappingExtensions,validateMappingVariant} from '../src/harmonic/harmonic-mappings.mjs';
 
 const meantone=makeState('meantone'),active=mappingContext(meantone);
 const alreadyMapped=enumerateMappingExtensions(active,'16/15');

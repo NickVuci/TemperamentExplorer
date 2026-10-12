@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {chordIdentity} from '../dist/chord-identity-v2.mjs';
-import {harmonicIdentity} from '../dist/harmonic-equivalence.mjs';
-import {buildShapeTargets} from '../dist/shape-targets.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {chordIdentity} from '../src/chords/chord-identity.mjs';
+import {harmonicIdentity} from '../src/harmonic/harmonic-equivalence.mjs';
+import {buildShapeTargets} from '../src/shapes/shape-targets.mjs';
 
 const state=makeState('meantone'),run=options=>buildShapeTargets({state,settings:{limit:5},yieldControl:async()=>{},...options});
 const explicit=await run({includeCatalogue:false,inputs:['4:5:6','5:6:8','6:4:5:4','1:81/80','4:5:6:7'],sizes:[3]});

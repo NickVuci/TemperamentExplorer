@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {fromCommas} from '../dist/tuning.mjs';
-import {classifyTargets,interval,makeState} from '../dist/engine.mjs';
-import {matrixScale,matrixInterval,matrixWindow,octavePeriods} from '../dist/matrix.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
+import {classifyTargets,interval,makeState} from '../src/core/engine.mjs';
+import {matrixScale,matrixInterval,matrixWindow,octavePeriods} from '../src/core/matrix.mjs';
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-7,`${a} != ${b}`);
 for(const comma of ['128/125','2048/2025'])for(const method of ['Computed CWE','Computed WE']){
   const s=fromCommas(comma,'2.3.5',method);s.mode=4;
@@ -43,8 +43,8 @@ const m=matrixScale(huge),w=matrixWindow(m,true,Infinity,Infinity);
 assert.equal(w.rowEnd,m.n);assert.equal(w.colEnd,m.n+1);
 assert.ok((w.rowEnd-w.rowStart)*(w.colEnd-w.colStart)<=24*48);
 assert.equal(matrixWindow(m,false,0,0).colStart,0);
-const appSource=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8');
-const htmlSource=readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');
+const appSource=readFileSync(new URL('../src/app.mjs',import.meta.url),'utf8');
+const htmlSource=readFileSync(new URL('../src/index.html',import.meta.url),'utf8');
 assert.match(htmlSource,/id="diamond-span-controls"/);
 assert.match(appSource,/function placeJIControls\(v\).*spanControl\(states\[0\],0,'Target span'\)/);
 assert.match(appSource,/Target span/);

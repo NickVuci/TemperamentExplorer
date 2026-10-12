@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import {presets,makeState} from '../dist/engine.mjs';
-import {buildBoard,cents} from '../dist/hexboard.mjs';
-import {layoutPresetSnapshot,layoutPresetForState,mappingKey} from '../dist/layout-preset-data.mjs';
-import {BUILTIN_LAYOUTS,builtinLayoutsFor} from '../dist/builtin-layouts.mjs';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
-import {activeLayout} from '../dist/layout-chooser.mjs';
+import {presets,makeState} from '../src/core/engine.mjs';
+import {buildBoard,cents} from '../src/hexboard/hexboard.mjs';
+import {layoutPresetSnapshot,layoutPresetForState,mappingKey} from '../src/hexboard/layout-preset-data.mjs';
+import {BUILTIN_LAYOUTS,builtinLayoutsFor} from '../src/hexboard/builtin-layouts.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
+import {activeLayout} from '../src/hexboard/layout-chooser.mjs';
 
 // Every built-in layout is a valid layout record for its own temperament and gives a playable board.
 assert.ok(BUILTIN_LAYOUTS.length>0);assert.equal(new Set(BUILTIN_LAYOUTS.map(p=>p.id)).size,BUILTIN_LAYOUTS.length,'built-in ids are unique');

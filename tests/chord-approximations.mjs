@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {chordIdentity} from '../dist/chord-identity-v2.mjs';
-import {makeJIInterpretation} from '../dist/harmonic-ji-chords.mjs';
-import {mappingContext} from '../dist/harmonic-context.mjs';
-import {searchChordApproximations,searchIntervalApproximations} from '../dist/harmonic-approximations.mjs';
-import {targetSet} from '../dist/ji-limit-engine.mjs';
-import {div,rational} from '../dist/rational.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {chordIdentity} from '../src/chords/chord-identity.mjs';
+import {makeJIInterpretation} from '../src/harmonic/harmonic-ji-chords.mjs';
+import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
+import {searchChordApproximations,searchIntervalApproximations} from '../src/harmonic/harmonic-approximations.mjs';
+import {targetSet} from '../src/core/ji-limit-engine.mjs';
+import {div,rational} from '../src/core/rational.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
 
 const state=makeState('meantone'),context=mappingContext(state),tuning={mappingId:context.id,periodCents:state.p,generatorCents:state.g};
 const interpret=input=>makeJIInterpretation(chordIdentity(input));

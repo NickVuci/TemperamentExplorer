@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import {ledFrame,createHexboardSync,LEVEL,BRIGHTNESS,clampBrightness} from '../dist/hexboard-sync.mjs';
-import {hexToLed,BUTTON_COUNT} from '../dist/hexboard-protocol.mjs';
-import {buildBoard} from '../dist/hexboard.mjs';
-import {makeState} from '../dist/engine.mjs';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
-import {mosLayers,keyColor} from '../dist/hexboard-colors.mjs';
+import {ledFrame,createHexboardSync,LEVEL,BRIGHTNESS,clampBrightness} from '../src/hexboard/hexboard-sync.mjs';
+import {hexToLed,BUTTON_COUNT} from '../src/hexboard/hexboard-protocol.mjs';
+import {buildBoard} from '../src/hexboard/hexboard.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
+import {mosLayers,keyColor} from '../src/hexboard/hexboard-colors.mjs';
 
 // ---------- frame builder ----------
 const key=(index,extra={})=>({index,command:false,enabled:true,color:'#5686df',layoutColor:'#5686df',dim:false,marked:false,lit:false,m:[0,index],c:index*10,...extra});

@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
-import {targetSet} from '../dist/ji-limit-engine.mjs';
-import {chordIdentity} from '../dist/chord-identity-v2.mjs';
-import {harmonicIdentity} from '../dist/harmonic-equivalence.mjs';
-import {harmonicLines,enumerateJISubsets,analyzeJIDyads,curatedJIChords,simplestRotation,orientedJIInterpretation,maxOddHarmonic} from '../dist/harmonic-ji-chords.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
+import {targetSet} from '../src/core/ji-limit-engine.mjs';
+import {chordIdentity} from '../src/chords/chord-identity.mjs';
+import {harmonicIdentity} from '../src/harmonic/harmonic-equivalence.mjs';
+import {harmonicLines,enumerateJISubsets,analyzeJIDyads,curatedJIChords,simplestRotation,orientedJIInterpretation,maxOddHarmonic} from '../src/harmonic/harmonic-ji-chords.mjs';
 
 const limits=(state,oddLimit,representationPolicy='octave',primeFilter=state.basis)=>({
  oddLimit,primeFilter,mappingSubgroup:state.basis,representationPolicy

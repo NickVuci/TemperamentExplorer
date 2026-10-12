@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {chordIdentity} from '../dist/chord-identity-v2.mjs';
-import {projectChord} from '../dist/chord-projection-v2.mjs';
-import {queryCatalogue,getHarmonicEntry,resolveSelection,catalogueContext} from '../dist/harmonic-catalogue.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {chordIdentity} from '../src/chords/chord-identity.mjs';
+import {projectChord} from '../src/chords/chord-projection.mjs';
+import {queryCatalogue,getHarmonicEntry,resolveSelection,catalogueContext} from '../src/harmonic/harmonic-catalogue.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
 
 const state=makeState('meantone');
 const query={state,directInputs:['4:5:6','5:6:8','1/6:1/5:1/4'],pageSize:5};

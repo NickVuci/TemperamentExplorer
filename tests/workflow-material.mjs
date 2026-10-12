@@ -1,17 +1,17 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {withDefaultScale} from '../dist/default-scale.mjs';
-import {normalizeUnifiedCenter} from '../dist/discover-unified.mjs';
-import {normalizeScaleView} from '../dist/scale-view.mjs';
-import {scaleDefaultKey,scaleCoverageTarget} from '../dist/scale-milestones.mjs';
-import {makeState,scale} from '../dist/engine.mjs';
-import {validateState} from '../dist/state.mjs';
-import {createMaterialWorkspace,tuningIdentity} from '../dist/material-ui.mjs';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
-import {chordCoordinates} from '../dist/hexboard-chords.mjs';
-const source=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8');
-const page=readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');
+import {withDefaultScale} from '../src/core/default-scale.mjs';
+import {normalizeUnifiedCenter} from '../src/ui/discover-unified.mjs';
+import {normalizeScaleView} from '../src/ui/scale-view.mjs';
+import {scaleDefaultKey,scaleCoverageTarget} from '../src/core/scale-milestones.mjs';
+import {makeState,scale} from '../src/core/engine.mjs';
+import {validateState} from '../src/core/state.mjs';
+import {createMaterialWorkspace,tuningIdentity} from '../src/ui/material-ui.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
+import {chordCoordinates} from '../src/hexboard/hexboard-chords.mjs';
+const source=readFileSync(new URL('../src/app.mjs',import.meta.url),'utf8');
+const page=readFileSync(new URL('../src/index.html',import.meta.url),'utf8');
 assert.doesNotMatch(source,/Select an interval cell to inspect it and hear both notes/);
 const scaleControls=source.slice(source.indexOf('function scaleControls()'),source.indexOf('function scaleDetails()'));
 assert.ok(scaleControls?.includes('<label>Scale<select')&&scaleControls.includes('<label>Mode<select'),'Discover scale controls use concise labels');assert.ok(scaleControls.includes('<summary>Advanced scale options</summary>'),'scale filters use the requested disclosure label');
@@ -64,7 +64,7 @@ const nav=vm.createContext({$:get,document:{querySelectorAll:()=>[]}});
 vm.runInContext("let view='scales';"+source.split('\n').find(x=>x.startsWith('const lastViews='))+source.split('\n').find(x=>x.startsWith('const sectionFor='))+source.slice(source.indexOf('function syncNavigation(){'),source.indexOf('function switchSection(')),nav);
 for(const [view,section] of [['scales','discover'],['matrices','discover'],['targets','discover'],['chords','discover'],['hexboard','play'],['composition','create']]){vm.runInContext(`view='${view}';syncNavigation()`,nav);assert.equal(get('#'+section+'-view').hidden,false);if(section==='create'){assert.notEqual(get('#analysis-explore').parentElement,get('#create-view'),'Create does not take ownership of the HexBoard workspace');assert.equal(get('#material-host').parentElement.id,'#create-view','the material collection belongs in Create');}else {assert.equal(get('#analysis-explore').parentElement.id,'#'+section+'-view');if(section==='discover')assert.notEqual(get('#material-host').parentElement,get('#discover-view'),'the material collection is not attached to Discover');}}
 vm.runInContext("view='scales';syncNavigation()",nav);assert.equal(get('#material-host').parentElement.id,'#create-view','leaving Create keeps the collection out of Discover');assert.match(source,/\$\('#material-host'\)\.hidden=sectionFor\(view\)!=='create'/,'the collection stays hidden outside Create');
-const htmlSource=readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');assert.deepEqual([...htmlSource.matchAll(/id="tab-(\w+)"/g)].map(m=>m[1]),['discover','play','create']);assert.match(htmlSource,/<div id="create-view"[^>]*>[\s\S]*?<h2>Composition suite<\/h2>/);assert.doesNotMatch(htmlSource,/data-view="hexboard"/,'Play is the sole HexBoard entry point.');assert.doesNotMatch(htmlSource,/tab-compare|compare-view|compare-chooser|data-view="compare-/);assert.match(source,/Use scale in Play/);assert.doesNotMatch(source,/Use scale in Create/);const cssSource=readFileSync(new URL('../dist/style.css',import.meta.url),'utf8');assert.match(cssSource,/#play-view \.hex-layout/);assert.doesNotMatch(cssSource,/#create-view \.hex-layout/);
+const htmlSource=readFileSync(new URL('../src/index.html',import.meta.url),'utf8');assert.deepEqual([...htmlSource.matchAll(/id="tab-(\w+)"/g)].map(m=>m[1]),['discover','play','create']);assert.match(htmlSource,/<div id="create-view"[^>]*>[\s\S]*?<h2>Composition suite<\/h2>/);assert.doesNotMatch(htmlSource,/data-view="hexboard"/,'Play is the sole HexBoard entry point.');assert.doesNotMatch(htmlSource,/tab-compare|compare-view|compare-chooser|data-view="compare-/);assert.match(source,/Use scale in Play/);assert.doesNotMatch(source,/Use scale in Create/);const cssSource=readFileSync(new URL('../src/style.css',import.meta.url),'utf8');assert.match(cssSource,/#play-view \.hex-layout/);assert.doesNotMatch(cssSource,/#create-view \.hex-layout/);
 assert.ok(!source.slice(source.indexOf('function renderPanel('),source.indexOf('function scaleControls(')).includes('data-field="n"'));
 console.log('Discover/Play/Create routing; independent layout scale; collection naming, playback, source checks, persistence; 7-note highlight on 31-note board; voiced chord placement; unchanged exports passed.');
 

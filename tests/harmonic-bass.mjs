@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
-import {makeState,mapRatio} from '../dist/engine.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
-import {coordinateCents} from '../dist/pitch.mjs';
-import {orientedJIInterpretation,chordRotations,rotationRootKey} from '../dist/harmonic-ji-chords.mjs';
-import {harmonicEntryGeometry} from '../dist/harmonic-selection.mjs';
-import {searchShapeOccurrences} from '../dist/chord-occurrence-v2.mjs';
-import {bassInversions,bassVoicing,chordClasses,inversionName,rootInversions,rootedChordName} from '../dist/harmonic-bass.mjs';
+import {makeState,mapRatio} from '../src/core/engine.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
+import {coordinateCents} from '../src/core/pitch.mjs';
+import {orientedJIInterpretation,chordRotations,rotationRootKey} from '../src/harmonic/harmonic-ji-chords.mjs';
+import {harmonicEntryGeometry} from '../src/harmonic/harmonic-selection.mjs';
+import {searchShapeOccurrences} from '../src/chords/chord-occurrence.mjs';
+import {bassInversions,bassVoicing,chordClasses,inversionName,rootInversions,rootedChordName} from '../src/harmonic/harmonic-bass.mjs';
 
 const row=input=>{const interpretation=orientedJIInterpretation(input,{kind:'test'});return {kind:'ji',interpretation,familyId:interpretation.familyId};};
 const onRoot=(s,input,degree)=>{const r=row(input),g=harmonicEntryGeometry(s,r);if(!g)return null;return {g,r,entries:rootInversions(s,g.shape.coordinates,g.tones,searchShapeOccurrences(s,g.shape),degree)};};

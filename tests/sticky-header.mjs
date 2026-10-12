@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
-const css=readFileSync(new URL('../dist/style.css',import.meta.url),'utf8');
-const app=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8');
-const html=readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');
+const css=readFileSync(new URL('../src/style.css',import.meta.url),'utf8');
+const app=readFileSync(new URL('../src/app.mjs',import.meta.url),'utf8');
+const html=readFileSync(new URL('../src/index.html',import.meta.url),'utf8');
 const media=(query)=>{const start=css.lastIndexOf(`@media (${query}) {`);assert.ok(start>=0,query);let depth=0,i=css.indexOf('{',start);const from=i;for(;i<css.length;i++){if(css[i]==='{')depth++;else if(css[i]==='}'&&--depth===0)break;}return css.slice(from+1,i);};
 
 // The header floats above the page on every screen that is wide enough to afford it.

@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import {createPresetWorkspace} from '../dist/preset-ui.mjs';
-import {temperamentFromInput} from '../dist/temperament-input.mjs';
-import {makeState} from '../dist/engine.mjs';
-import {commaFromVector} from '../dist/comma-search.mjs';
+import {createPresetWorkspace} from '../src/presets/preset-ui.mjs';
+import {temperamentFromInput} from '../src/core/temperament-input.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {commaFromVector} from '../src/core/comma-search.mjs';
 const original=makeState('meantone');
 assert.equal(temperamentFromInput('2.3.5','81/80',original).tuning,'Computed CWE');
 const big=commaFromVector([2,3,5],[-40,40,-10]);

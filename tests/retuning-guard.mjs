@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {makeState,scale} from '../dist/engine.mjs';
-import {BUILTIN_LAYOUTS} from '../dist/builtin-layouts.mjs';
-import {buildBoard} from '../dist/hexboard.mjs';
-import {noteCoordinate} from '../dist/pitch.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
-import {applyTuningMethod,tuningConfig,jiSelection} from '../dist/tuning-methods.mjs';
-import {preflightRetuning,RETUNING_STRUCTURE_MESSAGE} from '../dist/retuning-guard.mjs';
+import {makeState,scale} from '../src/core/engine.mjs';
+import {BUILTIN_LAYOUTS} from '../src/hexboard/builtin-layouts.mjs';
+import {buildBoard} from '../src/hexboard/hexboard.mjs';
+import {noteCoordinate} from '../src/core/pitch.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
+import {applyTuningMethod,tuningConfig,jiSelection} from '../src/core/tuning-methods.mjs';
+import {preflightRetuning,RETUNING_STRUCTURE_MESSAGE} from '../src/core/retuning-guard.mjs';
 
 const builtin=key=>structuredClone(BUILTIN_LAYOUTS.find(row=>row.id==='builtin:'+key).state);
 const {context:layoutState,config:layout}=builtin('meantone');
@@ -53,7 +53,7 @@ console.log('Retuning boundaries cover collisions, reordered scales, independent
 
 // Execute the real app transaction and event adapters; a rejected draft must not leak
 // through explorer metadata, assignment arrays, direct edits, or a render-time repair.
-const source=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8');
+const source=readFileSync(new URL('../src/app.mjs',import.meta.url),'utf8');
 let onChange,stops=0,renders=0,panels=0,notices=[];
 const inert={change:()=>false};
 const config={...structuredClone(layout),chord:[65,66],keyColors:{65:'#abcdef'},savedLayoutId:'saved-test'};

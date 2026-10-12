@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createHexboardPlayer} from '../dist/hexboard-player.mjs';
+import {createHexboardPlayer} from '../src/hexboard/hexboard-player.mjs';
 const retunes=[],handlers={},windowHandlers={},nodes=new Map(),voices=new Set(),presses=[];let select=false,hit,focusCalls=0;
 for(const key of ['0:0','1:0','2:0']){
  const node={dataset:{diamondKey:key},playing:false,focus(){focusCalls++;},classList:{toggle(name,on){if(name==='is-playing')node.playing=on;}},closest:selector=>selector==='[data-diamond-key]'?node:null};nodes.set(key,node);
@@ -20,5 +20,5 @@ fire('keyup',{key:'Shift'});assert.equal(voices.size,0);assert.ok([...nodes.valu
 select=true;const before=presses.length;fire('pointerdown');for(let i=0;i<5;i++)fire('pointermove');assert.equal(presses.length,before+1);hit=nodes.get('2:0');fire('pointermove');assert.equal(presses.length,before+2);fire('pointerup');assert.equal(voices.size,0);
 select=false;fire('keydown',{key:'Enter',code:'Enter',repeat:false});assert.deepEqual([...voices],[200]);fire('keydown',{key:'Enter',code:'Enter',repeat:true});fire('keyup',{key:'Enter',code:'Enter'});assert.equal(voices.size,0);
 fire('pointerdown',{shiftKey:true});windowHandlers.blur();assert.equal(voices.size,0);fire('pointerdown');fire('pointercancel');assert.equal(voices.size,0);fire('pointerdown');doc.hidden=true;fire('visibilitychange');assert.equal(voices.size,0);player.reset();
-assert.match(readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8'),/surface:'\.tonality-diamond',keyboard:true,focusOnPointer:false/,'the app enables pointer playing without focus highlighting');
+assert.match(readFileSync(new URL('../src/app.mjs',import.meta.url),'utf8'),/surface:'\.tonality-diamond',keyboard:true,focusOnPointer:false/,'the app enables pointer playing without focus highlighting');
 console.log('Diamond drag gates, Shift sustain, stable selection gestures, keyboard notes, blur/cancel/visibility cleanup passed.');

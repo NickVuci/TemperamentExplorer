@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import {makeState,mosSizes} from '../dist/engine.mjs';
-import {fromCommas,edoTune} from '../dist/tuning.mjs';
-import {buildBoard,exportHexboard} from '../dist/hexboard.mjs';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
+import {makeState,mosSizes} from '../src/core/engine.mjs';
+import {fromCommas,edoTune} from '../src/core/tuning.mjs';
+import {buildBoard,exportHexboard} from '../src/hexboard/hexboard.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
 
 const close=(a,b)=>assert.ok(Math.abs(a-b)<.01,`${a} != ${b}`);
 const s={...makeState('meantone'),mode:1};

@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {makeState,generatedSizes,mapRatio,targets} from '../dist/engine.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
-import {mod} from '../dist/pitch.mjs';
-import {scale} from '../dist/engine.mjs';
-import {findScaleMilestones,scaleMilestoneMarkers,modeMilestoneMarker,formatModeRanges} from '../dist/scale-milestones.mjs';
+import {makeState,generatedSizes,mapRatio,targets} from '../src/core/engine.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
+import {mod} from '../src/core/pitch.mjs';
+import {scale} from '../src/core/engine.mjs';
+import {findScaleMilestones,scaleMilestoneMarkers,modeMilestoneMarker,formatModeRanges} from '../src/core/scale-milestones.mjs';
 
 function mappedCoordinates(s,options={limit:Math.max(3,...s.basis),primeLimit:null}){
  const {limit,primeLimit}=options,coordinates=new Set();
@@ -67,8 +67,8 @@ assert.equal(modeMilestoneMarker(meantone,9,2),null);
 assert.equal(formatModeRanges([0,1,2,4,6,7]),'1–3, 5, 7–8');
 assert.equal(findScaleMilestones(makeState('dreamtone'),{limit:13,primeLimit:null}).mappedTargetCount,20,'unmapped Dreamtone ratios are excluded');
 
-const app=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8');
-const css=readFileSync(new URL('../dist/style.css',import.meta.url),'utf8');
+const app=readFileSync(new URL('../src/app.mjs',import.meta.url),'utf8');
+const css=readFileSync(new URL('../src/style.css',import.meta.url),'utf8');
 assert.match(app,/data-scale-milestone/,'coverage cards are actionable');
 assert.match(app,/scaleMilestoneMarkers\(milestones,x\.n\)/,'the scale menu gets IC/DC suffixes');
 assert.match(app,/modeMilestoneMarker\(milestones,s\.n,i\)/,'completing modes are marked in the mode menu');

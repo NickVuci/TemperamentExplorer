@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {createHexboardPlayer} from '../dist/hexboard-player.mjs';
+import {createHexboardPlayer} from '../src/hexboard/hexboard-player.mjs';
 const handlers={},windowHandlers={},playing=new Set(),stopped=[],started=[],focused=[],activeChanges=[];
 const nodes=[0,1,2].map(i=>({dataset:{hexKey:String(i)},focus:options=>focused.push([i,options]),classList:{toggle:(name,on)=>{if(name==='is-playing'){if(on)playing.add(i);else playing.delete(i);}}}}));
 for(const node of nodes)node.closest=()=>node;

@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import {Worker as NodeWorker} from 'node:worker_threads';
-import {makeState} from '../dist/engine.mjs';
-import {BUILTIN_LAYOUTS} from '../dist/builtin-layouts.mjs';
-import {buildBoard} from '../dist/hexboard.mjs';
-import {coordinateCents} from '../dist/pitch.mjs';
-import {chordIdentity} from '../dist/chord-identity-v2.mjs';
-import {harmonicIdentity} from '../dist/harmonic-equivalence.mjs';
-import {immutable} from '../dist/cache.mjs';
-import {shapeJobContextId,presentShapeResult,createShapeJobDispatcher,createShapeJobs} from '../dist/shape-jobs.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {BUILTIN_LAYOUTS} from '../src/hexboard/builtin-layouts.mjs';
+import {buildBoard} from '../src/hexboard/hexboard.mjs';
+import {coordinateCents} from '../src/core/pitch.mjs';
+import {chordIdentity} from '../src/chords/chord-identity.mjs';
+import {harmonicIdentity} from '../src/harmonic/harmonic-equivalence.mjs';
+import {immutable} from '../src/core/cache.mjs';
+import {shapeJobContextId,presentShapeResult,createShapeJobDispatcher,createShapeJobs} from '../src/shapes/shape-jobs.mjs';
 
 const saved=BUILTIN_LAYOUTS.find(row=>row.id==='builtin:meantone').state;
 const state={...makeState('meantone'),...saved.context},board=buildBoard(state,saved.config);

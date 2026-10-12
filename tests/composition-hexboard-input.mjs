@@ -3,11 +3,11 @@
 // path as the physical HexBoard (pressKey / releaseKey on the board player).
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {createCompositionWorkspace} from '../dist/composition-ui.mjs';
-import {createProject,addEvent,PPQ} from '../dist/composition-project.mjs';
-import {captureContext,resolveTone} from '../dist/composition-context.mjs';
-import {compositionBoard,compositionDeviceSnapshot} from '../dist/composition-board.mjs';
-import {CLICK,START_DELAY_SECONDS} from '../dist/composition-transport.mjs';
+import {createCompositionWorkspace} from '../src/composition/composition-ui.mjs';
+import {createProject,addEvent,PPQ} from '../src/composition/composition-project.mjs';
+import {captureContext,resolveTone} from '../src/composition/composition-context.mjs';
+import {compositionBoard,compositionDeviceSnapshot} from '../src/composition/composition-board.mjs';
+import {CLICK,START_DELAY_SECONDS} from '../src/composition/composition-transport.mjs';
 
 const demo=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-demo.json',import.meta.url),'utf8'));
 const fixture=createProject({context:captureContext(demo.musicalContext.state,220),layout:demo.layout,tempo:120});

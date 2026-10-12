@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {captureContext} from '../dist/composition-context.mjs';
+import {captureContext} from '../src/composition/composition-context.mjs';
 import {
   COMPOSITION_FORMAT,LIMITS,PPQ,barTicks,ticksToSeconds,createProject,validateProject,serializeProject,parseProject,
   addEvent,updateEvent,removeEvent,duplicateEvent,insertGap,swapAdjacent,setTempo,setMeter,setLoop,setClipLength,
   contentEndTick,createHistory,makeEvent,allIds,setFingering,
-} from '../dist/composition-project.mjs';
+} from '../src/composition/composition-project.mjs';
 
 const demo=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-demo.json',import.meta.url),'utf8'));
 const ctx=captureContext(demo.musicalContext.state,220);

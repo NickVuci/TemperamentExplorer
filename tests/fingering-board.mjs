@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
-import {makeState} from '../dist/engine.mjs';
-import {createFingeringGame} from '../dist/fingering-game.mjs';
-import {ledFrame} from '../dist/hexboard-sync.mjs';
-import {getHarmonicEntry} from '../dist/harmonic-catalogue.mjs';
-import {harmonicSelection} from '../dist/harmonic-selection.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {createFingeringGame} from '../src/composition/fingering-game.mjs';
+import {ledFrame} from '../src/hexboard/hexboard-sync.mjs';
+import {getHarmonicEntry} from '../src/harmonic/harmonic-catalogue.mjs';
+import {harmonicSelection} from '../src/harmonic/harmonic-selection.mjs';
 
 const TRIAD=[[0,0],[-2,4],[0,1]];
 

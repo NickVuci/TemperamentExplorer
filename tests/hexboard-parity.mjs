@@ -4,9 +4,9 @@
 import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-import {makeState} from '../dist/engine.mjs';
-import {buildBoard} from '../dist/hexboard.mjs';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {buildBoard} from '../src/hexboard/hexboard.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
 
 const fixtureUrl=new URL('./fixtures/hexboard-parity.json',import.meta.url);
 // Button colours belong to one layout, so they are applied after the layout change that would clear them.

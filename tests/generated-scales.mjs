@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import {makeState,scale,generatedSizes,scaleChoices,stepSymbol} from '../dist/engine.mjs';
-import {buildBoard,fillBoard} from '../dist/hexboard.mjs';
-import {mosLayers} from '../dist/hexboard-colors.mjs';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
+import {makeState,scale,generatedSizes,scaleChoices,stepSymbol} from '../src/core/engine.mjs';
+import {buildBoard,fillBoard} from '../src/hexboard/hexboard.mjs';
+import {mosLayers} from '../src/hexboard/hexboard-colors.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
 const s=makeState('meantone');
 assert.equal(generatedSizes(s).length,255);
 assert.ok(generatedSizes(s,'3').some(a=>a.n===8));

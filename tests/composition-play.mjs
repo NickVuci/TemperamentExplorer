@@ -2,13 +2,13 @@
 // previews, preflight, repetition and training. Animation frames never drive these tests.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {captureContext} from '../dist/composition-context.mjs';
-import {createProject,addEvent,setFingering,PPQ} from '../dist/composition-project.mjs';
-import {compositionBoard,compositionDeviceSnapshot} from '../dist/composition-board.mjs';
-import {buildChart} from '../dist/composition-game.mjs';
-import {createTransport,START_DELAY_SECONDS} from '../dist/composition-transport.mjs';
-import {createGameController,normalizeSettings} from '../dist/composition-game-ui.mjs';
-import {ledFrame} from '../dist/hexboard-sync.mjs';
+import {captureContext} from '../src/composition/composition-context.mjs';
+import {createProject,addEvent,setFingering,PPQ} from '../src/composition/composition-project.mjs';
+import {compositionBoard,compositionDeviceSnapshot} from '../src/composition/composition-board.mjs';
+import {buildChart} from '../src/composition/composition-game.mjs';
+import {createTransport,START_DELAY_SECONDS} from '../src/composition/composition-transport.mjs';
+import {createGameController,normalizeSettings} from '../src/composition/composition-game-ui.mjs';
+import {ledFrame} from '../src/hexboard/hexboard-sync.mjs';
 
 const fixture=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-demo.json',import.meta.url),'utf8'));
 const context=captureContext(fixture.musicalContext.state,220),deg=d=>context.scale.degrees[d].coordinate;

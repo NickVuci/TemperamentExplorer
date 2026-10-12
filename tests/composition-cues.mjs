@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {captureContext} from '../dist/composition-context.mjs';
-import {createProject,addEvent,makeEvent,allIds,setLoop} from '../dist/composition-project.mjs';
-import {boardSnapshot,buildCueTimeline,activeCues,toPracticeTargets,PRACTICE_FORMAT,MATCH_MODES} from '../dist/composition-cues.mjs';
+import {captureContext} from '../src/composition/composition-context.mjs';
+import {createProject,addEvent,makeEvent,allIds,setLoop} from '../src/composition/composition-project.mjs';
+import {boardSnapshot,buildCueTimeline,activeCues,toPracticeTargets,PRACTICE_FORMAT,MATCH_MODES} from '../src/composition/composition-cues.mjs';
 
 const demo=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-demo.json',import.meta.url),'utf8'));
 const corpus=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-corpus.json',import.meta.url),'utf8'));

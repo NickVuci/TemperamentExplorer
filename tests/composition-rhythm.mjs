@@ -5,14 +5,14 @@ import {readFile} from 'node:fs/promises';
 import {
   DIVISIONS,normalizeGrid,gridRatio,gridStepTicks,gridLabel,barGrid,snapTick,cellTicks,stepLine,gridLines,
   meterGroups,defaultGroups,parseGroups,lengthName,formatBeat,beatFraction,euclid,
-} from '../dist/composition-grid.mjs';
+} from '../src/composition/composition-grid.mjs';
 import {
   shiftEvents,transposeSteps,transposeEvents,quantizeEvents,splitEvents,scaleEvents,legatoEvents,reverseEvents,
   euclidEvents,copyEvents,pasteEvents,velocityEvents,
-} from '../dist/composition-edit.mjs';
-import {PPQ,createProject,addEvent,makeEvent,allIds,editEvents,setMeter,parseProject,serializeProject,validateProject} from '../dist/composition-project.mjs';
-import {captureContext,resolveTone,degreeOf} from '../dist/composition-context.mjs';
-import {makeState} from '../dist/engine.mjs';
+} from '../src/composition/composition-edit.mjs';
+import {PPQ,createProject,addEvent,makeEvent,allIds,editEvents,setMeter,parseProject,serializeProject,validateProject} from '../src/composition/composition-project.mjs';
+import {captureContext,resolveTone,degreeOf} from '../src/composition/composition-context.mjs';
+import {makeState} from '../src/core/engine.mjs';
 
 const m44={numerator:4,denominator:4},m78={numerator:7,denominator:8},m68={numerator:6,denominator:8};
 const grid=g=>normalizeGrid(g);

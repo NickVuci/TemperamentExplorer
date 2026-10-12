@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
-import {makeState,targetSet} from '../dist/engine.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
-import {chordIdentity} from '../dist/chord-identity-v2.mjs';
-import {projectChord,projectCoordinateShape} from '../dist/chord-projection-v2.mjs';
-import {mapMonzo} from '../dist/ji-monzo.mjs';
-import {buildDyadIndex} from '../dist/harmonic-dyad-graph.mjs';
-import {assessET,cycleWitness,verifyETEvidence} from '../dist/harmonic-et.mjs';
-import {validateAssessment} from '../dist/harmonic-types.mjs';
+import {makeState,targetSet} from '../src/core/engine.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
+import {chordIdentity} from '../src/chords/chord-identity.mjs';
+import {projectChord,projectCoordinateShape} from '../src/chords/chord-projection.mjs';
+import {mapMonzo} from '../src/core/ji-monzo.mjs';
+import {buildDyadIndex} from '../src/harmonic/harmonic-dyad-graph.mjs';
+import {assessET,cycleWitness,verifyETEvidence} from '../src/harmonic/harmonic-et.mjs';
+import {validateAssessment} from '../src/harmonic/harmonic-types.mjs';
 
 function indexFor(state,oddLimit,representationPolicy='octave',primeFilter=state.basis){
  const targets=targetSet({oddLimit,primeFilter,mappingSubgroup:state.basis,representationPolicy});

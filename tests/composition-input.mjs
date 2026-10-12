@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {createHexboardPlayer} from '../dist/hexboard-player.mjs';
+import {createHexboardPlayer} from '../src/hexboard/hexboard-player.mjs';
 
 // Logical input seam: every sounding hold reports one down and one up, with the
 // exact coordinate captured at onset, a stable holdId and its own source.

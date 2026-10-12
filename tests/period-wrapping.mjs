@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
-import {makeState,scale,mod} from '../dist/engine.mjs';
-import {fromCommas,edoTune} from '../dist/tuning.mjs';
-import {coordinateCents,noteCoordinate} from '../dist/pitch.mjs';
-import {buildBoard,physicalKey,exportHexboard,boardMatches} from '../dist/hexboard.mjs';
-import {placementDelta,validatePeriodPlacement} from '../dist/hexboard-wrapping.mjs';
-import {mosLayers,keyColor} from '../dist/hexboard-colors.mjs';
-import {chordPlacements,discoverBoardChords} from '../dist/hexboard-chords.mjs';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
-import {createHexboardPlayer} from '../dist/hexboard-player.mjs';
+import {makeState,scale,mod} from '../src/core/engine.mjs';
+import {fromCommas,edoTune} from '../src/core/tuning.mjs';
+import {coordinateCents,noteCoordinate} from '../src/core/pitch.mjs';
+import {buildBoard,physicalKey,exportHexboard,boardMatches} from '../src/hexboard/hexboard.mjs';
+import {placementDelta,validatePeriodPlacement} from '../src/hexboard/hexboard-wrapping.mjs';
+import {mosLayers,keyColor} from '../src/hexboard/hexboard-colors.mjs';
+import {chordPlacements,discoverBoardChords} from '../src/hexboard/hexboard-chords.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
+import {createHexboardPlayer} from '../src/hexboard/hexboard-player.mjs';
 
 const close=(a,b,t=1e-7)=>assert.ok(Math.abs(a-b)<t,`${a} != ${b}`);
 const meantone=makeState('meantone');

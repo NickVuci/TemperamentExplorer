@@ -2,12 +2,12 @@
 // Run from any directory: node scripts/generate-sample-compositions.mjs
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
-import {makeState} from '../dist/engine.mjs';
-import {BUILTIN_LAYOUTS} from '../dist/builtin-layouts.mjs';
-import {layoutPresetForState} from '../dist/layout-preset-data.mjs';
-import {captureContext} from '../dist/composition-context.mjs';
-import {createProject,barTicks,PPQ,parseProject,serializeProject} from '../dist/composition-project.mjs';
-import {buildCueTimeline} from '../dist/composition-cues.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {BUILTIN_LAYOUTS} from '../src/hexboard/builtin-layouts.mjs';
+import {layoutPresetForState} from '../src/hexboard/layout-preset-data.mjs';
+import {captureContext} from '../src/composition/composition-context.mjs';
+import {createProject,barTicks,PPQ,parseProject,serializeProject} from '../src/composition/composition-project.mjs';
+import {buildCueTimeline} from '../src/composition/composition-cues.mjs';
 
 const directory=new URL('../examples/compositions/',import.meta.url);
 await mkdir(directory,{recursive:true});

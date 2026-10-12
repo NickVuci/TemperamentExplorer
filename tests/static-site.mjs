@@ -5,18 +5,18 @@ import vm from 'node:vm';
 // Builds site/ and checks it is a complete static site with an offline shell.
 const built=spawnSync(process.execPath,['scripts/build.mjs'],{encoding:'utf8'});assert.equal(built.status,0,built.stderr);
 const site=name=>new URL('../site/'+name,import.meta.url),text=name=>readFileSync(site(name),'utf8');
-assert.deepEqual(readdirSync(site('')).sort(),['app.mjs','chord-v2-worker.mjs','comma-worker.mjs','icon-192.png','icon-512.png','icon.svg','index.html','manifest.webmanifest','style.css','sw.js'],'site/ holds only the app shell');
+assert.deepEqual(readdirSync(site('')).sort(),['app.mjs','chord-worker.mjs','comma-worker.mjs','icon-192.png','icon-512.png','icon.svg','index.html','manifest.webmanifest','style.css','sw.js'],'site/ holds only the app shell');
 const html=text('index.html');
 for(const ref of ['./manifest.webmanifest','./icon.svg','./icon-192.png','./app.mjs','./style.css'])assert.ok(html.includes(`"${ref}"`),ref+' is linked from the page');
 const manifest=JSON.parse(text('manifest.webmanifest'));assert.equal(manifest.start_url,'./');assert.equal(manifest.display,'standalone');
 for(const icon of manifest.icons){assert.ok(existsSync(site(icon.src)),icon.src);if(icon.type==='image/png'){const png=readFileSync(site(icon.src)),[w,h]=icon.sizes.split('x').map(Number);assert.deepEqual([png.readUInt32BE(16),png.readUInt32BE(20)],[w,h],icon.src+' matches its declared size');}}
 assert.ok(manifest.icons.some(icon=>icon.purpose==='maskable'));
 // The page and module workers are self-contained bundles, and nothing calls a server API.
-for(const name of ['app.mjs','comma-worker.mjs','chord-v2-worker.mjs']){const code=text(name);assert.doesNotMatch(code,/(?:\bfrom|\bimport)\s*["']\.\.?\//,name+' is bundled');assert.doesNotMatch(code,/\/api\//,name+' has no server API calls');}
+for(const name of ['app.mjs','comma-worker.mjs','chord-worker.mjs']){const code=text(name);assert.doesNotMatch(code,/(?:\bfrom|\bimport)\s*["']\.\.?\//,name+' is bundled');assert.doesNotMatch(code,/\/api\//,name+' has no server API calls');}
 const sw=text('sw.js'),version=sw.match(/const VERSION='([0-9a-f]{16})';/)?.[1],shell=JSON.parse(sw.match(/const SHELL=(\[.*\]);/)[1]);
 assert.ok(version,'the build stamps the service worker version');
 for(const url of shell)if(url!=='./')assert.ok(existsSync(site(url.slice(2))),url+' is precached and exists');
-assert.ok(['./','./index.html','./app.mjs','./comma-worker.mjs','./chord-v2-worker.mjs','./style.css'].every(url=>shell.includes(url)));
+assert.ok(['./','./index.html','./app.mjs','./comma-worker.mjs','./chord-worker.mjs','./style.css'].every(url=>shell.includes(url)));
 console.log('Static site build links its manifest and icons, bundles the page and workers, and stamps the service worker shell.');
 
 // Run the built service worker against an in-memory Cache Storage and network.

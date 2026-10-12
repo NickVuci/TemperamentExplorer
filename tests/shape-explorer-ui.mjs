@@ -1,16 +1,16 @@
 // The Play shape explorer controller over real fallback jobs, a real board with a few enabled keys,
 // and a memory preset store: targets, cards, placements, readings, saving, sessions and retuning.
 import assert from 'node:assert/strict';
-import {BUILTIN_LAYOUTS} from '../dist/builtin-layouts.mjs';
-import {buildBoard} from '../dist/hexboard.mjs';
-import {hexDistance} from '../dist/hexboard-chords.mjs';
-import {coordinateCents} from '../dist/pitch.mjs';
-import {createPresetStore} from '../dist/preset-store.mjs';
-import {shapePresetSnapshot} from '../dist/shape-preset-data.mjs';
-import {makeState} from '../dist/engine.mjs';
-import {chordPlacements} from '../dist/hexboard-chords.mjs';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
-import {createShapeExplorer,shapePlacementOverlay,groupReadings,matchKindLabel,shapeMaterialSelection} from '../dist/shape-explorer-ui.mjs';
+import {BUILTIN_LAYOUTS} from '../src/hexboard/builtin-layouts.mjs';
+import {buildBoard} from '../src/hexboard/hexboard.mjs';
+import {hexDistance} from '../src/hexboard/hexboard-chords.mjs';
+import {coordinateCents} from '../src/core/pitch.mjs';
+import {createPresetStore} from '../src/presets/preset-store.mjs';
+import {shapePresetSnapshot} from '../src/shapes/shape-preset-data.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {chordPlacements} from '../src/hexboard/hexboard-chords.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
+import {createShapeExplorer,shapePlacementOverlay,groupReadings,matchKindLabel,shapeMaterialSelection} from '../src/shapes/shape-explorer-ui.mjs';
 
 const memory=()=>{const values=new Map();return {values,getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,String(value))};};
 const layout=structuredClone(BUILTIN_LAYOUTS.find(p=>p.id==='builtin:meantone').state);

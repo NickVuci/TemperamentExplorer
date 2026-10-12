@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import {createFingeringGame} from '../dist/fingering-game.mjs';
-import {createFingeringGameUi} from '../dist/fingering-game-ui.mjs';
+import {createFingeringGame} from '../src/composition/fingering-game.mjs';
+import {createFingeringGameUi} from '../src/composition/fingering-game-ui.mjs';
 
 const placements=Array.from({length:12},(_,i)=>({keys:[10+i,30+i,50+i]}));
 function setup({fingerings={label:'major <triad>',index:0,placements},playView=true}={}){

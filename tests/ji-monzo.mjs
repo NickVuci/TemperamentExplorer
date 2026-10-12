@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {MAX_FACTOR_COMPONENT,isZeroMonzoImage,mapMonzo,ratioMonzo} from '../dist/ji-monzo.mjs';
+import {MAX_FACTOR_COMPONENT,isZeroMonzoImage,mapMonzo,ratioMonzo} from '../src/core/ji-monzo.mjs';
 
 const meantoneBasis=[2,3,5];
 const unison=ratioMonzo('14/14',meantoneBasis);

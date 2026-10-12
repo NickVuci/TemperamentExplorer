@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {createCompositionWorkspace} from '../dist/composition-ui.mjs';
-import {parseProject,PPQ} from '../dist/composition-project.mjs';
-import {PRACTICE_FORMAT} from '../dist/composition-cues.mjs';
-import {STEP_TICKS,gridRows,formatPosition,renderComposition} from '../dist/composition-view.mjs';
+import {createCompositionWorkspace} from '../src/composition/composition-ui.mjs';
+import {parseProject,PPQ} from '../src/composition/composition-project.mjs';
+import {PRACTICE_FORMAT} from '../src/composition/composition-cues.mjs';
+import {STEP_TICKS,gridRows,formatPosition,renderComposition} from '../src/composition/composition-view.mjs';
 
 const corpus=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-corpus.json',import.meta.url),'utf8'));
 const demo=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-demo.json',import.meta.url),'utf8'));

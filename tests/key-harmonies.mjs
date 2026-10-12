@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
-import {makeState} from '../dist/engine.mjs';
-import {buildBoard} from '../dist/hexboard.mjs';
-import {chordPlacements,chordsWithKey,discoverBoardChords} from '../dist/hexboard-chords.mjs';
-import {ledFrame} from '../dist/hexboard-sync.mjs';
-import {createHarmonicCatalogueWorkspace} from '../dist/harmonic-catalogue-ui.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {buildBoard} from '../src/hexboard/hexboard.mjs';
+import {chordPlacements,chordsWithKey,discoverBoardChords} from '../src/hexboard/hexboard-chords.mjs';
+import {ledFrame} from '../src/hexboard/hexboard-sync.mjs';
+import {createHarmonicCatalogueWorkspace} from '../src/harmonic/harmonic-catalogue-ui.mjs';
 
 const state=makeState('meantone');
 const played=[];let refreshes=0;

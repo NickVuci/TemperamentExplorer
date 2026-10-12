@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {matrixScale} from '../dist/matrix.mjs';
-import {noteCoordinate,octavePeriods} from '../dist/pitch.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
-import {approximationDomain,bestApproximations,bestModeApproximations} from '../dist/approximation-compat.mjs';
-import {rankApproximationCoordinates} from '../dist/harmonic-approximations.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {matrixScale} from '../src/core/matrix.mjs';
+import {noteCoordinate,octavePeriods} from '../src/core/pitch.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
+import {approximationDomain,bestApproximations,bestModeApproximations} from '../src/core/approximation-compat.mjs';
+import {rankApproximationCoordinates} from '../src/harmonic/harmonic-approximations.mjs';
 
 const meantone=makeState('meantone');
 const finite=approximationDomain('scale-intervals',{...meantone,n:7,mode:2});

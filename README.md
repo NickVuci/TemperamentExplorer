@@ -9,8 +9,7 @@ testing the Compose piano roll and Play mode.
 
 ## Source and build
 
-**The top-level files in `dist/` are authored source, not disposable output.**
-Do not clean that directory. The build writes a static site to `site/`.
+Source lives in `src/`. The build writes a static site to `site/`.
 
 The app runs entirely in the browser and needs no server code. Any static file
 host (GitHub Pages, Netlify, Cloudflare Pages) can serve `site/`, including from
@@ -22,43 +21,61 @@ Settings → Export/Import saved presets moves them between browsers or devices.
   icons, and the service worker stamped with a hash of the shell.
 - `npm run preview` serves `site/` locally for checking offline and install
   behavior; service workers need `localhost` or HTTPS.
-- `npm run dev` serves `dist/` through Vite for interaction QA.
+- `npm run dev` serves `src/` through Vite for interaction QA.
 - `npm test` runs every top-level `tests/*.mjs` suite in parallel; set
   `TEST_CONCURRENCY` to cap the number running at once. The static-site suite
   rebuilds `site/`.
-- `node scripts/benchmark.mjs [path/to/previous/dist]` runs identical local
-  calculation workloads against current or previous sources.
+- `node scripts/benchmark.mjs [path/to/other/src]` runs identical local
+  calculation workloads against current or previous sources, including older
+  checkouts whose modules sit flat in `dist/`.
 
 The browser receives one bundled ES module instead of fetching its dependency
-tree.
+tree. Workers are created through `src/workers.mjs`, which sits beside the worker
+scripts so their URLs resolve in development and in the built site.
 `manifest.webmanifest` makes the app installable. `sw.js` precaches the shell
 and prefers the network, so online visits run the deployed files and offline
 visits use the cache.
 
 ## Where things belong
 
+The root of `src/` holds the page, `app.mjs`, the worker entry points and
+`workers.mjs`, `style.css`, `sw.js` and the install metadata. Modules live in
+subsystem folders:
+
+| Folder | Contents |
+| --- | --- |
+| `core/` | Temperament, tuning, scale, matrix and JI calculations |
+| `chords/` | Exact chord identity, projection, occurrences, realization, voicings and live recognition |
+| `harmonic/` | Harmony directory and catalogue, intervals, ET/JI interpretation, and their workspaces |
+| `shapes/` | Physical chord shapes and the Shapes view |
+| `diamond/` | Tonality diamond and its workspace |
+| `hexboard/` | Board geometry, layouts, colors, playing and device sync |
+| `composition/` | Composition model, transport, editor, practice game and fingering game |
+| `presets/` | Browser-local saved presets |
+| `ui/` | Shared UI helpers, audio, and the Discover workspaces |
+
 | Concern | Modules |
 | --- | --- |
-| Pitch/coordinate conventions, period references | `pitch.mjs` |
-| Exact rational arithmetic | `rational.mjs` |
-| Bounded memoization and immutable cached values | `cache.mjs` |
-| Built-in temperament definitions and published tuning data | `catalog.mjs` |
-| Generated scales, odd-limit targets, interval classification | `engine.mjs` |
-| Comma kernels, EDO targets, fitting and tuning-method orchestration | `tuning.mjs`, `weil-tuning.mjs`, `tuning-methods.mjs` |
-| Finite diamond approximation compatibility views | `approximation-compat.mjs` |
-| JI assignment validation and mapping extensions | `assignments.mjs` |
-| Matrix spans, modes and pagination | `matrix.mjs` |
-| Chord inspection and scale discovery | `harmonic-inspection.mjs`, `chord-*v2.mjs` |
-| Board geometry, export, chord placement and layer colors | `hexboard*.mjs` calculation modules |
-| Physical chord shapes: geometry, forward/reverse search, sources, jobs, saved shapes | `geometric-shapes.mjs`, `chord-shapes.mjs`, `shape-*.mjs` |
-| Rejecting retunes that would change the scale or key assignments | `retuning-guard.mjs` |
-| Web Audio context, scheduling, held voices and cleanup | `audio.mjs` |
-| Pointer/keyboard/Shift-sustain interaction (no oscillator creation) | `hexboard-player.mjs` |
-| Shared HTML escaping and select options | `ui.mjs` |
-| Workspace rendering/event adapters | `*-ui.mjs`, `tonality-diamond.mjs` |
+| Pitch/coordinate conventions, period references | `core/pitch.mjs` |
+| Exact rational arithmetic | `core/rational.mjs` |
+| Bounded memoization and immutable cached values | `core/cache.mjs` |
+| Built-in temperament definitions and published tuning data | `core/catalog.mjs` |
+| Generated scales, odd-limit targets, interval classification | `core/engine.mjs` |
+| Comma kernels, EDO targets, fitting and tuning-method orchestration | `core/tuning.mjs`, `core/weil-tuning.mjs`, `core/tuning-methods.mjs` |
+| Finite diamond approximation compatibility views | `core/approximation-compat.mjs` |
+| JI assignment validation and mapping extensions | `core/assignments.mjs` |
+| Matrix spans, modes and pagination | `core/matrix.mjs` |
+| Chord inspection and scale discovery | `harmonic/harmonic-inspection.mjs`, `chords/` |
+| Board geometry, export, chord placement and layer colors | `hexboard/hexboard*.mjs` calculation modules |
+| Physical chord shapes: geometry, forward/reverse search, sources, jobs, saved shapes | `shapes/` |
+| Rejecting retunes that would change the scale or key assignments | `core/retuning-guard.mjs` |
+| Web Audio context, scheduling, held voices and cleanup | `ui/audio.mjs` |
+| Pointer/keyboard/Shift-sustain interaction (no oscillator creation) | `hexboard/hexboard-player.mjs` |
+| Shared HTML escaping and select options | `ui/ui.mjs` |
+| Workspace rendering/event adapters | `*-ui.mjs`, `diamond/tonality-diamond.mjs` |
 | App orchestration, navigation and session restoration | `app.mjs` |
 | Theme tokens, shared components and responsive refinements | `style.css` |
-| Browser-local saved presets, backups and revisions | `preset-store.mjs`, `preset-data.mjs`, `state.mjs` |
+| Browser-local saved presets, backups and revisions | `presets/`, `core/state.mjs` |
 | Offline shell and install metadata | `sw.js`, `manifest.webmanifest`, `icon*` |
 
 `engine.mjs` retains its previous public exports by re-exporting the moved

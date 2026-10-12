@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import {makeState,primeFilterForBasis,targetSet} from '../dist/engine.mjs';
-import {mappingContext} from '../dist/harmonic-context.mjs';
-import {mappedIntervals,indexByCoordinate,edgeInterpretations,intervalError} from '../dist/harmonic-intervals.mjs';
-import {ratioMonzo,mapMonzo} from '../dist/ji-monzo.mjs';
+import {makeState,primeFilterForBasis,targetSet} from '../src/core/engine.mjs';
+import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
+import {mappedIntervals,indexByCoordinate,edgeInterpretations,intervalError} from '../src/harmonic/harmonic-intervals.mjs';
+import {ratioMonzo,mapMonzo} from '../src/core/ji-monzo.mjs';
 
 const meantone=makeState('meantone'),subgroup=meantone.basis;
 const spec={oddLimit:97,primeFilter:null,mappingSubgroup:subgroup,representationPolicy:'octave'};

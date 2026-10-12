@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import {createCommaWorkspace} from '../dist/comma-ui.mjs';
-import {parseSearch,searchCommas,commaFromVector} from '../dist/comma-search.mjs';
-import {fromCommaSearch} from '../dist/tuning.mjs';
-import {makeState} from '../dist/engine.mjs';
+import {createCommaWorkspace} from '../src/ui/comma-ui.mjs';
+import {parseSearch,searchCommas,commaFromVector} from '../src/core/comma-search.mjs';
+import {fromCommaSearch} from '../src/core/tuning.mjs';
+import {makeState} from '../src/core/engine.mjs';
 const basis=[2,3,5],comma=commaFromVector(basis,[-4,4,-1]);
 for(const [tuning,wanted] of [['Published CWE','Computed CWE'],['Published WE','Computed WE'],['Computed WE','Computed WE'],['Prime least squares','Prime least squares'],['Manual','Computed CWE'],['Pure intervals','Computed CWE'],['EDO target','Computed CWE']])assert.equal(fromCommaSearch(basis,[comma],{tuning}).tuning,wanted);
 for(const tuning of ['Minimax','Least squares']){

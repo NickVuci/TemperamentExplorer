@@ -2,13 +2,13 @@
 import assert from 'node:assert/strict';
 import {readdir,readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
-import {captureContext,validateContext,resolveTone} from '../dist/composition-context.mjs';
-import {PPQ,barTicks,contentEndTick,parseProject,serializeProject} from '../dist/composition-project.mjs';
-import {boardSnapshot} from '../dist/composition-cues.mjs';
-import {buildChart} from '../dist/composition-game.mjs';
-import {buildBoard} from '../dist/hexboard.mjs';
-import {rollRows} from '../dist/composition-view.mjs';
-import {validateState} from '../dist/state.mjs';
+import {captureContext,validateContext,resolveTone} from '../src/composition/composition-context.mjs';
+import {PPQ,barTicks,contentEndTick,parseProject,serializeProject} from '../src/composition/composition-project.mjs';
+import {boardSnapshot} from '../src/composition/composition-cues.mjs';
+import {buildChart} from '../src/composition/composition-game.mjs';
+import {buildBoard} from '../src/hexboard/hexboard.mjs';
+import {rollRows} from '../src/composition/composition-view.mjs';
+import {validateState} from '../src/core/state.mjs';
 
 const directory=fileURLToPath(new URL('../examples/compositions/',import.meta.url));
 const files=(await readdir(directory)).filter(name=>name.endsWith('.composition.json')).sort();

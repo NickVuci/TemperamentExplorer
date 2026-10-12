@@ -1,10 +1,10 @@
-import {createPresetId} from '../dist/preset-data.mjs';
+import {createPresetId} from '../src/presets/preset-data.mjs';
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
-import {layoutPresetSnapshot,layoutPresetForState,mappingKey} from '../dist/layout-preset-data.mjs';
-import {createLayoutPresets} from '../dist/layout-presets.mjs';
-import {createPresetStore} from '../dist/preset-store.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
+import {layoutPresetSnapshot,layoutPresetForState,mappingKey} from '../src/hexboard/layout-preset-data.mjs';
+import {createLayoutPresets} from '../src/hexboard/layout-presets.mjs';
+import {createPresetStore} from '../src/presets/preset-store.mjs';
 const memory=()=>{const values=new Map();return {getItem:k=>values.has(k)?values.get(k):null,setItem:(k,v)=>values.set(k,String(v))};};
 const presetStore=createPresetStore({storage:memory()});
 const s={...makeState('meantone'),n:12,mode:0};let notifyResolve;

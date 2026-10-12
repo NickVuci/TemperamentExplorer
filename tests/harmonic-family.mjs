@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import {chordIdentity as id} from '../dist/chord-identity-v2.mjs';
-import {dualIdentity,harmonicIdentity} from '../dist/harmonic-equivalence.mjs';
-import {mul,rational} from '../dist/rational.mjs';
+import {chordIdentity as id} from '../src/chords/chord-identity.mjs';
+import {dualIdentity,harmonicIdentity} from '../src/harmonic/harmonic-equivalence.mjs';
+import {mul,rational} from '../src/core/rational.mjs';
 
 const source=id('4:5:6'),originalFingerprint=source.fingerprint;
 const major=harmonicIdentity(source,'octave');

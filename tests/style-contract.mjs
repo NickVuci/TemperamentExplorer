@@ -14,7 +14,7 @@ async function canonical(source) {
   source=source.replace(/var\((--[\w-]+)\)/g,(match,name)=>constants[name]??match);
   return (await transform(source,{loader:'css',minifyWhitespace:true})).code;
 }
-const source=readFileSync(new URL('../dist/style.css',import.meta.url),'utf8');
+const source=readFileSync(new URL('../src/style.css',import.meta.url),'utf8');
 const current=await canonical(source.split('/* Period wrapping controls */')[0]);
 if (process.argv[2]) {
   const baseline=await canonical(readFileSync(process.argv[2],'utf8'));

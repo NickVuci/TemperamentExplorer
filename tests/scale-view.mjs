@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import {makeState,scale,generatedSizes} from '../dist/engine.mjs';
-import {normalizeScaleView,scaleViewToggle,scaleStepSummary,horogramRings,degreeTable,renderScaleView,linkScaleDegree} from '../dist/scale-view.mjs';
+import {makeState,scale,generatedSizes} from '../src/core/engine.mjs';
+import {normalizeScaleView,scaleViewToggle,scaleStepSummary,horogramRings,degreeTable,renderScaleView,linkScaleDegree} from '../src/ui/scale-view.mjs';
 
 assert.equal(normalizeScaleView('horogram'),'horogram');
 assert.equal(normalizeScaleView('circle'),'line','unknown saved values open on the line');

@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {makeState,mapRatio} from '../dist/engine.mjs';
-import {chordIdentity} from '../dist/chord-identity-v2.mjs';
-import {projectChord,periodClass} from '../dist/chord-projection-v2.mjs';
-import {createLiveChordRecognizer} from '../dist/live-chord-recognition.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
+import {makeState,mapRatio} from '../src/core/engine.mjs';
+import {chordIdentity} from '../src/chords/chord-identity.mjs';
+import {projectChord,periodClass} from '../src/chords/chord-projection.mjs';
+import {createLiveChordRecognizer} from '../src/chords/live-chord-recognition.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
 
 const fixture=JSON.parse(readFileSync(new URL('./fixtures/harmonic-discovery/reference.json',import.meta.url)));
 for(const state of Object.values(fixture.states))assert.equal(state.expectedNew.status,'not-implemented');

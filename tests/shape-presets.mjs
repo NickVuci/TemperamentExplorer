@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
-import {chordIdentity} from '../dist/chord-identity-v2.mjs';
-import {projectChord} from '../dist/chord-projection-v2.mjs';
-import {harmonicIdentity} from '../dist/harmonic-equivalence.mjs';
-import {voicingReference} from '../dist/chord-voicings.mjs';
-import {chordPlacements} from '../dist/hexboard-chords.mjs';
-import {buildBoard} from '../dist/hexboard.mjs';
-import {geometricShapeForKeys} from '../dist/geometric-shapes.mjs';
-import {BUILTIN_LAYOUTS} from '../dist/builtin-layouts.mjs';
-import {shapePresetSnapshot,shapePresetFromPlacement,shapePresetForState,MAX_SAVED_SHAPES} from '../dist/shape-preset-data.mjs';
-import {createPresetStore,PRESET_STORAGE_KEY,PRESET_BACKUP_FORMAT} from '../dist/preset-store.mjs';
+import {chordIdentity} from '../src/chords/chord-identity.mjs';
+import {projectChord} from '../src/chords/chord-projection.mjs';
+import {harmonicIdentity} from '../src/harmonic/harmonic-equivalence.mjs';
+import {voicingReference} from '../src/chords/chord-voicings.mjs';
+import {chordPlacements} from '../src/hexboard/hexboard-chords.mjs';
+import {buildBoard} from '../src/hexboard/hexboard.mjs';
+import {geometricShapeForKeys} from '../src/shapes/geometric-shapes.mjs';
+import {BUILTIN_LAYOUTS} from '../src/hexboard/builtin-layouts.mjs';
+import {shapePresetSnapshot,shapePresetFromPlacement,shapePresetForState,MAX_SAVED_SHAPES} from '../src/shapes/shape-preset-data.mjs';
+import {createPresetStore,PRESET_STORAGE_KEY,PRESET_BACKUP_FORMAT} from '../src/presets/preset-store.mjs';
 
 const memory=()=>{const values=new Map();return {values,getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,String(value))};};
 const layout=structuredClone(BUILTIN_LAYOUTS.find(p=>p.id==='builtin:meantone').state),state=layout.context,config=layout.config;

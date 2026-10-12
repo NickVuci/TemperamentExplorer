@@ -360,7 +360,7 @@ modulus alone is insufficient. The lift certificate reconstructs every input
 coordinate without floating-point pitch calculations.
 
 **Consequences.** `harmonic-equivalence.mjs` owns these new quotients. The
-existing `chord-projection-v2.mjs#periodClass` is a compatibility path until
+existing `chord-projection.mjs#periodClass` is a compatibility path until
 its consumers migrate; exact live recognition keeps its current full-coordinate
 semantics. Non-octave mappings without 2 still support exact and period classes.
 

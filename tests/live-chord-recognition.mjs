@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {chordIdentity} from '../dist/chord-identity-v2.mjs';
-import {chordCandidates} from '../dist/chord-discovery-v2.mjs';
-import {projectChord} from '../dist/chord-projection-v2.mjs';
-import {createLiveChordRecognizer,normalizeLiveChordShape} from '../dist/live-chord-recognition.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {chordIdentity} from '../src/chords/chord-identity.mjs';
+import {chordCandidates} from '../src/chords/chord-discovery.mjs';
+import {projectChord} from '../src/chords/chord-projection.mjs';
+import {createLiveChordRecognizer,normalizeLiveChordShape} from '../src/chords/live-chord-recognition.mjs';
 
 const state=makeState('meantone'),settings={limit:15,primeLimit:null,tol:10};
 const shapeFor=ratio=>projectChord(state,chordIdentity(ratio),{tolerance:settings.tol}).notes.map(note=>note.coordinate);

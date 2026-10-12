@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
-import {makeState,targetSet} from '../dist/engine.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
-import {mappingContext} from '../dist/harmonic-context.mjs';
-import {buildDyadIndex} from '../dist/harmonic-dyad-graph.mjs';
-import {assessET} from '../dist/harmonic-et.mjs';
-import {projectChord} from '../dist/chord-projection-v2.mjs';
-import {chordIdentity} from '../dist/chord-identity-v2.mjs';
-import {harmonicIdentity} from '../dist/harmonic-equivalence.mjs';
-import {classifyChordSpace,enumerateJIChordSpace,temperedImage,chordDyads} from '../dist/harmonic-chord-space.mjs';
+import {makeState,targetSet} from '../src/core/engine.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
+import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
+import {buildDyadIndex} from '../src/harmonic/harmonic-dyad-graph.mjs';
+import {assessET} from '../src/harmonic/harmonic-et.mjs';
+import {projectChord} from '../src/chords/chord-projection.mjs';
+import {chordIdentity} from '../src/chords/chord-identity.mjs';
+import {harmonicIdentity} from '../src/harmonic/harmonic-equivalence.mjs';
+import {classifyChordSpace,enumerateJIChordSpace,temperedImage,chordDyads} from '../src/harmonic/harmonic-chord-space.mjs';
 
 const indexFor=(state,oddLimit)=>buildDyadIndex(targetSet({oddLimit,primeFilter:null,mappingSubgroup:state.basis,
  representationPolicy:state.basis.includes(2)?'octave':'native-exact'}),mappingContext(state));

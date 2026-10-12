@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {createFingeringGame,countOptions} from '../dist/fingering-game.mjs';
+import {createFingeringGame,countOptions} from '../src/composition/fingering-game.mjs';
 
 // A chord with four fingerings; two of them share a key (so completing one can leave a key held).
 const placements=[{keys:[10,20,30]},{keys:[11,21,31]},{keys:[30,40,50]},{keys:[12,22,32]}];

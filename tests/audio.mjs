@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import {createAudioEngine, frequencyFor, isAudibleFrequency, outputCurve} from '../dist/audio.mjs';
-import {createHexboardPlayer} from '../dist/hexboard-player.mjs';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
-import {buildBoard} from '../dist/hexboard.mjs';
-import {makeState} from '../dist/engine.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
+import {createAudioEngine, frequencyFor, isAudibleFrequency, outputCurve} from '../src/ui/audio.mjs';
+import {createHexboardPlayer} from '../src/hexboard/hexboard-player.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
+import {buildBoard} from '../src/hexboard/hexboard.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
 
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function fixture({pending=false,fallback=false}={}){

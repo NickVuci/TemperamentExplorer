@@ -2,10 +2,10 @@
 // keyboard shortcuts, Edit/Rhythm menu actions and the toolbar, over a fake DOM.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {createCompositionWorkspace} from '../dist/composition-ui.mjs';
-import {PPQ,createProject,addEvent,barTicks} from '../dist/composition-project.mjs';
-import {captureContext,resolveTone} from '../dist/composition-context.mjs';
-import {transposeSteps} from '../dist/composition-edit.mjs';
+import {createCompositionWorkspace} from '../src/composition/composition-ui.mjs';
+import {PPQ,createProject,addEvent,barTicks} from '../src/composition/composition-project.mjs';
+import {captureContext,resolveTone} from '../src/composition/composition-context.mjs';
+import {transposeSteps} from '../src/composition/composition-edit.mjs';
 
 const demo=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-demo.json',import.meta.url),'utf8'));
 let fixture=createProject({context:captureContext(demo.musicalContext.state,220),layout:demo.layout});

@@ -2,10 +2,10 @@
 // any-register matching, held-together Wait mode and the results summary.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {buildChart,createGame,gradeFor,WINDOWS,POINTS,HOLD_BONUS,NEAR_MS,INPUT_SLACK_MS} from '../dist/composition-game.mjs';
-import {createProject,addEvent,parseProject,PPQ} from '../dist/composition-project.mjs';
-import {captureContext} from '../dist/composition-context.mjs';
-import {boardSnapshot} from '../dist/composition-cues.mjs';
+import {buildChart,createGame,gradeFor,WINDOWS,POINTS,HOLD_BONUS,NEAR_MS,INPUT_SLACK_MS} from '../src/composition/composition-game.mjs';
+import {createProject,addEvent,parseProject,PPQ} from '../src/composition/composition-project.mjs';
+import {captureContext} from '../src/composition/composition-context.mjs';
+import {boardSnapshot} from '../src/composition/composition-cues.mjs';
 
 const demo=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-demo.json',import.meta.url),'utf8'));
 const ctx=captureContext(demo.musicalContext.state,220);

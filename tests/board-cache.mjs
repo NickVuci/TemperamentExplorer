@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
-import {makeState} from '../dist/engine.mjs';
-import {buildBoard,commands} from '../dist/hexboard.mjs';
-import {mosLayers,keyColor} from '../dist/hexboard-colors.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {buildBoard,commands} from '../src/hexboard/hexboard.mjs';
+import {mosLayers,keyColor} from '../src/hexboard/hexboard-colors.mjs';
 
 // The device snapshot, fingering list and harmonies panel read the board from a cache.
 // After any change to the layout the cached answer must equal a board built from scratch.

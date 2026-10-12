@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
-import {makeState,purePeriod,mapRatio} from '../dist/engine.mjs';
-import {tuningMethods,tuningMethod,tuningConfig,applyTuningMethod} from '../dist/tuning-methods.mjs';
-import {weilTune,fromCommas} from '../dist/tuning.mjs';
-import {presetSnapshot} from '../dist/preset-data.mjs';
-import {canonicalHarmonicJSON} from '../dist/harmonic-types.mjs';
-import {validateState} from '../dist/state.mjs';
-import {mappingContext} from '../dist/harmonic-context.mjs';
+import {makeState,purePeriod,mapRatio} from '../src/core/engine.mjs';
+import {tuningMethods,tuningMethod,tuningConfig,applyTuningMethod} from '../src/core/tuning-methods.mjs';
+import {weilTune,fromCommas} from '../src/core/tuning.mjs';
+import {presetSnapshot} from '../src/presets/preset-data.mjs';
+import {canonicalHarmonicJSON} from '../src/harmonic/harmonic-types.mjs';
+import {validateState} from '../src/core/state.mjs';
+import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
 const close=(a,b,t=1e-6)=>assert.ok(Math.abs(a-b)<t,`${a} != ${b}`),s=makeState('meantone');
 assert.equal(tuningMethods.length,5);
 for(const method of tuningMethods){const r=applyTuningMethod({...s,g:690},{method});assert.equal(r.tuning,method);assert.ok(Number.isFinite(r.g));assert.notEqual(r.g,690);if(method!=='EDO')close(r.p,1200);}
@@ -26,7 +26,7 @@ for(const comma of ['128/125','245/243']){const temp=fromCommas(comma,comma==='1
 assert.equal(tuningMethod({...s,tuning:'Prime least squares'}),'Least Squares');assert.equal(tuningConfig({...s,tuning:'Published WE'}).fixed,true);
 console.log('All five tuning methods apply, fixed/free periods, WE/CWE equivalence, single and multiple JI constraints, outside mappings, non-octave periods and preset round trips passed.');
 const {readFileSync}=await import('node:fs'),{default:vm}=await import('node:vm');
-const source=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8');let onChange,live=[makeState('meantone'),makeState('dreamtone')];
+const source=readFileSync(new URL('../src/app.mjs',import.meta.url),'utf8');let onChange,live=[makeState('meantone'),makeState('dreamtone')];
 const inert={change:()=>false};const context=vm.createContext({compositionWorkspace:inert,harmonicMode:'a',harmonicWorkspace:inert,structuredClone,states:live,tuningConfig,jiChordWorkspace:inert,materialWorkspace:inert,presetWorkspace:inert,hexWorkspace:inert,commaWorkspace:inert,chordWorkspace:inert,document:{addEventListener:(_,fn)=>onChange=e=>{e.target.hasAttribute??=()=>false;fn(e);}},applyPanelTuning:(idx,cfg)=>live[idx]=applyTuningMethod(live[idx],cfg),readTuning:()=>({method:'Weil–Euclidean',fixed:false}),toast:e=>{throw Error(e)},render:()=>{}});
 vm.runInContext(source.split('\n').find(line=>line.startsWith("document.addEventListener('change',")),context);
 for(const method of tuningMethods){live[0]={...s,g:690};onChange({target:{dataset:{field:'tuning',s:'0'},value:method,closest:()=>null}});assert.equal(live[0].tuning,method);assert.notEqual(live[0].g,690);}

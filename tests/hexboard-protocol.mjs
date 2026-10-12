@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {encodeEnter,encodeExit,encodeLeds,decodeKey,decodeEncoder,hexToLed,BUTTON_COUNT} from '../dist/hexboard-protocol.mjs';
+import {encodeEnter,encodeExit,encodeLeds,decodeKey,decodeEncoder,hexToLed,BUTTON_COUNT} from '../src/hexboard/hexboard-protocol.mjs';
 
 // Byte examples are the ones documented in HexBoard docs/delegated-control.md.
 assert.deepEqual(encodeEnter(''),[0xf0,0x7d,0x01,0xf7]);

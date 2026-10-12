@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {physicalKey,buildBoard} from '../dist/hexboard.mjs';
-import {chordIdentity} from '../dist/chord-identity-v2.mjs';
-import {projectChord} from '../dist/chord-projection-v2.mjs';
-import {scaleMembership} from '../dist/chord-occurrence-v2.mjs';
-import {physicalDistance} from '../dist/geometric-shapes.mjs';
-import {searchChordShapes,searchChordShapesAsync,identifySelectedShape,referenceLift} from '../dist/chord-shapes.mjs';
-import {createBoardPlacementIndex,iteratePlacementAssignments,hexDistance} from '../dist/hexboard-chords.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {physicalKey,buildBoard} from '../src/hexboard/hexboard.mjs';
+import {chordIdentity} from '../src/chords/chord-identity.mjs';
+import {projectChord} from '../src/chords/chord-projection.mjs';
+import {scaleMembership} from '../src/chords/chord-occurrence.mjs';
+import {physicalDistance} from '../src/shapes/geometric-shapes.mjs';
+import {searchChordShapes,searchChordShapesAsync,identifySelectedShape,referenceLift} from '../src/shapes/chord-shapes.mjs';
+import {createBoardPlacementIndex,iteratePlacementAssignments,hexDistance} from '../src/hexboard/hexboard-chords.mjs';
 
 const state={...makeState('meantone'),n:7,mode:0};
 const coordinates=input=>projectChord(state,chordIdentity(input)).notes.map(note=>note.coordinate);

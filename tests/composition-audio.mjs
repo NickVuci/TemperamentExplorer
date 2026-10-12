@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {createAudioEngine} from '../dist/audio.mjs';
+import {createAudioEngine} from '../src/ui/audio.mjs';
 
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function fixture({pending=false,outputTimestamp=null}={}){

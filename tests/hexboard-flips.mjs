@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {buildBoard,physicalKey,flipPlacementVector,migrateLayoutMirrors,exportHexboard} from '../dist/hexboard.mjs';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {buildBoard,physicalKey,flipPlacementVector,migrateLayoutMirrors,exportHexboard} from '../src/hexboard/hexboard.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
 
 const s=makeState('meantone');
 const base={base:7,style:'bosanquet',rotation:0,center:65,register:0,offset:0,outside:true};

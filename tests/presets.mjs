@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
-import {presetSnapshot} from '../dist/preset-data.mjs';
-import {createPresetWorkspace} from '../dist/preset-ui.mjs';
-import {createPresetStore} from '../dist/preset-store.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
+import {presetSnapshot} from '../src/presets/preset-data.mjs';
+import {createPresetWorkspace} from '../src/presets/preset-ui.mjs';
+import {createPresetStore} from '../src/presets/preset-store.mjs';
 const memory=()=>{const values=new Map();return {getItem:k=>values.has(k)?values.get(k):null,setItem:(k,v)=>values.set(k,String(v))};};
 const storage=memory(),store=createPresetStore({storage});
 const s={...makeState('meantone'),n:112,mode:27,tuning:'Manual',g:696.6},id=crypto.randomUUID();

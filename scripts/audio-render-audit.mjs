@@ -2,7 +2,7 @@
 // node scripts/audio-render-audit.mjs /absolute/path/web-audio-engine/lib/index.js [baseline-module]
 import assert from 'node:assert/strict';
 import {pathToFileURL} from 'node:url';
-import {createAudioEngine} from '../dist/audio.mjs';
+import {createAudioEngine} from '../src/ui/audio.mjs';
 const {default:renderer}=await import(pathToFileURL(process.argv[2]).href);
 const baseline=process.argv[3]?(await import(pathToFileURL(process.argv[3]).href)).createAudioEngine:null;
 const tick=()=>new Promise(resolve=>setImmediate(resolve));

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {createHexboardDevice} from '../dist/hexboard-device.mjs';
+import {createHexboardDevice} from '../src/hexboard/hexboard-device.mjs';
 
 function fakeMidi({inputs=['HexBoard'],outputs=['HexBoard'],reject=null}={}){
   const sent=[],portIn=inputs.map((name,i)=>({id:'in'+i,name,onmidimessage:null})),portOut=outputs.map((name,i)=>({id:'out'+i,name,send:b=>sent.push([...b])}));

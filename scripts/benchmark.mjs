@@ -1,12 +1,15 @@
-// Optional source directory lets the same harness compare a previous revision.
+// Optional source directory lets the same harness compare a previous revision,
+// including older checkouts whose modules sit flat in dist/.
+import {existsSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {performance} from 'node:perf_hooks';
 
-const source=pathToFileURL(resolve(process.argv[2]||'dist')+'/');
-const engine=await import(new URL('engine.mjs',source));
-const {matrixScale,matrixInterval}=await import(new URL('matrix.mjs',source));
-const {discoverScaleChords}=await import(new URL('harmonic-inspection.mjs',source));
+const root=resolve(process.argv[2]||'src'),flat=existsSync(resolve(root,'engine.mjs'));
+const load=path=>import(pathToFileURL(resolve(root,flat?path.split('/').pop():path)).href);
+const engine=await load('core/engine.mjs');
+const {matrixScale,matrixInterval}=await load('core/matrix.mjs');
+const {discoverScaleChords}=await load('harmonic/harmonic-inspection.mjs');
 const {makeState,targets,classifyTargets}=engine, ts=targets(13);
 function measure(run) {
   const samples=[];

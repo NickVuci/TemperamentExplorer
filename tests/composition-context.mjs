@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {captureContext,validateContext,resolveTone,degreeOf,matchesApp,materialToChordEvent,tuningKey} from '../dist/composition-context.mjs';
-import {tuningIdentity} from '../dist/material-ui.mjs';
+import {captureContext,validateContext,resolveTone,degreeOf,matchesApp,materialToChordEvent,tuningKey} from '../src/composition/composition-context.mjs';
+import {tuningIdentity} from '../src/ui/material-ui.mjs';
 
 const corpus=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-corpus.json',import.meta.url),'utf8'));
 const tol=corpus.tolerances.cents,relTol=corpus.tolerances.relativeHz;

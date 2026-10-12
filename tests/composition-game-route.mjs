@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {suggestedRoute} from '../dist/composition-game-route.mjs';
+import {suggestedRoute} from '../src/composition/composition-game-route.mjs';
 
 const board={keys:[
  {index:0,x:0,y:0,enabled:true},

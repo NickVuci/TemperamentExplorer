@@ -1,10 +1,10 @@
 // Play's panels and its one Chords panel: layout of the page, the two modes, the directory search, and
 // equivalence with the tools they replaced (Map selected keys; the whole-board chord search).
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {buildBoard} from '../dist/hexboard.mjs';
-import {chordPlacements,discoverBoardChords} from '../dist/hexboard-chords.mjs';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {buildBoard} from '../src/hexboard/hexboard.mjs';
+import {chordPlacements,discoverBoardChords} from '../src/hexboard/hexboard-chords.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
 
 const s=makeState('meantone'),searches=[];
 const ws=createHexboardWorkspace({getStates:()=>[s],play(){},refresh(){},notify:m=>{throw Error(m);},getHz:()=>220,onSearch:text=>searches.push(text)});

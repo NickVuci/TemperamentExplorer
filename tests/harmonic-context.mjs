@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import {fromCommas} from '../dist/tuning.mjs';
-import {makeState,presets} from '../dist/engine.mjs';
-import {mappingContext,mappingKey,isKernelVector,validateKernelWitness} from '../dist/harmonic-context.mjs';
-import {ratioMonzo} from '../dist/ji-monzo.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
+import {makeState,presets} from '../src/core/engine.mjs';
+import {mappingContext,mappingKey,isKernelVector,validateKernelWitness} from '../src/harmonic/harmonic-context.mjs';
+import {ratioMonzo} from '../src/core/ji-monzo.mjs';
 
 const meantone=makeState('meantone'),context=mappingContext(meantone);
 assert.deepEqual(context.basis,[2,3,5]);

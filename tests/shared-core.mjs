@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import {BoundedCache} from '../dist/cache.mjs';
-import {makeState,scale,targets,createTargetClassifier,classifyTargets,mapRatio} from '../dist/engine.mjs';
-import {coordinateCents,noteCoordinate,purePeriod,approximationSpan} from '../dist/pitch.mjs';
-import {rational,add,sub,mul,div,show} from '../dist/rational.mjs';
-import {esc,option} from '../dist/ui.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
+import {BoundedCache} from '../src/core/cache.mjs';
+import {makeState,scale,targets,createTargetClassifier,classifyTargets,mapRatio} from '../src/core/engine.mjs';
+import {coordinateCents,noteCoordinate,purePeriod,approximationSpan} from '../src/core/pitch.mjs';
+import {rational,add,sub,mul,div,show} from '../src/core/rational.mjs';
+import {esc,option} from '../src/ui/ui.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
 
 const cache = new BoundedCache(2);
 let calls=0;

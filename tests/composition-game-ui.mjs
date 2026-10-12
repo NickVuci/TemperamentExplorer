@@ -2,12 +2,12 @@
 // results and best scores, Learn mode waiting, Space and Escape, calibration and the LED cues.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {createCompositionWorkspace} from '../dist/composition-ui.mjs';
-import {createProject,addEvent,PPQ} from '../dist/composition-project.mjs';
-import {captureContext} from '../dist/composition-context.mjs';
-import {compositionBoard} from '../dist/composition-board.mjs';
-import {START_DELAY_SECONDS,CLICK} from '../dist/composition-transport.mjs';
-import {normalizeSettings} from '../dist/composition-game-ui.mjs';
+import {createCompositionWorkspace} from '../src/composition/composition-ui.mjs';
+import {createProject,addEvent,PPQ} from '../src/composition/composition-project.mjs';
+import {captureContext} from '../src/composition/composition-context.mjs';
+import {compositionBoard} from '../src/composition/composition-board.mjs';
+import {START_DELAY_SECONDS,CLICK} from '../src/composition/composition-transport.mjs';
+import {normalizeSettings} from '../src/composition/composition-game-ui.mjs';
 
 const demo=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-demo.json',import.meta.url),'utf8'));
 let fixture=createProject({context:captureContext(demo.musicalContext.state,220),layout:demo.layout,tempo:120});

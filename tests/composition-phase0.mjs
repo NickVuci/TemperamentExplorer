@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {scale} from '../dist/engine.mjs';
-import {coordinateCents,noteCoordinate} from '../dist/pitch.mjs';
-import {frequencyFor} from '../dist/audio.mjs';
-import {buildBoard} from '../dist/hexboard.mjs';
-import {analyzeChord} from '../dist/chord-analysis-v2.mjs';
-import {realizeChord,placeRealization} from '../dist/chord-realization-v2.mjs';
+import {scale} from '../src/core/engine.mjs';
+import {coordinateCents,noteCoordinate} from '../src/core/pitch.mjs';
+import {frequencyFor} from '../src/ui/audio.mjs';
+import {buildBoard} from '../src/hexboard/hexboard.mjs';
+import {analyzeChord} from '../src/chords/chord-analysis.mjs';
+import {realizeChord,placeRealization} from '../src/chords/chord-realization.mjs';
 import {createEditorBenchmark,createVoiceStressRecipe,EDITOR_BENCHMARK} from './fixtures/composition/phase0-benchmark.mjs';
 
 const corpus=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-corpus.json',import.meta.url),'utf8'));

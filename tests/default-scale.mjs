@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
-import {presets,makeState,scale,mapRatio,targets,generatedSizes} from '../dist/engine.mjs';
-import {mod} from '../dist/pitch.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
-import {defaultScale,withDefaultScale} from '../dist/default-scale.mjs';
-import {findScaleMilestones,scaleCoverageTarget} from '../dist/scale-milestones.mjs';
-import {createPresetWorkspace} from '../dist/preset-ui.mjs';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
-import {applyTuningMethod} from '../dist/tuning-methods.mjs';
+import {presets,makeState,scale,mapRatio,targets,generatedSizes} from '../src/core/engine.mjs';
+import {mod} from '../src/core/pitch.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
+import {defaultScale,withDefaultScale} from '../src/core/default-scale.mjs';
+import {findScaleMilestones,scaleCoverageTarget} from '../src/core/scale-milestones.mjs';
+import {createPresetWorkspace} from '../src/presets/preset-ui.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
+import {applyTuningMethod} from '../src/core/tuning-methods.mjs';
 
 // Interval complete: every mapped diamond interval occurs between two notes of the scale, in any mode.
 function intervalCovers(s,options){
@@ -59,9 +59,9 @@ console.log('Shared scale defaults: first interval-complete MOS on mode 1, poor-
 // Execute the actual app's context/default wiring without a browser renderer.
 const {readFileSync}=await import('node:fs');
 const {runInNewContext}=await import('node:vm');
-const {scaleDefaultKey}=await import('../dist/scale-milestones.mjs');
-const {primeFilterForBasis,validateJILimits,parsePrimeFilterInput}=await import('../dist/ji-limit-engine.mjs');
-const app=readFileSync('dist/app.mjs','utf8');
+const {scaleDefaultKey}=await import('../src/core/scale-milestones.mjs');
+const {primeFilterForBasis,validateJILimits,parsePrimeFilterInput}=await import('../src/core/ji-limit-engine.mjs');
+const app=readFileSync('src/app.mjs','utf8');
 const fields={'#limit':{value:'15'},'#primeLimit':{value:'basis'}};
 const context={states:[withDefaultScale(makeState('meantone'))],layoutState:null,coverageSignature:'',matrixPages:[[0,0]],selected:null,$:selector=>fields[selector],withDefaultScale,scaleDefaultKey,primeFilterForBasis,validateJILimits,parsePrimeFilterInput,structuredClone,toast:()=>{}};
 for(const name of ['coverageSettings','syncCoverageDefaults','getLayoutStates'])runInNewContext(app.split('\n').find(line=>line.startsWith(`function ${name}(`)),context);

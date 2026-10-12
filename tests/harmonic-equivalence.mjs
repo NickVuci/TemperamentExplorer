@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
-import {equivalencePolicy,quotientCoordinate,shapeKey} from '../dist/harmonic-equivalence.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
+import {equivalencePolicy,quotientCoordinate,shapeKey} from '../src/harmonic/harmonic-equivalence.mjs';
 
 function checkLift(policy,coordinate){
  const q=quotientCoordinate(policy,coordinate);

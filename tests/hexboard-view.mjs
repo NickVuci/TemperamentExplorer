@@ -2,14 +2,14 @@
 // HexBoard player (hold, release, physical presses) exactly as Play's do.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {makeState} from '../dist/engine.mjs';
-import {buildBoard} from '../dist/hexboard.mjs';
-import {fingeringPattern,fingeringMap} from '../dist/hexboard-view.mjs';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
-import {boardMarkup,compositionDeviceSnapshot} from '../dist/composition-board.mjs';
-import {createCompositionWorkspace} from '../dist/composition-ui.mjs';
-import {createProject,addEvent} from '../dist/composition-project.mjs';
-import {captureContext} from '../dist/composition-context.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {buildBoard} from '../src/hexboard/hexboard.mjs';
+import {fingeringPattern,fingeringMap} from '../src/hexboard/hexboard-view.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
+import {boardMarkup,compositionDeviceSnapshot} from '../src/composition/composition-board.mjs';
+import {createCompositionWorkspace} from '../src/composition/composition-ui.mjs';
+import {createProject,addEvent} from '../src/composition/composition-project.mjs';
+import {captureContext} from '../src/composition/composition-context.mjs';
 
 // Per key: everything a viewer sees, leaving out what only an input path reads (classes, data, focus).
 const attrs=text=>Object.fromEntries([...text.matchAll(/([\w:-]+)="([^"]*)"/g)].map(m=>[m[1],m[2]]));

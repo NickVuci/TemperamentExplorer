@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {captureContext} from '../dist/composition-context.mjs';
-import {createProject,addEvent,makeEvent,setTempo,setLoop,PPQ} from '../dist/composition-project.mjs';
-import {expandProject,createPlan,planWindow,createTransport,heardSeconds,GROUP,GRACE_SECONDS,START_DELAY_SECONDS} from '../dist/composition-transport.mjs';
+import {captureContext} from '../src/composition/composition-context.mjs';
+import {createProject,addEvent,makeEvent,setTempo,setLoop,PPQ} from '../src/composition/composition-project.mjs';
+import {expandProject,createPlan,planWindow,createTransport,heardSeconds,GROUP,GRACE_SECONDS,START_DELAY_SECONDS} from '../src/composition/composition-transport.mjs';
 
 const demo=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-demo.json',import.meta.url),'utf8'));
 const ctx=captureContext(demo.musicalContext.state,220);

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import {physicalKey} from '../dist/hexboard.mjs';
-import {axialCell,canonicalGeometricShape,geometricShapeForKeys,physicalDistance,boardStructureKey,shapeOrientations} from '../dist/geometric-shapes.mjs';
+import {physicalKey} from '../src/hexboard/hexboard.mjs';
+import {axialCell,canonicalGeometricShape,geometricShapeForKeys,physicalDistance,boardStructureKey,shapeOrientations} from '../src/shapes/geometric-shapes.mjs';
 
 const pattern=[[0,0],[1,0],[0,2]],shape=canonicalGeometricShape(pattern);
 assert.equal(shape.id,canonicalGeometricShape([[5,-2],[5,0],[6,-2]]).id,'translation and input order do not change a physical pattern');

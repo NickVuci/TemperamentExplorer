@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {SESSION_V1,SESSION_V2,isSessionFormat,sessionFormat,compositionForSave,compositionFromSession} from '../dist/composition-session.mjs';
-import {captureContext} from '../dist/composition-context.mjs';
-import {createProject,addEvent,makeEvent} from '../dist/composition-project.mjs';
+import {SESSION_V1,SESSION_V2,isSessionFormat,sessionFormat,compositionForSave,compositionFromSession} from '../src/composition/composition-session.mjs';
+import {captureContext} from '../src/composition/composition-context.mjs';
+import {createProject,addEvent,makeEvent} from '../src/composition/composition-project.mjs';
 
 const corpus=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-corpus.json',import.meta.url),'utf8'));
 const ctx=captureContext(corpus.fixtures[0].state,220);
@@ -35,7 +35,7 @@ const legacy=JSON.parse(JSON.stringify({format:sessionFormat(null),workflowVersi
 assert.equal(legacy.format,SESSION_V1);assert.equal('composition' in legacy,false);assert.equal(compositionFromSession(legacy),null);
 
 // app.mjs wiring: the composition is validated before any other part of the session is restored (atomic load).
-const app=await readFile(new URL('../dist/app.mjs',import.meta.url),'utf8');
+const app=await readFile(new URL('../src/app.mjs',import.meta.url),'utf8');
 assert.ok(app.includes('compositionFromSession(data)'),'loader validates the composition');
 const lines=app.split(/\r?\n/),loadIndex=lines.findIndex(l=>l.includes('$(\'#file\').onchange'));
 const loadText=lines.slice(loadIndex,loadIndex+3).join('\n');

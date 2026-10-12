@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 
-const source=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8');
+const source=readFileSync(new URL('../src/app.mjs',import.meta.url),'utf8');
 const lines=source.split('\n');
 const toleranceField={value:''};
 const context=vm.createContext({

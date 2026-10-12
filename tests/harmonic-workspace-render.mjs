@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {makeState,presets,primeFilterForBasis,targets,validateJILimits} from '../dist/engine.mjs';
-import {parsePrimeFilterInput,targetSet} from '../dist/ji-limit-engine.mjs';
-import {mappingContext} from '../dist/harmonic-context.mjs';
-import {createHarmonicCatalogueWorkspace} from '../dist/harmonic-catalogue-ui.mjs';
-import {renderUnified,unifiedDirectory,unifiedDetail,unifiedCenterView} from '../dist/discover-unified.mjs';
+import {makeState,presets,primeFilterForBasis,targets,validateJILimits} from '../src/core/engine.mjs';
+import {parsePrimeFilterInput,targetSet} from '../src/core/ji-limit-engine.mjs';
+import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
+import {createHarmonicCatalogueWorkspace} from '../src/harmonic/harmonic-catalogue-ui.mjs';
+import {renderUnified,unifiedDirectory,unifiedDetail,unifiedCenterView} from '../src/ui/discover-unified.mjs';
 
 // Model DOM ownership: replacing a workspace detaches every child, including
 // shared controls unless the application has parked them outside that workspace.
@@ -30,11 +30,11 @@ const context=vm.createContext({compositionWorkspace:{pause(){},stop(){},refresh
  syncUnifiedPanelHeights:()=>{},applyHarmonicFocus:()=>{},revealDirectoryRow:()=>{},syncAudioControls:()=>{},placeDiamondTolerance:()=>{},populateLimitOptions:()=>{},syncCoverageDefaults:()=>{},syncNavigation:()=>{},scaleControls:()=>'',
  sectionFor:v=>v==='composition'?'create':'discover',scaleDetails:()=>'<section>Scale view</section>',materialWorkspace:{render:()=>''},hexWorkspace:{prepareForTemperament:()=>{}},hexPlayer:null,diamondPlayer:null,
  placeMatrixControls:()=>{},placeTargetControls:()=>{},chordWorkspace:{render:()=>'<section>Manual chord inspector</section>'}});
-const app=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8');
-const html=readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');
+const app=readFileSync(new URL('../src/app.mjs',import.meta.url),'utf8');
+const html=readFileSync(new URL('../src/index.html',import.meta.url),'utf8');
 assert.doesNotMatch(html,/harmonic-version|harmony-ab-selector|Classic view/,'the classic-view toggle is removed');
 assert.doesNotMatch(app,/harmonicMode|temperament-harmony-ab|setHarmonicMode/,'the harmony directory is the only mode; neither sessions nor browser preferences can select another');
-assert.doesNotMatch(readFileSync(new URL('../dist/hexboard-ui.mjs',import.meta.url),'utf8'),/chord-catalog-ui|getHarmonicMode|layout alternatives/,'Play has no classic catalogue or layout-alternatives search');
+assert.doesNotMatch(readFileSync(new URL('../src/hexboard/hexboard-ui.mjs',import.meta.url),'utf8'),/chord-catalog-ui|getHarmonicMode|layout alternatives/,'Play has no classic catalogue or layout-alternatives search');
 for(const name of ['coverageSettings','settings','parkJIControls','placeJIControls','refreshHarmony','unifiedWorkspace','renderWorkspace']){
  const source=app.split('\n').find(line=>line.startsWith(`function ${name}(`));assert.ok(source,name);vm.runInContext(source,context);
 }

@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';
-import {makeState,mapRatio} from '../dist/engine.mjs';
-import {diamondLayout} from '../dist/diamond-layout.mjs';
-import {diamondApproximation} from '../dist/tonality-diamond.mjs';
-import {diamondFocus,matrixFocusDegrees,relativeRatios} from '../dist/harmonic-focus.mjs';
+import {makeState,mapRatio} from '../src/core/engine.mjs';
+import {diamondLayout} from '../src/diamond/diamond-layout.mjs';
+import {diamondApproximation} from '../src/diamond/tonality-diamond.mjs';
+import {diamondFocus,matrixFocusDegrees,relativeRatios} from '../src/harmonic/harmonic-focus.mjs';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {matrixScale} from '../dist/matrix.mjs';
-import {noteCoordinate} from '../dist/pitch.mjs';
-import {equivalencePolicy,quotientCoordinate} from '../dist/harmonic-equivalence.mjs';
-import {createHarmonicCatalogueWorkspace} from '../dist/harmonic-catalogue-ui.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
+import {matrixScale} from '../src/core/matrix.mjs';
+import {noteCoordinate} from '../src/core/pitch.mjs';
+import {equivalencePolicy,quotientCoordinate} from '../src/harmonic/harmonic-equivalence.mjs';
+import {createHarmonicCatalogueWorkspace} from '../src/harmonic/harmonic-catalogue-ui.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
 
 // JI chords sit on diamond lines as written from 1/1: rows for otonal, columns for utonal, both otherwise.
 const geometry=diamondLayout({limit:15,primeLimit:null}),place=(form,ratios)=>diamondFocus(geometry.cells,{kind:'ji',form,ratios},{harmonics:geometry.harmonics});
@@ -88,7 +88,7 @@ for(const [s,ratios,expected] of [
 }
 
 // The app's diamond follow and matrix Shift-click, run from source against stand-ins.
-const app=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8'),slice=(start,end)=>app.slice(app.indexOf(start),app.indexOf(end,app.indexOf(start)));
+const app=readFileSync(new URL('../src/app.mjs',import.meta.url),'utf8'),slice=(start,end)=>app.slice(app.indexOf(start),app.indexOf(end,app.indexOf(start)));
 const calls=[],timers=[];let display={kind:'chord',source:'selected'},shown=[];
 const sandbox=vm.createContext({harmonicMode:'b',view:'unified',states:[state],settings:()=>({layout:'notes'}),matrixScale,noteCoordinate,toast:()=>{},applyHarmonicFocus:()=>{},relativeRatios,
  harmonicWorkspace:{focusExternal:value=>{calls.push(value);return true;},followPlaying:()=>sandbox.following},following:true,

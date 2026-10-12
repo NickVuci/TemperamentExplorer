@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {syncUnifiedPanelHeights,renderUnified,unifiedCenterToggle,unifiedCenterView,normalizeUnifiedCenter,unifiedDirectory,unifiedDetail} from '../dist/discover-unified.mjs';
+import {syncUnifiedPanelHeights,renderUnified,unifiedCenterToggle,unifiedCenterView,normalizeUnifiedCenter,unifiedDirectory,unifiedDetail} from '../src/ui/discover-unified.mjs';
 
 // The centre pane shows the diamond by default and borrows the single views' behaviour.
 assert.equal(normalizeUnifiedCenter('matrix'),'matrix');
@@ -28,9 +28,9 @@ assert.match(html,/unified-pane unified-scale[^]*unified-scale-controls[^]*data-
 assert.equal((html.match(/data-unified-pane=/g)||[]).length,2,'only directory and analysis are refreshed by the catalogue');
 
 // Wiring: a Discover tab, the catalogue's shared parts, and a partial refresh that keeps the centre.
-const app=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8');
-const index=readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');
-const catalogue=readFileSync(new URL('../dist/harmonic-catalogue-ui.mjs',import.meta.url),'utf8');
+const app=readFileSync(new URL('../src/app.mjs',import.meta.url),'utf8');
+const index=readFileSync(new URL('../src/index.html',import.meta.url),'utf8');
+const catalogue=readFileSync(new URL('../src/harmonic/harmonic-catalogue-ui.mjs',import.meta.url),'utf8');
 assert.doesNotMatch(index,/data-view=|workspace-tabs/,'Discover has no sub-tabs');
 assert.match(index,/<div id="workspace"><\/div><div id="inspector"[^>]*><\/div><details id="approximation-settings" class="approximation-settings" hidden><summary>Approximation settings<\/summary><div id="approximation-settings-body"><\/div><\/details><\/section>/,'approximation settings are a collapsible section after the workspace');
 assert.match(app,/inDiscover=section==='discover';\$\('#approximation-settings'\)\.hidden=!inDiscover;\(inDiscover\?\$\('#approximation-settings-body'\):\$\('#analysis-explore \.sectionhead'\)\)\.appendChild\(approximation\);/,'approximation controls move to the bottom in Discover and back to the header in Play');
@@ -46,7 +46,7 @@ assert.match(app,/scaleControls:scaleControls\(\),scaleMarkup:scaleDetails\(\)/)
 
 // The scale pane follows the three main modules.
 assert.match(html,/<div class="unified-main">[^]*unified-directory[^]*unified-center[^]*unified-analysis[^]*<\/div>\s*<section class="unified-pane unified-scale"/,'directory, centre and analysis share one wrapper that closes before the scale pane');
-const css=readFileSync(new URL('../dist/style.css',import.meta.url),'utf8');
+const css=readFileSync(new URL('../src/style.css',import.meta.url),'utf8');
 assert.match(css,/\.unified-main\s*\{[^}]*grid-template-areas:\s*"directory center analysis";/);
 assert.doesNotMatch(css,/\.unified-workspace\s*\{[^}]*grid-template-areas/,'the scale row follows the main grid');
 assert.match(css,/\.unified-directory, \.unified-analysis \{ position: static; height: var\(--unified-center-height,auto\); min-height: 0; overflow-y: auto;/);

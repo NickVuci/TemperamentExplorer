@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {mappingContext} from '../dist/harmonic-context.mjs';
-import {searchIntervalApproximations,rankApproximationCoordinates} from '../dist/harmonic-approximations.mjs';
-import {targetSet} from '../dist/ji-limit-engine.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
+import {searchIntervalApproximations,rankApproximationCoordinates} from '../src/harmonic/harmonic-approximations.mjs';
+import {targetSet} from '../src/core/ji-limit-engine.mjs';
 
 const state=makeState('meantone');
 const context=mappingContext(state);

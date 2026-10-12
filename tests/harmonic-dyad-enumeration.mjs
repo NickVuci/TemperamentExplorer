@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import {makeState,targetSet} from '../dist/engine.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
-import {chordIdentity} from '../dist/chord-identity-v2.mjs';
-import {projectChord} from '../dist/chord-projection-v2.mjs';
-import {buildDyadIndex,domainsForShape,enumerateDyadicShapes} from '../dist/harmonic-dyad-graph.mjs';
-import {quotientCoordinate,shapeKey} from '../dist/harmonic-equivalence.mjs';
+import {makeState,targetSet} from '../src/core/engine.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
+import {chordIdentity} from '../src/chords/chord-identity.mjs';
+import {projectChord} from '../src/chords/chord-projection.mjs';
+import {buildDyadIndex,domainsForShape,enumerateDyadicShapes} from '../src/harmonic/harmonic-dyad-graph.mjs';
+import {quotientCoordinate,shapeKey} from '../src/harmonic/harmonic-equivalence.mjs';
 
 function indexFor(state,{oddLimit=9,representationPolicy='octave',primeFilter=state.basis}={}){
  return buildDyadIndex(targetSet({oddLimit,primeFilter,mappingSubgroup:state.basis,representationPolicy}),state);

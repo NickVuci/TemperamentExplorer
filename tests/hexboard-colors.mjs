@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {fromCommas,edoTune} from '../dist/tuning.mjs';
-import {buildBoard,exportHexboard,baseOptions} from '../dist/hexboard.mjs';
-import {mosLayers,keyColor,hexToHSV,textColor} from '../dist/hexboard-colors.mjs';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
+import {makeState} from '../src/core/engine.mjs';
+import {fromCommas,edoTune} from '../src/core/tuning.mjs';
+import {buildBoard,exportHexboard,baseOptions} from '../src/hexboard/hexboard.mjs';
+import {mosLayers,keyColor,hexToHSV,textColor} from '../src/hexboard/hexboard-colors.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
 
 const s=makeState('meantone'),cfg={base:7,offset:0,style:'bosanquet',rotation:0,center:65,register:0,outside:false};
 const check=(s,c)=>{
