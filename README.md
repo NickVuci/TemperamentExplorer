@@ -23,7 +23,8 @@ Settings → Export/Import saved presets moves them between browsers or devices.
 - `npm run preview` serves `site/` locally for checking offline and install
   behavior; service workers need `localhost` or HTTPS.
 - `npm run dev` serves `dist/` through Vite for interaction QA.
-- `npm test` runs every top-level `tests/*.mjs` suite; the static-site suite
+- `npm test` runs every top-level `tests/*.mjs` suite in parallel; set
+  `TEST_CONCURRENCY` to cap the number running at once. The static-site suite
   rebuilds `site/`.
 - `node scripts/benchmark.mjs [path/to/previous/dist]` runs identical local
   calculation workloads against current or previous sources.
