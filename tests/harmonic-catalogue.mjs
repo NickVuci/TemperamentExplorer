@@ -2,12 +2,9 @@ import assert from 'node:assert/strict';
 import {makeState} from '../src/core/catalog.mjs';
 import {chordIdentity} from '../src/chords/chord-identity.mjs';
 import {projectChord} from '../src/chords/chord-projection.mjs';
-import {
-  queryCatalogue,
-  getHarmonicEntry,
-  resolveSelection,
-  catalogueContext
-} from '../src/harmonic/harmonic-catalogue.mjs';
+import {queryCatalogue, catalogueContext} from '../src/harmonic/harmonic-catalogue.mjs';
+import {validateHarmonicSelection} from '../src/harmonic/harmonic-types.mjs';
+import {getHarmonicEntry} from './support/harmonic-catalogue.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
 
 const state = makeState('meantone');
@@ -43,25 +40,6 @@ const retuned = await queryCatalogue({...query, state: {...state, g: 700}}),
 assert.equal(retunedMajor.shapeId, major.shapeId);
 assert.notEqual(retunedMajor.tuning.maxErrorCents, major.tuning.maxErrorCents);
 assert.notEqual(result.contextId, retuned.contextId);
-const selected = resolveSelection(result, {
-  version: 1,
-  mappingId: result.mappingId,
-  shapeId: major.shapeId,
-  harmonicId: major.familyId,
-  source: 'test'
-});
-assert.equal(selected.status, 'resolved');
-assert.ok(selected.aliases.includes(raised.id));
-assert.throws(
-  () =>
-    resolveSelection(retuned, {
-      version: 1,
-      mappingId: 'other',
-      shapeId: major.shapeId,
-      source: 'test'
-    }),
-  /mismatch/
-);
 const next = await queryCatalogue({...query, cursor: result.nextCursor});
 assert.deepEqual(next.page, result.items.slice(5, 10));
 await assert.rejects(
@@ -154,22 +132,11 @@ for (const entry of other.items) {
     ...(entry.shapeId ? {shapeId: entry.shapeId} : {}),
     ...(entry.interpretationId ? {interpretationId: entry.interpretationId} : {})
   };
-  assert.equal(
-    resolveSelection(other, selection).status,
-    'resolved',
+  assert.doesNotThrow(
+    () => validateHarmonicSelection(selection),
     `${entry.kind} uses the shared selection contract`
   );
 }
-const interval = result.items.find(entry => entry.kind === 'interval');
-assert.equal(
-  resolveSelection(result, {
-    version: 1,
-    mappingId: result.mappingId,
-    harmonicId: interval.harmonicId,
-    source: 'test'
-  }).status,
-  'resolved'
-);
 const native = fromCommas('245/243', '3.5.7', 'Computed CWE'),
   nativeEntry = await getHarmonicEntry({state: native}, '1:3');
 assert.equal(nativeEntry.shape.equivalence, 'exact');

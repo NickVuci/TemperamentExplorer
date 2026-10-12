@@ -7,7 +7,7 @@ import {projectCoordinateShape} from '../chords/chord-projection.mjs';
 import {buildDyadIndex, domainsForShape} from './harmonic-dyad-graph.mjs';
 import {assessET} from './harmonic-et.mjs';
 
-export function preferredPairTarget(pair, other = false) {
+function preferredPairTarget(pair, other = false) {
   const eligible = other ? [...pair.mapped, ...pair.hits] : pair.mapped;
   return (
     eligible

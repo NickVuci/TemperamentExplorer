@@ -7,10 +7,14 @@ import {scaleMembership} from '../src/chords/chord-occurrence.mjs';
 import {physicalDistance} from '../src/shapes/geometric-shapes.mjs';
 import {
   searchChordShapes,
-  searchChordShapesAsync,
-  identifySelectedShape,
+  searchChordShapesSteps,
+  identifySelectedShapeSteps,
   referenceLift
 } from '../src/shapes/chord-shapes.mjs';
+import {finishSearch, finishSearchAsync} from '../src/harmonic/harmonic-cooperative.mjs';
+const identifySelectedShape = options => finishSearch(identifySelectedShapeSteps(options));
+const searchChordShapesAsync = (options, cooperative) =>
+  finishSearchAsync(searchChordShapesSteps(options), cooperative);
 import {
   createBoardPlacementIndex,
   iteratePlacementAssignments,

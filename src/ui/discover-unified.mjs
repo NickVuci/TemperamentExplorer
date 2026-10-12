@@ -3,7 +3,7 @@
 // Markup only. Each part is rendered by its existing owner and keeps its own events, so this
 // layout adds no state beyond which centre view is shown.
 
-export const UNIFIED_CENTERS = ['diamond', 'matrix'];
+const UNIFIED_CENTERS = ['diamond', 'matrix'];
 export const normalizeUnifiedCenter = value =>
   UNIFIED_CENTERS.includes(value) ? value : 'diamond';
 

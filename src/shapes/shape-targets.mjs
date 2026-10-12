@@ -16,7 +16,7 @@ import {targetSet, validateJILimits, DEFAULT_ODD_LIMIT} from '../core/ji-limit-e
 import {eventLoopBoundary} from '../harmonic/harmonic-cooperative.mjs';
 import {immutable} from '../core/cache.mjs';
 
-export const SHAPE_TARGET_VERSION = 1;
+const SHAPE_TARGET_VERSION = 1;
 export const SHAPE_SOURCE_SIZES = Object.freeze(
   Array.from({length: MAX_CHORD_TONES - 1}, (_, i) => i + 2)
 );

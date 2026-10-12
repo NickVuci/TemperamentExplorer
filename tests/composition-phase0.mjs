@@ -4,7 +4,7 @@ import {scale} from '../src/core/engine.mjs';
 import {coordinateCents, noteCoordinate} from '../src/core/pitch.mjs';
 import {frequencyFor} from '../src/ui/audio.mjs';
 import {buildBoard} from '../src/hexboard/hexboard.mjs';
-import {analyzeChord} from '../src/chords/chord-analysis.mjs';
+import {analyzeChord} from './support/chord-analysis.mjs';
 import {realizeChord, placeRealization} from '../src/chords/chord-realization.mjs';
 import {
   createEditorBenchmark,

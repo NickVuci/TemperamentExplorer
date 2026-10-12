@@ -1,4 +1,4 @@
-import {searchCheckpoint, finishSearch, finishSearchAsync} from './harmonic-cooperative.mjs';
+import {searchCheckpoint, finishSearch} from './harmonic-cooperative.mjs';
 import {immutable} from '../core/cache.mjs';
 import {domainsForShape} from './harmonic-dyad-graph.mjs';
 import {mapMonzo} from '../core/ji-monzo.mjs';
@@ -444,7 +444,4 @@ export function* coherentJILiftSteps(shape, dyadIndex, budgetInput = {}) {
 
 export function findCoherentJILift(shape, index, budget = {}) {
   return finishSearch(coherentJILiftSteps(shape, index, budget));
-}
-export function findCoherentJILiftAsync(shape, index, budget = {}, scheduler = {}) {
-  return finishSearchAsync(coherentJILiftSteps(shape, index, budget), scheduler);
 }

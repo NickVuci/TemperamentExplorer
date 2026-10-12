@@ -22,7 +22,7 @@ export function physicalDistance(a, b) {
   return Math.sqrt(q * q + q * r + r * r);
 }
 
-export function geometricMetrics(cells) {
+function geometricMetrics(cells) {
   if (!Array.isArray(cells) || !cells.length)
     throw Error('A physical shape needs at least one cell.');
   const points = cells.map(axialCell),

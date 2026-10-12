@@ -50,7 +50,7 @@ const formOfRow = row =>
       : ['otonal', 'utonal'].includes(row.interpretation?.presentationForm)
         ? row.interpretation.presentationForm
         : 'other';
-export const PLAYED_FORM_LABELS = {
+const PLAYED_FORM_LABELS = {
   otonal: 'Otonal',
   utonal: 'Utonal',
   ambitonal: 'Ambitonal',

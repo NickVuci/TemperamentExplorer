@@ -2,11 +2,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {chordIdentity} from '../src/chords/chord-identity.mjs';
 import {projectChord} from '../src/chords/chord-projection.mjs';
-import {
-  searchOccurrences,
-  scaleMembership,
-  largerScaleDiagnostics
-} from '../src/chords/chord-occurrence.mjs';
+import {searchOccurrences, scaleMembership} from '../src/chords/chord-occurrence.mjs';
+import {largerScaleDiagnostics} from './support/chord-analysis.mjs';
 import {makeState} from '../src/core/catalog.mjs';
 const session = JSON.parse(
     readFileSync(new URL('./fixtures/magic19-session.json', import.meta.url))

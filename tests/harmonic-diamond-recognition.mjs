@@ -2,10 +2,7 @@ import assert from 'node:assert/strict';
 import {makeState} from '../src/core/catalog.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
 import {mapRatio} from '../src/core/engine.mjs';
-import {
-  diamondHarmonicSelection,
-  diamondCellsForSelection
-} from '../src/diamond/diamond-harmonic-selection.mjs';
+import {diamondHarmonicSelection} from '../src/diamond/diamond-harmonic-selection.mjs';
 import {createLiveChordRecognizer} from '../src/chords/live-chord-recognition.mjs';
 import {createHarmonicCatalogueWorkspace} from '../src/harmonic/harmonic-catalogue-ui.mjs';
 import {mod} from '../src/core/pitch.mjs';
@@ -26,18 +23,6 @@ assert.deepEqual(
   members.map(m => m.coordinate)
 );
 assert.equal(selection.exactSpelling.length, 4);
-const cells = members.map(m => ({
-  id: m.cellId,
-  label: m.ratio,
-  status: {approximation: {m: m.coordinate, mapped: true}}
-}));
-assert.deepEqual(
-  diamondCellsForSelection(cells.reverse(), selection).sort(),
-  members.map(m => m.cellId).sort()
-);
-const wrong = structuredClone(cells);
-wrong[0].status.approximation.m[0] += 1;
-assert.equal(diamondCellsForSelection(wrong, selection).length, 3);
 const alternative = diamondHarmonicSelection(
   s,
   members.map((m, i) => (i === 1 ? {...m, mapped: false, coordinate: [3, 7]} : m))
@@ -55,28 +40,6 @@ assert.deepEqual(ui.selection().voicing.coords, alternative.voicing.coords);
 ui.render();
 assert.deepEqual(ui.selection().voicing.coords, alternative.voicing.coords);
 ui.destroy();
-const inverted = createHarmonicCatalogueWorkspace({
-  getState: () => ({...s, n: 7, mode: 0}),
-  getSettings: () => ({limit: 15, primeLimit: s.basis, tol: 20})
-});
-inverted.setEnabled(true);
-await inverted.openInput('4:5:6');
-inverted.change({
-  dataset: {harmonyField: 'root'},
-  value: inverted.model().detail.occurrences.tonicMemberOccurrences[0].id
-});
-inverted.change({dataset: {harmonyField: 'inversion'}, value: '1'});
-const invertedCells = inverted.selection().voicing.ratios.map((label, i) => ({
-  id: 'inverted:' + i,
-  label,
-  status: {approximation: {mapped: true, m: inverted.selection().voicing.coords[i]}}
-}));
-assert.deepEqual(
-  diamondCellsForSelection(invertedCells, inverted.selection()),
-  invertedCells.map(c => c.id),
-  'inverted voices use their sounded ratio labels rather than canonical tone array order'
-);
-inverted.destroy();
 const recognizer = createLiveChordRecognizer(),
   cfg = {limit: 15, primeLimit: s.basis, tol: 20, familyRecognition: true};
 const base = [

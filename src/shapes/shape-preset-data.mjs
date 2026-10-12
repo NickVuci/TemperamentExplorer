@@ -8,9 +8,8 @@ import {voicingReference} from '../chords/chord-voicings.mjs';
 import {layoutPresetSnapshot} from '../hexboard/layout-preset-data.mjs';
 import {buildBoard} from '../hexboard/hexboard.mjs';
 import {canonicalGeometricShape, geometricShapeForKeys} from './geometric-shapes.mjs';
-import {coordinateCents} from '../core/pitch.mjs';
 
-export const SHAPE_PRESET_VERSION = 1;
+const SHAPE_PRESET_VERSION = 1;
 export const MAX_SAVED_SHAPES = 512;
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const integerPair = value =>
@@ -181,29 +180,4 @@ export function shapePresetFromPlacement(
     placement: {keys: placement?.keys},
     association
   });
-}
-
-/** Recheck a saved placement on the supplied layout; derive sounding cents now. */
-export function shapePresetForState(preset, state, config = preset.config) {
-  try {
-    if (mappingContext(preset.context).id !== mappingContext(state).id)
-      return {error: 'This shape belongs to another temperament mapping.'};
-    const snapshot = shapePresetSnapshot(preset.name, {...preset, context: state, config});
-    const board = buildBoard(state, snapshot.config),
-      keys = snapshot.placement.keys,
-      coords = keys.map(key => board.keys.find(item => item.index === key).m);
-    return {
-      snapshot,
-      shape: canonicalGeometricShape(snapshot.shape.cells),
-      placement: {
-        shapeId: snapshot.shape.id,
-        keys,
-        coords,
-        pitches: coords.map(point => coordinateCents(state, point)),
-        associations: [snapshot.association]
-      }
-    };
-  } catch {
-    return {error: 'This saved shape is unavailable on the current layout.'};
-  }
 }

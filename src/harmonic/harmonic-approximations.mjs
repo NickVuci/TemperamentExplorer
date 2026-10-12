@@ -1,4 +1,4 @@
-import {searchCheckpoint, finishSearch, finishSearchAsync} from './harmonic-cooperative.mjs';
+import {searchCheckpoint, finishSearchAsync} from './harmonic-cooperative.mjs';
 import {BoundedCache, immutable} from '../core/cache.mjs';
 import {mappingContext} from './harmonic-context.mjs';
 import {tuningKey} from './harmonic-types.mjs';
@@ -15,7 +15,6 @@ import {div, rational, show} from '../core/rational.mjs';
 const COMPARISON_EPSILON_CENTS = 1e-7;
 const PERIOD_COEFFICIENT_TIE_EPSILON = 1e-12;
 const approximationCache = new BoundedCache(64);
-const chordApproximationCache = new BoundedCache(24);
 
 function ratioInput(input) {
   if (typeof input === 'string' || Array.isArray(input)) return input;
@@ -108,7 +107,7 @@ function prepareEvaluator(contextInput, tuningInput, targetInput) {
 }
 
 /** Shared exact-coordinate error record used by bounded search and finite scale domains. */
-export function evaluateApproximationCoordinate(
+function evaluateApproximationCoordinate(
   contextInput,
   tuningInput,
   targetInput,
@@ -1044,14 +1043,6 @@ export function* chordApproximationSteps(interpretation, options = {}) {
   })();
 }
 
-export function searchChordApproximations(input, options = {}) {
-  if (options.signal || options.shouldCancel)
-    return finishSearch(chordApproximationSteps(input, options));
-  const key = JSON.stringify([input, options]);
-  return chordApproximationCache.get(key, () =>
-    finishSearch(chordApproximationSteps(input, options))
-  );
-}
 export function searchChordApproximationsAsync(input, options = {}, scheduler = {}) {
   return finishSearchAsync(chordApproximationSteps(input, options), scheduler);
 }

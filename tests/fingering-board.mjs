@@ -3,7 +3,7 @@ import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
 import {makeState} from '../src/core/catalog.mjs';
 import {createFingeringGame} from '../src/composition/fingering-game.mjs';
 import {ledFrame} from '../src/hexboard/hexboard-sync.mjs';
-import {getHarmonicEntry} from '../src/harmonic/harmonic-catalogue.mjs';
+import {getHarmonicEntry} from './support/harmonic-catalogue.mjs';
 import {harmonicSelection} from '../src/harmonic/harmonic-selection.mjs';
 
 const TRIAD = [

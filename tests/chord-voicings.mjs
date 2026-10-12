@@ -3,7 +3,7 @@ import {makeState} from '../src/core/catalog.mjs';
 import {fromCommas, edoTune} from '../src/core/tuning.mjs';
 import {applyTuningMethod} from '../src/core/tuning-methods.mjs';
 import {chordIdentity} from '../src/chords/chord-identity.mjs';
-import {analyzeChord} from '../src/chords/chord-analysis.mjs';
+import {analyzeChord} from './support/chord-analysis.mjs';
 const parseJIChord = text => ({
   text,
   tones: chordIdentity(text).canonicalRatios.map(q => ({
@@ -18,7 +18,10 @@ const findJIChordOccurrences = (s, c) => ({
 });
 import {buildBoard} from '../src/hexboard/hexboard.mjs';
 import {chordPlacements} from '../src/hexboard/hexboard-chords.mjs';
-import {chordVoicings} from '../src/chords/chord-voicings.mjs';
+import {shapeVoicings} from '../src/chords/chord-voicings.mjs';
+// Voicings of a JI chord occurrence: its shape voicings with the chord's tones as overlays.
+const chordVoicings = (s, chord, instance, options = {}) =>
+  shapeVoicings(s, instance, {...options, tones: chord.tones});
 const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-7, `${a} != ${b}`);
 const chord = parseJIChord('4:5:6:7:9:11');
 const fixed = makeState('miracle11');

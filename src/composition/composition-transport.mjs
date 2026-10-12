@@ -9,8 +9,8 @@ import {resolveTone} from './composition-context.mjs';
 import {beatTicks, beatAccent} from './composition-grid.mjs';
 
 export const GROUP = 'transport';
-export const LOOKAHEAD_SECONDS = 0.25;
-export const PUMP_MS = 50;
+const LOOKAHEAD_SECONDS = 0.25;
+const PUMP_MS = 50;
 export const START_DELAY_SECONDS = 0.06;
 export const GRACE_SECONDS = 0.1;
 // Metronome and count-in: short sine beeps at fixed pitches (cents above 440 Hz), whatever the

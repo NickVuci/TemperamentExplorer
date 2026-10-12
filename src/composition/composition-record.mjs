@@ -10,7 +10,7 @@
 // each other, and Shift sustain (which delays the 'up') records the length that sounded.
 
 export const EARLY_SECONDS = 0.12; // a press this close before the downbeat starts on it
-export const CHORD_SECONDS = 0.12; // recorded notes starting this close together form one chord
+const CHORD_SECONDS = 0.12; // recorded notes starting this close together form one chord
 
 export function createTake({early = EARLY_SECONDS} = {}) {
   const open = new Map(),

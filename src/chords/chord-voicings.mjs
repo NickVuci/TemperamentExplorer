@@ -181,7 +181,3 @@ export function shapeVoicings(s, instance, {tones = null, style = 'original', to
   }
   return results;
 }
-export function chordVoicings(s, chord, instance, options = {}) {
-  if (!chord?.tones?.length) throw Error('Chord and instance tone counts must match.');
-  return shapeVoicings(s, instance, {...options, tones: chord.tones});
-}

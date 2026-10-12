@@ -4,7 +4,7 @@ import {bigintGcd, rational} from './rational.mjs';
 // range while keeping arbitrary user input from triggering unbounded trial
 // division.
 export const MAX_FACTOR_COMPONENT = 1_000_000_000_000;
-export const MAX_SUPPORTED_PRIME = 97;
+const MAX_SUPPORTED_PRIME = 97;
 const MAX_RATIO_COMPONENT_DIGITS = 256;
 const MAX_FACTOR_COMPONENT_BIGINT = BigInt(MAX_FACTOR_COMPONENT);
 const MAX_SAFE_BIGINT = BigInt(Number.MAX_SAFE_INTEGER);

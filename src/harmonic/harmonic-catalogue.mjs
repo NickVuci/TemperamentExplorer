@@ -1,6 +1,6 @@
 import {BoundedCache, immutable} from '../core/cache.mjs';
 import {mappingContext} from './harmonic-context.mjs';
-import {canonicalHarmonicJSON, tuningKey, validateHarmonicSelection} from './harmonic-types.mjs';
+import {canonicalHarmonicJSON, tuningKey} from './harmonic-types.mjs';
 import {targetSet} from '../core/ji-limit-engine.mjs';
 import {mappedIntervals, intervalError} from './harmonic-intervals.mjs';
 import {
@@ -25,7 +25,7 @@ import {
 } from './harmonic-approximations.mjs';
 import {eventLoopBoundary} from './harmonic-cooperative.mjs';
 
-export const CATALOGUE_VERSION = 'harmonic-catalogue-v1';
+const CATALOGUE_VERSION = 'harmonic-catalogue-v1';
 const categories = ['intervals', 'ji', 'chords', 'mappings', 'approximations'];
 const bounded = (value, fallback, max, name) => {
   const n = value ?? fallback;
@@ -602,45 +602,5 @@ export async function queryCatalogue(
     complete,
     recordCap,
     total: items.length
-  });
-}
-
-/** Stable in-result lookup; direct custom input also works outside browse bounds. */
-export async function getHarmonicEntry(queryOrResult, idOrInput) {
-  if (queryOrResult?.version === 1 && Array.isArray(queryOrResult.items))
-    return (
-      queryOrResult.items.find(
-        item => item.id === idOrInput || hasInterpretation(item, idOrInput)
-      ) ?? null
-    );
-  const result = await queryCatalogue({
-    ...queryOrResult,
-    categories: [],
-    directInputs: [idOrInput],
-    cursor: null
-  });
-  return result.items[0] ?? null;
-}
-
-export function resolveSelection(result, selection) {
-  const value = validateHarmonicSelection(selection);
-  if (
-    result.mappingId !== value.mappingId ||
-    (value.assessmentContext && value.assessmentContext.targetSetId !== result.targetSetId)
-  )
-    throw Error('Selection context mismatch.');
-  const matches = result.items.filter(
-    item =>
-      (!value.shapeId || item.shapeId === value.shapeId) &&
-      (!value.harmonicId ||
-        item.familyId === value.harmonicId ||
-        item.harmonicId === value.harmonicId) &&
-      (!value.interpretationId || hasInterpretation(item, value.interpretationId))
-  );
-  return immutable({
-    selection: value,
-    entry: matches[0] ?? null,
-    aliases: matches.map(item => item.id),
-    status: matches.length ? 'resolved' : 'unavailable'
   });
 }

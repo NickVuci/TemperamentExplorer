@@ -13,7 +13,7 @@ export function compositionBoard(project) {
   }
 }
 /** A colour pulled towards black by factor `f`, for keys outside what is being shown. */
-export const dimColor = (hex, f) =>
+const dimColor = (hex, f) =>
   `#${[1, 3, 5]
     .map(i =>
       Math.round(parseInt(hex.slice(i, i + 2), 16) * f)

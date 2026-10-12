@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {chordIdentity as id} from '../src/chords/chord-identity.mjs';
-import {dualIdentity, harmonicIdentity} from '../src/harmonic/harmonic-equivalence.mjs';
+import {harmonicIdentity} from '../src/harmonic/harmonic-equivalence.mjs';
 import {mul, rational} from '../src/core/rational.mjs';
 
 const source = id('4:5:6'),
@@ -40,18 +40,14 @@ assert.deepEqual(
 assert.equal(major.exactCardinality, 3);
 assert.equal(major.inputCardinality, 3);
 
-const dual = dualIdentity(major);
+const reciprocal = harmonicIdentity(id('1/6:5:4'), 'octave');
 assert.notEqual(
-  dual.familyId,
+  reciprocal.familyId,
   major.familyId,
   'otonal and reciprocal utonal families stay distinct'
 );
-assert.equal(major.dualFamilyId, dual.familyId);
-assert.equal(dual.dualFamilyId, major.familyId);
-assert.equal(dualIdentity(dual).familyId, major.familyId);
-assert.equal(dualIdentity(source, 'octave').familyId, dual.familyId);
-const reciprocal = harmonicIdentity(id('1/6:5:4'), 'octave');
-assert.equal(reciprocal.familyId, dual.familyId);
+assert.equal(major.dualFamilyId, reciprocal.familyId);
+assert.equal(reciprocal.dualFamilyId, major.familyId);
 
 const octaveDyad = harmonicIdentity(id('1:2'), 'octave');
 assert.equal(octaveDyad.inputCardinality, 2);
@@ -78,7 +74,6 @@ assert.notEqual(native.familyId, harmonicIdentity(id('6:5:7'), 'exact').familyId
 assert.deepEqual(JSON.parse(JSON.stringify(major)), major, 'family DTO is JSON-safe');
 assert.throws(() => harmonicIdentity(source), /explicit/);
 assert.throws(() => harmonicIdentity(source, 'period'), /explicit/);
-assert.throws(() => dualIdentity(major, 'exact'), /same JI family policy/);
 console.log(
   'JI octave families, exact spellings, member lifts, doublings and reciprocal duals passed.'
 );

@@ -3,16 +3,20 @@ import {Worker as NodeWorker} from 'node:worker_threads';
 import {makeState} from '../src/core/catalog.mjs';
 import {targetSet} from '../src/core/ji-limit-engine.mjs';
 import {buildDyadIndex, enumerateDyadicShapeSteps} from '../src/harmonic/harmonic-dyad-graph.mjs';
-import {findCoherentJILift, findCoherentJILiftAsync} from '../src/harmonic/harmonic-ji-lift.mjs';
-import {assessET, assessETAsync} from '../src/harmonic/harmonic-et.mjs';
+import {findCoherentJILift, coherentJILiftSteps} from '../src/harmonic/harmonic-ji-lift.mjs';
+import {assessET, assessETSteps} from '../src/harmonic/harmonic-et.mjs';
 import {chordIdentity} from '../src/chords/chord-identity.mjs';
 import {projectChord} from '../src/chords/chord-projection.mjs';
 import {makeJIInterpretation} from '../src/harmonic/harmonic-ji-chords.mjs';
 import {
-  searchChordApproximations,
+  chordApproximationSteps,
   searchChordApproximationsAsync
 } from '../src/harmonic/harmonic-approximations.mjs';
-import {searchCheckpoint} from '../src/harmonic/harmonic-cooperative.mjs';
+import {
+  finishSearch,
+  finishSearchAsync,
+  searchCheckpoint
+} from '../src/harmonic/harmonic-cooperative.mjs';
 import {
   createHarmonicJobDispatcher,
   createHarmonicCatalogueJobs,
@@ -180,8 +184,12 @@ const targets = targetSet({
   }),
   index = buildDyadIndex(targets, state);
 const shape = projectChord(state, chordIdentity('1:9/8:3/2:5/3')).shapeIdentities.octave;
-assert.deepEqual(await findCoherentJILiftAsync(shape, index), findCoherentJILift(shape, index));
-assert.deepEqual(await assessETAsync(shape, index), assessET(shape, index));
+// Cooperative driving of the same generators matches the synchronous results.
+assert.deepEqual(
+  await finishSearchAsync(coherentJILiftSteps(shape, index)),
+  findCoherentJILift(shape, index)
+);
+assert.deepEqual(await finishSearchAsync(assessETSteps(shape, index)), assessET(shape, index));
 // Check actual generator checkpoints, not just cancellation between records.
 const steps = enumerateDyadicShapeSteps(index, {sizes: [3, 4], maxCandidateShapes: 100});
 let checkpoints = 0;
@@ -191,7 +199,7 @@ const interpretation = makeJIInterpretation('4:5:6:7'),
   options = {state, generatorBound: 8, memberCandidateLimit: 16, combinationCap: 1000};
 assert.deepEqual(
   await searchChordApproximationsAsync(interpretation, options),
-  searchChordApproximations(interpretation, options)
+  finishSearch(chordApproximationSteps(interpretation, options))
 );
 const abort = new AbortController();
 let approximationCheckpoints = 0;

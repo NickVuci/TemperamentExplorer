@@ -23,11 +23,11 @@ export const NEAR_MS = 400; // early/late feedback range
 export const INPUT_SLACK_MS = 50;
 export const POINTS = Object.freeze({perfect: 100, great: 75, good: 40, miss: 0});
 export const HOLD_BONUS = 25;
-export const HOLD_MIN_TICKS = PPQ;
+const HOLD_MIN_TICKS = PPQ;
 export const PARTS = ['melody', 'chords', 'both'];
 export const MATCHES = ['exact', 'degree'];
 export const MODES = ['play', 'learn'];
-export const GRADES = [
+const GRADES = [
   [95, 'S'],
   [90, 'A'],
   [80, 'B'],

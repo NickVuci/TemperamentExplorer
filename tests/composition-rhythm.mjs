@@ -6,8 +6,6 @@ import {
   DIVISIONS,
   normalizeGrid,
   gridRatio,
-  gridStepTicks,
-  gridLabel,
   barGrid,
   snapTick,
   cellTicks,
@@ -115,10 +113,7 @@ assert.deepEqual(
   barGrid(m44, grid({division: 480, feel: 'triplet'})),
   'swing applies to straight grids only'
 );
-assert.equal(gridStepTicks(grid({division: 480, feel: 'triplet'})), 320);
 assert.deepEqual(gridRatio(grid({feel: 'custom', n: 7, m: 6})), {n: 7, m: 6});
-assert.equal(gridLabel(grid({division: 480, feel: 'triplet'})), '1/8 triplet');
-assert.equal(gridLabel(grid({division: 240, swing: 60})), '1/16 swing 60%');
 
 // ---- meter groups ----
 assert.deepEqual(meterGroups(m78), [2, 2, 3]);

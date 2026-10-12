@@ -27,10 +27,10 @@ export const FEELS = [
   ['septuplet', 'Septuplet 7:4', 7, 4],
   ['custom', 'Custom n:m', null, null]
 ];
-export const TUPLET_MAX = 32;
-export const SWING_MIN = 50,
-  SWING_MAX = 75;
-export const DEFAULT_GRID = Object.freeze({
+const TUPLET_MAX = 32;
+const SWING_MIN = 50;
+export const SWING_MAX = 75;
+const DEFAULT_GRID = Object.freeze({
   division: PPQ / 4,
   feel: 'straight',
   n: 3,
@@ -66,22 +66,8 @@ export function gridRatio(grid) {
   return f[0] === 'custom' ? {n: grid.n, m: grid.m} : {n: f[2], m: f[3]};
 }
 /** Swing applies to straight grids only: the second of each pair of steps is delayed. */
-export const swingActive = grid =>
+const swingActive = grid =>
   grid.swing > SWING_MIN && gridRatio(grid).n === 1 && gridRatio(grid).m === 1;
-/** The grid step in (possibly fractional) ticks. */
-export const gridStepTicks = grid => {
-  const {n, m} = gridRatio(grid);
-  return (grid.division * m) / n;
-};
-
-export function gridLabel(grid) {
-  const name = DIVISIONS.find(d => d[1] === grid.division)?.[0] ?? '';
-  const {n, m} = gridRatio(grid);
-  if (grid.feel === 'straight') return swingActive(grid) ? `${name} swing ${grid.swing}%` : name;
-  if (grid.feel === 'dotted') return `dotted ${name}`;
-  if (grid.feel === 'custom') return `${name} ${n}:${m}`;
-  return `${name} ${FEELS.find(f => f[0] === grid.feel)[0]}`;
-}
 
 // ---- meter: beats and beat groups ----
 

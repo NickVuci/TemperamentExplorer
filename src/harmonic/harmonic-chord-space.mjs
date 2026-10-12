@@ -1,5 +1,5 @@
 import {BoundedCache, immutable} from '../core/cache.mjs';
-import {domainsForShape, enumerateDyadicShapes} from './harmonic-dyad-graph.mjs';
+import {enumerateDyadicShapes} from './harmonic-dyad-graph.mjs';
 import {quotientCoordinate, shapeKey} from './harmonic-equivalence.mjs';
 import {jiMonzoClassKey} from './harmonic-ji-lift.mjs';
 import {mapMonzo} from '../core/ji-monzo.mjs';
@@ -10,7 +10,7 @@ import {MAX_CHORD_TONES} from '../chords/chord-identity.mjs';
 // clique enumeration over that finite set and depends only on the target set, subgroup basis and
 // equivalence, never on the temperament. A tempered dyadic shape is JI exactly when it is the image of
 // one of those chords; every other dyadic shape is essentially tempered. Classification is a lookup.
-export const CHORD_SPACE_VERSION = 'chord-space-v1';
+const CHORD_SPACE_VERSION = 'chord-space-v1';
 export const CHORD_SPACE_SIZES = Object.freeze([2, 3, 4, 5, 6]);
 export const CHORD_SPACE_MAX_SIZE = MAX_CHORD_TONES;
 
@@ -256,24 +256,4 @@ export function classifyChordSpace(index, {sizes} = {}) {
       enumeration
     });
   });
-}
-
-/** Per-dyad decomposition of a shape: each ordered pair's tempered class and every JI interval mapped to it. */
-export function chordDyads(shape, index) {
-  const domains = domainsForShape(shape, index);
-  return domains.edges
-    .filter(edge => edge.fromMember < edge.toMember)
-    .map(edge => ({
-      fromMember: edge.fromMember,
-      toMember: edge.toMember,
-      coordinate: edge.coordinateDifference,
-      classKey: edge.classKey,
-      interpretations: edge.interpretations.map(item => ({
-        ratio: item.ratio,
-        targetId: item.targetId,
-        monzo: item.monzo,
-        coordinate: item.coordinate,
-        idealCents: item.idealCents
-      }))
-    }));
 }

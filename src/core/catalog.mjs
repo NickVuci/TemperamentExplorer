@@ -113,15 +113,6 @@ presets.porcupine11 = {
   },
   source: 'https://en.xen.wiki/w/Porcupine_family#11-limit'
 };
-export function publishedTuning(s, method) {
-  const preset = presets[s.key];
-  if (!preset) throw Error('This custom mapping has no published tuning preset.');
-  const value =
-    preset.publishedTunings?.[method] ||
-    (method === 'Published CWE' && !preset.defaultTuning ? {p: preset.p, g: preset.g} : null);
-  if (!value) throw Error('No published preset is available for that method.');
-  return {...value};
-}
 
 // Curated Xen Wiki examples. Mappings preserve the documented generator,
 // reduced by whole periods where necessary. Tunings are computed CWE.

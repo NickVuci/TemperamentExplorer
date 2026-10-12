@@ -13,10 +13,10 @@ import {
   hexDistance
 } from '../hexboard/hexboard-chords.mjs';
 import {geometricShapeForKeys, boardStructureKey} from './geometric-shapes.mjs';
-import {finishSearch, finishSearchAsync} from '../harmonic/harmonic-cooperative.mjs';
+import {finishSearch} from '../harmonic/harmonic-cooperative.mjs';
 import {rational} from '../core/rational.mjs';
 
-export const CHORD_SHAPE_BOUNDS = Object.freeze({
+const CHORD_SHAPE_BOUNDS = Object.freeze({
   maxTones: MAX_CHORD_TONES,
   maxNodes: 1000000,
   maxPlacements: 20000
@@ -528,9 +528,6 @@ export function* searchChordShapesSteps({
 export function searchChordShapes(options) {
   return finishSearch(searchChordShapesSteps(options));
 }
-export function searchChordShapesAsync(options, cooperative = {}) {
-  return finishSearchAsync(searchChordShapesSteps(options), cooperative);
-}
 
 /** Distinct sounding coordinates of selected keys, in canonical cell order; repeated keys are doublings. */
 export function selectedSoundingKeys(board, keys) {
@@ -628,7 +625,4 @@ export function* identifySelectedShapeSteps(options = {}) {
       )
       .map(shape => shape.id)
   };
-}
-export function identifySelectedShape(options) {
-  return finishSearch(identifySelectedShapeSteps(options));
 }

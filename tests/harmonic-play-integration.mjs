@@ -3,7 +3,7 @@ import {scale} from '../src/core/engine.mjs';
 import {makeState} from '../src/core/catalog.mjs';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {getHarmonicEntry} from '../src/harmonic/harmonic-catalogue.mjs';
+import {getHarmonicEntry} from './support/harmonic-catalogue.mjs';
 import {
   harmonicSelection,
   restoredHarmonicProvenance

@@ -1,9 +1,6 @@
 import {assignment, checkAssignments, target} from '../core/assignments.mjs';
-import {chordIdentity} from '../chords/chord-identity.mjs';
-import {projectCoordinateShape} from '../chords/chord-projection.mjs';
 import {mappingContext} from './harmonic-context.mjs';
 import {ratioMonzo, mapMonzo} from '../core/ji-monzo.mjs';
-import {harmonicIdentity} from './harmonic-equivalence.mjs';
 import {BoundedCache, immutable} from '../core/cache.mjs';
 import {tuningKey} from './harmonic-types.mjs';
 
@@ -578,95 +575,4 @@ export function validateMappingVariant(activeMapping, proposal = {}) {
     validation = {...checked, method: 'exact-candidate-assignments'};
   }
   return variantRecord(active, candidate, assignments, validation);
-}
-
-function chordInput(input) {
-  if (typeof input === 'string') return chordIdentity(input);
-  if (
-    input?.version === 2 &&
-    Array.isArray(input.canonicalRatios) &&
-    typeof input.fingerprint === 'string'
-  )
-    return input;
-  throw Error('Use an exact JI chord spelling or a version-2 chord identity.');
-}
-
-/** Project every member and dyad through one validated candidate context, without tuning or state mutation. */
-export function previewMappingVariant(activeMapping, variant, input) {
-  const active = mappingContext(activeMapping);
-  if (
-    !variant ||
-    variant.schemaVersion !== VARIANT_VERSION ||
-    variant.status !== 'compatible' ||
-    !variant.candidateContext
-  ) {
-    throw Error('Preview requires a successfully validated mapping variant.');
-  }
-  if (variant.baseMappingId !== active.id)
-    throw Error('Mapping variant was validated against a different active context.');
-  const candidate = mappingContext(variant.candidateContext);
-  if (candidate.id !== variant.candidateMappingId)
-    throw Error('Candidate mapping context ID does not match its validated variant.');
-  const identity = chordInput(input),
-    family = harmonicIdentity(identity, 'octave');
-  const members = identity.canonicalRatios.map((ratio, index) => {
-    const factor = ratioMonzo([BigInt(ratio.n), BigInt(ratio.d)], candidate.basis);
-    const coordinate = factor.withinBasis ? mapMonzo(candidate.rows, factor.basisMonzo) : null;
-    return {
-      memberIndex: index,
-      ratio: ratio.label,
-      monzo: factor.sparseMonzo,
-      missingPrimes: factor.missingPrimes,
-      coordinate
-    };
-  });
-  const pairs = [];
-  for (let i = 0; i < members.length; i++)
-    for (let j = i + 1; j < members.length; j++) {
-      const left = identity.canonicalRatios[i],
-        right = identity.canonicalRatios[j];
-      const factor = ratioMonzo(
-        [BigInt(right.n) * BigInt(left.d), BigInt(right.d) * BigInt(left.n)],
-        candidate.basis
-      );
-      const coordinate = factor.withinBasis ? mapMonzo(candidate.rows, factor.basisMonzo) : null;
-      const from = members[i].coordinate,
-        to = members[j].coordinate;
-      const derivedCoordinate = from && to ? [to[0] - from[0], to[1] - from[1]] : null;
-      pairs.push({
-        fromMember: i,
-        toMember: j,
-        ratio: factor.ratio,
-        monzo: factor.sparseMonzo,
-        missingPrimes: factor.missingPrimes,
-        coordinate,
-        derivedCoordinate,
-        consistent:
-          coordinate && derivedCoordinate ? equalPair(coordinate, derivedCoordinate) : null
-      });
-    }
-  const fullyMapped = members.every(member => member.coordinate !== null),
-    mappedCount = members.filter(member => member.coordinate !== null).length;
-  const shape = fullyMapped
-    ? projectCoordinateShape(
-        candidate,
-        members.map(member => member.coordinate)
-      )
-    : null;
-  return immutable({
-    schemaVersion: 1,
-    variantId: variant.id,
-    baseMappingId: active.id,
-    mappingId: candidate.id,
-    relation: variant.relation,
-    identityId: identity.fingerprint,
-    familyId: family.familyId,
-    dualFamilyId: family.dualFamilyId,
-    status: fullyMapped ? 'fully-mapped' : mappedCount ? 'partially-mapped' : 'outside-basis',
-    members,
-    pairs,
-    shapeIdentities: shape?.identities ?? null,
-    memberLinks: shape?.memberLinks ?? [],
-    tuningErrors: null
-  });
 }

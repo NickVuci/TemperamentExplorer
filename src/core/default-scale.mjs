@@ -11,7 +11,7 @@ export function defaultScale(s, options = {}) {
 // A temperament with no interval-complete MOS within the size bound approximates the selected
 // limit very poorly; it opens on an ordinary 7–9-note MOS instead, with a warning.
 const FALLBACK_SIZES = [7, 8, 9];
-export function fallbackScale(s) {
+function fallbackScale(s) {
   const size = generatedSizes(s).find(item => item.mos && FALLBACK_SIZES.includes(item.n));
   return size ? {n: size.n, mode: 0} : null;
 }

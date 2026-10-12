@@ -220,7 +220,10 @@ export function searchShapeOccurrences(
   return immutable(result);
 }
 
-/** Legacy IDs/order/counts remain stable while all math comes from shapes. */
+/**
+ * Occurrences of a projected JI chord, keeping legacy IDs/order/counts while all math comes
+ * from shapes. Test oracle: the app searches shapes; tests and the profiler use this JI path.
+ */
 export function searchOccurrences(
   s,
   projection,
@@ -279,20 +282,4 @@ export function searchOccurrences(
     tonicOccurrences: shared.tonicOccurrences.map(adapt),
     tonicMemberOccurrences: shared.tonicMemberOccurrences.map(adapt)
   };
-}
-export function largerScaleDiagnostics(s, projection, {count = 4} = {}) {
-  if (projection.basisStatus !== 'mapped') return [];
-  const start = Math.max(s.n + 1, projection.generatorSpan + 1),
-    out = [];
-  for (let n = start; n <= MAX_SCALE_SIZE && out.length < Math.min(8, count); n++) {
-    const next = {...s, n, mode: Math.min(s.mode || 0, n - 1)},
-      result = searchOccurrences(next, projection, {partialLimit: 0});
-    out.push({
-      n,
-      mode: next.mode,
-      count: result.completeOccurrences.length,
-      scaleCollision: result.scaleCollision
-    });
-  }
-  return out;
 }

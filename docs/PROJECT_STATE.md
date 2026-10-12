@@ -201,13 +201,11 @@ rooted-shape enumerator, and labels a shape `ji` when some JI chord maps onto it
 predicate as a coherent JI lift, verified shape-by-shape against `assessET` in
 `tests/harmonic-chord-space.mjs`. If the JI enumeration reaches its node bound,
 unmatched shapes are `unknown`, never ET; tempered-enumeration bounds make the list
-incomplete without changing any listed status. `chordDyads` gives each member pair's
-tempered class and every JI interval mapped to it. `assessET` remains the per-shape
+incomplete without changing any listed status. `assessET` remains the per-shape
 proof used by the manual note inspector.
 
 `harmonic-catalogue.mjs` now joins interval, curated/line/subset JI, chord-space JI/ET,
-mapping-extension and approximation producers through `queryCatalogue`,
-`getHarmonicEntry` and `resolveSelection`. Exact JI labels remain separate rows
+mapping-extension and approximation producers through `queryCatalogue`. Exact JI labels remain separate rows
 within shared shape/family groups. Custom lookup precedes browse caps. The temperament-independent
 part of JI rows (family, labels, dyadic status and chord-space orientation) is cached
 per target set and subgroup basis, so a temperament change that keeps both only
@@ -390,8 +388,7 @@ distinct-degree scale-fit handoff. Open in Chords accepts 2–8 source cell voic
 including repeated or coincident coordinates, without changing the Discover scale.
 Larger selections can be added to the collection as scales. `diamond-harmonic-selection.mjs` records
 exact cell IDs, ratios, source coordinates and whether the sound is canonical
-or an alternative approximation. Reverse links require exact sounded ratios
-and coordinates; an unavailable current display is reported explicitly.
+or an alternative approximation.
 No-fit and unavailable-note states remain explicit; handoff does not imply a
 physical fingering exists.
 A Just intonation / Temperament switch above the diamond (saved with it) plays cells at
@@ -571,11 +568,10 @@ The canonical pipeline is:
   period-repeated membership and retains every source member, octave residue,
   degree and explicit period lift. Shape/scale context owns occurrence IDs;
   `tonicAnchored` and the tonic subset are separate from anywhere-in-scale counts.
-  `searchOccurrences` preserves legacy JI IDs/order/counts as a compatibility
-  adapter. `analyzeShape` supplies shape analysis without requiring a ratio root.
-- `chord-discovery.mjs` searches a bounded catalogue of curated chords, harmonic
-  segments, and reciprocals, with shared odd/prime-limit filters and worker-backed
-  progress/cancellation.
+  `searchOccurrences` preserves legacy JI IDs/order/counts; the app searches
+  shapes, and tests and the profiler use it, with `realizeChord`, as the JI-input path.
+- `chord-discovery.mjs` supplies the curated candidate chords for live recognition
+  and the pairwise odd/prime-limit check.
 - Otonal and exact reciprocal utonal forms are displayed as one family while
   retaining distinct exact identities. Compact utonal spelling uses forms such as
   `1/6:5:4`.

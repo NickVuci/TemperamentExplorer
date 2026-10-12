@@ -322,18 +322,3 @@ function computeHarmonicIdentity(exactIdentity, kind) {
     classCardinality: family.familyRatios.length
   });
 }
-
-/** Return the reciprocal family link; applying it twice restores the family. */
-export function dualIdentity(source, policy = source?.policy) {
-  const kind = familyPolicy(policy);
-  const family = Array.isArray(source?.familyRatios) ? source : harmonicIdentity(source, kind);
-  if (family.policy !== kind) throw Error('A dual must use the same JI family policy.');
-  const dual = invertedFamily(family, kind);
-  return immutable({
-    schemaVersion: VERSION,
-    policy: kind,
-    familyId: dual.familyId,
-    familyRatios: dual.familyRatios,
-    dualFamilyId: family.familyId
-  });
-}

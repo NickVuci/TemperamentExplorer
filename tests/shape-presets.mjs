@@ -10,7 +10,6 @@ import {BUILTIN_LAYOUTS} from '../src/hexboard/builtin-layouts.mjs';
 import {
   shapePresetSnapshot,
   shapePresetFromPlacement,
-  shapePresetForState,
   MAX_SAVED_SHAPES
 } from '../src/shapes/shape-preset-data.mjs';
 import {
@@ -81,16 +80,6 @@ const doubled = shapePresetFromPlacement('Repeated source', fixture('6:4:5:4'));
 assert.equal(doubled.association.coordinates.length, 4);
 assert.equal(doubled.shape.cells.length, 3);
 assert.equal(doubled.association.memberCells[1], doubled.association.memberCells[3]);
-const retuned = {...state, g: state.g + 0.01},
-  loaded = shapePresetForState(snapshot, retuned, config),
-  original = shapePresetForState(snapshot, state, config);
-assert.equal(loaded.error, undefined);
-assert.deepEqual(loaded.placement.coords, original.placement.coords);
-assert.notDeepEqual(
-  loaded.placement.pitches,
-  original.placement.pitches,
-  'playback cents are derived from current tuning'
-);
 for (const mutate of [
   value => {
     value.version = 2;

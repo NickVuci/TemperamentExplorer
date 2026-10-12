@@ -75,7 +75,7 @@ export function groupReadings(readings) {
   }));
 }
 
-export function selectionShapeInput(selection) {
+function selectionShapeInput(selection) {
   if (!selection?.tones?.length) return null;
   return selection.tones.map(t => `${t.n}/${t.d}`).join(':');
 }

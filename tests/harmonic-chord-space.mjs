@@ -11,8 +11,7 @@ import {harmonicIdentity} from '../src/harmonic/harmonic-equivalence.mjs';
 import {
   classifyChordSpace,
   enumerateJIChordSpace,
-  temperedImage,
-  chordDyads
+  temperedImage
 } from '../src/harmonic/harmonic-chord-space.mjs';
 
 const indexFor = (state, oddLimit) =>
@@ -196,22 +195,7 @@ for (const limit of [11, 15, 25, 27]) {
   );
 }
 
-// Every pair of a shape lists the JI intervals mapped to its tempered class.
-const index = indexFor(meantone, 9),
-  et = classifyChordSpace(index, {sizes: [4]}).shapes.find(shape => shape.id === didymic);
-const dyads = chordDyads(et.shape, index);
-assert.equal(dyads.length, 6);
-assert.ok(
-  dyads.every(
-    dyad =>
-      dyad.interpretations.length > 0 &&
-      dyad.interpretations.every(item => Number.isFinite(item.idealCents))
-  )
-);
-assert.ok(
-  dyads.some(dyad => dyad.interpretations.length > 1),
-  'the comma merges JI intervals on at least one pair'
-);
+const index = indexFor(meantone, 9);
 
 // Tempering that merges two members (25/24 is inside the 25-limit) leaves no image rather than a smaller chord.
 const dicot = fromCommas('25/24', '2.3.5', 'Computed CWE'),

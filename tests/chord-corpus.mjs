@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {makeState} from '../src/core/catalog.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
-import {analyzeChord} from '../src/chords/chord-analysis.mjs';
+import {analyzeChord} from './support/chord-analysis.mjs';
 const fixture = JSON.parse(
   readFileSync(new URL('./fixtures/magic19-session.json', import.meta.url))
 );

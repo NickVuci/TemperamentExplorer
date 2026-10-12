@@ -1,7 +1,7 @@
 // One context and one voice lifecycle for all app playback.
 // The caller owns UI selection/highlighting; this module owns sound only.
-export const MIN_FREQUENCY = 15;
-export const MAX_FREQUENCY = 16000;
+const MIN_FREQUENCY = 15;
+const MAX_FREQUENCY = 16000;
 export const frequencyFor = (cents, tonic = 220) => tonic * 2 ** (cents / 1200);
 export const isAudibleFrequency = frequency =>
   Number.isFinite(frequency) && frequency >= MIN_FREQUENCY && frequency <= MAX_FREQUENCY;

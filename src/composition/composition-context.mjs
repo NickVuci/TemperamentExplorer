@@ -5,8 +5,8 @@ import {scale} from '../core/engine.mjs';
 import {coordinateCents, noteCoordinate} from '../core/pitch.mjs';
 import {frequencyFor} from '../ui/audio.mjs';
 
-export const CONTEXT_VERSION = 1;
-export const TONIC_MIN = 40,
+const CONTEXT_VERSION = 1;
+const TONIC_MIN = 40,
   TONIC_MAX = 1000;
 const isInt = Number.isSafeInteger;
 const fail = (path, message) => {
@@ -115,7 +115,7 @@ export function matchesApp(ctx, state) {
  * The voice of a harmonic selection that sounds its root: the shape's first member, the lowest note of the
  * chord's default rotation. Voices follow the collected coordinates; when none matches, the first is the root.
  */
-export function selectionRootTone(selection, count) {
+function selectionRootTone(selection, count) {
   const id = selection?.shape?.members?.[0]?.memberId ?? 'member:0',
     voices = selection?.voicing?.voices;
   const i =

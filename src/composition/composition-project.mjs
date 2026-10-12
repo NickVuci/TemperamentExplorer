@@ -27,8 +27,8 @@ export const LIMITS = Object.freeze({
   undoCommands: 100,
   undoBytes: 32 * 1024 * 1024
 });
-export const TRACK_KINDS = ['chords', 'melody'];
-export const WAVES = ['sine', 'triangle', 'sawtooth', 'square'];
+const TRACK_KINDS = ['chords', 'melody'];
+const WAVES = ['sine', 'triangle', 'sawtooth', 'square'];
 
 const isInt = v => Number.isSafeInteger(v);
 const fail = (path, message) => {
@@ -474,10 +474,6 @@ export const setLoop = (project, loop) =>
       startTick: loop.startTick ?? 0,
       endTick: loop.endTick ?? null
     };
-  });
-export const setClipLength = (project, clipId, lengthTick) =>
-  commit(project, p => {
-    clipOf(p, clipId).lengthTick = lengthTick;
   });
 /** Chooses the button each listed exact pitch uses, or with `key: null` returns it to automatic choice. */
 export const setFingering = (project, changes) =>

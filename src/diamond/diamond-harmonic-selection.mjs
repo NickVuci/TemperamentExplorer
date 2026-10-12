@@ -39,34 +39,3 @@ export function diamondHarmonicSelection(state, members, {label = 'Diamond selec
     provenance: {cells: structuredClone(members), canonicalMapping: canonical}
   });
 }
-
-/** Match current cell identities and full sounding coordinates, never label similarity. */
-export function diamondCellsForSelection(cells, selection) {
-  const sources = selection?.provenance?.cells ?? [];
-  if (sources.length)
-    return cells
-      .filter(cell =>
-        sources.some(
-          source =>
-            source.cellId === cell.id &&
-            source.ratio === cell.label &&
-            cell.status?.approximation?.m?.every((value, axis) => value === source.coordinate[axis])
-        )
-      )
-      .map(cell => cell.id);
-  const voices = selection?.voicing?.voices ?? [],
-    tones = selection?.tones ?? [];
-  return cells
-    .filter(cell =>
-      voices.some((voice, index) => {
-        const toneIndex = Number.isSafeInteger(voice.memberIndex) ? voice.memberIndex : index,
-          label = voice.ratio ?? tones[toneIndex]?.label;
-        return (
-          label === cell.label &&
-          cell.status?.approximation?.mapped &&
-          cell.status.approximation.m.every((value, axis) => value === voice.coordinate[axis])
-        );
-      })
-    )
-    .map(cell => cell.id);
-}

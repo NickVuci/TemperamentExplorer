@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {makeState} from '../src/core/catalog.mjs';
-import {validateMappingVariant, previewMappingVariant} from '../src/harmonic/harmonic-mappings.mjs';
+import {validateMappingVariant} from '../src/harmonic/harmonic-mappings.mjs';
 import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
 
 const meantone = makeState('meantone');
@@ -131,29 +131,4 @@ assert.equal(
   'conflict'
 );
 
-const candidateSnapshot = JSON.stringify(extensionA.candidateContext),
-  activeSnapshot = JSON.stringify(meantone);
-const chordPreview = previewMappingVariant(meantone, extensionA, '4:5:6');
-assert.equal(chordPreview.status, 'fully-mapped');
-assert.equal(chordPreview.identityId, 'ji2:1/1:5/4:3/2');
-assert.equal(chordPreview.members.length, 3);
-assert.equal(chordPreview.pairs.length, 3);
-assert.ok(chordPreview.pairs.every(pair => pair.consistent === true));
-assert.equal(chordPreview.tuningErrors, null, 'mapping preview does not invent a candidate tuning');
-assert.equal(JSON.stringify(extensionA.candidateContext), candidateSnapshot);
-assert.equal(
-  JSON.stringify(meantone),
-  activeSnapshot,
-  'preview leaves the active temperament state untouched'
-);
-assert.throws(
-  () => previewMappingVariant(makeState('porcupine11'), extensionA, '4:5:6'),
-  /different active context/
-);
-
-const septimalPreview = previewMappingVariant(meantone, extensionA, '1:7/4');
-assert.deepEqual(septimalPreview.members[1].coordinate, [-5, 10]);
-const changedPreview = previewMappingVariant(meantone, changedAssignment, '4:5:6');
-assert.deepEqual(changedPreview.members[1].coordinate, [-1, 4]);
-assert.ok(changedPreview.pairs.every(pair => pair.consistent === true));
-console.log('Alternative mapping classification, exact extensions and pure chord previews passed.');
+console.log('Alternative mapping classification and exact extensions passed.');

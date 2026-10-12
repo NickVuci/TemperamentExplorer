@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {chordCandidates, withinJILimits, withinOddLimit} from '../src/chords/chord-discovery.mjs';
+import {chordCandidates, withinJILimits} from '../src/chords/chord-discovery.mjs';
 import {chordIdentity} from '../src/chords/chord-identity.mjs';
 import {curatedJIChords, makeJIInterpretation} from '../src/harmonic/harmonic-ji-chords.mjs';
 assert.ok(chordCandidates().length <= 256);
@@ -81,8 +81,8 @@ assert.equal(
   false,
   'rich records do not mutate the legacy candidate identity'
 );
-assert.ok(withinOddLimit(chordIdentity('4:5:6:7:9:11'), 11));
-assert.ok(!withinOddLimit(chordIdentity('4:5:6:7:9:11'), 9));
+assert.ok(withinJILimits(chordIdentity('4:5:6:7:9:11'), 11));
+assert.ok(!withinJILimits(chordIdentity('4:5:6:7:9:11'), 9));
 assert.ok(withinJILimits(chordIdentity('4:5:6'), 11, 5));
 assert.ok(!withinJILimits(chordIdentity('4:5:6'), 11, 3));
 const porkypine = [2, 3, 5, 11];

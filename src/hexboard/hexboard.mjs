@@ -16,7 +16,7 @@ import {coordinateCents as cents, approximationSpan, mod} from '../core/pitch.mj
 export const det = (a, b) => a[0] * b[1] - a[1] * b[0];
 // The controls refer to the displayed horizontal/vertical axes. A quarter
 // turn exchanges those axes relative to the underlying staggered board.
-export function layoutReflections(cfg) {
+function layoutReflections(cfg) {
   const odd = (cfg.deviceRotation || 0) % 2;
   return {
     x: !!(odd ? cfg.flipHorizontal : cfg.flipVertical),
@@ -61,7 +61,7 @@ export function baseSteps(s, n) {
     throw Error('This base does not give a complete integer layout basis. Choose a smaller MOS.');
   return {n, L: L.m, s: small.m, signature: a.signature, large: a.large, small: a.small};
 }
-export function layoutAxes(s, cfg) {
+function layoutAxes(s, cfg) {
   const needsBase = ['bosanquet', 'compressed'].includes(cfg.style);
   const base = needsBase
     ? baseSteps(s, cfg.base)
@@ -297,7 +297,7 @@ export function tuningMenuName(name, n) {
   return ([short, core].find(v => v.length <= width) ?? clip(core, width)) + suffix;
 }
 /** A layout with no saved or built-in name is named by its family and base MOS, such as "Bosanquet 7". */
-export const layoutGeometryName = cfg =>
+const layoutGeometryName = cfg =>
   (LAYOUT_FAMILIES[cfg.style] ?? LAYOUT_FAMILIES.manual)[0] +
   (['bosanquet', 'compressed'].includes(cfg.style) ? ` ${cfg.base}` : '');
 // layout: the named layout the board shows, {name, source: 'Built-in' | 'Saved'}; omitted for a custom layout.

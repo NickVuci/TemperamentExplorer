@@ -13,7 +13,7 @@ export const realizationDefaults = () => ({
   reach: 0,
   memberPolicy: 'preserve'
 });
-export function validateRealization(request = {}) {
+function validateRealization(request = {}) {
   const r = {...realizationDefaults(), ...request};
   for (const [key, lo, hi] of [
     ['inversion', 0, 7],
@@ -150,7 +150,10 @@ export function realizeShape(
   return realizeAt(s, shape, canonical, request, tones, tolerance);
 }
 
-/** Preserve canonical occurrence resolution and every JI input voice. */
+/**
+ * Preserve canonical occurrence resolution and every JI input voice. Test oracle: the app
+ * realizes shapes (realizeShape); tests and the profiler use this JI-input path.
+ */
 export function realizeChord(s, analysis, occurrence, request = {}) {
   occurrence = analysis.occurrences.completeOccurrences.find(o => o.id === occurrence?.id);
   if (!occurrence) throw Error('Select a complete exact occurrence.');

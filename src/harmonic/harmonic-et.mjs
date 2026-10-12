@@ -1,4 +1,4 @@
-import {finishSearch, finishSearchAsync} from './harmonic-cooperative.mjs';
+import {finishSearch} from './harmonic-cooperative.mjs';
 import {immutable} from '../core/cache.mjs';
 import {domainsForShape} from './harmonic-dyad-graph.mjs';
 import {isKernelVector, validateKernelWitness} from './harmonic-context.mjs';
@@ -12,7 +12,7 @@ import {
   liftJIIntervalInterpretation
 } from './harmonic-ji-lift.mjs';
 
-export const ET_ALGORITHM_VERSION = 'et-assessment-v1';
+const ET_ALGORITHM_VERSION = 'et-assessment-v1';
 const subtract = (a, b) => a.map((value, index) => value - b[index]);
 const add = (a, b) => a.map((value, index) => value + b[index]);
 const zero = vector => vector.every(value => value === 0);
@@ -350,7 +350,10 @@ function validLiftWitness(shape, index, witness) {
   return true;
 }
 
-/** Recheck a stored ET result against the exact shape, mapping and target set. */
+/**
+ * Recheck a stored ET result against the exact shape, mapping and target set. Test oracle:
+ * tests replay assessET proofs with it; the app does not call it.
+ */
 export function verifyETEvidence(assessment, shape, index) {
   try {
     shapeCoordinates(shape, index);
@@ -510,7 +513,4 @@ export function verifyETEvidence(assessment, shape, index) {
 
 export function assessET(shape, index, budget = {}) {
   return finishSearch(assessETSteps(shape, index, budget));
-}
-export function assessETAsync(shape, index, budget = {}, scheduler = {}) {
-  return finishSearchAsync(assessETSteps(shape, index, budget), scheduler);
 }

@@ -4,7 +4,7 @@ import {makeState} from '../src/core/catalog.mjs';
 import {chordIdentity} from '../src/chords/chord-identity.mjs';
 import {projectChord} from '../src/chords/chord-projection.mjs';
 import {searchOccurrences} from '../src/chords/chord-occurrence.mjs';
-import {analyzeChord} from '../src/chords/chord-analysis.mjs';
+import {analyzeChord} from '../tests/support/chord-analysis.mjs';
 import {chordCandidates} from '../src/chords/chord-discovery.mjs';
 import {realizeChord, placeRealization} from '../src/chords/chord-realization.mjs';
 import {buildBoard} from '../src/hexboard/hexboard.mjs';

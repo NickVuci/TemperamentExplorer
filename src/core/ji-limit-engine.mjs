@@ -10,9 +10,6 @@ export const PRIME_LIMIT_VALUES = Object.freeze(
   Array.from({length: 97}, (_, i) => i + 2).filter(isPrime)
 );
 export const DEFAULT_ODD_LIMIT = 15;
-export const MANUAL_PRIME_LIMIT_VALUES = Object.freeze(
-  PRIME_LIMIT_VALUES.filter(value => value >= 3 && value <= 13)
-);
 const oddSet = new Set(ODD_LIMIT_VALUES),
   primeSet = new Set(PRIME_LIMIT_VALUES);
 const diamondCache = new BoundedCache(48),
@@ -31,9 +28,6 @@ export function primeFilterForBasis(basis) {
     ? highest
     : primes;
 }
-
-/** Compatibility name; a basis can resolve to a prime limit or an explicit subgroup. */
-export const primeLimitForBasis = primeFilterForBasis;
 
 export function formatPrimeFilter(primeFilter) {
   if (primeFilter == null) return 'No prime limit';
@@ -177,7 +171,7 @@ function normalizedPrimeSet(value, name, {allowNull = false} = {}) {
 }
 
 /** Normalize the finite analytical target identity without depending on tuning or mapping matrix. */
-export function normalizeTargetSetSpec({
+function normalizeTargetSetSpec({
   oddLimit = DEFAULT_ODD_LIMIT,
   primeFilter = null,
   mappingSubgroup,

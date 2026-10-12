@@ -4,9 +4,12 @@ import {chordIdentity} from '../src/chords/chord-identity.mjs';
 import {makeJIInterpretation} from '../src/harmonic/harmonic-ji-chords.mjs';
 import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
 import {
-  searchChordApproximations,
+  chordApproximationSteps,
   searchIntervalApproximations
 } from '../src/harmonic/harmonic-approximations.mjs';
+import {finishSearch} from '../src/harmonic/harmonic-cooperative.mjs';
+const searchChordApproximations = (input, options = {}) =>
+  finishSearch(chordApproximationSteps(input, options));
 import {targetSet} from '../src/core/ji-limit-engine.mjs';
 import {div, rational} from '../src/core/rational.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';

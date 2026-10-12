@@ -5,7 +5,7 @@ import {generatedSizes, stepSymbol} from '../core/engine.mjs';
 import {errorColor} from '../core/ji-error-color.mjs';
 import {esc} from './ui.mjs';
 
-export const SCALE_VIEWS = ['line', 'horogram'];
+const SCALE_VIEWS = ['line', 'horogram'];
 export const normalizeScaleView = value => (SCALE_VIEWS.includes(value) ? value : 'line');
 
 const fmt = (x, n = 2) => Number(x).toFixed(n);

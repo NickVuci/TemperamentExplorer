@@ -3,7 +3,6 @@ import {readFileSync} from 'node:fs';
 import {makeState} from '../src/core/catalog.mjs';
 import {
   DEFAULT_ODD_LIMIT,
-  MANUAL_PRIME_LIMIT_VALUES,
   ODD_LIMIT_VALUES,
   PRIME_LIMIT_VALUES
 } from '../src/core/ji-limit-engine.mjs';
@@ -11,7 +10,6 @@ import {createChordWorkspace} from '../src/ui/chord-ui.mjs';
 import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
 const states = [makeState('meantone')];
 assert.equal(DEFAULT_ODD_LIMIT, 15);
-assert.deepEqual(MANUAL_PRIME_LIMIT_VALUES, [3, 5, 7, 11, 13]);
 let ji = {limit: 5, primeLimit: 3, tol: 2};
 const opts = {
   getStates: () => states,

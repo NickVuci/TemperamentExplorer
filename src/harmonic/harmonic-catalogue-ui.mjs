@@ -71,7 +71,7 @@ function starControl(input,label,favourites,ids=null){if(!input)return '';const 
 function savedChordRow(r,favourites){return `<div class="directory-chord-row">${button('directory-recent',esc(r.label),`class="directory-chord" data-input="${esc(r.input)}"`)}${starControl(r.input,r.label,favourites)}</div>`;}
 // Collapsed groups render no chords and open groups show a bounded first page, so a large
 // odd limit does not put thousands of rows into the page on every refresh.
-export const DIRECTORY_GROUP_PAGE=100;
+const DIRECTORY_GROUP_PAGE=100;
 // Groups start collapsed; openGroups lists the ones the user has opened.
 export function renderDirectoryTree(rows,selected,openGroups=new Set(),favourites=[],expandedGroups=new Set()){
  const sizes=[...new Set(rows.map(directorySize))].sort((a,b)=>a-b),starred=new Set(favourites.map(r=>favouriteKey(r.input)));

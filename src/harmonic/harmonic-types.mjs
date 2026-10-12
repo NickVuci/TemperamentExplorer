@@ -1,6 +1,4 @@
 import {immutable} from '../core/cache.mjs';
-import {mappingContext} from './harmonic-context.mjs';
-import {targetSetIdentity} from '../core/ji-limit-engine.mjs';
 
 /** @typedef {{id:string,basis:number[],rows:number[][],coordinateConvention:string,schemaVersion:number}} MappingContextDTO */
 /** @typedef {{mappingId:string,periodCents:number,generatorCents:number}} TuningContextDTO */
@@ -76,39 +74,12 @@ function frozen(value) {
   return immutable(jsonCopy(value));
 }
 
-/** Validate a mapping-only DTO against the authoritative matrix constraints and ID. */
-export function validateMappingContext(value) {
-  record(value, 'mapping context');
-  const context = mappingContext(value);
-  if (value.id !== context.id) fail('mapping context ID does not match its basis and rows.');
-  if (value.coordinateConvention !== context.coordinateConvention)
-    fail('mapping coordinate convention mismatch.');
-  return frozen(value);
-}
-
-/** Mapping identity is unchanged by tuning, targets, scale or layout. */
-export function harmonicMappingKey(value) {
-  return mappingContext(value).id;
-}
-
 /** Tuning errors depend on the mapping and the actual tuned period/generator. */
 export function tuningKey({mappingId, periodCents, generatorCents}) {
   nonempty(mappingId, 'mappingId');
   for (const [name, value] of Object.entries({periodCents, generatorCents}))
     if (!Number.isFinite(value) || value <= 0) fail(`${name} must be a positive finite number.`);
   return key('tuning', {mappingId, periodCents, generatorCents});
-}
-
-/** Target identity excludes tolerance, tuned cents, scale and layout. */
-export function targetSetKey({
-  mappingSubgroup,
-  oddLimit,
-  primeFilter = null,
-  representationPolicy
-}) {
-  if (!['octave', 'native-exact'].includes(representationPolicy))
-    fail('invalid target representation policy.');
-  return targetSetIdentity({mappingSubgroup, oddLimit, primeFilter, representationPolicy});
 }
 
 /** Mode belongs to the occurrence context, never to the harmonic shape. */
@@ -122,14 +93,10 @@ export function scaleContextKey({mappingId, coordinates, mode}) {
   return key('scale', {mappingId, coordinates, mode});
 }
 
-/** Placement cache scope: a layout changes without changing scale occurrences. */
-export function harmonicLayoutKey({scaleId, config}) {
-  nonempty(scaleId, 'scaleId');
-  record(config, 'layout config');
-  return key('layout', {scaleId, config});
-}
-
-/** A shape must refer to the same mapping as its exact equivalence policy. */
+/**
+ * A shape must refer to the same mapping as its exact equivalence policy. Test oracle: tests
+ * validate produced shape records with it; the app does not call it.
+ */
 export function validateTemperedShape(value) {
   record(value, 'tempered shape');
   nonempty(value.id, 'shape ID');

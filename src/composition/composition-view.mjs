@@ -23,7 +23,7 @@ import {
 
 export const STEP_TICKS = PPQ / 4; // the default grid step: one sixteenth note
 // New-note lengths; 'grid' follows the grid step, so a triplet grid draws triplet notes.
-export const NOTE_LENGTHS = [
+const NOTE_LENGTHS = [
   ['1/16', STEP_TICKS],
   ['1/8', STEP_TICKS * 2],
   ['1/4', STEP_TICKS * 4],
@@ -45,9 +45,9 @@ export const REGISTER_CHOICES = [
 export const ZOOM = Object.freeze({min: 10, max: 1280, initial: 80});
 export const ROW_HEIGHT = Object.freeze({min: 16, max: 48, initial: 28});
 export const DEGREE_WIDTH = 104;
-export const SPLIT_CHOICES = [2, 3, 4, 5, 6, 7];
+const SPLIT_CHOICES = [2, 3, 4, 5, 6, 7];
 // [n, m, label]: fit the selection n in the time of m (time is scaled by m/n).
-export const FIT_CHOICES = [
+const FIT_CHOICES = [
   [3, 2, '3:2 triplets'],
   [5, 4, '5:4 quintuplets'],
   [7, 4, '7:4 septuplets'],
@@ -55,7 +55,7 @@ export const FIT_CHOICES = [
   [1, 2, '×2 longer'],
   [2, 1, '×½ shorter']
 ];
-export const SWING_CHOICES = [50, 54, 58, 62, 66, 70, SWING_MAX];
+const SWING_CHOICES = [50, 54, 58, 62, 66, 70, SWING_MAX];
 
 export function formatPosition(project, tick) {
   const bar = barTicks(project.meter),
@@ -67,7 +67,7 @@ export function formatPosition(project, tick) {
 
 /** Rows of the note grid, highest pitch first: one per scale degree per shown period register. */
 /** One row per distinct in-scale pitch on the enabled keys of `board`, highest first; null without a board. */
-export function boardRows(project, board) {
+function boardRows(project, board) {
   if (!board) return null;
   const seen = new Set(),
     rows = [];
@@ -129,7 +129,7 @@ export function rollRows(project, board, registers, events = []) {
 }
 
 /** Melody notes outside the Create scale, kept visible so nothing is silently dropped. */
-export const outsideScale = (project, clip) =>
+const outsideScale = (project, clip) =>
   clip.events.filter(e => e.tones.some(t => !degreeOf(project.context, t.coordinate)));
 
 const quarter = ticks => Number((ticks / PPQ).toFixed(4));
@@ -138,7 +138,7 @@ const chordLabel = (e, i) => (e.source?.label ? String(e.source.label) : `Chord 
 // tone `source.rootTone` names, recorded when the chord is added. Older chords without it, and collected
 // chords whose spelling is unknown, are rooted on their first tone. Voicing edits keep tone order, so the
 // root survives inversion. The bass is simply the lowest sounding tone.
-export function chordRootTone(e) {
+function chordRootTone(e) {
   const i = e.source?.rootTone;
   return Number.isInteger(i) && i >= 0 && i < e.tones.length ? i : 0;
 }

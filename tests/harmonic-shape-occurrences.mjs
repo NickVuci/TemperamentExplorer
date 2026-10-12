@@ -7,7 +7,6 @@ import {
   searchShapeOccurrences,
   searchOccurrences
 } from '../src/chords/chord-occurrence.mjs';
-import {analyzeShape} from '../src/chords/chord-analysis.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
 import {equivalencePolicy} from '../src/harmonic/harmonic-equivalence.mjs';
 import {validateTemperedShape} from '../src/harmonic/harmonic-types.mjs';
@@ -73,7 +72,7 @@ const etCoordinates = [
     [-1, 3]
   ],
   et = projectCoordinateShape(s, etCoordinates).identities.octave;
-assert.equal(analyzeShape(s, et).occurrences.completeOccurrences.length, 4);
+assert.equal(searchShapeOccurrences(s, et).completeOccurrences.length, 4);
 assert.ok(
   searchShapeOccurrences(s, et).completeOccurrences.every(row =>
     row.assignments.every(member => !('ratio' in member))
@@ -131,17 +130,13 @@ const mutable = {
     ]
   },
   injected = scaleMembership(s),
-  analyzed = analyzeShape(s, mutable, {membership: injected});
+  analyzed = searchShapeOccurrences(s, mutable, {membership: injected});
 assert.equal(Object.isFrozen(mutable), false);
 assert.equal(Object.isFrozen(mutable.coordinates[0]), false);
 assert.equal(Object.isFrozen(injected.notes[0].coordinate), false);
 mutable.coordinates[0][0] = 9;
 injected.notes[0].coordinate[0] = 9;
-assert.deepEqual(analyzed.shape.coordinates[0], [0, 0]);
-assert.deepEqual(
-  analyzed.occurrences.completeOccurrences[0].assignments[0].degreeCoordinate,
-  [0, 0]
-);
+assert.deepEqual(analyzed.completeOccurrences[0].assignments[0].degreeCoordinate, [0, 0]);
 const augmented = {...fromCommas('128/125', '2.3.5', 'Computed CWE'), n: 2, mode: 0},
   triad = projectChord(augmented, chordIdentity('1:5/4:25/16'));
 assert.equal(triad.shapeIdentities.octave.cardinality, 3);

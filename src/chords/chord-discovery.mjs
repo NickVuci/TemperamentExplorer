@@ -1,7 +1,7 @@
 import {exactRatio} from './chord-identity.mjs';
 import {ratioWithinJILimits} from '../core/ji-limit-engine.mjs';
 import {legacyJIChordCandidates} from '../harmonic/harmonic-ji-chords.mjs';
-// Transitional public entry for board-independent catalogue consumers.
+// Curated candidate chords for live recognition, and pairwise JI-limit checks.
 let legacyCandidates;
 export function chordCandidates() {
   if (legacyCandidates) return legacyCandidates;
@@ -17,7 +17,4 @@ export function withinJILimits(identity, oddLimit, primeLimit = null) {
       if (!ratioWithinJILimits(b[0] * a[1], b[1] * a[0], {oddLimit, primeLimit})) return false;
     }
   return true;
-}
-export function withinOddLimit(identity, limit) {
-  return withinJILimits(identity, limit, null);
 }

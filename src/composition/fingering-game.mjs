@@ -3,7 +3,7 @@
 // Pure state machine: it is told which keys are held and asks the host to light a fingering.
 // Nothing here knows about the DOM, audio or the board hardware.
 
-export const COUNT_CHOICES = [3, 5, 10];
+const COUNT_CHOICES = [3, 5, 10];
 
 /** Offered game lengths for a chord with `available` fingerings, ending with "all". */
 export function countOptions(available) {

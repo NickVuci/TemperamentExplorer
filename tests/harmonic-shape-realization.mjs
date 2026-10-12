@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {makeState} from '../src/core/catalog.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
-import {analyzeChord} from '../src/chords/chord-analysis.mjs';
+import {analyzeChord} from './support/chord-analysis.mjs';
 import {realizeChord, realizeShape} from '../src/chords/chord-realization.mjs';
 import {shapeVoicings} from '../src/chords/chord-voicings.mjs';
 import {searchShapeOccurrences} from '../src/chords/chord-occurrence.mjs';

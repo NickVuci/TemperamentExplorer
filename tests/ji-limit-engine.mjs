@@ -2,13 +2,11 @@ import assert from 'node:assert/strict';
 import {targets} from '../src/core/engine.mjs';
 import {
   DEFAULT_ODD_LIMIT,
-  MANUAL_PRIME_LIMIT_VALUES,
   ODD_LIMIT_VALUES,
   PRIME_LIMIT_VALUES,
   diamondTargets,
   formatPrimeFilter,
   primeFilterForBasis,
-  primeLimitForBasis,
   ratioWithinJILimits,
   targetId,
   targetSet,
@@ -17,7 +15,6 @@ import {
 } from '../src/core/ji-limit-engine.mjs';
 
 assert.equal(DEFAULT_ODD_LIMIT, 15);
-assert.deepEqual(MANUAL_PRIME_LIMIT_VALUES, [3, 5, 7, 11, 13]);
 assert.deepEqual(validateJILimits(), {oddLimit: 15, primeLimit: null});
 assert.deepEqual(
   ODD_LIMIT_VALUES,
@@ -114,11 +111,6 @@ assert.deepEqual(validateJILimits({oddLimit: 15, primeLimit: [11, 3, 2, 5]}), {
 assert.equal(primeFilterForBasis([2, 3, 5]), 5);
 assert.deepEqual(primeFilterForBasis([3, 5, 11]), [3, 5, 11]);
 assert.equal(primeFilterForBasis([2]), 2);
-assert.deepEqual(
-  primeLimitForBasis(porkypine),
-  porkypine,
-  'compatibility helper retains exact subgroup semantics'
-);
 assert.equal(formatPrimeFilter(11), '11-prime-limit');
 assert.equal(formatPrimeFilter(porkypineFilter), '2.3.5.11-prime subgroup');
 for (const basis of [[], [2, 4], [3, 101]]) assert.throws(() => primeFilterForBasis(basis));

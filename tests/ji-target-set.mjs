@@ -8,7 +8,6 @@ import {
   validateJILimits,
   primeFilterForBasis
 } from '../src/core/ji-limit-engine.mjs';
-import {targetSetKey} from '../src/harmonic/harmonic-types.mjs';
 
 const spec = {
   oddLimit: 3,
@@ -105,8 +104,8 @@ assert.ok(
   'unfiltered display can retain outside-subgroup targets without claiming they map'
 );
 assert.equal(
-  targetSetKey({...spec, mappingSubgroup: [3, 2]}),
-  targetSetKey({...spec, mappingSubgroup: [2, 3]})
+  targetSetIdentity({...spec, mappingSubgroup: [3, 2]}),
+  targetSetIdentity({...spec, mappingSubgroup: [2, 3]})
 );
 assert.deepEqual(validateJILimits({oddLimit: 15, primeLimit: filter}).primeLimit, subgroup);
 

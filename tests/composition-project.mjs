@@ -20,7 +20,6 @@ import {
   setTempo,
   setMeter,
   setLoop,
-  setClipLength,
   contentEndTick,
   createHistory,
   makeEvent,
@@ -413,8 +412,6 @@ assert.deepEqual(setLoop(built, {enabled: true, startTick: 0, endTick: 3840 * 4}
   startTick: 0,
   endTick: 3840 * 4
 });
-assert.equal(setClipLength(built, melodyClip, 3840 * 10).clips[1].lengthTick, 3840 * 10);
-assert.throws(() => setClipLength(built, melodyClip, 10), /past its clip length/);
 
 // --- history: undo/redo, atomic failure, bounded depth ---
 const h = createHistory(empty);

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {chordIdentity as id, chordMonzos, jiSubset} from '../src/chords/chord-identity.mjs';
+import {chordIdentity as id, chordMonzos} from '../src/chords/chord-identity.mjs';
 const a = id('4:5:6');
 for (const x of ['1:5/4:3/2', '6:4:5', '8:10:12']) assert.equal(id(x).fingerprint, a.fingerprint);
 assert.deepEqual(id('1:81/80').canonicalRatios.find(q => q.label === '81/80').exponents, {
@@ -35,6 +35,3 @@ for (let k = 1; k < 100; k++) {
 }
 assert.deepEqual(chordMonzos(id('1:97/64'), [2, 3, 5, 7, 11])[1].missingPrimes, [97]);
 assert.deepEqual(chordMonzos(id('1:97/64'), [2, 3, 5, 7, 11])[1].monzo, [-6, 0, 0, 0, 0]);
-assert.ok(jiSubset(a, id('1:4:5:6:7')));
-assert.ok(jiSubset(id('6:4:5'), id('12:10:8:14')));
-assert.ok(!jiSubset(id('4:5:6:7'), a));

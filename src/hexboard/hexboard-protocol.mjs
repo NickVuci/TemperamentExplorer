@@ -11,8 +11,8 @@ const CMD_ENTER = 0x01,
   CMD_EXIT = 0x02,
   CMD_LED = 0x03,
   CMD_ENCODER = 0x06;
-export const BUTTON_COUNT = 140,
-  APP_NAME = 'Temperament Lab';
+export const BUTTON_COUNT = 140;
+const APP_NAME = 'Temperament Lab';
 const ENCODER = {1: 'up', 2: 'down', 3: 'press', 4: 'release'};
 
 const frame = (command, payload = []) => [START, MANUFACTURER, command, ...payload, END];

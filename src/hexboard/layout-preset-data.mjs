@@ -4,7 +4,7 @@ import {validatePeriodPlacement, validateCopyPeriodStep} from './hexboard-wrappi
 import {MAX_SCALE_SIZE} from '../core/engine.mjs';
 import {palettes, validColor} from './hexboard-colors.mjs';
 // The fields that make up a layout's geometry; layoutKey identifies a layout by them.
-export const layoutFields = [
+const layoutFields = [
   'base',
   'offset',
   'style',

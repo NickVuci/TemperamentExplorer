@@ -4,32 +4,27 @@ import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
 import {equivalencePolicy, shapeKey} from '../src/harmonic/harmonic-equivalence.mjs';
 import {
   canonicalHarmonicJSON,
-  harmonicMappingKey,
   tuningKey,
-  targetSetKey,
   scaleContextKey,
-  harmonicLayoutKey,
-  validateMappingContext,
   validateTemperedShape,
   validateHarmonicSelection,
   validateAssessment
 } from '../src/harmonic/harmonic-types.mjs';
+import {targetSetIdentity} from '../src/core/ji-limit-engine.mjs';
 
 const state = makeState('meantone'),
   context = mappingContext(state),
   mappingId = context.id;
-assert.deepEqual(validateMappingContext(context), context);
-assert.ok(Object.isFrozen(validateMappingContext(context).rows[0]));
-assert.throws(() => validateMappingContext({...context, id: 'wrong'}), /ID does not match/);
-assert.equal(harmonicMappingKey({...state, p: state.p + 1, n: 19, mode: 2}), mappingId);
+// The mapping identity ignores tuning, scale and basis order.
+assert.equal(mappingContext({...state, p: state.p + 1, n: 19, mode: 2}).id, mappingId);
 assert.equal(
-  harmonicMappingKey({
+  mappingContext({
     basis: [2, 5, 3],
     rows: [
       [1, 0, 1],
       [0, 4, 1]
     ]
-  }),
+  }).id,
   mappingId
 );
 
@@ -39,7 +34,7 @@ assert.notEqual(
   tuning,
   tuningKey({mappingId, periodCents: state.p, generatorCents: state.g + 0.01})
 );
-const target = targetSetKey({
+const target = targetSetIdentity({
   mappingSubgroup: [5, 2, 3],
   oddLimit: 15,
   primeFilter: [5, 2, 3],
@@ -47,7 +42,7 @@ const target = targetSetKey({
 });
 assert.equal(
   target,
-  targetSetKey({
+  targetSetIdentity({
     mappingSubgroup: [2, 3, 5],
     oddLimit: 15,
     primeFilter: [2, 3, 5],
@@ -56,7 +51,7 @@ assert.equal(
 );
 assert.notEqual(
   target,
-  targetSetKey({
+  targetSetIdentity({
     mappingSubgroup: [2, 3, 5],
     oddLimit: 17,
     primeFilter: [2, 3, 5],
@@ -65,7 +60,7 @@ assert.notEqual(
 );
 assert.notEqual(
   target,
-  targetSetKey({
+  targetSetIdentity({
     mappingSubgroup: [2, 3, 5],
     oddLimit: 15,
     primeFilter: [2, 3, 5],
@@ -74,7 +69,7 @@ assert.notEqual(
 );
 assert.equal(
   target,
-  targetSetKey({
+  targetSetIdentity({
     mappingSubgroup: [2, 3, 5],
     oddLimit: 15,
     primeFilter: 5,
@@ -84,7 +79,7 @@ assert.equal(
 );
 assert.throws(
   () =>
-    targetSetKey({
+    targetSetIdentity({
       mappingSubgroup: [2, 3, 5],
       oddLimit: 15,
       primeFilter: [2, 4],
@@ -112,36 +107,20 @@ assert.notEqual(
     mode: 0
   })
 );
-const layout = harmonicLayoutKey({scaleId: scale, config: {ap: 1, bg: 2, periodWrapping: true}});
-assert.equal(
-  layout,
-  harmonicLayoutKey({scaleId: scale, config: {periodWrapping: true, bg: 2, ap: 1}})
-);
-assert.notEqual(
-  layout,
-  harmonicLayoutKey({scaleId: scale, config: {ap: 1, bg: 2, periodWrapping: false}})
-);
-assert.notEqual(
-  layout,
-  harmonicLayoutKey({
-    scaleId: scaleContextKey({mappingId, coordinates: notes, mode: 1}),
-    config: {ap: 1, bg: 2, periodWrapping: true}
-  })
-);
 assert.equal(
   tuning,
   tuningKey({mappingId, periodCents: state.p, generatorCents: state.g}),
-  'scale/layout changes do not change tuning key'
+  'scale changes do not change tuning key'
 );
 assert.equal(
   target,
-  targetSetKey({
+  targetSetIdentity({
     mappingSubgroup: [2, 3, 5],
     oddLimit: 15,
     primeFilter: [2, 3, 5],
     representationPolicy: 'octave'
   }),
-  'scale/layout/tuning changes do not change targets'
+  'scale/tuning changes do not change targets'
 );
 assert.equal(canonicalHarmonicJSON({z: 1, a: {b: 2, a: 3}}), '{"a":{"a":3,"b":2},"z":1}');
 assert.throws(() => canonicalHarmonicJSON({ratio: 1n}), /plain object|value/);
@@ -323,7 +302,7 @@ mappingContext({
   ]
 });
 assert.notEqual(
-  targetSetKey({
+  targetSetIdentity({
     mappingSubgroup: [3, 5, 7],
     oddLimit: 15,
     primeFilter: [3, 5, 7],
@@ -332,7 +311,7 @@ assert.notEqual(
   target
 );
 assert.notEqual(
-  targetSetKey({
+  targetSetIdentity({
     mappingSubgroup: [3, 5, 7],
     oddLimit: 15,
     primeFilter: [3, 5, 7],
@@ -341,5 +320,5 @@ assert.notEqual(
   target
 );
 const divided = mappingContext({basis: presets.pajara7.basis, rows: presets.pajara7.rows});
-assert.equal(validateMappingContext(divided).rows[0][0], 2);
+assert.equal(divided.rows[0][0], 2);
 console.log('Harmonic DTO boundaries and dependency-specific keys passed.');

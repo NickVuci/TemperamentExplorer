@@ -3,7 +3,7 @@
 import {rational, div, bigintGcd} from '../core/rational.mjs';
 import {ratioMonzo} from '../core/ji-monzo.mjs';
 import {BoundedCache} from '../core/cache.mjs';
-export const CHORD_INPUT_BOUNDS = Object.freeze({characters: 300, tones: 8, integer: 1000000});
+const CHORD_INPUT_BOUNDS = Object.freeze({characters: 300, tones: 8, integer: 1000000});
 export const MAX_CHORD_TONES = CHORD_INPUT_BOUNDS.tones;
 export const compareExactRatios = (a, b) =>
   a[0] * b[1] < b[0] * a[1] ? -1 : a[0] * b[1] > b[0] * a[1] ? 1 : 0;
@@ -81,15 +81,4 @@ export function chordMonzos(identity, basis) {
         })
       )
   );
-}
-// Proportional subsets: test each possible common scale factor exactly.
-export function jiSubset(a, b) {
-  if (a.cardinality > b.cardinality) return false;
-  const A = a.canonicalRatios.map(exactRatio),
-    B = b.canonicalRatios.map(exactRatio),
-    set = new Set(B.map(key));
-  return B.some(root => {
-    const factor = div(root, A[0]);
-    return A.every(q => set.has(key(rational(q[0] * factor[0], q[1] * factor[1]))));
-  });
 }

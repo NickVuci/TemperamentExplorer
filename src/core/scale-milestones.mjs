@@ -10,7 +10,7 @@ export function scaleCoverageTarget(s, options = {}) {
   });
   return {limit: oddLimit, primeLimit};
 }
-export function scaleCoverageKey(s, options = {}) {
+function scaleCoverageKey(s, options = {}) {
   const {limit, primeLimit} = scaleCoverageTarget(s, options);
   return JSON.stringify([s.basis, s.rows, s.p, s.g, limit, primeLimit]);
 }

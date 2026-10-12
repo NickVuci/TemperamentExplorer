@@ -118,7 +118,7 @@ export function* searchCommas(config, chunk = 2048, cap = 20000) {
   }
   yield {batch, processed: c.total, total: c.total, count, status: 'complete'};
 }
-export function matrixRank(vectors) {
+function matrixRank(vectors) {
   const A = vectors.map(v => v.map(BigInt));
   if (!A.length) return 0;
   let row = 0;
