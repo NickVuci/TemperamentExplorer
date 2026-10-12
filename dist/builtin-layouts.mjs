@@ -178,7 +178,7 @@ const DATA={
 
 export const BUILTIN_LAYOUTS=Object.freeze(Object.entries(DATA).flatMap(([key,{context,layouts}])=>layouts.map(({kind,n,config})=>{
  const name=`${context.name} · ${KIND_NAMES[kind]}`;
- return Object.freeze({id:kind==='recommended'?`builtin:${key}`:`builtin:${key}:${kind}`,name,builtin:true,
+ return Object.freeze({id:kind==='recommended'?`builtin:${key}`:`builtin:${key}:${kind}`,name,kindName:KIND_NAMES[kind],builtin:true,
   state:Object.freeze({name,context:Object.freeze({...context,n,mode:0}),config:Object.freeze({...config,layerColors:{},keyColors:{},degreeColors:{}})})});
 })));
 

@@ -89,13 +89,38 @@ export function layoutCandidates(s,cfg){
  return options.sort((a,b)=>b.coverage-a.coverage||b.playable-a.playable||b.span-a.span).slice(0,8);
 }
 const uuid=()=>crypto.randomUUID().replaceAll('-','');
-export function exportHexboard(s,cfg,hz=220){
+// HexBoard menus show at most 19 ASCII characters, so names stored in the bundle are fitted to that
+// width; the export's title, description and details carry the full names.
+const MENU_WIDTH=19;
+const LAYOUT_FAMILIES={bosanquet:['Bosanquet','Bosanquet axes (L and L − s)'],compressed:['Compressed','Compressed axes (L + s and L)'],period:['Period-generator','Period and generator axes'],manual:['Custom axes','Custom musical axes']};
+const ascii=text=>String(text).normalize('NFKD').replace(/[̀-ͯ]/g,'').replace(/[·•–—−]/g,'-').replace(/[^\x20-\x7e]/g,'').replace(/\s+/g,' ').trim();
+// Cuts at a word break when that loses at most four more characters, else mid-word.
+const clip=(text,width)=>{if(text.length<=width)return text;const cut=text.slice(0,width+1).lastIndexOf(' ');return (cut>=width-4?text.slice(0,cut):text.slice(0,width)).replace(/[\s(.,;:-]+$/,'');};
+const slug=text=>ascii(text).replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'');
+const roundTo=(v,places)=>Number(v.toFixed(places));
+/** The bundle's 19-character tuning name: the temperament and scale size, such as Porcupine 7-lim[15].
+ *  A "(k-limit)" or subgroup qualifier is always shortened, and dropped when still too long, before
+ *  the name itself is cut. */
+export function tuningMenuName(name,n){
+ const suffix=`[${n}]`,width=MENU_WIDTH-suffix.length,full=ascii(name)||'Temperament',core=full.replace(/\s*\([^)]*\)/g,'').trim()||full;
+ const short=full.replace(/\((\d+)-limit\)/gi,'$1-lim').replace(/[()]/g,'').replace(/\s+/g,' ').trim();
+ return ([short,core].find(v=>v.length<=width)??clip(core,width))+suffix;
+}
+/** A layout with no saved or built-in name is named by its family and base MOS, such as "Bosanquet 7". */
+export const layoutGeometryName=cfg=>(LAYOUT_FAMILIES[cfg.style]??LAYOUT_FAMILIES.manual)[0]+(['bosanquet','compressed'].includes(cfg.style)?` ${cfg.base}`:'');
+// layout: the named layout the board shows, {name, source: 'Built-in' | 'Saved'}; omitted for a custom layout.
+export function exportHexboard(s,cfg,hz=220,layout={}){
  const board=buildBoard(s,cfg);if(board.wrapping?.overlaps.length)throw Error('Resolve overlapping period copies before exporting. Adjust the placement vector or choose Reset / Auto.');const colors=mosLayers(s,cfg,board),p=Math.fround(s.p);if(!(hz>0&&Number.isFinite(hz)))throw Error('Choose a positive reference frequency.');
  const pcs=[0,...board.target.notes.map(t=>t.c),...board.keys.filter(k=>k.enabled).map(k=>k.pc)].sort((a,b)=>a-b),unique=[];
  for(const c of pcs)if(!unique.length||Math.abs(c-unique.at(-1))>1e-7)unique.push(c);
  const table=[...unique.slice(1),s.p].map(Math.fround);if(table.some((v,i)=>!(v>0)||i&&v<=table[i-1])||unique.length>1024)throw Error('These pitches cannot be distinguished by the HexBoard cents-table format. Choose a tuning with more separated pitches.');
  const N=unique.length,degreeOf=c=>{let best=0;unique.forEach((v,i)=>{if(Math.abs(v-c)<Math.abs(unique[best]-c))best=i;});return best;};
- const bundleId=uuid(),layoutId=uuid(),allId=uuid(),mosId=uuid(),baseId=uuid(),name=`${s.name}[${s.n}]`.slice(0,19);
+ const bundleId=uuid(),layoutId=uuid(),allId=uuid(),mosId=uuid(),baseId=uuid(),name=tuningMenuName(s.name,s.n);
+ const named=typeof layout.name==='string'&&layout.name.trim(),layoutName=named?layout.name.trim():layoutGeometryName(cfg),source=named?layout.source||'Saved':'Custom';
+ const family=(LAYOUT_FAMILIES[cfg.style]??LAYOUT_FAMILIES.manual)[1],usesBase=['bosanquet','compressed'].includes(cfg.style),modeText=s.mode?` mode ${s.mode+1}`:'';
+ const title=`${s.name}[${s.n}]${modeText} · ${layoutName}`,tuningText=typeof s.tuning==='string'&&s.tuning?` ${s.tuning}`:'';
+ const description=`${s.name}, ${s.n}-note ${board.target.signature} scale, mode ${s.mode+1}; ${source.toLowerCase()} layout “${layoutName}”, ${family}${usesBase?` on the ${cfg.base}-note ${board.base.signature} base`:''}; ${s.basis.join('.')}${tuningText} tuning, period ${roundTo(s.p,3)}¢, generator ${roundTo(s.g,3)}¢, reference ${roundTo(hz,2)} Hz`;
+ const fileName=`${[slug(s.name)||'Temperament',`${s.n}-notes`,modeText&&`mode-${s.mode+1}`,clip(slug(layoutName),48)].filter(Boolean).join('-')}-HexBoard.json`;
  let maxError=0;
  const overrides=board.keys.map(k=>{
   if(k.command)return {buttonIndex:k.index,role:'command'};
@@ -103,6 +128,11 @@ export function exportHexboard(s,cfg,hz=220){
   if(k.enabled){if(Math.abs(step)>32767)throw Error('The layout exceeds HexBoard’s pitch-index range. Reduce the axes or register.');maxError=Math.max(maxError,Math.abs(k.c-actual));}
   return {buttonIndex:k.index,role:k.enabled?'note':'unused',stepsFromC:k.enabled?step:0,...hexToHSV(keyColor(k,colors)),...(!k.enabled?{value:0}:{})};
  });
- const tuningBundle={objectIdHex:bundleId,folderPath:'/Temperament Lab',tuning:{kind:'scala',name,description:`${s.name}; P=${s.p}; G=${s.g}; base ${cfg.base}; ${cfg.style}`,cents:table,periodCents:p,cycleLength:N,referenceDegree:0,defaultKeyDegree:0,referenceMidiNote:Math.max(0,Math.min(127,Math.round(69+12*Math.log2(hz/440)))),referenceHz:Math.fround(hz),keyLabels:unique.map(c=>{const i=board.target.notes.findIndex(t=>Math.abs(t.c-c)<1e-7);return i>=0?String(i):'+';})},palette:{defaultColorMode:1,degreeColors:[]},layouts:[{objectIdHex:layoutId,name:`${cfg.base} ${cfg.style}`.slice(0,19),centerButton:cfg.center,centerStepsFromC:0,acrossSteps:0,upRightSteps:0,deviceRotationSteps:cfg.deviceRotation||0,layoutRotationSteps:0,mirrorLeftRight:false,mirrorUpDown:false,buttonOverrides:overrides,offGridOverrides:[],chordActions:[]}],activeLayoutIdHex:layoutId,scales:[{objectIdHex:allId,name:'All Notes',includedDegrees:unique.map((_,i)=>i)},{objectIdHex:mosId,name:`Target ${s.n}`,includedDegrees:board.target.notes.map(t=>degreeOf(t.c)).sort((a,b)=>a-b)},{objectIdHex:baseId,name:`Base ${cfg.base}${board.baseNotes.some(t=>Math.abs(t.c)<1e-7)?'':' + root'}`,includedDegrees:[...new Set([0,...board.baseNotes.map(t=>degreeOf(t.c))])].sort((a,b)=>a-b)}],activeScaleIdHex:cfg.outside?allId:mosId};
- return {file:{format:'hexboard.tuningBundle.v2',tuningBundle,temperamentLab:{version:1,state:structuredClone(s),layout:structuredClone(cfg),coordinates:board.keys.filter(k=>!k.command).map(k=>({button:k.index,m:k.m,...(k.wrapped&&k.enabled?{baseM:k.baseM,copyRegister:k.copyRegister,copyPeriods:k.copyPeriods,extensionRegister:k.extensionRegister,register:k.register}:{} )})),missingDegrees:board.missing,maxCentsRoundingError:maxError}},maxError,board};
+ const tuningBundle={objectIdHex:bundleId,folderPath:'/Temperament Lab',tuning:{kind:'scala',name,description,cents:table,periodCents:p,cycleLength:N,referenceDegree:0,defaultKeyDegree:0,referenceMidiNote:Math.max(0,Math.min(127,Math.round(69+12*Math.log2(hz/440)))),referenceHz:Math.fround(hz),keyLabels:unique.map(c=>{const i=board.target.notes.findIndex(t=>Math.abs(t.c-c)<1e-7);return i>=0?String(i):'+';})},palette:{defaultColorMode:1,degreeColors:[]},layouts:[{objectIdHex:layoutId,name:clip(ascii(layoutName),MENU_WIDTH)||'Layout',centerButton:cfg.center,centerStepsFromC:0,acrossSteps:0,upRightSteps:0,deviceRotationSteps:cfg.deviceRotation||0,layoutRotationSteps:0,mirrorLeftRight:false,mirrorUpDown:false,buttonOverrides:overrides,offGridOverrides:[],chordActions:[]}],activeLayoutIdHex:layoutId,scales:[{objectIdHex:allId,name:'All Notes',includedDegrees:unique.map((_,i)=>i)},{objectIdHex:mosId,name:`Target ${s.n} mode ${s.mode+1}`,includedDegrees:board.target.notes.map(t=>degreeOf(t.c)).sort((a,b)=>a-b)},{objectIdHex:baseId,name:`Base ${cfg.base}${board.baseNotes.some(t=>Math.abs(t.c)<1e-7)?'':' + root'}`,includedDegrees:[...new Set([0,...board.baseNotes.map(t=>degreeOf(t.c))])].sort((a,b)=>a-b)}],activeScaleIdHex:cfg.outside?allId:mosId};
+ // title and details summarize the export for people reading the file; HexBoard's importer ignores them.
+ const details={temperament:s.name,subgroup:s.basis.join('.'),...(tuningText?{tuning:s.tuning}:{}),periodCents:roundTo(s.p,4),generatorCents:roundTo(s.g,4),referenceHz:roundTo(hz,2),
+  scale:{notes:s.n,mode:s.mode+1,steps:board.target.signature},
+  layout:{name:layoutName,source,family,...(usesBase?{baseNotes:cfg.base,baseSteps:board.base.signature}:{}),tonicButton:cfg.center,boardOrientationDegrees:(cfg.deviceRotation||0)*90,periodWrapping:!!cfg.periodWrapping,notesOutsideScale:!!cfg.outside&&!cfg.periodWrapping},
+  board:{playableButtons:board.playable,scaleDegreesOnBoard:`${board.coverage}/${s.n}`,pitchesPerPeriod:N,maxRoundingErrorCents:roundTo(maxError,6)}};
+ return {fileName,title,file:{format:'hexboard.tuningBundle.v2',title,details,tuningBundle,temperamentLab:{version:1,state:structuredClone(s),layout:structuredClone(cfg),coordinates:board.keys.filter(k=>!k.command).map(k=>({button:k.index,m:k.m,...(k.wrapped&&k.enabled?{baseM:k.baseM,copyRegister:k.copyRegister,copyPeriods:k.copyPeriods,extensionRegister:k.extensionRegister,register:k.register}:{} )})),missingDegrees:board.missing,maxCentsRoundingError:maxError}},maxError,board};
 }

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {baseOptions,baseSteps,buildBoard,boardMatches,exportHexboard,layoutCandidates,commands,cents,det,fillBoard} from '../dist/hexboard.mjs';
+import {baseOptions,baseSteps,buildBoard,boardMatches,exportHexboard,layoutCandidates,commands,cents,det,fillBoard,tuningMenuName} from '../dist/hexboard.mjs';
 import {fromCommas,edoTune} from '../dist/tuning.mjs';
 import {makeState,scale} from '../dist/engine.mjs';
 import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
@@ -43,16 +43,27 @@ for(const initial of [meantone,makeState('dreamtone'),edo])for(const rotation of
 const matches=boardMatches(meantone,seven,65);assert.equal(matches.length,140);const fiveLimitMatches=boardMatches(meantone,seven,65,10,5),threePrimeMatches=boardMatches(meantone,seven,65,10,5,3);assert.ok(fiveLimitMatches.flatMap(m=>[...m.mapped,...m.hits]).some(t=>t.label==='5/4'));assert.ok(!threePrimeMatches.flatMap(m=>[...m.mapped,...m.hits]).some(t=>t.label==='5/4'));
 assert.ok(layoutCandidates(meantone,cfg).length);
 assert.throws(()=>buildBoard(meantone,{...cfg,style:'manual',ap:2,ag:0,bp:0,bg:1}),/determinant/);
-let downloaded=null,states=[meantone];
-const ui=createHexboardWorkspace({getStates:()=>states,play:()=>{},refresh:()=>{},notify:()=>{},download:(name,text)=>downloaded=JSON.parse(text),getHz:()=>220});
+let downloaded=null,downloadName='',states=[meantone];
+const ui=createHexboardWorkspace({getStates:()=>states,play:()=>{},refresh:()=>{},notify:()=>{},download:(name,text)=>{downloadName=name;downloaded=JSON.parse(text);},getHz:()=>220});
 const initialMarkup=ui.render();const rowStart=initialMarkup.indexOf('<div class="hex-controls hex-primary-controls hex-top-controls">'),layoutStart=initialMarkup.indexOf('<details class="layout-settings"');assert.ok(rowStart>layoutStart&&layoutStart>=0,'Instrument and layout selectors share one primary control row.');const primaryRow=initialMarkup.slice(rowStart,initialMarkup.indexOf('hex-period-controls',rowStart));assert.match(primaryRow,/<label class="hex-instrument-control"><span>Instrument<\/span><select data-instrument>/);for(const field of ['target','mode','base','offset','rotation','deviceRotation'])assert.ok(primaryRow.includes(`data-hex-field="${field}"`),`Primary ${field} control stays in the instrument row.`);for(const field of ['flipHorizontal','flipVertical'])assert.match(primaryRow,new RegExp(`data-hex-toggle="${field}" aria-pressed="false"`),`${field} is an accessible toggle button.`);assert.doesNotMatch(primaryRow,/data-hex-field="flip(?:Horizontal|Vertical)"/,'Axis flips are not checkbox controls.');assert.ok(initialMarkup.indexOf('<summary>Advanced Layout Options</summary>')<rowStart);for(const [value,name] of [['hexboard','HexBoard'],['lumatone','Lumatone'],['linnstrument','LinnStrument'],['miso','Miso'],['axis','Axis']])assert.match(initialMarkup,new RegExp(`<option value="${value}"${value==='hexboard'?' selected':' disabled'}>${name}${value==='hexboard'?'':' \\(Coming soon\\)'}</option>`));
 assert.match(ui.render(),/<details class="layout-settings" ><summary>Advanced Layout Options<\/summary>/,'Advanced Layout Options start collapsed by default.');assert.equal(ui.serialize().configs[0].periodWrapping,true,'period wrapping starts on by default.');ui.change({dataset:{hexField:'base'},type:'select-one',value:'5'});assert.equal(ui.serialize().configs[0].base,5);
 const savedDocument=globalThis.document;globalThis.document={querySelector:q=>q.includes('.layout-settings')?{open:false}:null};
 assert.match(ui.render(),/<details class="layout-settings" ><summary>Advanced Layout Options<\/summary>/,'Collapsed layout options stay collapsed through a render.');globalThis.document=savedDocument;
-ui.click({closest:()=>({dataset:{hexAction:'export'}})});assert.equal(downloaded.format,'hexboard.tuningBundle.v2');
+ui.click({closest:()=>({dataset:{hexAction:'export'}})});assert.equal(downloaded.format,'hexboard.tuningBundle.v2');assert.equal(downloaded.details.layout.source,'Custom');assert.equal(downloadName,`Meantone-${states[0].n}-notes-Bosanquet-5-HexBoard.json`);assert.equal(downloaded.title,`Meantone[${states[0].n}] · Bosanquet 5`);
 const saved=JSON.parse(JSON.stringify(ui.serialize()));ui.restore(saved);assert.equal(ui.serialize().configs[0].base,5);
 const legacyPanel={...saved,panel:1,configs:[saved.configs[0],{...saved.configs[0],base:5}]};ui.restore(legacyPanel);assert.equal(ui.serialize().configs.length,1);assert.equal(ui.serialize().configs[0].base,saved.configs[0].base);assert.equal(Object.hasOwn(ui.serialize(),'panel'),false);ui.restore(saved);
 assert.throws(()=>ui.restore({...saved,configs:[{...saved.configs[0],center:0},saved.configs[1]]}),/Invalid/);
 ui.change({dataset:{hexField:'periodWrapping'},value:'off'});ui.click({closest:()=>({dataset:{hexAction:'fill'}})});assert.ok(states[0].n>48);assert.equal(buildBoard(states[0],ui.serialize().configs[0]).playable,133);
 ui.change({dataset:{hexField:'base'},type:'select-one',value:'50'});const larger=ui.serialize();ui.restore(larger);assert.equal(ui.serialize().configs[0].base,50);
-console.log('HexBoard MOS construction, isomorphism, subsets, EDO aliases, export pitches, sessions and controls passed'+(compat?' including the actual HexBoard importer/encoder.':'.'));
+for(const [name,n,menu] of [['Meantone',7,'Meantone[7]'],['Porcupine (7-limit)',15,'Porcupine 7-lim[15]'],['Magic (5-limit)',13,'Magic 5-lim[13]'],['Porcupine (11-limit)',15,'Porcupine[15]'],['Rastmic (2.3.11)',7,'Rastmic 2.3.11[7]'],['Septimal meantone',12,'Septimal meanto[12]'],['Würschmidt (5-limit)',19,'Wurschmidt[19]']])assert.equal(tuningMenuName(name,n),menu);
+{const s={...makeState('septimal'),n:19,mode:2},c={...cfg,outside:true},custom=exportHexboard(s,c,261.63),named=exportHexboard(s,c,220,{name:'Würschmidt · my long jazz layout',source:'Saved'});
+ assert.equal(custom.fileName,'Septimal-meantone-19-notes-mode-3-Bosanquet-7-HexBoard.json');assert.equal(custom.title,'Septimal meantone[19] mode 3 · Bosanquet 7');
+ assert.deepEqual(Object.keys(custom.file),['format','title','details','tuningBundle','temperamentLab']);
+ assert.deepEqual(custom.file.details.layout,{name:'Bosanquet 7',source:'Custom',family:'Bosanquet axes (L and L − s)',baseNotes:7,baseSteps:'5L 2s',tonicButton:65,boardOrientationDegrees:90,periodWrapping:false,notesOutsideScale:true});
+ assert.deepEqual(custom.file.details.scale,{notes:19,mode:3,steps:'12L 7s'});assert.equal(custom.file.details.subgroup,'2.3.5.7');assert.equal(custom.file.details.referenceHz,261.63);
+ assert.match(custom.file.tuningBundle.tuning.description,/^Septimal meantone, 19-note 12L 7s scale, mode 3; custom layout “Bosanquet 7”, .* 2\.3\.5\.7 Published CWE tuning, period 1200¢, generator 696\.656¢, reference 261\.63 Hz$/);
+ assert.equal(named.file.tuningBundle.layouts[0].name,'Wurschmidt - my');assert.equal(named.file.details.layout.name,'Würschmidt · my long jazz layout');assert.equal(named.file.details.layout.source,'Saved');
+ assert.equal(named.fileName,'Septimal-meantone-19-notes-mode-3-Wurschmidt-my-long-jazz-layout-HexBoard.json');
+ for(const out of [custom,named])for(const text of [out.file.tuningBundle.tuning.name,out.file.tuningBundle.layouts[0].name,...out.file.tuningBundle.scales.map(v=>v.name)])assert.ok(text.length<=19&&/^[ -~]+$/.test(text),text);
+}
+console.log('HexBoard MOS construction, isomorphism, subsets, EDO aliases, export pitches and names, sessions and controls passed'+(compat?' including the actual HexBoard importer/encoder.':'.'));

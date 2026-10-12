@@ -34,7 +34,9 @@ for (const original of states) {
     }
     const cfg = {base:2, style:'period', center:65, rotation:0, offset:0, register:0, outside:false};
     const board = buildBoard(s, cfg), exported = exportHexboard(s, cfg).file;
-    boards.push([board, exported.tuningBundle.tuning, exported.tuningBundle.layouts[0].buttonOverrides]);
+    // Display names are presentation, not exported pitch data; tests/hexboard.mjs covers them.
+    const {name, description, ...tuning} = exported.tuningBundle.tuning;
+    boards.push([board, tuning, exported.tuningBundle.layouts[0].buttonOverrides]);
   }
   chords.push(discoverScaleChords(original,3,13,10,false));
 }
@@ -43,7 +45,7 @@ const expected = {
   scales:'f237641d57a3c32fd0ac4906e0ef48606fd4ca97da46b85c073c30da7aad4944',
   matches:'4073cd55a1fd8ec265a68f893b901342878d8dc7c332a1fdb374086d33899105',
   approximations:'fc19b27261785c31b11e67e15eb3914400c60719baff518ce8c67038158ab964',
-  boards:'3ad3401de409b34b541c6e79691993c0b8d87b7ae62c61596ff69fa0df800a82',
+  boards:'c2103e7113ac0c3044f0282316ffaa8a53a9cd1df6d2dc14f1759cbe804daf5d',
   chords:'34bebe589f6830d0d6b970ae7c82068b8d338039721a3503d522a60ac40d4098'
 };
 assert.deepEqual(actual,expected);
