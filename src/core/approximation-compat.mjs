@@ -1,5 +1,5 @@
-import {mapRatio, mod} from './engine.mjs';
-import {sameCoordinate as same, noteCoordinate} from './pitch.mjs';
+import {mapRatio} from './engine.mjs';
+import {sameCoordinate as same, noteCoordinate, mod} from './pitch.mjs';
 import {matrixScale} from './matrix.mjs';
 import {immutable} from './cache.mjs';
 import {rankApproximationCoordinates} from '../harmonic/harmonic-approximations.mjs';

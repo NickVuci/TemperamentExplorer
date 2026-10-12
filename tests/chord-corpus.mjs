@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
 import {analyzeChord} from '../src/chords/chord-analysis.mjs';
 const fixture = JSON.parse(

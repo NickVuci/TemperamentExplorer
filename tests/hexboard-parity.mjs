@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {buildBoard} from '../src/hexboard/hexboard.mjs';
 import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
 

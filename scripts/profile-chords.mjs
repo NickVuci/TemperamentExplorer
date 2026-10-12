@@ -1,6 +1,6 @@
 import {performance} from 'node:perf_hooks';
 import {cpus} from 'node:os';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {chordIdentity} from '../src/chords/chord-identity.mjs';
 import {projectChord} from '../src/chords/chord-projection.mjs';
 import {searchOccurrences} from '../src/chords/chord-occurrence.mjs';

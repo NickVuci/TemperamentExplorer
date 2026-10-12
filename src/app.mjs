@@ -1,8 +1,8 @@
-import {parsePrimeFilterInput} from './core/ji-limit-engine.mjs';
+import {parsePrimeFilterInput, DEFAULT_ODD_LIMIT, formatPrimeFilter, primeFilterForBasis, validateJILimits, ratioWithinJILimits} from './core/ji-limit-engine.mjs';
 import {createDiamondWorkspace} from './diamond/diamond-workspace.mjs';
 import {fitDiamondChord} from './diamond/diamond-layout.mjs';
 import {diamondFocus,matrixFocusDegrees,relativeRatios} from './harmonic/harmonic-focus.mjs';
-import {noteCoordinate} from './core/pitch.mjs';
+import {noteCoordinate, octavePeriods, sameCoordinate as same, purePeriod, periodDescription} from './core/pitch.mjs';
 import {equivalencePolicy,quotientCoordinate} from './harmonic/harmonic-equivalence.mjs';
 import {createHarmonicCatalogueWorkspace} from './harmonic/harmonic-catalogue-ui.mjs';
 import {syncUnifiedPanelHeights,renderUnified,unifiedDirectory,unifiedDetail,unifiedCenterView,normalizeUnifiedCenter} from './ui/discover-unified.mjs';
@@ -28,13 +28,14 @@ import {createPresetWorkspace} from './presets/preset-ui.mjs';
 import {browserPresetStore} from './presets/preset-store.mjs';
 import {validateState as validate} from './core/state.mjs';
 import {createHexboardWorkspace} from './hexboard/hexboard-ui.mjs';
-import {octavePeriods,matrixScale,matrixInterval,matrixWindow} from './core/matrix.mjs';
+import {matrixScale, matrixInterval, matrixWindow} from './core/matrix.mjs';
 import {createCommaWorkspace} from './ui/comma-ui.mjs';
 import {createChordWorkspace} from './ui/chord-ui.mjs';
-import {target,assignment,checkAssignments,same,coordinate} from './core/assignments.mjs';
+import {target, assignment, checkAssignments, coordinate} from './core/assignments.mjs';
 import {candidates,nearestReport} from './core/approximation-compat.mjs';
 import {supportingEdos} from './core/tuning.mjs';
-import {presets,makeState,scale,scaleChoices,mapRatio,targets,classifyTargets,createTargetClassifier,purePeriod,periodDescription,DEFAULT_ODD_LIMIT,formatPrimeFilter,primeFilterForBasis,validateJILimits,ratioWithinJILimits} from './core/engine.mjs';
+import {scale, scaleChoices, mapRatio, targets, classifyTargets, createTargetClassifier} from './core/engine.mjs';
+import {presets, makeState} from './core/catalog.mjs';
 import {findScaleMilestones,scaleDefaultKey,scaleMilestoneMarkers,modeMilestoneMarker,formatModeRanges} from './core/scale-milestones.mjs';
 const $=q=>document.querySelector(q);
 function populateLimitOptions(basisLimit,primeBasisFilter){
@@ -270,9 +271,6 @@ function fillDiamondDetails(){
  if(readout){readout.innerHTML=diamondChordDetails(chord);readout.hidden=!chord;}
  el.hidden=active.length===0;
 }
-
-
-
 
 function syncNavigation(){
  const section=sectionFor(view);lastViews[section]=view;

@@ -8,7 +8,7 @@ import {
 import {createHexboardPlayer} from '../src/hexboard/hexboard-player.mjs';
 import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
 import {buildBoard} from '../src/hexboard/hexboard.mjs';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
 
 const tick = () => new Promise(resolve => setImmediate(resolve));

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {makeState, mapRatio} from '../src/core/engine.mjs';
+import {mapRatio} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {queryCatalogue} from '../src/harmonic/harmonic-catalogue.mjs';
 import {buildDyadIndex} from '../src/harmonic/harmonic-dyad-graph.mjs';
 import {targetSet} from '../src/core/ji-limit-engine.mjs';

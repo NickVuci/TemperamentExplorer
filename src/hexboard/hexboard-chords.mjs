@@ -1,5 +1,5 @@
-import {DEFAULT_ODD_LIMIT, scale} from '../core/engine.mjs';
-import {validateJILimits} from '../core/ji-limit-engine.mjs';
+import {scale} from '../core/engine.mjs';
+import {validateJILimits, DEFAULT_ODD_LIMIT} from '../core/ji-limit-engine.mjs';
 import {
   enumerateCoordinateChords,
   createCoordinateInspector

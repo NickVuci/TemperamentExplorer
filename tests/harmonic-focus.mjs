@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {makeState, mapRatio} from '../src/core/engine.mjs';
+import {mapRatio} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {diamondLayout} from '../src/diamond/diamond-layout.mjs';
 import {diamondApproximation} from '../src/diamond/tonality-diamond.mjs';
 import {diamondFocus, matrixFocusDegrees, relativeRatios} from '../src/harmonic/harmonic-focus.mjs';

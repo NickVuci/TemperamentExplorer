@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
+import {targets} from '../src/core/engine.mjs';
+import {makeState, presets} from '../src/core/catalog.mjs';
 import {
-  makeState,
-  presets,
+  parsePrimeFilterInput,
+  targetSet,
   primeFilterForBasis,
-  targets,
   validateJILimits
-} from '../src/core/engine.mjs';
-import {parsePrimeFilterInput, targetSet} from '../src/core/ji-limit-engine.mjs';
+} from '../src/core/ji-limit-engine.mjs';
 import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
 import {createHarmonicCatalogueWorkspace} from '../src/harmonic/harmonic-catalogue-ui.mjs';
 import {

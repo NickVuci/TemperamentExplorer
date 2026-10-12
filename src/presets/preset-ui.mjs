@@ -1,7 +1,7 @@
 import {withDefaultScale} from '../core/default-scale.mjs';
 import {presetSnapshot, createPresetId} from './preset-data.mjs';
 import {browserPresetStore} from './preset-store.mjs';
-import {presets, makeState} from '../core/engine.mjs';
+import {presets, makeState} from '../core/catalog.mjs';
 import {temperamentFromInput} from '../core/temperament-input.mjs';
 import {esc} from '../ui/ui.mjs';
 const commaText = s => (s.commas === 'custom mapping' ? '' : s.commas || '');

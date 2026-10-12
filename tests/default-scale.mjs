@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {presets, makeState, scale, mapRatio, targets, generatedSizes} from '../src/core/engine.mjs';
+import {scale, mapRatio, targets, generatedSizes} from '../src/core/engine.mjs';
+import {presets, makeState} from '../src/core/catalog.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
 import {defaultScale, withDefaultScale} from '../src/core/default-scale.mjs';
 import {findScaleMilestones, scaleCoverageTarget} from '../src/core/scale-milestones.mjs';

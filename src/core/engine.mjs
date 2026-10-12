@@ -1,4 +1,3 @@
-export {presets, makeState, publishedTuning} from './catalog.mjs';
 import {mapMonzo as mapBasisMonzo, ratioMonzo} from './ji-monzo.mjs';
 import {mod, noteCoordinate} from './pitch.mjs';
 import {BoundedCache, immutable} from './cache.mjs';
@@ -8,46 +7,7 @@ import {
   mappedIntervalsFromTargets,
   signedIntervalError
 } from '../harmonic/harmonic-intervals.mjs';
-import {
-  DEFAULT_ODD_LIMIT,
-  MANUAL_PRIME_LIMIT_VALUES,
-  ODD_LIMIT_VALUES,
-  PRIME_LIMIT_VALUES,
-  diamondTargets,
-  formatPrimeFilter,
-  primeFilterForBasis,
-  primeLimitForBasis,
-  ratioWithinJILimits,
-  targetId,
-  targetSet,
-  targetSetIdentity,
-  targetsForLimits,
-  validateJILimits
-} from './ji-limit-engine.mjs';
-export {
-  mod,
-  gcd,
-  purePeriod,
-  periodUnits,
-  referenceCents,
-  periodDescription,
-  leastSquares
-} from './pitch.mjs';
-export {
-  DEFAULT_ODD_LIMIT,
-  MANUAL_PRIME_LIMIT_VALUES,
-  ODD_LIMIT_VALUES,
-  PRIME_LIMIT_VALUES,
-  diamondTargets,
-  formatPrimeFilter,
-  primeFilterForBasis,
-  primeLimitForBasis,
-  ratioWithinJILimits,
-  targetId,
-  targetSet,
-  targetSetIdentity,
-  validateJILimits
-};
+import {DEFAULT_ODD_LIMIT, targetsForLimits} from './ji-limit-engine.mjs';
 const notesCache = new BoundedCache(512);
 export function scale(s, n = s.n) {
   return notesCache.get(JSON.stringify([s.p, s.g, n, mod(s.mode, n)]), () =>

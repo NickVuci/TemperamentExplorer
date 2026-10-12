@@ -5,7 +5,7 @@ import {withDefaultScale} from '../src/core/default-scale.mjs';
 import {normalizeUnifiedCenter} from '../src/ui/discover-unified.mjs';
 import {normalizeScaleView} from '../src/ui/scale-view.mjs';
 import {scaleDefaultKey, scaleCoverageTarget} from '../src/core/scale-milestones.mjs';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {validateState} from '../src/core/state.mjs';
 import {createMaterialWorkspace, tuningIdentity} from '../src/ui/material-ui.mjs';
 import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';

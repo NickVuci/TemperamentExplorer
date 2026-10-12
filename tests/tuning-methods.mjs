@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
-import {makeState, purePeriod, mapRatio} from '../src/core/engine.mjs';
+import {mapRatio} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
+import {purePeriod} from '../src/core/pitch.mjs';
 import {
   tuningMethods,
   tuningMethod,
   tuningConfig,
   applyTuningMethod
 } from '../src/core/tuning-methods.mjs';
-import {weilTune, fromCommas} from '../src/core/tuning.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
+import {weilTune} from '../src/core/weil-tuning.mjs';
 import {presetSnapshot} from '../src/presets/preset-data.mjs';
 import {canonicalHarmonicJSON} from '../src/harmonic/harmonic-types.mjs';
 import {validateState} from '../src/core/state.mjs';

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {buildBoard, commands} from '../src/hexboard/hexboard.mjs';
 import {mosLayers, keyColor} from '../src/hexboard/hexboard-colors.mjs';
 

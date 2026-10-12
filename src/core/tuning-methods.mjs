@@ -1,5 +1,7 @@
-import {purePeriod, mapRatio} from './engine.mjs';
-import {weilTune, optimize, tuneTargets, pureTune, supportingEdos, edoTune} from './tuning.mjs';
+import {mapRatio} from './engine.mjs';
+import {purePeriod} from './pitch.mjs';
+import {optimize, tuneTargets, pureTune, supportingEdos, edoTune} from './tuning.mjs';
+import {weilTune} from './weil-tuning.mjs';
 import {target, assignment} from './assignments.mjs';
 import {candidates} from './approximation-compat.mjs';
 import {validateState} from './state.mjs';

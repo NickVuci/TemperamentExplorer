@@ -1,7 +1,6 @@
-import {mapRatio, gcd} from './engine.mjs';
+import {mapRatio} from './engine.mjs';
 import {ratios} from './tuning.mjs';
-import {sameCoordinate as same} from './pitch.mjs';
-export {sameCoordinate as same} from './pitch.mjs';
+import {sameCoordinate as same, gcd} from './pitch.mjs';
 export const coordinate = m => `${m[0]} periods + ${m[1]} generators`;
 export function target(text) {
   const list = ratios(text);

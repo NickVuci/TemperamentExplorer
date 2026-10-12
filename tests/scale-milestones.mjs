@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {makeState, generatedSizes, mapRatio, targets} from '../src/core/engine.mjs';
+import {generatedSizes, mapRatio, targets} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
 import {mod} from '../src/core/pitch.mjs';
 import {scale} from '../src/core/engine.mjs';

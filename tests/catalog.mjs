@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
-import {presets, makeState, mapRatio, scale} from '../src/core/engine.mjs';
-import {ratios, fromCommas, weilTune} from '../src/core/tuning.mjs';
+import {mapRatio, scale} from '../src/core/engine.mjs';
+import {presets, makeState} from '../src/core/catalog.mjs';
+import {ratios, fromCommas} from '../src/core/tuning.mjs';
+import {weilTune} from '../src/core/weil-tuning.mjs';
 import {validateState} from '../src/core/state.mjs';
 import {presetSnapshot} from '../src/presets/preset-data.mjs';
 assert.equal(Object.keys(presets).length, 47);

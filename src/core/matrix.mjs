@@ -1,7 +1,6 @@
-import {scale, mod} from './engine.mjs';
+import {scale} from './engine.mjs';
 
-import {octavePeriods} from './pitch.mjs';
-export {octavePeriods} from './pitch.mjs';
+import {octavePeriods, mod} from './pitch.mjs';
 export function matrixScale(s) {
   const periods = s.matrixOctave === true ? octavePeriods(s) : 1;
   const base = scale(s).notes;

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import {makeState, mapRatio, scale, targets, classifyTargets, mod} from '../src/core/engine.mjs';
+import {mapRatio, scale, targets, classifyTargets} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
-import {noteCoordinate, approximationSpan} from '../src/core/pitch.mjs';
+import {noteCoordinate, approximationSpan, mod} from '../src/core/pitch.mjs';
 import {
   inspectCoordinateChord,
   enumerateCoordinateChords,

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {makeState, mapRatio} from '../src/core/engine.mjs';
+import {mapRatio} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
 import {coordinateCents} from '../src/core/pitch.mjs';
 import {

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {makeState, scale} from '../src/core/engine.mjs';
+import {scale} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {BUILTIN_LAYOUTS} from '../src/hexboard/builtin-layouts.mjs';
 import {buildBoard} from '../src/hexboard/hexboard.mjs';
 import {noteCoordinate} from '../src/core/pitch.mjs';

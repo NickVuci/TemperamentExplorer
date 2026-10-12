@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {physicalKey, buildBoard} from '../src/hexboard/hexboard.mjs';
 import {chordIdentity} from '../src/chords/chord-identity.mjs';
 import {projectChord} from '../src/chords/chord-projection.mjs';

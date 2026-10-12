@@ -2,7 +2,7 @@
 // HexBoard player (hold, release, physical presses) exactly as Play's do.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {buildBoard} from '../src/hexboard/hexboard.mjs';
 import {fingeringPattern, fingeringMap} from '../src/hexboard/hexboard-view.mjs';
 import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';

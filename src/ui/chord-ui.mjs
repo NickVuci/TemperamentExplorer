@@ -1,10 +1,10 @@
 import {esc, option} from './ui.mjs';
 import {chordCoordinates} from '../hexboard/hexboard-chords.mjs';
-import {DEFAULT_ODD_LIMIT, MAX_SCALE_SIZE} from '../core/engine.mjs';
+import {MAX_SCALE_SIZE} from '../core/engine.mjs';
 import {scale} from '../core/engine.mjs';
 import {MAX_CHORD_TONES} from '../chords/chord-identity.mjs';
 import {noteCoordinate} from '../core/pitch.mjs';
-import {validateJILimits} from '../core/ji-limit-engine.mjs';
+import {validateJILimits, DEFAULT_ODD_LIMIT} from '../core/ji-limit-engine.mjs';
 import {
   createCoordinateInspector,
   inspectCoordinateChord,

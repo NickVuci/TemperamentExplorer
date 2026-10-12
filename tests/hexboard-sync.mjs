@@ -8,7 +8,7 @@ import {
 } from '../src/hexboard/hexboard-sync.mjs';
 import {hexToLed, BUTTON_COUNT} from '../src/hexboard/hexboard-protocol.mjs';
 import {buildBoard} from '../src/hexboard/hexboard.mjs';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
 import {mosLayers, keyColor} from '../src/hexboard/hexboard-colors.mjs';
 

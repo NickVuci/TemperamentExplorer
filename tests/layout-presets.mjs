@@ -1,6 +1,6 @@
 import {createPresetId} from '../src/presets/preset-data.mjs';
 import assert from 'node:assert/strict';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
 import {
   layoutPresetSnapshot,

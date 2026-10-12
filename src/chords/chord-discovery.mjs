@@ -2,11 +2,6 @@ import {exactRatio} from './chord-identity.mjs';
 import {ratioWithinJILimits} from '../core/ji-limit-engine.mjs';
 import {legacyJIChordCandidates} from '../harmonic/harmonic-ji-chords.mjs';
 // Transitional public entry for board-independent catalogue consumers.
-export {
-  queryCatalogue,
-  getHarmonicEntry,
-  resolveSelection
-} from '../harmonic/harmonic-catalogue.mjs';
 let legacyCandidates;
 export function chordCandidates() {
   if (legacyCandidates) return legacyCandidates;

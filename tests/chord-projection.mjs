@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {chordIdentity as id} from '../src/chords/chord-identity.mjs';
 import {projectChord, projectCoordinateShape} from '../src/chords/chord-projection.mjs';
-import {makeState, mapRatio} from '../src/core/engine.mjs';
+import {mapRatio} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
 const s = makeState('meantone'),
   a = projectChord(s, id('4:5:6'), {tolerance: 0});

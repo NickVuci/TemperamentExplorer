@@ -4,13 +4,14 @@ import {diamondLayout} from '../src/diamond/diamond-layout.mjs';
 import {
   diamondRatios,
   renderDiamond,
-  errorColor,
   diamondApproximation,
   maximumDiamondError,
   normalizeDiamondScope,
   renderDiamondTolerance
 } from '../src/diamond/tonality-diamond.mjs';
-import {makeState, primeFilterForBasis} from '../src/core/engine.mjs';
+import {errorColor} from '../src/core/ji-error-color.mjs';
+import {primeFilterForBasis} from '../src/core/ji-limit-engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
 import {bestApproximations, bestModeApproximations} from '../src/core/approximation-compat.mjs';
 const ratios = diamondRatios(5);

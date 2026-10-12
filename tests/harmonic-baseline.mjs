@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {makeState, mapRatio} from '../src/core/engine.mjs';
+import {mapRatio} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {chordIdentity} from '../src/chords/chord-identity.mjs';
 import {projectChord, periodClass} from '../src/chords/chord-projection.mjs';
 import {createLiveChordRecognizer} from '../src/chords/live-chord-recognition.mjs';

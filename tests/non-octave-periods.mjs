@@ -8,7 +8,9 @@ import {
   tuneTargets,
   pureTune
 } from '../src/core/tuning.mjs';
-import {mapRatio, scale, interval, purePeriod, gcd, makeState} from '../src/core/engine.mjs';
+import {mapRatio, scale, interval} from '../src/core/engine.mjs';
+import {purePeriod, gcd} from '../src/core/pitch.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {checkAssignments} from '../src/core/assignments.mjs';
 import {selectionRank} from '../src/core/comma-search.mjs';
 

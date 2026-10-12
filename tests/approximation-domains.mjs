@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {matrixScale} from '../src/core/matrix.mjs';
 import {noteCoordinate, octavePeriods} from '../src/core/pitch.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';

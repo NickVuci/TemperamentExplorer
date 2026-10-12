@@ -9,9 +9,10 @@ const root = resolve(process.argv[2] || 'src'),
   flat = existsSync(resolve(root, 'engine.mjs'));
 const load = path => import(pathToFileURL(resolve(root, flat ? path.split('/').pop() : path)).href);
 const engine = await load('core/engine.mjs');
+const {makeState} = await load('core/catalog.mjs');
 const {matrixScale, matrixInterval} = await load('core/matrix.mjs');
 const {discoverScaleChords} = await load('harmonic/harmonic-inspection.mjs');
-const {makeState, targets, classifyTargets} = engine,
+const {targets, classifyTargets} = engine,
   ts = targets(13);
 function measure(run) {
   const samples = [];

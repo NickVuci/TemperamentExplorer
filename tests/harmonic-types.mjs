@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {makeState, presets} from '../src/core/engine.mjs';
+import {makeState, presets} from '../src/core/catalog.mjs';
 import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
 import {equivalencePolicy, shapeKey} from '../src/harmonic/harmonic-equivalence.mjs';
 import {

@@ -7,7 +7,7 @@ import {
   scaleMembership,
   largerScaleDiagnostics
 } from '../src/chords/chord-occurrence.mjs';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 const session = JSON.parse(
     readFileSync(new URL('./fixtures/magic19-session.json', import.meta.url))
   ),

@@ -3,7 +3,7 @@
 // the shared keyAppearance rule); boardSvg draws it at any size; deviceFrame gives it to the LEDs.
 // Sounding keys are not part of the picture: the player marks them on the drawn board (.is-playing).
 import {boardMatches} from './hexboard.mjs';
-import {DEFAULT_ODD_LIMIT} from '../core/engine.mjs';
+import {DEFAULT_ODD_LIMIT} from '../core/ji-limit-engine.mjs';
 import {mosLayers, textColor, keyAppearance} from './hexboard-colors.mjs';
 
 const OUTLINE = {

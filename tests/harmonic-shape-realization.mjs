@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
 import {analyzeChord} from '../src/chords/chord-analysis.mjs';
 import {realizeChord, realizeShape} from '../src/chords/chord-realization.mjs';

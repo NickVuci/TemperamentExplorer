@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import * as engine from '../src/core/engine.mjs';
+import * as catalog from '../src/core/catalog.mjs';
+import * as pitch from '../src/core/pitch.mjs';
+import * as limits from '../src/core/ji-limit-engine.mjs';
 import * as matrices from '../src/core/matrix.mjs';
 import * as assignments from '../src/core/assignments.mjs';
 import {
@@ -24,10 +27,13 @@ const controls = {
   '#tolerance': {value: '10'},
   '#targetfilter': {value: 'all'}
 };
-const state = engine.makeState('meantone');
+const state = catalog.makeState('meantone');
 const context = vm.createContext({
   harmonicMode: 'a',
   parsePrimeFilterInput,
+  ...catalog,
+  ...pitch,
+  ...limits,
   ...engine,
   ...matrices,
   ...assignments,
@@ -116,7 +122,7 @@ assert.doesNotMatch(source, /playJITarget|data\.jiTarget/);
 // comparison-panel references in every approximation source and span.
 for (const s of [
   state,
-  engine.makeState('porkypine'),
+  catalog.makeState('porkypine'),
   fromCommas('128/125', '2.3.5'),
   fromCommas('245/243', '3.5.7')
 ]) {
@@ -138,7 +144,7 @@ context.diamondScope = 'mapping';
 controls['#targetfilter'].value = 'all';
 controls['#limit'].value = '15';
 // A mapped interval absent from the scale shows only the reading the cell sounds, not a second candidate.
-context.states[0] = {...engine.makeState('meantone'), n: 5, mode: 0};
+context.states[0] = {...catalog.makeState('meantone'), n: 5, mode: 0};
 {
   const cell = cellFor('16/15'),
     single = context.diamondDetails(cell);
@@ -146,7 +152,7 @@ context.states[0] = {...engine.makeState('meantone'), n: 5, mode: 0};
   assert.match(single, new RegExp(cell.status.approximation.c.toFixed(3)));
 }
 controls['#labels'].value = 'cents';
-const porkypine = engine.makeState('porkypine');
+const porkypine = catalog.makeState('porkypine');
 context.states[0] = porkypine;
 vm.runInContext(
   `settings=(()=>{const basis=states[0].basis,limit=Number($('#limit').value),primeLimit=$('#primeLimit').value==='basis'?primeFilterForBasis(basis):null;return {limit,primeLimit,layout:$('#layout').value,labels:$('#labels').value,ts:targets(limit,primeLimit),tol:10,maxError:10,filter:$('#targetfilter').value,outside:true};});assert.equal(settings().primeLimit.join('.'),'2.3.5.11');assert.ok(!targets(settings().limit,settings().primeLimit).some(t=>t.label==='7/4'));assert.ok(targets(settings().limit,settings().primeLimit).some(t=>t.label==='11/8'));`,
@@ -170,8 +176,8 @@ controls['#limit'].value = '15';
 controls['#primeLimit'].value = 'basis';
 controls['#targetfilter'].value = 'mapped';
 for (const [s, expected] of [
-  [engine.makeState('meantone'), 5],
-  [engine.makeState('porkypine'), [2, 3, 5, 11]],
+  [catalog.makeState('meantone'), 5],
+  [catalog.makeState('porkypine'), [2, 3, 5, 11]],
   [fromCommas('245/243', '3.5.7'), [3, 5, 7]]
 ]) {
   context.states[0] = s;
@@ -180,18 +186,18 @@ for (const [s, expected] of [
   assert.equal(JSON.stringify(cfg.primeLimit), JSON.stringify(expected));
   assert.ok(Number.isFinite(cfg.tol) && cfg.tol >= 0);
 }
-context.states[0] = engine.makeState('porkypine');
+context.states[0] = catalog.makeState('porkypine');
 assert.ok(!context.settings().ts.some(t => t.label === '7/4'));
 controls['#primeLimit'].value = '11';
 assert.ok(context.settings().ts.some(t => t.label === '7/4'));
-context.states[0] = engine.makeState('meantone');
+context.states[0] = catalog.makeState('meantone');
 assert.equal(context.settings().primeLimit, 11, 'explicit override survives temperament changes');
 controls['#primeLimit'].value = '';
 assert.equal(context.settings().primeLimit, null);
 const legacy = JSON.parse(
   readFileSync(new URL('./fixtures/magic19-session.json', import.meta.url), 'utf8')
 );
-const restoreContext = vm.createContext({validate: validateState, presets: engine.presets});
+const restoreContext = vm.createContext({validate: validateState, presets: catalog.presets});
 const restoreSource = source.slice(
   source.indexOf('function restorePrimaryState('),
   source.indexOf("$('#save').onclick")

@@ -1,6 +1,7 @@
 import {weilTune} from './weil-tuning.mjs';
-export {weilTune} from './weil-tuning.mjs';
-import {mapRatio, leastSquares, presets, targets, purePeriod, periodUnits} from './engine.mjs';
+import {mapRatio, targets} from './engine.mjs';
+import {leastSquares, purePeriod, periodUnits} from './pitch.mjs';
+import {presets} from './catalog.mjs';
 export function ratios(text) {
   const tokens = text
     .trim()

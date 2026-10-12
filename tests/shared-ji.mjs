@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {
   DEFAULT_ODD_LIMIT,
   MANUAL_PRIME_LIMIT_VALUES,

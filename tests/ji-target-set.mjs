@@ -1,14 +1,13 @@
 import assert from 'node:assert/strict';
+import {mapRatio, targets} from '../src/core/engine.mjs';
 import {
   diamondTargets,
-  mapRatio,
   targetId,
   targetSet,
   targetSetIdentity,
-  targets,
   validateJILimits,
   primeFilterForBasis
-} from '../src/core/engine.mjs';
+} from '../src/core/ji-limit-engine.mjs';
 import {targetSetKey} from '../src/harmonic/harmonic-types.mjs';
 
 const spec = {

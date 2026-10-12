@@ -78,9 +78,8 @@ subsystem folders:
 | Browser-local saved presets, backups and revisions | `presets/`, `core/state.mjs` |
 | Offline shell and install metadata | `sw.js`, `manifest.webmanifest`, `icon*` |
 
-`engine.mjs` retains its previous public exports by re-exporting the moved
-helpers and catalog. Likewise, `matrix.mjs`, `hexboard.mjs` and
-`assignments.mjs` preserve their existing shared-helper exports.
+Import each name from the module that owns it; modules do not re-export other
+modules' names.
 
 ## Calculation rules
 

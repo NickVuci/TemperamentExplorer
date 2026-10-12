@@ -7,7 +7,7 @@ import {hexDistance} from '../src/hexboard/hexboard-chords.mjs';
 import {coordinateCents} from '../src/core/pitch.mjs';
 import {createPresetStore} from '../src/presets/preset-store.mjs';
 import {shapePresetSnapshot} from '../src/shapes/shape-preset-data.mjs';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {chordPlacements} from '../src/hexboard/hexboard-chords.mjs';
 import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
 import {

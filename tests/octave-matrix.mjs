@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {fromCommas} from '../src/core/tuning.mjs';
-import {classifyTargets, interval, makeState} from '../src/core/engine.mjs';
-import {matrixScale, matrixInterval, matrixWindow, octavePeriods} from '../src/core/matrix.mjs';
+import {classifyTargets, interval} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
+import {matrixScale, matrixInterval, matrixWindow} from '../src/core/matrix.mjs';
+import {octavePeriods} from '../src/core/pitch.mjs';
 const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-7, `${a} != ${b}`);
 for (const comma of ['128/125', '2048/2025'])
   for (const method of ['Computed CWE', 'Computed WE']) {

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {presetSnapshot} from '../src/presets/preset-data.mjs';
 import {mappingKey} from '../src/hexboard/layout-preset-data.mjs';
 import {BUILTIN_LAYOUTS} from '../src/hexboard/builtin-layouts.mjs';

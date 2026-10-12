@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {makeState, mosSizes} from '../src/core/engine.mjs';
+import {mosSizes} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {fromCommas, edoTune} from '../src/core/tuning.mjs';
 import {buildBoard, exportHexboard} from '../src/hexboard/hexboard.mjs';
 import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';

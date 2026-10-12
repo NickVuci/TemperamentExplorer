@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {fromCommas, edoTune} from '../src/core/tuning.mjs';
 import {buildBoard, exportHexboard, baseOptions} from '../src/hexboard/hexboard.mjs';
 import {mosLayers, keyColor, hexToHSV, textColor} from '../src/hexboard/hexboard-colors.mjs';

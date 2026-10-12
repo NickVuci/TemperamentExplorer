@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {Worker as NodeWorker} from 'node:worker_threads';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {BUILTIN_LAYOUTS} from '../src/hexboard/builtin-layouts.mjs';
 import {buildBoard} from '../src/hexboard/hexboard.mjs';
 import {coordinateCents} from '../src/core/pitch.mjs';

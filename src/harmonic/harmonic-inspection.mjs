@@ -1,7 +1,7 @@
 // Coordinate consumers adapt to the same target projection, dyad domains and
 // coherent-lift solver as the catalogue. Tuning quality is a separate filter.
-import {DEFAULT_ODD_LIMIT, targets, scale, createTargetClassifier} from '../core/engine.mjs';
-import {targetSet, validateJILimits} from '../core/ji-limit-engine.mjs';
+import {targets, scale, createTargetClassifier} from '../core/engine.mjs';
+import {targetSet, validateJILimits, DEFAULT_ODD_LIMIT} from '../core/ji-limit-engine.mjs';
 import {coordinateCents, mod, approximationSpan, noteCoordinate} from '../core/pitch.mjs';
 import {projectCoordinateShape} from '../chords/chord-projection.mjs';
 import {buildDyadIndex, domainsForShape} from './harmonic-dyad-graph.mjs';

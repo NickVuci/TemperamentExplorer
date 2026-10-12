@@ -1,5 +1,5 @@
-import {mapRatio, gcd} from '../core/engine.mjs';
-import {coordinateCents} from '../core/pitch.mjs';
+import {mapRatio} from '../core/engine.mjs';
+import {coordinateCents, gcd} from '../core/pitch.mjs';
 
 const EPS = 1e-7;
 const qlabel = (n, d) => {

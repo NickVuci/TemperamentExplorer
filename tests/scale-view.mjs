@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {makeState, scale, generatedSizes} from '../src/core/engine.mjs';
+import {scale, generatedSizes} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {
   normalizeScaleView,
   scaleViewToggle,

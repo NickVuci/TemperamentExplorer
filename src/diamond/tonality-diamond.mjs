@@ -4,7 +4,6 @@ import {diamondTargets,formatPrimeFilter} from '../core/ji-limit-engine.mjs';
 import {bestApproximations,bestModeApproximations} from '../core/approximation-compat.mjs';
 import {esc} from '../ui/ui.mjs';
 import {errorColor} from '../core/ji-error-color.mjs';
-export {errorColor};
 export function diamondRatios(limit,primeLimit=null){return diamondTargets(limit,primeLimit);}
 export function normalizeDiamondScope(scope,workflowVersion=0){
  if(scope==='mapping'||scope==='mode')return scope;

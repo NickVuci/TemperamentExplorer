@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {fromCommas} from '../src/core/tuning.mjs';
-import {makeState, presets} from '../src/core/engine.mjs';
+import {makeState, presets} from '../src/core/catalog.mjs';
 import {
   mappingContext,
   mappingKey,

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {chordIdentity} from '../src/chords/chord-identity.mjs';
 import {makeJIInterpretation} from '../src/harmonic/harmonic-ji-chords.mjs';
 import {mappingContext} from '../src/harmonic/harmonic-context.mjs';

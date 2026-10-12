@@ -11,7 +11,8 @@ import {
 import {createDiamondWorkspace} from '../src/diamond/diamond-workspace.mjs';
 import {diamondApproximation, maximumDiamondError} from '../src/diamond/tonality-diamond.mjs';
 import {diamondTargets} from '../src/core/ji-limit-engine.mjs';
-import {makeState, scale, mapRatio} from '../src/core/engine.mjs';
+import {scale, mapRatio} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
 import {createMaterialWorkspace} from '../src/ui/material-ui.mjs';
 import {createChordWorkspace} from '../src/ui/chord-ui.mjs';

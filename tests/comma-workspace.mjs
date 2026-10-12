@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {createCommaWorkspace} from '../src/ui/comma-ui.mjs';
 import {parseSearch, searchCommas, commaFromVector} from '../src/core/comma-search.mjs';
 import {fromCommaSearch} from '../src/core/tuning.mjs';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 const basis = [2, 3, 5],
   comma = commaFromVector(basis, [-4, 4, -1]);
 for (const [tuning, wanted] of [

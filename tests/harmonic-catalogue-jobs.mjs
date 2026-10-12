@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {Worker as NodeWorker} from 'node:worker_threads';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {targetSet} from '../src/core/ji-limit-engine.mjs';
 import {buildDyadIndex, enumerateDyadicShapeSteps} from '../src/harmonic/harmonic-dyad-graph.mjs';
 import {findCoherentJILift, findCoherentJILiftAsync} from '../src/harmonic/harmonic-ji-lift.mjs';

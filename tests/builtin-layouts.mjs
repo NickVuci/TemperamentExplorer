@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {presets, makeState} from '../src/core/engine.mjs';
+import {presets, makeState} from '../src/core/catalog.mjs';
 import {buildBoard} from '../src/hexboard/hexboard.mjs';
 import {
   layoutPresetSnapshot,

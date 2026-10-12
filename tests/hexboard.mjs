@@ -7,13 +7,14 @@ import {
   exportHexboard,
   layoutCandidates,
   commands,
-  cents,
   det,
   fillBoard,
   tuningMenuName
 } from '../src/hexboard/hexboard.mjs';
+import {coordinateCents as cents} from '../src/core/pitch.mjs';
 import {fromCommas, edoTune} from '../src/core/tuning.mjs';
-import {makeState, scale} from '../src/core/engine.mjs';
+import {scale} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
 const cfg = {
   base: 7,

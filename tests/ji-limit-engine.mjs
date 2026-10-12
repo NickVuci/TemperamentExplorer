@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {targets} from '../src/core/engine.mjs';
 import {
   DEFAULT_ODD_LIMIT,
   MANUAL_PRIME_LIMIT_VALUES,
@@ -12,9 +13,8 @@ import {
   targetId,
   targetSet,
   targetSetIdentity,
-  targets,
   validateJILimits
-} from '../src/core/engine.mjs';
+} from '../src/core/ji-limit-engine.mjs';
 
 assert.equal(DEFAULT_ODD_LIMIT, 15);
 assert.deepEqual(MANUAL_PRIME_LIMIT_VALUES, [3, 5, 7, 11, 13]);

@@ -1,7 +1,7 @@
 // Play's panels and its one Chords panel: layout of the page, the two modes, the directory search, and
 // equivalence with the tools they replaced (Map selected keys; the whole-board chord search).
 import assert from 'node:assert/strict';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {buildBoard} from '../src/hexboard/hexboard.mjs';
 import {chordPlacements, discoverBoardChords} from '../src/hexboard/hexboard-chords.mjs';
 import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {makeState, scale, generatedSizes, scaleChoices, stepSymbol} from '../src/core/engine.mjs';
+import {scale, generatedSizes, scaleChoices, stepSymbol} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {buildBoard, fillBoard} from '../src/hexboard/hexboard.mjs';
 import {mosLayers} from '../src/hexboard/hexboard-colors.mjs';
 import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';

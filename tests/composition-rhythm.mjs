@@ -47,7 +47,7 @@ import {
   validateProject
 } from '../src/composition/composition-project.mjs';
 import {captureContext, resolveTone, degreeOf} from '../src/composition/composition-context.mjs';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 
 const m44 = {numerator: 4, denominator: 4},
   m78 = {numerator: 7, denominator: 8},

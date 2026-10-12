@@ -1,4 +1,5 @@
-import {MAX_SCALE_SIZE, purePeriod, gcd} from './engine.mjs';
+import {MAX_SCALE_SIZE} from './engine.mjs';
+import {purePeriod, gcd} from './pitch.mjs';
 import {assignment} from './assignments.mjs';
 function prime(n) {
   if (!Number.isInteger(n) || n < 2 || n > 97) return false;

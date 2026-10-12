@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {makeState, scale} from '../src/core/engine.mjs';
+import {scale} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {getHarmonicEntry} from '../src/harmonic/harmonic-catalogue.mjs';

@@ -19,7 +19,7 @@ import {
   chordGuides,
   chordName
 } from '../src/composition/composition-view.mjs';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {activeCues} from '../src/composition/composition-cues.mjs';
 import {createHarmonicCatalogueWorkspace} from '../src/harmonic/harmonic-catalogue-ui.mjs';
 const demo = JSON.parse(

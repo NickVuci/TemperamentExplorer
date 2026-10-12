@@ -1,6 +1,6 @@
 import {target, assignment} from '../core/assignments.mjs';
 import {validateState} from '../core/state.mjs';
-import {presets} from '../core/engine.mjs';
+import {presets} from '../core/catalog.mjs';
 export function presetSnapshot(name, input) {
   if (typeof name !== 'string' || !name.trim() || name.trim().length > 80)
     throw Error('Enter a preset name from 1 to 80 characters.');

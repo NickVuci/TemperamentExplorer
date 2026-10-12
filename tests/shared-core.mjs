@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import {BoundedCache} from '../src/core/cache.mjs';
 import {
-  makeState,
   scale,
   targets,
   createTargetClassifier,
   classifyTargets,
   mapRatio
 } from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {
   coordinateCents,
   noteCoordinate,

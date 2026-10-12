@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import {makeState, scale, mod} from '../src/core/engine.mjs';
+import {scale} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {fromCommas, edoTune} from '../src/core/tuning.mjs';
-import {coordinateCents, noteCoordinate} from '../src/core/pitch.mjs';
+import {coordinateCents, noteCoordinate, mod} from '../src/core/pitch.mjs';
 import {buildBoard, physicalKey, exportHexboard, boardMatches} from '../src/hexboard/hexboard.mjs';
 import {placementDelta, validatePeriodPlacement} from '../src/hexboard/hexboard-wrapping.mjs';
 import {mosLayers, keyColor} from '../src/hexboard/hexboard-colors.mjs';

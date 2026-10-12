@@ -1,20 +1,18 @@
 import {wrapBoardKeys} from './hexboard-wrapping.mjs';
 import {
-  DEFAULT_ODD_LIMIT,
   scale,
   mosSizes,
   generatedSizes,
-  mod,
   createTargetClassifier,
   targets,
   MAX_SCALE_SIZE
 } from '../core/engine.mjs';
+import {DEFAULT_ODD_LIMIT} from '../core/ji-limit-engine.mjs';
 import {mosLayers, keyColor, hexToHSV} from './hexboard-colors.mjs';
 export const commands = new Set([0, 20, 40, 60, 80, 100, 120]);
 export const add = (a, b) => a.map((v, i) => v + b[i]);
 export const sub = (a, b) => a.map((v, i) => v - b[i]);
-import {coordinateCents as cents, approximationSpan} from '../core/pitch.mjs';
-export {coordinateCents as cents} from '../core/pitch.mjs';
+import {coordinateCents as cents, approximationSpan, mod} from '../core/pitch.mjs';
 export const det = (a, b) => a[0] * b[1] - a[1] * b[0];
 // The controls refer to the displayed horizontal/vertical axes. A quarter
 // turn exchanges those axes relative to the underlying staggered board.

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {makeState, targetSet} from '../src/core/engine.mjs';
+import {targetSet} from '../src/core/ji-limit-engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
 import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
 import {projectCoordinateShape} from '../src/chords/chord-projection.mjs';

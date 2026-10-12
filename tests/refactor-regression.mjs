@@ -1,7 +1,8 @@
 // Frozen pre-refactor results protect mathematical output, modes and exports.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {presets, makeState, scale, targets, classifyTargets} from '../src/core/engine.mjs';
+import {scale, targets, classifyTargets} from '../src/core/engine.mjs';
+import {presets, makeState} from '../src/core/catalog.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
 import {matrixScale, matrixInterval} from '../src/core/matrix.mjs';
 import {buildBoard, exportHexboard} from '../src/hexboard/hexboard.mjs';

@@ -2,7 +2,7 @@
 // Run from any directory: node scripts/generate-sample-compositions.mjs
 import assert from 'node:assert/strict';
 import {mkdir, writeFile} from 'node:fs/promises';
-import {makeState} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {BUILTIN_LAYOUTS} from '../src/hexboard/builtin-layouts.mjs';
 import {layoutPresetForState} from '../src/hexboard/layout-preset-data.mjs';
 import {captureContext} from '../src/composition/composition-context.mjs';

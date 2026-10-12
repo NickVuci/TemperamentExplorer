@@ -1,6 +1,7 @@
 // Display geometry is separate from the canonical JI target/filter engine.
 import {ratioWithinJILimits, validateJILimits} from '../core/ji-limit-engine.mjs';
-import {gcd, scale} from '../core/engine.mjs';
+import {scale} from '../core/engine.mjs';
+import {gcd} from '../core/pitch.mjs';
 import {chordIdentity} from '../chords/chord-identity.mjs';
 import {signedIntervalError} from '../harmonic/harmonic-intervals.mjs';
 export function parseDiamondHarmonics(text) {
