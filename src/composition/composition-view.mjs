@@ -1,5 +1,5 @@
 // Composition workspace markup. Pure: (project, UI state) -> HTML / models. No DOM access.
-import {esc, option} from '../ui/ui.mjs';
+import {esc, option, registerSup, signedInteger} from '../ui/ui.mjs';
 import {PPQ, ticksToSeconds, barTicks, contentEndTick} from './composition-project.mjs';
 import {resolveTone, degreeOf} from './composition-context.mjs';
 import {boardMarkup} from './composition-board.mjs';
@@ -149,7 +149,7 @@ function toneDegree(project, tone) {
     ? {
         degree: d.degree,
         register: d.register,
-        text: `${d.degree}${d.register ? (d.register > 0 ? '+' : '') + d.register : ''}`
+        text: `${d.degree}${d.register ? signedInteger(d.register) : ''}`
       }
     : {degree: null, register: 0, text: 'outside scale'};
 }
@@ -196,9 +196,7 @@ export function chordBass(project, e) {
 export const chordName = (project, e, i) =>
   rootedChordName(chordRoot(project, e)?.degree, chordLabel(e, i));
 const rootMarkup = root =>
-  root?.degree === null
-    ? 'outside scale'
-    : `${root.degree}${root.register ? `<sup>${root.register > 0 ? '+' : ''}${root.register}</sup>` : ''}`;
+  root?.degree === null ? 'outside scale' : `${root.degree}${registerSup(root.register)}`;
 
 /**
  * Melody guide from the chord lane: for each chord, the pitch classes it holds, so the roll can tint the
@@ -332,8 +330,7 @@ function transportBar(v) {
 // ---- piano roll ----
 
 const degreeText = row => (row.degree === null ? '×' : `${row.degree}`);
-const degreeMarkup = row =>
-  `${degreeText(row)}${row.register ? `<sup>${row.register > 0 ? '+' : ''}${row.register}</sup>` : ''}`;
+const degreeMarkup = row => `${degreeText(row)}${registerSup(row.register)}`;
 const pathOf = (ticks, y0, y1) => ticks.map(t => `M${t} ${y0}V${y1}`).join('');
 /**
  * Grid lines for the rows as one stretched SVG (x in ticks): banding for every other beat group,
@@ -630,7 +627,7 @@ export function renderSelectionPanel(v) {
       tone = note.tones[0],
       d = degreeOf(p.context, tone.coordinate),
       id = esc(note.id);
-    selectedNote = `<div class="comp-note-inspector"><h4>Selected note</h4><p class="comp-note-where">${d ? `Degree ${d.degree}${d.register ? `<sup>${d.register > 0 ? '+' : ''}${d.register}</sup>` : ''}` : 'Outside the scale'} · ${resolveTone(p.context, tone.coordinate).cents.toFixed(1)}¢ · starts ${esc(formatBeat(p.meter, note.startTick))} · ${esc(lengthName(note.durationTick))}</p><label>Length <select data-comp-field="noteLength" data-event="${id}">${lengthOptions(note.durationTick)}</select></label><label>Velocity <input type="number" data-comp-field="noteVelocity" data-event="${id}" min="1" max="127" value="${note.velocity}"></label>${btn('note-hear', 'Hear', false, `data-event="${id}"`)}${btn('note-delete', 'Delete note', false, `data-event="${id}"`)}</div>`;
+    selectedNote = `<div class="comp-note-inspector"><h4>Selected note</h4><p class="comp-note-where">${d ? `Degree ${d.degree}${registerSup(d.register)}` : 'Outside the scale'} · ${resolveTone(p.context, tone.coordinate).cents.toFixed(1)}¢ · starts ${esc(formatBeat(p.meter, note.startTick))} · ${esc(lengthName(note.durationTick))}</p><label>Length <select data-comp-field="noteLength" data-event="${id}">${lengthOptions(note.durationTick)}</select></label><label>Velocity <input type="number" data-comp-field="noteVelocity" data-event="${id}" min="1" max="127" value="${note.velocity}"></label>${btn('note-hear', 'Hear', false, `data-event="${id}"`)}${btn('note-delete', 'Delete note', false, `data-event="${id}"`)}</div>`;
   } else if (notes.length > 1) {
     const same = k => (notes.every(e => e[k] === notes[0][k]) ? notes[0][k] : null),
       length = same('durationTick'),

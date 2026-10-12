@@ -20,6 +20,7 @@ import {degreeOf, resolveTone} from './composition-context.mjs';
 import {mosLayers, keyColor, textColor} from '../hexboard/hexboard-colors.mjs';
 import {compositionDeviceSnapshot} from './composition-board.mjs';
 import {pieceFingering} from './composition-game-route.mjs';
+import {signedInteger} from '../ui/ui.mjs';
 
 export const SPEEDS = [50, 75, 100];
 export const GUIDES = [
@@ -319,9 +320,7 @@ export function createGameController({
   function noteName(coordinate) {
     const p = playingProject(),
       d = p && degreeOf(p.context, coordinate);
-    return d
-      ? `${d.degree}${d.register ? (d.register > 0 ? '+' : '') + d.register : ''}`
-      : coordinate.join(',');
+    return d ? `${d.degree}${d.register ? signedInteger(d.register) : ''}` : coordinate.join(',');
   }
   function previewInfo(info = setupInfo()) {
     const ticks = [...new Set(info.targets.map(t => t.tick))];

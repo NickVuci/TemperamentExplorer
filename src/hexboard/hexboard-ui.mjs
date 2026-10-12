@@ -8,7 +8,7 @@ import {createShapeExplorer} from '../shapes/shape-explorer-ui.mjs';
 import {validatePeriodPlacement,validateCopyPeriodStep} from './hexboard-wrapping.mjs';
 import {tuningIdentity} from '../ui/material-ui.mjs';
 import {palettes,validColor,mosLayers,keyColor} from './hexboard-colors.mjs';
-import {boardPicture,boardSvg,deviceFrame,fingeringMap} from './hexboard-view.mjs';
+import {boardPicture,boardSvg,deviceFrame,fingeringMap,fmt,signed} from './hexboard-view.mjs';
 import {inspectCoordinateChord} from '../harmonic/harmonic-inspection.mjs';
 import {renderCoordinateAssessment} from '../harmonic/harmonic-inspection-ui.mjs';
 import {chordPlacements,chordsWithKey} from './hexboard-chords.mjs';
@@ -21,8 +21,6 @@ import {equivalencePolicy,quotientCoordinate} from '../harmonic/harmonic-equival
 import {frequencyFor} from '../ui/audio.mjs';
 import {esc,option} from '../ui/ui.mjs';
 import {rootedChordName} from '../harmonic/harmonic-bass.mjs';
-const fmt=(x,n=3)=>Number(x).toFixed(n);
-const signed=x=>(x>=0?'+':'')+x;
 const defaults=()=>({periodWrapping:true,showPeriodLabels:false,periodPlacement:null,copyPeriodStep:1,registerAlignment:'scale',base:7,scaleFilter:'2',offset:0,style:'bosanquet',rotation:0,mirror:false,flipHorizontal:false,flipVertical:false,center:65,register:0,deviceRotation:1,outside:false,ap:1,ag:0,bp:0,bg:1,tolerance:10,limit:DEFAULT_ODD_LIMIT,primeLimit:null,root:65,selected:65,chord:[],selectChord:false,palette:'spectrum',layerGrowth:'balanced',layerColors:{},keyColors:{},degreeColors:{}});
 const validColorMap=(map,min,max,excluded)=>map&&typeof map==='object'&&!Array.isArray(map)&&Object.entries(map).every(([n,v])=>/^\d+$/.test(n)&&Number(n)>=min&&Number(n)<=max&&!excluded?.has(Number(n))&&validColor(v));
 // matchPlayed reads held keys against the harmony directory; null keeps the curated recognizer's

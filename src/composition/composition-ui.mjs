@@ -84,6 +84,7 @@ import {createGameController} from './composition-game-ui.mjs';
 import {compositionBoard, compositionDeviceSnapshot, boardMarkup} from './composition-board.mjs';
 import {hexDistance} from '../hexboard/hexboard-chords.mjs';
 import {createHexboardPlayer} from '../hexboard/hexboard-player.mjs';
+import {signedInteger} from '../ui/ui.mjs';
 
 const FOCUS_ATTRS = [
   'data-comp',
@@ -452,7 +453,7 @@ export function createCompositionWorkspace({
       d = p && degreeOf(p.context, coordinate);
     if (!p) return '';
     return d
-      ? `degree ${d.degree}${d.register ? ` (${d.register > 0 ? '+' : ''}${d.register})` : ''}`
+      ? `degree ${d.degree}${d.register ? ` (${signedInteger(d.register)})` : ''}`
       : `${resolveTone(p.context, coordinate).cents.toFixed(0)}¢ outside the scale`;
   }
   const defaultLength = start =>
@@ -801,7 +802,7 @@ export function createCompositionWorkspace({
   function pitchName(p, m) {
     const d = degreeOf(p.context, m);
     return d
-      ? `${d.degree}${d.register ? [...`${d.register > 0 ? '+' : ''}${d.register}`].map(c => SUP[c]).join('') : ''}`
+      ? `${d.degree}${d.register ? [...signedInteger(d.register)].map(c => SUP[c]).join('') : ''}`
       : `${resolveTone(p.context, m).cents.toFixed(0)}¢`;
   }
   /** "Playing 0 · 2 · 4 → 0 - 4:5:6": the held pitches, lowest first, and the chord they make. */

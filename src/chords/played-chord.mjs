@@ -8,6 +8,7 @@ import {domainsForShape} from '../harmonic/harmonic-dyad-graph.mjs';
 import {assessET} from '../harmonic/harmonic-et.mjs';
 import {orientedJIInterpretation, simplestRotation} from '../harmonic/harmonic-ji-chords.mjs';
 import {chordIdentity} from './chord-identity.mjs';
+import {bigintGcd as gcd} from '../core/rational.mjs';
 
 // What is being played, read against the harmony directory. Notes are reduced to pitch classes
 // through the temperament mapping, so register, doublings and spacing never change the match; the
@@ -16,12 +17,6 @@ import {chordIdentity} from './chord-identity.mjs';
 // the pair outside the limit and the largest directory chords it contains.
 
 const MAX_PLAYED_CLASSES = 8;
-const gcd = (a, b) => {
-  while (b) {
-    [a, b] = [b, a % b];
-  }
-  return a < 0n ? -a : a;
-};
 function relative(a, b, octave) {
   // a/b for "n/d" ratio labels, octave-folded when the policy is octave equivalence.
   const [an, ad] = a.split('/').map(BigInt),

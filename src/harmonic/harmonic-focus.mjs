@@ -1,13 +1,8 @@
+import {bigintGcd as gcd} from '../core/rational.mjs';
 // The focused harmony as the diamond and the interval matrix show it. The harmony workspace owns
 // the focus (the selected directory row, its rotation and scale occurrence); these functions only
 // project it onto other views, so every view reads one selection.
 
-const gcd = (a, b) => {
-  while (b) {
-    [a, b] = [b, a % b];
-  }
-  return a < 0n ? -a : a;
-};
 function ratio(text) {
   const [n, d] = String(text).split('/').map(BigInt);
   return [n, d ?? 1n];

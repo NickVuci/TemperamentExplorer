@@ -1,7 +1,7 @@
 // Markup for Compose's Play view: setup, the Timed/Wait stage (progress, note highway,
 // HexBoard with approach rings), results and timing calibration. Pure: view model in, HTML out. The
 // controller (composition-game-ui.mjs) moves the highway and rings each frame.
-import {esc, option} from '../ui/ui.mjs';
+import {esc, option, registerSup as sup} from '../ui/ui.mjs';
 import {gameBoardMarkup} from './composition-board.mjs';
 import {barTicks} from './composition-project.mjs';
 import {beatTicks} from './composition-grid.mjs';
@@ -16,7 +16,6 @@ import {
 } from './composition-game-ui.mjs';
 
 const btn = (action, text, extra = '') => `<button data-comp="${action}" ${extra}>${text}</button>`;
-const sup = r => (r ? `<sup>${r > 0 ? '+' : ''}${r}</sup>` : '');
 const ms = v => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(Math.round(v))} ms`;
 const RESULT_LABELS = [
   ['perfect', 'Perfect'],

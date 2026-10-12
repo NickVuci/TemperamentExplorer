@@ -8,6 +8,7 @@
 // Tuplet positions are rounded to whole ticks (960 per quarter): exact for 3s and 5s, within
 // half a tick for 7s.
 import {PPQ, barTicks} from './composition-project.mjs';
+import {gcd} from '../core/pitch.mjs';
 
 export const DIVISIONS = [
   ['1/1', PPQ * 4],
@@ -247,12 +248,6 @@ export function lengthName(ticks) {
   const q = ticks / PPQ;
   return Number.isInteger(q) ? `${q} quarter notes` : `${ticks} ticks`;
 }
-const gcd = (a, b) => {
-  while (b) {
-    [a, b] = [b, a % b];
-  }
-  return a;
-};
 /** A part of a beat as a small fraction ("1/3", "2/5"), or as ticks when it is not one. */
 export function beatFraction(offset, beat) {
   if (!offset) return '';

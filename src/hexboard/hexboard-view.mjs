@@ -13,8 +13,8 @@ const OUTLINE = {
   other: '#e9bd5d',
   plain: '#4b5a71'
 };
-const fmt = (x, n = 3) => Number(x).toFixed(n);
-const signed = x => (x >= 0 ? '+' : '') + x;
+export const fmt = (x, n = 3) => Number(x).toFixed(n);
+export const signed = x => (x >= 0 ? '+' : '') + x;
 // The layout's interval root: its own setting, else the tonic button.
 const rootOf = cfg => (Number.isInteger(cfg.root) ? cfg.root : (cfg.center ?? 65));
 

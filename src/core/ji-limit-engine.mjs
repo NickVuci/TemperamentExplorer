@@ -1,4 +1,5 @@
 import {BoundedCache, immutable} from './cache.mjs';
+import {bigintGcd as gcd} from './rational.mjs';
 
 const isPrime = n => {
   if (n < 2) return false;
@@ -74,10 +75,6 @@ const asPositiveBigInt = (value, name) => {
   }
   if (out <= 0n) throw Error(`${name} must be a positive integer.`);
   return out;
-};
-const gcd = (a, b) => {
-  while (b) [a, b] = [b, a % b];
-  return a;
 };
 
 /** Whether a positive ratio satisfies the mandatory odd-limit and optional prime-limit bounds. */
