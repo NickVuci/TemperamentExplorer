@@ -1,6 +1,9 @@
 // Small value-keyed caches: mutable tuning objects must never be cache keys.
 export class BoundedCache {
-  constructor(limit) { this.limit = limit; this.entries = new Map(); }
+  constructor(limit) {
+    this.limit = limit;
+    this.entries = new Map();
+  }
   get(key, create) {
     if (this.entries.has(key)) {
       const value = this.entries.get(key);

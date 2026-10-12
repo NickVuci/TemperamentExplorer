@@ -1,15 +1,122 @@
 import {scale} from '../core/engine.mjs';
 import {MAX_CHORD_TONES} from '../chords/chord-identity.mjs';
 import {restoredHarmonicProvenance} from '../harmonic/harmonic-selection.mjs';
-export const tuningIdentity=s=>JSON.stringify([s.basis,s.rows,s.p,s.g]);
+export const tuningIdentity = s => JSON.stringify([s.basis, s.rows, s.p, s.g]);
 import {esc} from './ui.mjs';
-export function createMaterialWorkspace({getState,play,place,load,refresh,notify,validate}){
- let items=[];
- function add(kind,state,coords,label,{exact=false,harmonicSelection=null}={}){if(items.length>=64)throw Error('The collection holds up to 64 items.');const item={kind,state:structuredClone(state),coords:structuredClone(coords),label:String(label).slice(0,100),...(exact?{exact:true}:{}),...(harmonicSelection?{harmonicSelection:restoredHarmonicProvenance(harmonicSelection,state,coords)}:{})};if(items.some(x=>JSON.stringify([x.kind,x.state,x.coords,!!x.exact])===JSON.stringify([item.kind,item.state,item.coords,!!item.exact]))){notify('Already in the collection.');return;}items.push(item);notify('Added to collection. Save session keeps your material.');refresh();}
- function addScale(){const s=getState();add('scale',s,scale(s).notes.map(n=>[Math.round((n.c-n.k*s.g)/s.p),n.k]),`${s.name} · ${s.n} notes · mode ${s.mode+1}`);}
- function render(){return `<section class="material-collection"><details ${items.length?'open':''}><summary>Material collection · ${items.length}</summary>${items.length?`<div class="material-list">${items.map((x,i)=>{const same=tuningIdentity(x.state)===tuningIdentity(getState());return `<article class="material-item"><label>${x.kind==='scale'?'Scale':'Chord'}<input data-material-name="${i}" value="${esc(x.label)}" maxlength="100"></label><small>${esc(x.state.name)} · ${x.state.n} notes · mode ${x.state.mode+1}${same?'':' · different tuning'}</small><div class="panelactions"><button data-material="hear" data-i="${i}">▶ Hear</button><button data-material="place" data-i="${i}" ${same?'':'disabled'}>Place on HexBoard</button><button data-material="load" data-i="${i}">${same?'Explore source':'Load source tuning'}</button><button data-material="remove" data-i="${i}" aria-label="Remove ${esc(x.label)}">Remove</button></div></article>`;}).join('')}</div>`:'<p>Add scales and chords in Discover, then place them on your layout here.</p>'}</details></section>`;}
- function click(b){const action=b.dataset.material;if(!action)return false;try{const x=items[Number(b.dataset.i)];if(!x)throw Error('Select a collected item.');if(action==='hear')play(x.coords.map(m=>m[0]*x.state.p+m[1]*x.state.g),x.kind);if(action==='place'){if(tuningIdentity(x.state)!==tuningIdentity(getState()))throw Error('Load this item’s source tuning before placing it.');place(x);}if(action==='load')load(structuredClone(x.state));if(action==='remove'){items.splice(Number(b.dataset.i),1);refresh();}}catch(e){notify(e.message);}return true;}
- function change(el){if(el.dataset.materialName===undefined)return false;const x=items[Number(el.dataset.materialName)];if(x)x.label=el.value.trim().slice(0,100)||x.kind;return true;}
- function restore(data){if(!data){items=[];return;}if(!Array.isArray(data)||data.length>64)throw Error('Invalid material collection.');items=data.map(x=>{validate(x.state);if(x.exact!==undefined&&typeof x.exact!=='boolean'||!['scale','chord'].includes(x.kind)||!Array.isArray(x.coords)||x.coords.length<2||x.coords.length>(x.kind==='chord'?MAX_CHORD_TONES:256)||x.coords.some(m=>!Array.isArray(m)||m.length!==2||m.some(v=>!Number.isInteger(v)||Math.abs(v)>10000)))throw Error('Invalid material coordinates.');return {kind:x.kind,state:structuredClone(x.state),coords:structuredClone(x.coords),label:String(x.label).slice(0,100),...(x.exact?{exact:true}:{}),...(restoredHarmonicProvenance(x.harmonicSelection,x.state,x.coords)?{harmonicSelection:restoredHarmonicProvenance(x.harmonicSelection,x.state,x.coords)}:{})};});}
- return {add,addScale,render,click,change,restore,serialize:()=>structuredClone(items)};
+export function createMaterialWorkspace({getState, play, place, load, refresh, notify, validate}) {
+  let items = [];
+  function add(kind, state, coords, label, {exact = false, harmonicSelection = null} = {}) {
+    if (items.length >= 64) throw Error('The collection holds up to 64 items.');
+    const item = {
+      kind,
+      state: structuredClone(state),
+      coords: structuredClone(coords),
+      label: String(label).slice(0, 100),
+      ...(exact ? {exact: true} : {}),
+      ...(harmonicSelection
+        ? {harmonicSelection: restoredHarmonicProvenance(harmonicSelection, state, coords)}
+        : {})
+    };
+    if (
+      items.some(
+        x =>
+          JSON.stringify([x.kind, x.state, x.coords, !!x.exact]) ===
+          JSON.stringify([item.kind, item.state, item.coords, !!item.exact])
+      )
+    ) {
+      notify('Already in the collection.');
+      return;
+    }
+    items.push(item);
+    notify('Added to collection. Save session keeps your material.');
+    refresh();
+  }
+  function addScale() {
+    const s = getState();
+    add(
+      'scale',
+      s,
+      scale(s).notes.map(n => [Math.round((n.c - n.k * s.g) / s.p), n.k]),
+      `${s.name} · ${s.n} notes · mode ${s.mode + 1}`
+    );
+  }
+  function render() {
+    return `<section class="material-collection"><details ${items.length ? 'open' : ''}><summary>Material collection · ${items.length}</summary>${
+      items.length
+        ? `<div class="material-list">${items
+            .map((x, i) => {
+              const same = tuningIdentity(x.state) === tuningIdentity(getState());
+              return `<article class="material-item"><label>${x.kind === 'scale' ? 'Scale' : 'Chord'}<input data-material-name="${i}" value="${esc(x.label)}" maxlength="100"></label><small>${esc(x.state.name)} · ${x.state.n} notes · mode ${x.state.mode + 1}${same ? '' : ' · different tuning'}</small><div class="panelactions"><button data-material="hear" data-i="${i}">▶ Hear</button><button data-material="place" data-i="${i}" ${same ? '' : 'disabled'}>Place on HexBoard</button><button data-material="load" data-i="${i}">${same ? 'Explore source' : 'Load source tuning'}</button><button data-material="remove" data-i="${i}" aria-label="Remove ${esc(x.label)}">Remove</button></div></article>`;
+            })
+            .join('')}</div>`
+        : '<p>Add scales and chords in Discover, then place them on your layout here.</p>'
+    }</details></section>`;
+  }
+  function click(b) {
+    const action = b.dataset.material;
+    if (!action) return false;
+    try {
+      const x = items[Number(b.dataset.i)];
+      if (!x) throw Error('Select a collected item.');
+      if (action === 'hear')
+        play(
+          x.coords.map(m => m[0] * x.state.p + m[1] * x.state.g),
+          x.kind
+        );
+      if (action === 'place') {
+        if (tuningIdentity(x.state) !== tuningIdentity(getState()))
+          throw Error('Load this item’s source tuning before placing it.');
+        place(x);
+      }
+      if (action === 'load') load(structuredClone(x.state));
+      if (action === 'remove') {
+        items.splice(Number(b.dataset.i), 1);
+        refresh();
+      }
+    } catch (e) {
+      notify(e.message);
+    }
+    return true;
+  }
+  function change(el) {
+    if (el.dataset.materialName === undefined) return false;
+    const x = items[Number(el.dataset.materialName)];
+    if (x) x.label = el.value.trim().slice(0, 100) || x.kind;
+    return true;
+  }
+  function restore(data) {
+    if (!data) {
+      items = [];
+      return;
+    }
+    if (!Array.isArray(data) || data.length > 64) throw Error('Invalid material collection.');
+    items = data.map(x => {
+      validate(x.state);
+      if (
+        (x.exact !== undefined && typeof x.exact !== 'boolean') ||
+        !['scale', 'chord'].includes(x.kind) ||
+        !Array.isArray(x.coords) ||
+        x.coords.length < 2 ||
+        x.coords.length > (x.kind === 'chord' ? MAX_CHORD_TONES : 256) ||
+        x.coords.some(
+          m =>
+            !Array.isArray(m) ||
+            m.length !== 2 ||
+            m.some(v => !Number.isInteger(v) || Math.abs(v) > 10000)
+        )
+      )
+        throw Error('Invalid material coordinates.');
+      return {
+        kind: x.kind,
+        state: structuredClone(x.state),
+        coords: structuredClone(x.coords),
+        label: String(x.label).slice(0, 100),
+        ...(x.exact ? {exact: true} : {}),
+        ...(restoredHarmonicProvenance(x.harmonicSelection, x.state, x.coords)
+          ? {harmonicSelection: restoredHarmonicProvenance(x.harmonicSelection, x.state, x.coords)}
+          : {})
+      };
+    });
+  }
+  return {add, addScale, render, click, change, restore, serialize: () => structuredClone(items)};
 }

@@ -1,37 +1,281 @@
-import {esc,option} from './ui.mjs';
-import {parseSearch,commaFromVector,selectionRank,mappedComma} from '../core/comma-search.mjs';
+import {esc, option} from './ui.mjs';
+import {parseSearch, commaFromVector, selectionRank, mappedComma} from '../core/comma-search.mjs';
 import {createCommaWorker} from '../workers.mjs';
-export function createCommaWorkspace({getStates,generate,refresh,notify}){
- const defaults=()=>({basis:'2.3.5.7',bound:4,overrides:'2:12',min:0,max:35,must:'',hideInverse:true,primitive:true});
- let form=defaults(),config=null,configRaw=null,rows=[],chosen=new Map(),worker=null,status='idle',processed=0,total=0,sort='cents',page=0,message='',lastRefresh=0;
- const running=()=>worker!==null;
- function cancel(){if(worker){worker.terminate();worker=null;status='cancelled';message='Search cancelled. These are partial results.';}}
- function start(){const parsed=parseSearch(form);cancel();config=parsed;configRaw={...form};rows=[];chosen.clear();processed=0;total=parsed.total;page=0;message='';status='running';const current=createCommaWorker();worker=current;current.onmessage=e=>{if(worker!==current)return;const data=e.data;if(data.status==='error'){message=data.message;status='error';current.terminate();worker=null;refresh();return;}rows.push(...data.batch);processed=data.processed;total=data.total;status=data.status;if(data.status!=='running'){current.terminate();worker=null;if(data.status==='limited')message='Stopped at 20,000 results. Narrow the bounds for an exhaustive list.';refresh();}else if(Date.now()-lastRefresh>300){lastRefresh=Date.now();refresh();}};current.onerror=()=>{if(worker!==current)return;message='The background search could not run. Reload the app and try again.';status='error';current.terminate();worker=null;refresh();};current.postMessage({...form});refresh();}
- function stateText(t,s){const m=mappedComma(config.basis,t,s);return m===null?'<span class="dim">Outside basis</span>':m.every(x=>x===0)?'<span class="good">Tempered out</span>':`<span class="dim" title="${m[0]} periods + ${m[1]} generators">Not tempered out</span>`;}
- function render(){
-  let estimate='';try{estimate=`${parseSearch(form).total.toLocaleString()} combinations`;}catch(e){estimate=e.message;}
-  const disabled=running()?'disabled':'',list=[...chosen.values()],rank=config?selectionRank(config.basis,list):null;
-  const sorted=[...rows].sort((a,b)=>(sort==='max'?a.maxExp-b.maxExp:sort==='sum'?a.sumExp-b.sumExp:Math.abs(a.c)-Math.abs(b.c))||Math.abs(a.c)-Math.abs(b.c)||a.sumExp-b.sumExp||a.label.localeCompare(b.label));
-  page=Math.min(page,Math.max(0,Math.ceil(rows.length/50)-1));
-  const useButtons=(action,enabled)=>`<button data-comma="${action}" class="primary" ${enabled?'':'disabled'}>Send commas</button>`;
-  return `<section class="comma-workspace"><div class="comma-inputs"><div class="comma-controls">
+export function createCommaWorkspace({getStates, generate, refresh, notify}) {
+  const defaults = () => ({
+    basis: '2.3.5.7',
+    bound: 4,
+    overrides: '2:12',
+    min: 0,
+    max: 35,
+    must: '',
+    hideInverse: true,
+    primitive: true
+  });
+  let form = defaults(),
+    config = null,
+    configRaw = null,
+    rows = [],
+    chosen = new Map(),
+    worker = null,
+    status = 'idle',
+    processed = 0,
+    total = 0,
+    sort = 'cents',
+    page = 0,
+    message = '',
+    lastRefresh = 0;
+  const running = () => worker !== null;
+  function cancel() {
+    if (worker) {
+      worker.terminate();
+      worker = null;
+      status = 'cancelled';
+      message = 'Search cancelled. These are partial results.';
+    }
+  }
+  function start() {
+    const parsed = parseSearch(form);
+    cancel();
+    config = parsed;
+    configRaw = {...form};
+    rows = [];
+    chosen.clear();
+    processed = 0;
+    total = parsed.total;
+    page = 0;
+    message = '';
+    status = 'running';
+    const current = createCommaWorker();
+    worker = current;
+    current.onmessage = e => {
+      if (worker !== current) return;
+      const data = e.data;
+      if (data.status === 'error') {
+        message = data.message;
+        status = 'error';
+        current.terminate();
+        worker = null;
+        refresh();
+        return;
+      }
+      rows.push(...data.batch);
+      processed = data.processed;
+      total = data.total;
+      status = data.status;
+      if (data.status !== 'running') {
+        current.terminate();
+        worker = null;
+        if (data.status === 'limited')
+          message = 'Stopped at 20,000 results. Narrow the bounds for an exhaustive list.';
+        refresh();
+      } else if (Date.now() - lastRefresh > 300) {
+        lastRefresh = Date.now();
+        refresh();
+      }
+    };
+    current.onerror = () => {
+      if (worker !== current) return;
+      message = 'The background search could not run. Reload the app and try again.';
+      status = 'error';
+      current.terminate();
+      worker = null;
+      refresh();
+    };
+    current.postMessage({...form});
+    refresh();
+  }
+  function stateText(t, s) {
+    const m = mappedComma(config.basis, t, s);
+    return m === null
+      ? '<span class="dim">Outside basis</span>'
+      : m.every(x => x === 0)
+        ? '<span class="good">Tempered out</span>'
+        : `<span class="dim" title="${m[0]} periods + ${m[1]} generators">Not tempered out</span>`;
+  }
+  function render() {
+    let estimate = '';
+    try {
+      estimate = `${parseSearch(form).total.toLocaleString()} combinations`;
+    } catch (e) {
+      estimate = e.message;
+    }
+    const disabled = running() ? 'disabled' : '',
+      list = [...chosen.values()],
+      rank = config ? selectionRank(config.basis, list) : null;
+    const sorted = [...rows].sort(
+      (a, b) =>
+        (sort === 'max'
+          ? a.maxExp - b.maxExp
+          : sort === 'sum'
+            ? a.sumExp - b.sumExp
+            : Math.abs(a.c) - Math.abs(b.c)) ||
+        Math.abs(a.c) - Math.abs(b.c) ||
+        a.sumExp - b.sumExp ||
+        a.label.localeCompare(b.label)
+    );
+    page = Math.min(page, Math.max(0, Math.ceil(rows.length / 50) - 1));
+    const useButtons = (action, enabled) =>
+      `<button data-comma="${action}" class="primary" ${enabled ? '' : 'disabled'}>Send commas</button>`;
+    return `<section class="comma-workspace"><div class="comma-inputs"><div class="comma-controls">
    <label>Prime basis<input data-comma-field="basis" value="${esc(form.basis)}" ${disabled}></label>
    <label>Max |exponent|<input data-comma-field="bound" type="number" min="0" max="24" step="1" value="${form.bound}" ${disabled}></label>
    <label>Min |cents|<input data-comma-field="min" type="number" min="0" max="1200" step="0.1" value="${form.min}" ${disabled}></label>
    <label>Max |cents|<input data-comma-field="max" type="number" min="0" max="1200" step="0.1" value="${form.max}" ${disabled}></label>
    <label>Exponent overrides<input data-comma-field="overrides" value="${esc(form.overrides)}" placeholder="2:12, 3:6" ${disabled}></label>
    <label>Required primes<input data-comma-field="must" value="${esc(form.must)}" placeholder="Optional, e.g. 7" ${disabled}></label>
-   <label class="checklabel"><input data-comma-field="hideInverse" type="checkbox" ${form.hideInverse?'checked':''} ${disabled}>Hide inverses</label>
-   <label class="checklabel"><input data-comma-field="primitive" type="checkbox" ${form.primitive?'checked':''} ${disabled}>Hide exact powers</label></div>
-   <div class="panelactions"><button data-comma="search" class="primary" ${disabled}>Search commas</button>${running()?'<button data-comma="cancel">Cancel</button>':''}<button data-comma="basis" ${disabled}>Use current basis</button></div><p class="comma-estimate">${esc(estimate)}</p>
+   <label class="checklabel"><input data-comma-field="hideInverse" type="checkbox" ${form.hideInverse ? 'checked' : ''} ${disabled}>Hide inverses</label>
+   <label class="checklabel"><input data-comma-field="primitive" type="checkbox" ${form.primitive ? 'checked' : ''} ${disabled}>Hide exact powers</label></div>
+   <div class="panelactions"><button data-comma="search" class="primary" ${disabled}>Search commas</button>${running() ? '<button data-comma="cancel">Cancel</button>' : ''}<button data-comma="basis" ${disabled}>Use current basis</button></div><p class="comma-estimate">${esc(estimate)}</p>
    <details><summary>Search details</summary><p>Bounds are absolute prime exponents; overrides replace individual bounds. Required primes must have nonzero exponents. Exact powers share an exponent divisor. Unison is excluded.</p><p>Supports 1–8 primes up to 97, exponents up to 24, and 20,000 results. Cancelled or capped searches are partial. Ratios use exact integers; cents use logarithms with a 0.00000001-cent boundary tolerance. Mapping status is independent of tuning.</p><p>Save session keeps settings and selected commas. Rerun the search for the full list.</p></details></div>
-   <div class="comma-results"><div class="comma-results-head"><b>Commas${config?` <small class="dim">${config.basis.join('.')}</small>`:''}${rows.length?` · ${rows.length.toLocaleString()}`:''}</b><label class="comma-sort">Sort<select data-comma-field="sort">${option('cents','Cents',sort)}${option('max','Max exponent',sort)}${option('sum','Total exponents',sort)}</select></label></div>
-   ${list.length?`<div class="comma-selection"><div class="comma-selected">${list.map(t=>`<button data-comma="remove" data-vector="${t.exponents.join(',')}" title="Remove ${esc(t.label)}">${esc(t.label)} ×</button>`).join('')}</div><p>${list.length} selected · rank ${rank.rank}${rank.referenceKilled?' · reference interval tempered out':rank.rank>2?` · add ${rank.rank-2} independent comma${rank.rank-2===1?'':'s'}`:rank.rank<2?' · remove a comma':''}</p><div class="panelactions">${useButtons('generate',list.length>0)}<button data-comma="clear">Clear</button></div></div>`:''}
-   <div class="comma-progress" role="status">${status==='idle'?'Search to list commas.':status==='running'?`Searching · ${(100*processed/total).toFixed(0)}%`:status==='complete'?'Search complete':status==='restored'?'Selection restored':status==='cancelled'?'Cancelled · partial results':status==='limited'?'Result limit · partial results':'Search error'}${message?` · ${esc(message)}`:''}</div>${running()?`<progress value="${processed}" max="${total}" aria-label="Comma search progress"></progress>`:''}
-   ${rows.length?`<ul class="comma-list">${sorted.slice(page*50,(page+1)*50).map(t=>{const key=t.exponents.join(',');return `<li class="comma-result"><div class="comma-result-main"><label class="comma-result-choice"><input type="checkbox" data-comma-select="${key}" aria-label="Select ${esc(t.label)}" ${chosen.has(key)?'checked':''}><strong>${esc(t.label)}</strong></label><span class="comma-cents">${Number(t.c).toFixed(4)} ¢</span></div><div class="comma-result-bottom"><span class="comma-map-status">${stateText(t,getStates()[0])}</span><div class="comma-result-actions"><button data-comma="use" data-vector="${key}" class="primary">Send commas</button></div></div><details><summary>Exponents</summary><p>${config.basis.join(' · ')}<br>[${t.exponents.join(', ')}] · max ${t.maxExp} · total ${t.sumExp}</p></details></li>`;}).join('')}</ul><div class="panelactions comma-pagination"><button data-comma="previous" ${page?'':'disabled'}>Previous</button><span>${page*50+1}–${Math.min(rows.length,(page+1)*50)} / ${rows.length.toLocaleString()}</span><button data-comma="next" ${(page+1)*50<rows.length?'':'disabled'}>Next</button></div>`:status==='complete'?'<p class="empty">No matches. Widen the bounds.</p>':''}</div></section>`;
- }
- function click(b){const act=b.dataset.comma;if(!act)return false;try{if(act==='search'){start();return true;}if(act==='cancel')cancel();if(act==='previous')page=Math.max(0,page-1);if(act==='next')page++;if(act==='clear')chosen.clear();if(act==='remove')chosen.delete(b.dataset.vector);if(act==='basis'){const basis=getStates()[0].basis;form.basis=basis.join('.');form.overrides=basis.includes(2)?'2:12':'';form.must='';}if(act==='toggle'){const key=b.dataset.vector;if(chosen.has(key))chosen.delete(key);else{if(chosen.size>=64)throw Error('Select at most 64 commas.');const t=rows.find(t=>t.exponents.join(',')===key);if(t)chosen.set(key,t);}}if(act==='generate'||act==='use'){const list=act==='use'?rows.filter(t=>t.exponents.join(',')===b.dataset.vector):[...chosen.values()];if(!list.length)throw Error('Select at least one comma.');generate(config.basis,list);message='';notify('Commas sent to the temperament input.');}refresh();}catch(e){message=e.message;notify(e.message);refresh();}return true;}
- function change(el){if(el.dataset.commaSelect!==undefined){const key=el.dataset.commaSelect;if(el.checked){if(chosen.size>=64){notify('Select at most 64 commas.');el.checked=false;return true;}const t=rows.find(t=>t.exponents.join(',')===key);if(t)chosen.set(key,t);}else chosen.delete(key);refresh();return true;}const f=el.dataset.commaField;if(!f)return false;if(f==='sort'){sort=el.value;page=0;}else form[f]=el.type==='checkbox'?el.checked:['bound','min','max'].includes(f)?Number(el.value):el.value;refresh();return true;}
- function restore(data){cancel();if(!data){form=defaults();config=null;configRaw=null;chosen.clear();rows=[];status='idle';processed=0;total=0;message='';return;}parseSearch(data.form);const raw=data.configRaw,stored=raw?parseSearch(raw):null;if(!Array.isArray(data.selected)||data.selected.length>64||data.selected.length&&!stored)throw Error('Invalid saved comma selection.');const selected=data.selected.map(es=>{if(!Array.isArray(es)||es.length!==stored.basis.length||!es.every((e,i)=>Number.isInteger(e)&&Math.abs(e)<=stored.bounds[i]))throw Error('Invalid saved comma exponents.');return commaFromVector(stored.basis,es);});form={...data.form};config=stored;configRaw=raw;rows=[];chosen=new Map(selected.map(t=>[t.exponents.join(','),t]));sort=['cents','max','sum'].includes(data.sort)?data.sort:'cents';status='restored';processed=0;total=0;message='Rerun Search commas to rebuild the results list.';}
- return {render,click,change,restore,serialize:()=>({form:{...form},configRaw,selected:[...chosen.values()].map(t=>t.exponents),sort})};
+   <div class="comma-results"><div class="comma-results-head"><b>Commas${config ? ` <small class="dim">${config.basis.join('.')}</small>` : ''}${rows.length ? ` · ${rows.length.toLocaleString()}` : ''}</b><label class="comma-sort">Sort<select data-comma-field="sort">${option('cents', 'Cents', sort)}${option('max', 'Max exponent', sort)}${option('sum', 'Total exponents', sort)}</select></label></div>
+   ${list.length ? `<div class="comma-selection"><div class="comma-selected">${list.map(t => `<button data-comma="remove" data-vector="${t.exponents.join(',')}" title="Remove ${esc(t.label)}">${esc(t.label)} ×</button>`).join('')}</div><p>${list.length} selected · rank ${rank.rank}${rank.referenceKilled ? ' · reference interval tempered out' : rank.rank > 2 ? ` · add ${rank.rank - 2} independent comma${rank.rank - 2 === 1 ? '' : 's'}` : rank.rank < 2 ? ' · remove a comma' : ''}</p><div class="panelactions">${useButtons('generate', list.length > 0)}<button data-comma="clear">Clear</button></div></div>` : ''}
+   <div class="comma-progress" role="status">${status === 'idle' ? 'Search to list commas.' : status === 'running' ? `Searching · ${((100 * processed) / total).toFixed(0)}%` : status === 'complete' ? 'Search complete' : status === 'restored' ? 'Selection restored' : status === 'cancelled' ? 'Cancelled · partial results' : status === 'limited' ? 'Result limit · partial results' : 'Search error'}${message ? ` · ${esc(message)}` : ''}</div>${running() ? `<progress value="${processed}" max="${total}" aria-label="Comma search progress"></progress>` : ''}
+   ${
+     rows.length
+       ? `<ul class="comma-list">${sorted
+           .slice(page * 50, (page + 1) * 50)
+           .map(t => {
+             const key = t.exponents.join(',');
+             return `<li class="comma-result"><div class="comma-result-main"><label class="comma-result-choice"><input type="checkbox" data-comma-select="${key}" aria-label="Select ${esc(t.label)}" ${chosen.has(key) ? 'checked' : ''}><strong>${esc(t.label)}</strong></label><span class="comma-cents">${Number(t.c).toFixed(4)} ¢</span></div><div class="comma-result-bottom"><span class="comma-map-status">${stateText(t, getStates()[0])}</span><div class="comma-result-actions"><button data-comma="use" data-vector="${key}" class="primary">Send commas</button></div></div><details><summary>Exponents</summary><p>${config.basis.join(' · ')}<br>[${t.exponents.join(', ')}] · max ${t.maxExp} · total ${t.sumExp}</p></details></li>`;
+           })
+           .join(
+             ''
+           )}</ul><div class="panelactions comma-pagination"><button data-comma="previous" ${page ? '' : 'disabled'}>Previous</button><span>${page * 50 + 1}–${Math.min(rows.length, (page + 1) * 50)} / ${rows.length.toLocaleString()}</span><button data-comma="next" ${(page + 1) * 50 < rows.length ? '' : 'disabled'}>Next</button></div>`
+       : status === 'complete'
+         ? '<p class="empty">No matches. Widen the bounds.</p>'
+         : ''
+   }</div></section>`;
+  }
+  function click(b) {
+    const act = b.dataset.comma;
+    if (!act) return false;
+    try {
+      if (act === 'search') {
+        start();
+        return true;
+      }
+      if (act === 'cancel') cancel();
+      if (act === 'previous') page = Math.max(0, page - 1);
+      if (act === 'next') page++;
+      if (act === 'clear') chosen.clear();
+      if (act === 'remove') chosen.delete(b.dataset.vector);
+      if (act === 'basis') {
+        const basis = getStates()[0].basis;
+        form.basis = basis.join('.');
+        form.overrides = basis.includes(2) ? '2:12' : '';
+        form.must = '';
+      }
+      if (act === 'toggle') {
+        const key = b.dataset.vector;
+        if (chosen.has(key)) chosen.delete(key);
+        else {
+          if (chosen.size >= 64) throw Error('Select at most 64 commas.');
+          const t = rows.find(t => t.exponents.join(',') === key);
+          if (t) chosen.set(key, t);
+        }
+      }
+      if (act === 'generate' || act === 'use') {
+        const list =
+          act === 'use'
+            ? rows.filter(t => t.exponents.join(',') === b.dataset.vector)
+            : [...chosen.values()];
+        if (!list.length) throw Error('Select at least one comma.');
+        generate(config.basis, list);
+        message = '';
+        notify('Commas sent to the temperament input.');
+      }
+      refresh();
+    } catch (e) {
+      message = e.message;
+      notify(e.message);
+      refresh();
+    }
+    return true;
+  }
+  function change(el) {
+    if (el.dataset.commaSelect !== undefined) {
+      const key = el.dataset.commaSelect;
+      if (el.checked) {
+        if (chosen.size >= 64) {
+          notify('Select at most 64 commas.');
+          el.checked = false;
+          return true;
+        }
+        const t = rows.find(t => t.exponents.join(',') === key);
+        if (t) chosen.set(key, t);
+      } else chosen.delete(key);
+      refresh();
+      return true;
+    }
+    const f = el.dataset.commaField;
+    if (!f) return false;
+    if (f === 'sort') {
+      sort = el.value;
+      page = 0;
+    } else
+      form[f] =
+        el.type === 'checkbox'
+          ? el.checked
+          : ['bound', 'min', 'max'].includes(f)
+            ? Number(el.value)
+            : el.value;
+    refresh();
+    return true;
+  }
+  function restore(data) {
+    cancel();
+    if (!data) {
+      form = defaults();
+      config = null;
+      configRaw = null;
+      chosen.clear();
+      rows = [];
+      status = 'idle';
+      processed = 0;
+      total = 0;
+      message = '';
+      return;
+    }
+    parseSearch(data.form);
+    const raw = data.configRaw,
+      stored = raw ? parseSearch(raw) : null;
+    if (
+      !Array.isArray(data.selected) ||
+      data.selected.length > 64 ||
+      (data.selected.length && !stored)
+    )
+      throw Error('Invalid saved comma selection.');
+    const selected = data.selected.map(es => {
+      if (
+        !Array.isArray(es) ||
+        es.length !== stored.basis.length ||
+        !es.every((e, i) => Number.isInteger(e) && Math.abs(e) <= stored.bounds[i])
+      )
+        throw Error('Invalid saved comma exponents.');
+      return commaFromVector(stored.basis, es);
+    });
+    form = {...data.form};
+    config = stored;
+    configRaw = raw;
+    rows = [];
+    chosen = new Map(selected.map(t => [t.exponents.join(','), t]));
+    sort = ['cents', 'max', 'sum'].includes(data.sort) ? data.sort : 'cents';
+    status = 'restored';
+    processed = 0;
+    total = 0;
+    message = 'Rerun Search commas to rebuild the results list.';
+  }
+  return {
+    render,
+    click,
+    change,
+    restore,
+    serialize: () => ({
+      form: {...form},
+      configRaw,
+      selected: [...chosen.values()].map(t => t.exponents),
+      sort
+    })
+  };
 }

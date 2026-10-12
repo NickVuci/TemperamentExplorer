@@ -1,4 +1,59 @@
-import {MAX_SCALE_SIZE,purePeriod,gcd} from './engine.mjs';
+import {MAX_SCALE_SIZE, purePeriod, gcd} from './engine.mjs';
 import {assignment} from './assignments.mjs';
-function prime(n){if(!Number.isInteger(n)||n<2||n>97)return false;for(let k=2;k*k<=n;k++)if(n%k===0)return false;return true;}
-export function validateState(s){if(!s||typeof s.name!=='string'||s.name.length>80||!Array.isArray(s.basis)||s.basis.length<2||s.basis.length>10||!s.basis.every(prime)||new Set(s.basis).size!==s.basis.length)throw Error('Use distinct basis primes up to 97. The first prime defines the reference interval.');if(!Array.isArray(s.rows)||s.rows.length!==2||!s.rows.every(r=>Array.isArray(r)&&r.length===s.basis.length&&r.every(v=>Number.isInteger(v)&&Math.abs(v)<=1000))||s.rows[0][0]<1||s.rows[1][0]!==0||s.rows[1].reduce(gcd,0)!==1)throw Error('Use two integer mapping rows. The first column must be [q, 0] with positive integer q (periods per reference interval); generator coefficients must have gcd 1.');if(!Number.isFinite(s.p)||s.p<purePeriod(s)/2||s.p>purePeriod(s)*2||!Number.isFinite(s.g)||s.g<=0||s.g>=s.p||!Number.isInteger(s.n)||s.n<2||s.n>MAX_SCALE_SIZE||!Number.isInteger(s.mode)||s.mode<0||s.mode>=s.n)throw Error(`Check period, generator, size (2–${MAX_SCALE_SIZE}) and mode.`);if(s.assignments){if(!Array.isArray(s.assignments)||s.assignments.length>64)throw Error('Use at most 64 target assignments.');s.assignments=s.assignments.map(t=>assignment(t,t.m));}return s;}
+function prime(n) {
+  if (!Number.isInteger(n) || n < 2 || n > 97) return false;
+  for (let k = 2; k * k <= n; k++) if (n % k === 0) return false;
+  return true;
+}
+export function validateState(s) {
+  if (
+    !s ||
+    typeof s.name !== 'string' ||
+    s.name.length > 80 ||
+    !Array.isArray(s.basis) ||
+    s.basis.length < 2 ||
+    s.basis.length > 10 ||
+    !s.basis.every(prime) ||
+    new Set(s.basis).size !== s.basis.length
+  )
+    throw Error(
+      'Use distinct basis primes up to 97. The first prime defines the reference interval.'
+    );
+  if (
+    !Array.isArray(s.rows) ||
+    s.rows.length !== 2 ||
+    !s.rows.every(
+      r =>
+        Array.isArray(r) &&
+        r.length === s.basis.length &&
+        r.every(v => Number.isInteger(v) && Math.abs(v) <= 1000)
+    ) ||
+    s.rows[0][0] < 1 ||
+    s.rows[1][0] !== 0 ||
+    s.rows[1].reduce(gcd, 0) !== 1
+  )
+    throw Error(
+      'Use two integer mapping rows. The first column must be [q, 0] with positive integer q (periods per reference interval); generator coefficients must have gcd 1.'
+    );
+  if (
+    !Number.isFinite(s.p) ||
+    s.p < purePeriod(s) / 2 ||
+    s.p > purePeriod(s) * 2 ||
+    !Number.isFinite(s.g) ||
+    s.g <= 0 ||
+    s.g >= s.p ||
+    !Number.isInteger(s.n) ||
+    s.n < 2 ||
+    s.n > MAX_SCALE_SIZE ||
+    !Number.isInteger(s.mode) ||
+    s.mode < 0 ||
+    s.mode >= s.n
+  )
+    throw Error(`Check period, generator, size (2–${MAX_SCALE_SIZE}) and mode.`);
+  if (s.assignments) {
+    if (!Array.isArray(s.assignments) || s.assignments.length > 64)
+      throw Error('Use at most 64 target assignments.');
+    s.assignments = s.assignments.map(t => assignment(t, t.m));
+  }
+  return s;
+}

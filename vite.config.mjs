@@ -1,2 +1,5 @@
 import {defineConfig} from 'vite';
-export default defineConfig({root:'src',server:{host:'0.0.0.0',allowedHosts:['terminal.local']}});
+export default defineConfig({
+  root: 'src',
+  server: {host: '0.0.0.0', allowedHosts: ['terminal.local']}
+});

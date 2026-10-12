@@ -1,9 +1,168 @@
 import {bigintGcd as gcd} from './rational.mjs';
-export function parseSearch(input){const basis=String(input.basis).trim().split(/[\s,.]+/).filter(Boolean).map(Number);if(!basis.length||basis.length>8||new Set(basis).size!==basis.length||!basis.every(p=>Number.isInteger(p)&&p>=2&&p<=97&&Array.from({length:Math.max(0,Math.floor(Math.sqrt(p))-1)},(_,i)=>i+2).every(d=>p%d)))throw Error('Choose 1–8 distinct primes up to 97.');basis.sort((a,b)=>a-b);const bound=Number(input.bound);if(!Number.isInteger(bound)||bound<0||bound>24)throw Error('Exponent bounds must be integers from 0 to 24.');const bounds=basis.map(()=>bound);for(const token of String(input.overrides||'').split(/[\s,;]+/).filter(Boolean)){const m=token.match(/^(\d+):(\d+)$/);if(!m||!basis.includes(Number(m[1]))||Number(m[2])>24)throw Error('Use overrides such as 2:12, 3:6 for primes in the basis (bounds 0–24).');bounds[basis.indexOf(Number(m[1]))]=Number(m[2]);}const min=Number(input.min),max=Number(input.max);if(!Number.isFinite(min)||!Number.isFinite(max)||min<0||max<min||max>1200)throw Error('Use a cents-size range from 0 to 1200, with maximum at least minimum.');const must=String(input.must||'').split(/[\s,.]+/).filter(Boolean).map(Number);if(!must.every(p=>basis.includes(p)))throw Error('Required primes must belong to the basis.');return {basis,bounds,min,max,must,hideInverse:input.hideInverse!==false,primitive:input.primitive!==false,total:bounds.slice(1).reduce((a,b)=>a*(2*b+1),1)};}
-export function commaFromVector(basis,exponents){let n=1n,d=1n;for(let i=0;i<basis.length;i++){const v=BigInt(basis[i])**BigInt(Math.abs(exponents[i]));if(exponents[i]>0)n*=v;else d*=v;}return {label:`${n}/${d}`,exponents:[...exponents],c:1200*exponents.reduce((a,e,i)=>a+e*Math.log2(basis[i]),0),maxExp:Math.max(...exponents.map(Math.abs)),sumExp:exponents.reduce((a,e)=>a+Math.abs(e),0)};}
-export function* searchCommas(config,chunk=2048,cap=20000){const c=config,logs=c.basis.map(Math.log2),lo=c.min/1200,hi=c.max/1200;let batch=[],count=0;for(let index=0;index<c.total;index++){let k=index,sum=0;const es=[0];for(let i=1;i<c.basis.length;i++){const width=2*c.bounds[i]+1,e=k%width-c.bounds[i];k=Math.floor(k/width);es.push(e);sum+=e*logs[i];}const first=Math.max(-c.bounds[0],Math.ceil((lo-sum)/logs[0]-1e-11)),last=Math.min(c.bounds[0],Math.floor((hi-sum)/logs[0]+1e-11));for(let e=first;e<=last;e++){es[0]=e;if(es.every(e=>e===0)||c.must.some(p=>es[c.basis.indexOf(p)]===0))continue;if(c.primitive&&es.reduce((g,e)=>gcd(g,BigInt(e)),0n)>1n)continue;const result=commaFromVector(c.basis,es);if(result.c<=0||result.c<c.min-1e-8||result.c>c.max+1e-8)continue;batch.push(result);count++;if(!c.hideInverse){batch.push(commaFromVector(c.basis,es.map(e=>-e)));count++;}if(count>=cap){yield {batch,processed:index+1,total:c.total,count,status:'limited'};return;}}
- if((index+1)%chunk===0){yield {batch,processed:index+1,total:c.total,count,status:'running'};batch=[];}}
- yield {batch,processed:c.total,total:c.total,count,status:'complete'};}
-export function matrixRank(vectors){const A=vectors.map(v=>v.map(BigInt));if(!A.length)return 0;let row=0;for(let col=0;col<A[0].length;col++){const k=A.findIndex((r,i)=>i>=row&&r[col]!==0n);if(k<0)continue;[A[k],A[row]]=[A[row],A[k]];for(let j=row+1;j<A.length;j++){if(!A[j][col])continue;const a=A[row][col],b=A[j][col];A[j]=A[j].map((v,i)=>a*v-b*A[row][i]);const g=A[j].reduce(gcd,0n);if(g>1n)A[j]=A[j].map(v=>v/g);}row++;}return row;}
-export function selectionRank(basis,list){const vectors=list.map(t=>t.exponents),independent=matrixRank(vectors),rank=basis.length-independent,octave=basis.includes(2)&&matrixRank([...vectors,basis.map(p=>p===2?1:0)])===independent;const referenceKilled=matrixRank([...vectors,basis.map((_,i)=>i===0?1:0)])===independent;return {independent,rank,octave,referenceKilled,canGenerate:list.length>0&&rank===2&&!referenceKilled&&basis.length>=3};}
-export function mappedComma(basis,t,s){const m=[0,0];for(let i=0;i<basis.length;i++){if(!t.exponents[i])continue;const j=s.basis.indexOf(basis[i]);if(j<0)return null;m[0]+=t.exponents[i]*s.rows[0][j];m[1]+=t.exponents[i]*s.rows[1][j];}return m;}
+export function parseSearch(input) {
+  const basis = String(input.basis)
+    .trim()
+    .split(/[\s,.]+/)
+    .filter(Boolean)
+    .map(Number);
+  if (
+    !basis.length ||
+    basis.length > 8 ||
+    new Set(basis).size !== basis.length ||
+    !basis.every(
+      p =>
+        Number.isInteger(p) &&
+        p >= 2 &&
+        p <= 97 &&
+        Array.from({length: Math.max(0, Math.floor(Math.sqrt(p)) - 1)}, (_, i) => i + 2).every(
+          d => p % d
+        )
+    )
+  )
+    throw Error('Choose 1–8 distinct primes up to 97.');
+  basis.sort((a, b) => a - b);
+  const bound = Number(input.bound);
+  if (!Number.isInteger(bound) || bound < 0 || bound > 24)
+    throw Error('Exponent bounds must be integers from 0 to 24.');
+  const bounds = basis.map(() => bound);
+  for (const token of String(input.overrides || '')
+    .split(/[\s,;]+/)
+    .filter(Boolean)) {
+    const m = token.match(/^(\d+):(\d+)$/);
+    if (!m || !basis.includes(Number(m[1])) || Number(m[2]) > 24)
+      throw Error('Use overrides such as 2:12, 3:6 for primes in the basis (bounds 0–24).');
+    bounds[basis.indexOf(Number(m[1]))] = Number(m[2]);
+  }
+  const min = Number(input.min),
+    max = Number(input.max);
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || max < min || max > 1200)
+    throw Error('Use a cents-size range from 0 to 1200, with maximum at least minimum.');
+  const must = String(input.must || '')
+    .split(/[\s,.]+/)
+    .filter(Boolean)
+    .map(Number);
+  if (!must.every(p => basis.includes(p))) throw Error('Required primes must belong to the basis.');
+  return {
+    basis,
+    bounds,
+    min,
+    max,
+    must,
+    hideInverse: input.hideInverse !== false,
+    primitive: input.primitive !== false,
+    total: bounds.slice(1).reduce((a, b) => a * (2 * b + 1), 1)
+  };
+}
+export function commaFromVector(basis, exponents) {
+  let n = 1n,
+    d = 1n;
+  for (let i = 0; i < basis.length; i++) {
+    const v = BigInt(basis[i]) ** BigInt(Math.abs(exponents[i]));
+    if (exponents[i] > 0) n *= v;
+    else d *= v;
+  }
+  return {
+    label: `${n}/${d}`,
+    exponents: [...exponents],
+    c: 1200 * exponents.reduce((a, e, i) => a + e * Math.log2(basis[i]), 0),
+    maxExp: Math.max(...exponents.map(Math.abs)),
+    sumExp: exponents.reduce((a, e) => a + Math.abs(e), 0)
+  };
+}
+export function* searchCommas(config, chunk = 2048, cap = 20000) {
+  const c = config,
+    logs = c.basis.map(Math.log2),
+    lo = c.min / 1200,
+    hi = c.max / 1200;
+  let batch = [],
+    count = 0;
+  for (let index = 0; index < c.total; index++) {
+    let k = index,
+      sum = 0;
+    const es = [0];
+    for (let i = 1; i < c.basis.length; i++) {
+      const width = 2 * c.bounds[i] + 1,
+        e = (k % width) - c.bounds[i];
+      k = Math.floor(k / width);
+      es.push(e);
+      sum += e * logs[i];
+    }
+    const first = Math.max(-c.bounds[0], Math.ceil((lo - sum) / logs[0] - 1e-11)),
+      last = Math.min(c.bounds[0], Math.floor((hi - sum) / logs[0] + 1e-11));
+    for (let e = first; e <= last; e++) {
+      es[0] = e;
+      if (es.every(e => e === 0) || c.must.some(p => es[c.basis.indexOf(p)] === 0)) continue;
+      if (c.primitive && es.reduce((g, e) => gcd(g, BigInt(e)), 0n) > 1n) continue;
+      const result = commaFromVector(c.basis, es);
+      if (result.c <= 0 || result.c < c.min - 1e-8 || result.c > c.max + 1e-8) continue;
+      batch.push(result);
+      count++;
+      if (!c.hideInverse) {
+        batch.push(
+          commaFromVector(
+            c.basis,
+            es.map(e => -e)
+          )
+        );
+        count++;
+      }
+      if (count >= cap) {
+        yield {batch, processed: index + 1, total: c.total, count, status: 'limited'};
+        return;
+      }
+    }
+    if ((index + 1) % chunk === 0) {
+      yield {batch, processed: index + 1, total: c.total, count, status: 'running'};
+      batch = [];
+    }
+  }
+  yield {batch, processed: c.total, total: c.total, count, status: 'complete'};
+}
+export function matrixRank(vectors) {
+  const A = vectors.map(v => v.map(BigInt));
+  if (!A.length) return 0;
+  let row = 0;
+  for (let col = 0; col < A[0].length; col++) {
+    const k = A.findIndex((r, i) => i >= row && r[col] !== 0n);
+    if (k < 0) continue;
+    [A[k], A[row]] = [A[row], A[k]];
+    for (let j = row + 1; j < A.length; j++) {
+      if (!A[j][col]) continue;
+      const a = A[row][col],
+        b = A[j][col];
+      A[j] = A[j].map((v, i) => a * v - b * A[row][i]);
+      const g = A[j].reduce(gcd, 0n);
+      if (g > 1n) A[j] = A[j].map(v => v / g);
+    }
+    row++;
+  }
+  return row;
+}
+export function selectionRank(basis, list) {
+  const vectors = list.map(t => t.exponents),
+    independent = matrixRank(vectors),
+    rank = basis.length - independent,
+    octave =
+      basis.includes(2) &&
+      matrixRank([...vectors, basis.map(p => (p === 2 ? 1 : 0))]) === independent;
+  const referenceKilled =
+    matrixRank([...vectors, basis.map((_, i) => (i === 0 ? 1 : 0))]) === independent;
+  return {
+    independent,
+    rank,
+    octave,
+    referenceKilled,
+    canGenerate: list.length > 0 && rank === 2 && !referenceKilled && basis.length >= 3
+  };
+}
+export function mappedComma(basis, t, s) {
+  const m = [0, 0];
+  for (let i = 0; i < basis.length; i++) {
+    if (!t.exponents[i]) continue;
+    const j = s.basis.indexOf(basis[i]);
+    if (j < 0) return null;
+    m[0] += t.exponents[i] * s.rows[0][j];
+    m[1] += t.exponents[i] * s.rows[1][j];
+  }
+  return m;
+}
