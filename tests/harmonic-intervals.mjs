@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {makeState,primeFilterForBasis,targetSet} from '../src/core/engine.mjs';
+import {makeState,targetSet} from '../src/core/engine.mjs';
 import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
 import {mappedIntervals,indexByCoordinate,edgeInterpretations,intervalError} from '../src/harmonic/harmonic-intervals.mjs';
 import {ratioMonzo,mapMonzo} from '../src/core/ji-monzo.mjs';

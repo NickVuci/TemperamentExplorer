@@ -19,7 +19,7 @@ const canonicalCoord=coordinate=>coordinate.map(component=>{
 });
 const eqCoord=(actual,expected)=>assert.deepEqual(canonicalCoord(actual),canonicalCoord(expected),'coordinates are exact integer identities (signed zero canonicalizes to zero)');
 const pitch=(m,s)=>m[0]*s.p+m[1]*s.g;
-const mod=(x,n)=>((x%n)+n)%n;
+
 const dot=(row,vector)=>row.reduce((sum,value,index)=>sum+value*vector[index],0);
 
 function monzoOf(ratio,basis){

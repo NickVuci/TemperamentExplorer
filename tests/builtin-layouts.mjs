@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {presets,makeState} from '../src/core/engine.mjs';
-import {buildBoard,cents} from '../src/hexboard/hexboard.mjs';
+import {buildBoard} from '../src/hexboard/hexboard.mjs';
 import {layoutPresetSnapshot,layoutPresetForState,mappingKey} from '../src/hexboard/layout-preset-data.mjs';
 import {BUILTIN_LAYOUTS,builtinLayoutsFor} from '../src/hexboard/builtin-layouts.mjs';
 import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';

@@ -428,7 +428,7 @@ export function createCompositionWorkspace({
   // cursor, the keys being entered and a take in progress are drawn over the roll in place.
   const marks=new Map();
   function paintInput(roll){
-    const p=project(),span=Number(roll.dataset.span),pct=t=>`${100*t/span}%`,rows=new Map();
+    const span=Number(roll.dataset.span),pct=t=>`${100*t/span}%`,rows=new Map();
     const heldIds=new Set([...held.values()].map(h=>h.coordinate?.join(',')).filter(Boolean));
     const soundingIds=transport.state==='playing'?new Set(activeCues(timeline(),transport.position()).sounding.filter(q=>showsTrack(q.trackKind)).map(q=>q.coordinate.join(','))):new Set();
     for(const g of doc.querySelectorAll?.('.roll-row-grid')??[]){

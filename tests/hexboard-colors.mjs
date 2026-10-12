@@ -34,8 +34,7 @@ assert.deepEqual(hexToHSV('#ff0000'),{hueTenthDegrees:0,saturation:255,value:255
 assert.deepEqual(hexToHSV('#00ff00'),{hueTenthDegrees:1200,saturation:255,value:255});
 assert.deepEqual(hexToHSV('#0000ff'),{hueTenthDegrees:2400,saturation:255,value:255});
 assert.equal(textColor('#ffffff'),'#000000');assert.equal(textColor('#000000'),'#ffffff');
-let output;
-const ui=createHexboardWorkspace({getStates:()=>[s],play:()=>{},refresh:()=>{},notify:msg=>{throw Error(msg);},download:(_,data)=>output=JSON.parse(data),getHz:()=>220});
+const ui=createHexboardWorkspace({getStates:()=>[s],play:()=>{},refresh:()=>{},notify:msg=>{throw Error(msg);},download:(_,data)=>JSON.parse(data),getHz:()=>220});
 const markup=ui.render(),boardAt=markup.indexOf('<div class="hex-board-scroll">'),editorAt=markup.indexOf('<div class="hex-custom-color-host">'),actionsAt=markup.indexOf('<div class="panelactions hex-board-actions">');
 assert.ok(boardAt>=0&&editorAt>boardAt&&actionsAt<boardAt,'per-button color controls render immediately beneath the board');
 const buttonControls=markup.slice(editorAt,markup.indexOf('<div class="hex-inspector">',editorAt));

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {makeState,mapRatio} from '../src/core/engine.mjs';
+import {makeState} from '../src/core/engine.mjs';
 import {fromCommas,edoTune} from '../src/core/tuning.mjs';
 import {applyTuningMethod} from '../src/core/tuning-methods.mjs';
 import {chordIdentity} from '../src/chords/chord-identity.mjs';

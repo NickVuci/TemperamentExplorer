@@ -24,7 +24,7 @@ export const SPLIT_CHOICES=[2,3,4,5,6,7];
 // [n, m, label]: fit the selection n in the time of m (time is scaled by m/n).
 export const FIT_CHOICES=[[3,2,'3:2 triplets'],[5,4,'5:4 quintuplets'],[7,4,'7:4 septuplets'],[2,3,'2:3 dotted'],[1,2,'×2 longer'],[2,1,'×½ shorter']];
 export const SWING_CHOICES=[50,54,58,62,66,70,SWING_MAX];
-const coordText=m=>`${m[0]}, ${m[1]}`;
+
 
 export function formatPosition(project,tick){
   const bar=barTicks(project.meter),beat=PPQ*4/project.meter.denominator;

@@ -10,7 +10,7 @@ import {
   shiftEvents,transposeSteps,transposeEvents,quantizeEvents,splitEvents,scaleEvents,legatoEvents,reverseEvents,
   euclidEvents,copyEvents,pasteEvents,velocityEvents,
 } from '../src/composition/composition-edit.mjs';
-import {PPQ,createProject,addEvent,makeEvent,allIds,editEvents,setMeter,parseProject,serializeProject,validateProject} from '../src/composition/composition-project.mjs';
+import {createProject,addEvent,makeEvent,allIds,editEvents,setMeter,parseProject,serializeProject,validateProject} from '../src/composition/composition-project.mjs';
 import {captureContext,resolveTone,degreeOf} from '../src/composition/composition-context.mjs';
 import {makeState} from '../src/core/engine.mjs';
 
@@ -93,7 +93,7 @@ const melody=project.clips[1].id;
 const note=(start,dur,coordinate=[0,0],velocity=90)=>makeEvent({startTick:start,durationTick:dur,velocity,tones:[{coordinate}]},allIds(project));
 const a=note(0,480),b=note(480,480,[0,2]),c=note(1440,240,[1,-1]);
 for(const e of [a,b,c])project=addEvent(project,melody,e);
-const byId=r=>new Map(r.put.map(e=>[e.id,e]));
+
 
 assert.deepEqual(shiftEvents([a,b],-200).put.map(e=>e.startTick),[0,480],'a shift never moves notes before 0');
 assert.deepEqual(shiftEvents([b],-200).put[0].startTick,280);

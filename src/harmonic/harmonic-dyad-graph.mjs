@@ -9,7 +9,7 @@ import {MAX_CHORD_TONES} from '../chords/chord-identity.mjs';
 
 const cache=new BoundedCache(12);
 const compareCoordinate=(a,b)=>a[0]-b[0]||a[1]-b[1];
-const pairKey=coordinate=>JSON.stringify(coordinate);
+
 
 function requestedEquivalence(targetSet,equivalence){
  const expected=targetSet.spec.representationPolicy==='native-exact'?'exact':'octave';
@@ -38,7 +38,7 @@ export function buildDyadIndex(targetSet,mapping,{equivalence:requested}={}){
    if(!interval.coordinate){unmappedTargets.push({targetId:interval.targetId,ratio:interval.ratio.label,missingPrimes:interval.missingPrimes});continue;}
    const classEntry=interval.classKeys[equivalence];
    if(!classEntry?.available)throw Error(`Mapped target ${interval.targetId} has no ${equivalence} class.`);
-   const target=targetById.get(interval.targetId),factorization=ratioMonzo(interval.ratio,context.basis);
+   const factorization=ratioMonzo(interval.ratio,context.basis);
    const inverseTargetId=targetInverseId(targetSet.spec,interval.ratio),inversePresent=targetById.has(inverseTargetId);
    mapped.push({
     targetId:interval.targetId,

@@ -13,7 +13,7 @@ import {inspectCoordinateChord} from '../harmonic/harmonic-inspection.mjs';
 import {renderCoordinateAssessment} from '../harmonic/harmonic-inspection-ui.mjs';
 import {chordPlacements,chordsWithKey} from './hexboard-chords.mjs';
 import {MAX_CHORD_TONES} from '../chords/chord-identity.mjs';
-import {DEFAULT_ODD_LIMIT,scale,scaleChoices,MAX_SCALE_SIZE,mapRatio} from '../core/engine.mjs';
+import {DEFAULT_ODD_LIMIT,scaleChoices,MAX_SCALE_SIZE,mapRatio} from '../core/engine.mjs';
 import {validateJILimits} from '../core/ji-limit-engine.mjs';
 import {baseOptions,flipPlacementVector,migrateLayoutMirrors,buildBoard,boardMatches,exportHexboard,fillBoard,cents,commands} from './hexboard.mjs';
 import {mod} from '../core/pitch.mjs';

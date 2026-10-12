@@ -112,7 +112,7 @@ click('rotation',{index:'1'});assert.match(ui.render(),/Rotation <b>5:6:8<\/b> Â
   const list=ui.renderParts({directory:true}).list,entries=ui.bassEntries();
   assert.match(list,/with Discover scale degree 2 as the bass/);
   {const firstInversion=entries.findIndex(e=>!e.rootPosition);assert.ok(firstInversion>0&&entries.slice(firstInversion).every(e=>!e.rootPosition),'root positions are listed before inversions');}
-  const majorOn2=entries.find(e=>e.row.preferredLabel==='4:5:6'),minorOn2=entries.find(e=>e.row.preferredLabel==='1/6:5:4');
+  const majorOn2=entries.find(e=>e.row.preferredLabel==='4:5:6');
   assert.ok(majorOn2&&majorOn2.inversion===1&&majorOn2.spelling==='5:6:8','major stands on degree 2 in 1st inversion, the rotation 5:6:8');
   const majorRoot=majorOn2.rootDegree;
   assert.ok(Number.isInteger(majorRoot)&&majorRoot!==2&&majorOn2.bassDegree===2,'its root is another degree than its bass');

@@ -3,8 +3,8 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createTake,groupChords,createHoldGroup,EARLY_SECONDS} from '../src/composition/composition-record.mjs';
-import {createTransport,createPlan,clickOccurrences,heardSeconds,CLICK,GROUP,START_DELAY_SECONDS} from '../src/composition/composition-transport.mjs';
-import {createProject,addEvent,setMeter,setLoop,PPQ} from '../src/composition/composition-project.mjs';
+import {createTransport,createPlan,clickOccurrences,heardSeconds,CLICK,START_DELAY_SECONDS} from '../src/composition/composition-transport.mjs';
+import {createProject,addEvent,setMeter,setLoop} from '../src/composition/composition-project.mjs';
 import {captureContext} from '../src/composition/composition-context.mjs';
 import {beatAccent} from '../src/composition/composition-grid.mjs';
 

@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createCompositionWorkspace} from '../src/composition/composition-ui.mjs';
-import {PPQ,createProject,addEvent,barTicks} from '../src/composition/composition-project.mjs';
+import {createProject,addEvent,barTicks} from '../src/composition/composition-project.mjs';
 import {captureContext,resolveTone} from '../src/composition/composition-context.mjs';
 import {transposeSteps} from '../src/composition/composition-edit.mjs';
 
@@ -22,7 +22,7 @@ function element({dataset={},rect={left:0,top:0,width:800,height:28},selectors={
 }
 const handlers=new Map(),host={innerHTML:'',querySelector:()=>null},previews=[];
 const clock={audioSeconds:10,state:'running',clockRevision:1};
-let rowEls=[],rollEl=null,hoverOut={textContent:''},seekTo=null;
+let rowEls=[],rollEl=null,hoverOut={textContent:''};
 const doc={activeElement:null,body:{},documentElement:{},
   querySelector:s=>s==='[data-comp-hover]'?hoverOut:s==='[data-comp-roll]'?rollEl:null,
   querySelectorAll:s=>s==='.roll-row-grid'?rowEls:[],
@@ -56,7 +56,7 @@ ws.click(summary('rhythm'));ws.refresh();assert.match(host.innerHTML,/data-comp-
 ws.click({closest:()=>null});assert.doesNotMatch(host.innerHTML.replace(/data-comp-menu="rhythm" open/,'x'),/data-comp-menu="\w+" open/);ws.refresh();assert.doesNotMatch(host.innerHTML,/data-comp-menu="rhythm" open/,'an outside click closes it');
 
 // ---- drawing on the eighth grid ----
-const rowA=[0,0],rowGrid=element({dataset:{a:'0',b:'0',row:'8'}});
+const rowGrid=element({dataset:{a:'0',b:'0',row:'8'}});
 rollEl={dataset:{span:String(SPAN),start:'0'}};
 const surface=element({dataset:{a:'0',b:'0'},selectors:{'.roll-row-grid':rowGrid,'[data-comp-roll]':rollEl,'.roll-surface':null}});
 surface.closest=s=>s==='.roll-surface'?surface:s==='.roll-row-grid'?rowGrid:s==='[data-comp-roll]'?rollEl:null;

@@ -11,7 +11,6 @@ const played=[];let refreshes=0;
 const ws=createHexboardWorkspace({getStates:()=>[state],play:c=>played.push(c),refresh:()=>{refreshes++;},notify:m=>{throw Error(m);},getHz:()=>220});
 const select=index=>ws.press({dataset:{hexKey:String(index)},closest:()=>null});
 const board=()=>buildBoard(state,ws.serialize().configs[0]);
-const lit=()=>ws.deviceSnapshot().keys.filter(k=>k.lit).map(k=>k.index).sort((a,b)=>a-b);
 const sorted=keys=>[...keys].sort((a,b)=>a-b);
 
 // A command key cannot be selected, so the selection stays where it was.

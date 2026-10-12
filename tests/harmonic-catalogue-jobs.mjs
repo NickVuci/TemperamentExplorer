@@ -1,15 +1,14 @@
 import assert from 'node:assert/strict';
 import {Worker as NodeWorker} from 'node:worker_threads';
 import {makeState} from '../src/core/engine.mjs';
-import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
 import {targetSet} from '../src/core/ji-limit-engine.mjs';
 import {buildDyadIndex,enumerateDyadicShapeSteps} from '../src/harmonic/harmonic-dyad-graph.mjs';
-import {coherentJILiftSteps,findCoherentJILift,findCoherentJILiftAsync} from '../src/harmonic/harmonic-ji-lift.mjs';
+import {findCoherentJILift,findCoherentJILiftAsync} from '../src/harmonic/harmonic-ji-lift.mjs';
 import {assessET,assessETAsync} from '../src/harmonic/harmonic-et.mjs';
 import {chordIdentity} from '../src/chords/chord-identity.mjs';
 import {projectChord} from '../src/chords/chord-projection.mjs';
 import {makeJIInterpretation} from '../src/harmonic/harmonic-ji-chords.mjs';
-import {searchChordApproximations,searchChordApproximationsAsync,chordApproximationSteps} from '../src/harmonic/harmonic-approximations.mjs';
+import {searchChordApproximations,searchChordApproximationsAsync} from '../src/harmonic/harmonic-approximations.mjs';
 import {searchCheckpoint} from '../src/harmonic/harmonic-cooperative.mjs';
 import {createHarmonicJobDispatcher,createHarmonicCatalogueJobs,harmonicJobContextId} from '../src/harmonic/harmonic-catalogue-jobs.mjs';
 

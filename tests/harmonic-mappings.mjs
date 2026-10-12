@@ -4,7 +4,7 @@ import {validateMappingVariant,previewMappingVariant} from '../src/harmonic/harm
 import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
 
 const meantone=makeState('meantone');
-const active=mappingContext(meantone);
+mappingContext(meantone);
 
 const same=validateMappingVariant(meantone,{mapping:{basis:[2,5,3],rows:[[1,0,1],[0,4,1]]}});
 assert.equal(same.status,'compatible');

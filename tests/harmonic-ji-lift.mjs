@@ -3,7 +3,6 @@ import {makeState,targetSet} from '../src/core/engine.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
 import {chordIdentity} from '../src/chords/chord-identity.mjs';
 import {projectChord} from '../src/chords/chord-projection.mjs';
-import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
 import {mapMonzo} from '../src/core/ji-monzo.mjs';
 import {buildDyadIndex,domainsForShape} from '../src/harmonic/harmonic-dyad-graph.mjs';
 import {findCoherentJILift} from '../src/harmonic/harmonic-ji-lift.mjs';

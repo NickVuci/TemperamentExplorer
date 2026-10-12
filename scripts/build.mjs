@@ -15,7 +15,8 @@ await writeFile(`${out}/style.css`,(await transform(await readFile('src/style.cs
 const shell=['index.html','style.css','app.mjs','comma-worker.mjs','chord-worker.mjs','manifest.webmanifest','icon.svg','icon-192.png','icon-512.png'];
 const hash=createHash('sha256');for(const name of shell)hash.update(name).update(await readFile(`${out}/${name}`));
 const version=hash.digest('hex').slice(0,16),source=await readFile('src/sw.js','utf8');
-const sw=source.replace("const VERSION='dev';",`const VERSION='${version}';`).replace('const SHELL=[];',`const SHELL=${JSON.stringify(['./',...shell.map(name=>'./'+name)])};`);
-if(sw===source||!sw.includes(version)||sw.includes('const SHELL=[];'))throw Error('src/sw.js no longer has the VERSION and SHELL placeholders.');
+const versionSlot=/const VERSION\s*=\s*'dev';/,shellSlot=/const SHELL\s*=\s*\[\];/;
+if(!versionSlot.test(source)||!shellSlot.test(source))throw Error('src/sw.js no longer has the VERSION and SHELL placeholders.');
+const sw=source.replace(versionSlot,`const VERSION='${version}';`).replace(shellSlot,`const SHELL=${JSON.stringify(['./',...shell.map(name=>'./'+name)])};`);
 await writeFile(`${out}/sw.js`,sw);
 console.log(`Static site built in ${out}/ with ${(await readdir(out)).length} files; service worker version ${version}.`);

@@ -1,5 +1,4 @@
 import {mapRatio,mod} from './engine.mjs';
-import {ratios} from './tuning.mjs';
 import {sameCoordinate as same,noteCoordinate} from './pitch.mjs';
 import {matrixScale} from './matrix.mjs';
 import {immutable} from './cache.mjs';

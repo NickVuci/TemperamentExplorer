@@ -65,7 +65,6 @@ const make=(project,f)=>createTransport({getProject:()=>project,audio:f.audio,ti
   };
   const p=mk([[0,960],[960,960],[1500,1000]]);
   const plan=createPlan(p);
-  const ids=v=>v.map(x=>`${x.occId.split('#')[0].slice(0,4)}@${x.onsetV}-${x.releaseV}`);
   assert.equal(planWindow(plan,{pos0:0,loV:0,hiV:960}).length,1,'window is [lo,hi): event at 960 not yet');
   assert.equal(planWindow(plan,{pos0:0,loV:0,hiV:961}).length,2);
   // Starting mid-note: the sounding note restarts with only its remaining length, once.

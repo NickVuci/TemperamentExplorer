@@ -1,5 +1,5 @@
 import {createHarmonicCatalogueJobs} from './harmonic-catalogue-jobs.mjs';
-import {catalogueContext,getHarmonicEntry,hasInterpretation} from './harmonic-catalogue.mjs';
+import {catalogueContext,hasInterpretation} from './harmonic-catalogue.mjs';
 import {harmonicEntryGeometry,harmonicSelection,sourceShapeVoicing} from './harmonic-selection.mjs';
 import {searchShapeOccurrences,occurrenceShape} from '../chords/chord-occurrence.mjs';
 import {realizeShape} from '../chords/chord-realization.mjs';
@@ -106,7 +106,7 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
  function occurrencesIn(s,row){const geometry=harmonicEntryGeometry(s,row);if(!geometry)return null;
   return {geometry,found:occurrences.get(JSON.stringify([s.basis,s.rows,s.n,s.mode,row.id,geometry.shape]),()=>searchShapeOccurrences(s,geometry.shape))};}
  function scopeOccurrences(row){return occurrencesIn(state(),row)?.found??null;}
- const bassState=()=>bass?.scale==='play'?getPlayState():getState();
+
  // Display spelling of one JI rotation: a utonal chord's as 1/a:b:c, otonal and ambitonal ones as a:b:c.
  const rotationText=(row,r)=>formOf(row)==='utonal'?'1/'+[...r.dualTerms].reverse().join(':'):r.label;
  // Position in rotations() of the rotation rooted on one geometry member: JI rotations by root ratio,

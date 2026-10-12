@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import {presets,makeState,scale,mapRatio,targets,generatedSizes} from '../src/core/engine.mjs';
-import {mod} from '../src/core/pitch.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
 import {defaultScale,withDefaultScale} from '../src/core/default-scale.mjs';
 import {findScaleMilestones,scaleCoverageTarget} from '../src/core/scale-milestones.mjs';
@@ -12,14 +11,6 @@ import {applyTuningMethod} from '../src/core/tuning-methods.mjs';
 function intervalCovers(s,options){
  const cfg=scaleCoverageTarget(s,options),ks=scale(s).notes.map(v=>v.k),differences=new Set(ks.flatMap(a=>ks.map(b=>b-a)));
  return targets(cfg.limit,cfg.primeLimit).every(t=>{const m=mapRatio(t.n,t.d,s);return !m||differences.has(m[1]);});
-}
-function covers(s,options){
- const cfg=scaleCoverageTarget(s,options),notes=new Set(scale(s).notes.map(v=>[Math.round((v.c-v.k*s.g)/s.p),v.k].join(',')));
- return targets(cfg.limit,cfg.primeLimit).every(t=>{
-  const m=mapRatio(t.n,t.d,s);if(!m)return true;
-  const c=mod(m[0]*s.p+m[1]*s.g,s.p);
-  return notes.has([Math.round((c-m[1]*s.g)/s.p),m[1]].join(','));
- });
 }
 for(const s of [...Object.keys(presets).map(makeState),fromCommas('128/125'),fromCommas('245/243','3.5.7')]){
  const before=structuredClone(s),chosen=defaultScale(s);assert.ok(chosen,s.name);assert.equal(chosen.mode,0,`${s.name}: the default opens on mode 1`);

@@ -77,7 +77,7 @@ assert.throws(()=>validateAssessment({...base,status:'not-dyadic',complete:true}
 assert.throws(()=>validateAssessment({...base,status:'not-dyadic',complete:true,obstruction:{emptyEdge:[]}}),/empty edge witness/);
 assert.throws(()=>validateAssessment({...base,status:'not-dyadic',complete:true,obstruction:{emptyEdge:[0,0]}}),/empty edge witness/);
 
-const native=mappingContext({basis:[3,5,7],rows:[[1,0,0],[0,1,2]]});
+mappingContext({basis:[3,5,7],rows:[[1,0,0],[0,1,2]]});
 assert.notEqual(targetSetKey({mappingSubgroup:[3,5,7],oddLimit:15,primeFilter:[3,5,7],representationPolicy:'native-exact'}),target);
 assert.notEqual(targetSetKey({mappingSubgroup:[3,5,7],oddLimit:15,primeFilter:[3,5,7],representationPolicy:'octave'}),target);
 const divided=mappingContext({basis:presets.pajara7.basis,rows:presets.pajara7.rows});

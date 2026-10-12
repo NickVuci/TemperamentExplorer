@@ -8,7 +8,7 @@ import {analyzeChord} from '../src/chords/chord-analysis.mjs';
 import {chordCandidates} from '../src/chords/chord-discovery.mjs';
 import {realizeChord,placeRealization} from '../src/chords/chord-realization.mjs';
 import {buildBoard} from '../src/hexboard/hexboard.mjs';
-const s=makeState('magic11'),text='4:5:6:7:9:11',identity=chordIdentity(text),projection=projectChord(s,identity),analysis=analyzeChord({...s,n:19,mode:0},text);
+const s=makeState('magic11'),text='4:5:6:7:9:11',identity=chordIdentity(text),projection=projectChord(s,identity);
 const report={runtime:process.version,cpu:cpus()[0]?.model,candidateCount:chordCandidates().length,provisionalBudgetMs:200,measurements:[]};
 async function measure(name,fn,runs=20){const times=[];for(let i=0;i<runs;i++){const t=performance.now();await fn();times.push(performance.now()-t);}times.sort((a,b)=>a-b);report.measurements.push({name,runs,medianMs:+times[Math.floor(times.length/2)].toFixed(3),worstMs:+times.at(-1).toFixed(3)});}
 await measure('identity six members',()=>chordIdentity(text));

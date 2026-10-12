@@ -1,4 +1,4 @@
-import {purePeriod,mapRatio,targets} from './engine.mjs';
+import {purePeriod,mapRatio} from './engine.mjs';
 import {weilTune,optimize,tuneTargets,pureTune,supportingEdos,edoTune} from './tuning.mjs';
 import {target,assignment} from './assignments.mjs';
 import {candidates} from './approximation-compat.mjs';

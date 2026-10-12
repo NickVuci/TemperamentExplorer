@@ -16,7 +16,7 @@ const note=(id,start,dur,m)=>({id,startTick:start,durationTick:dur,velocity:90,t
 for(const e of [note('a',0,480,deg(0)),note('b',480,480,deg(2)),note('c',960,960,deg(4)),note('d',1920,240,deg(0)),note('e',2160,240,deg(0)),note('f',3840+480,480,up(deg(2)))])project=addEvent(project,melodyClip,e);
 project=addEvent(project,chordClip,{id:'ch',startTick:0,durationTick:3840,velocity:90,tones:[{toneId:'x',coordinate:deg(0)},{toneId:'y',coordinate:deg(2)},{toneId:'z',coordinate:deg(4)}]});
 const TPS=120*PPQ/60;                       // 1920 ticks per second at 120 BPM
-const ms=t=>t/TPS*1000,tk=m=>m/1000*TPS;
+const tk=m=>m/1000*TPS;
 
 // ---- charts ----
 {
