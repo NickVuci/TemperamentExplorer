@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {bootApp} from './support/dom.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
 import {classifyTargets, interval} from '../src/core/engine.mjs';
 import {makeState} from '../src/core/catalog.mjs';
@@ -76,14 +76,25 @@ assert.equal(w.rowEnd, m.n);
 assert.equal(w.colEnd, m.n + 1);
 assert.ok((w.rowEnd - w.rowStart) * (w.colEnd - w.colStart) <= 24 * 48);
 assert.equal(matrixWindow(m, false, 0, 0).colStart, 0);
-const appSource = readFileSync(new URL('../src/app.mjs', import.meta.url), 'utf8');
-const htmlSource = readFileSync(new URL('../src/index.html', import.meta.url), 'utf8');
-assert.match(htmlSource, /id="diamond-span-controls"/);
-assert.match(
-  appSource,
-  /function placeJIControls\(v\).*spanControl\(states\[0\],0,'Target span'\)/
+
+// A temperament whose period divides the octave offers the diamond a whole-octave target span.
+const page = await bootApp();
+assert.equal(page.$('#diamond-span-controls [data-matrix-span]'), null, 'meantone has one period');
+page.chooseTemperament('pajara7');
+await page.settle();
+const span = page.$('#diamond-span-controls [data-matrix-span="0"]');
+assert.ok(span, 'a divided-octave temperament shows the span control beside the diamond');
+assert.match(span.closest('label').textContent, /Target span/);
+assert.deepEqual(
+  [...span.options].map(option => option.value),
+  ['period', 'octave']
 );
-assert.match(appSource, /Target span/);
+page.change(span, 'octave');
+await page.settle();
+assert.equal(page.$('#diamond-span-controls [data-matrix-span="0"]').value, 'octave');
+assert.match(page.$('#diamond-span-controls').textContent, /repeated periods/);
+assert.deepEqual(page.errors, []);
 console.log(
   'Octave matrix repetition, mapping, stretched endpoints, modes, session, and paging checks passed.'
 );
+await page.close();

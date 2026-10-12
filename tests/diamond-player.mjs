@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {bootApp} from './support/dom.mjs';
 import {createHexboardPlayer} from '../src/hexboard/hexboard-player.mjs';
 const retunes = [],
   handlers = {},
@@ -113,11 +113,26 @@ doc.hidden = true;
 fire('visibilitychange');
 assert.equal(voices.size, 0);
 player.reset();
-assert.match(
-  readFileSync(new URL('../src/app.mjs', import.meta.url), 'utf8'),
-  /surface:'\.tonality-diamond',keyboard:true,focusOnPointer:false/,
-  'the app enables pointer playing without focus highlighting'
-);
+
+// In the app, diamond keys play from the pointer without taking keyboard focus, and from Enter.
+const page = await bootApp(),
+  key = page.$('.tonality-diamond [data-diamond-key]');
+let focused = 0;
+key.focus = () => focused++;
+const started = page.audio.started.length;
+page.pointer(key, 'pointerdown');
+await page.settle();
+assert.ok(page.audio.started.length > started, 'a pressed diamond key sounds');
+assert.ok(key.classList.contains('is-playing'));
+assert.equal(focused, 0, 'pointer play does not move keyboard focus');
+page.pointer(key, 'pointerup');
+assert.equal(key.classList.contains('is-playing'), false);
+const beforeEnter = page.audio.started.length;
+page.key(key, 'Enter', {code: 'Enter'});
+await page.settle();
+assert.ok(page.audio.started.length > beforeEnter, 'Enter plays the focused diamond key');
+assert.deepEqual(page.errors, []);
 console.log(
   'Diamond drag gates, Shift sustain, stable selection gestures, keyboard notes, blur/cancel/visibility cleanup passed.'
 );
+await page.close();

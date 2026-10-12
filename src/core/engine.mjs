@@ -56,6 +56,26 @@ function computeScale(s, n) {
   };
 }
 export const MAX_SCALE_SIZE = 256;
+/**
+ * The state itself when its scale already holds every generator index, else the first
+ * collision-free generated scale (by size, then mode) that does; null when none fits within
+ * MAX_SCALE_SIZE. `minimumOnly` tries only the smallest size that can span the generators.
+ */
+export function fitGeneratedScale(s, generators, {minimumOnly = false} = {}) {
+  const fits = state => {
+    const generated = scale(state);
+    return !generated.collision && generators.every(k => generated.notes.some(n => n.k === k));
+  };
+  if (fits(s)) return s;
+  const minimum = Math.max(2, Math.max(0, ...generators) - Math.min(0, ...generators) + 1),
+    largest = Math.min(MAX_SCALE_SIZE, minimumOnly ? minimum : MAX_SCALE_SIZE);
+  for (let n = minimum; n <= largest; n++)
+    for (let mode = 0; mode < n; mode++) {
+      const candidate = {...s, n, mode};
+      if (fits(candidate)) return candidate;
+    }
+  return null;
+}
 const scaleCache = new Map();
 export function generatedSizes(s, filter = 'all') {
   const key = JSON.stringify([s.p, s.g]);

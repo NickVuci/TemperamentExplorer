@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
-import {scale} from '../src/core/engine.mjs';
+import {scale, fitGeneratedScale} from '../src/core/engine.mjs';
 import {makeState} from '../src/core/catalog.mjs';
-import {readFileSync} from 'node:fs';
-import vm from 'node:vm';
+import {bootApp} from './support/dom.mjs';
 import {getHarmonicEntry} from './support/harmonic-catalogue.mjs';
 import {
   harmonicSelection,
@@ -101,37 +100,44 @@ assert.equal(
   ]),
   null
 );
-const discoverBefore = structuredClone(state),
-  layoutState = {state: {...state, n: 2, mode: 0}};
-let renders = 0,
-  message = '';
-const app = readFileSync(new URL('../src/app.mjs', import.meta.url), 'utf8'),
-  fitContext = vm.createContext({
-    getLayoutStates: () => [layoutState.state],
-    layoutState,
-    scale,
-    validate: validateState,
-    renderWorkspace: () => renders++,
-    toast: value => (message = value)
-  });
-vm.runInContext(
-  app.split('\n').find(line => line.startsWith('function fitPlayHarmony(')),
-  fitContext
-);
-fitContext.fitPlayHarmony(coords);
+// Fitting a Play scale: the first collision-free generated scale holding every chord generator.
+const generators = coords.map(m => m[1]),
+  playState = {...state, n: 2, mode: 0},
+  fitted = fitGeneratedScale(playState, generators);
 assert.ok(
-  coords.every(m => scale(layoutState.state).notes.some(note => note.k === m[1])),
+  generators.every(k => scale(fitted).notes.some(note => note.k === k)),
   'explicit fit chooses a Play scale containing all requested generators'
 );
-assert.equal(renders, 1);
-assert.deepEqual(state, discoverBefore, 'explicit Play fit leaves Discover alone');
-const fitted = structuredClone(layoutState.state);
-fitContext.fitPlayHarmony([
-  [0, 0],
-  [0, 300]
-]);
-assert.equal(JSON.stringify(layoutState.state), JSON.stringify(fitted));
-assert.match(message, /within 256 notes/);
+assert.equal(fitGeneratedScale(fitted, generators), fitted, 'a scale that already fits is kept');
+assert.equal(fitGeneratedScale(playState, [0, 300]), null, 'nothing fits within 256 notes');
+
+// In the app: a chord sent from Discover fits the Play scale without changing Discover's scale.
+const page = await bootApp(),
+  discoverScale = () => [page.$('[data-field="n"]').value, page.$('[data-field="mode"]').value];
+await page.until(
+  () => /chords · complete/.test(page.$('[data-unified-pane="directory"]')?.textContent ?? ''),
+  {message: 'the chord directory'}
+);
+const discoverBefore = discoverScale();
+page.input('[data-harmony-field="search"]', '16:20:25');
+page.click('[data-harmony-action="lookup"]');
+await page.until(() => page.$('[data-harmony-action="send"]'), {message: 'the chord detail'});
+page.click('[data-harmony-action="send"]');
+await page.settle();
+assert.equal(page.$('#play-view').hidden, false, 'Send to Play opens Play');
+page.click('[data-hex-action="chord-mode"][data-mode="places"]');
+await page.settle();
+const playScale = () => page.$('#play-view select[data-hex-field="target"]').value;
+assert.equal(playScale(), '7');
+page.click('[data-harmony-play="fit"]');
+await page.settle();
+assert.equal(playScale(), '9', 'the augmented triad spans eight fifths, so Play needs nine notes');
+assert.equal(page.$('[data-harmony-play="fit"]'), null, 'the fitted scale holds the chord');
+page.section('discover');
+await page.settle();
+assert.deepEqual(discoverScale(), discoverBefore, 'explicit Play fit leaves Discover alone');
+assert.deepEqual(page.errors, []);
 console.log(
   'Discover → Play preserves coordinates, explicit fit, top-three lazy fingerings, mapping guards and old/new material provenance.'
 );
+await page.close();

@@ -1,6 +1,6 @@
 // Display geometry is separate from the canonical JI target/filter engine.
 import {ratioWithinJILimits, validateJILimits} from '../core/ji-limit-engine.mjs';
-import {scale} from '../core/engine.mjs';
+import {fitGeneratedScale} from '../core/engine.mjs';
 import {gcd} from '../core/pitch.mjs';
 import {chordIdentity} from '../chords/chord-identity.mjs';
 import {signedIntervalError} from '../harmonic/harmonic-intervals.mjs';
@@ -174,17 +174,8 @@ export function fitDiamondChord(s, coords) {
     throw Error(
       'The chord view needs distinct scale degrees; collect this register voicing instead.'
     );
-  const fits = state => {
-    const a = scale(state);
-    return !a.collision && ks.every(k => a.notes.some(n => n.k === k));
-  };
-  if (fits(s)) return s;
-  const n = Math.max(2, Math.max(0, ...ks) - Math.min(0, ...ks) + 1);
-  if (n <= 256)
-    for (let mode = 0; mode < n; mode++) {
-      const candidate = {...s, n, mode};
-      if (fits(candidate)) return candidate;
-    }
+  const fitted = fitGeneratedScale(s, ks, {minimumOnly: true});
+  if (fitted) return fitted;
   throw Error(
     'These notes do not fit a collision-free generated scale within 256 notes. They can still be collected.'
   );

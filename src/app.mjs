@@ -34,7 +34,7 @@ import {createChordWorkspace} from './ui/chord-ui.mjs';
 import {target, assignment, checkAssignments, coordinate} from './core/assignments.mjs';
 import {candidates,nearestReport} from './core/approximation-compat.mjs';
 import {supportingEdos} from './core/tuning.mjs';
-import {scale, scaleChoices, mapRatio, targets, classifyTargets, createTargetClassifier} from './core/engine.mjs';
+import {scale, scaleChoices, mapRatio, targets, classifyTargets, createTargetClassifier, fitGeneratedScale} from './core/engine.mjs';
 import {presets, makeState} from './core/catalog.mjs';
 import {findScaleMilestones,scaleDefaultKey,scaleMilestoneMarkers,modeMilestoneMarker,formatModeRanges} from './core/scale-milestones.mjs';
 const $=q=>document.querySelector(q);
@@ -96,7 +96,7 @@ function refreshPlayShapeMenu(){
  if(key!==playShapeMenuKey){playShapeMenuKey=key;renderWorkspace({keepNotes:true});}
 }
 function refreshHarmony(){if(renderingWorkspace)return;if(view==='hexboard'){refreshPlayShapeMenu();return;}renderingWorkspace=true;try{if(view!=='unified')return;const active=document.activeElement,key=active?.tagName==='INPUT'?active.dataset?.harmonyField:null,draft=key?{value:active.value,start:active.selectionStart,end:active.selectionEnd}:null;const host=$('#workspace'),parts=harmonicWorkspace.renderParts({directory:true}),directory=host.querySelector('[data-unified-pane="directory"]'),detail=host.querySelector('[data-unified-pane="detail"]');if(!directory||!detail)return;directory.innerHTML=unifiedDirectory(parts);if(!manualChordInspector)detail.innerHTML=unifiedDetail(parts);applyHarmonicFocus();revealDirectoryRow(directory);if(key){const input=host.querySelector('[data-harmony-field="'+key+'"]');if(input){input.value=draft.value;input.focus({preventScroll:true});if(draft.start!=null&&input.type==='search')input.setSelectionRange(draft.start,draft.end);}}}finally{renderingWorkspace=false;}}
-function fitPlayHarmony(coords){const state=getLayoutStates()[0],generators=coords.map(m=>m[1]);const fits=s=>{const generated=scale(s);return !generated.collision&&generators.every(g=>generated.notes.some(n=>n.k===g));};if(fits(state))return;const minimum=Math.max(2,Math.max(0,...generators)-Math.min(0,...generators)+1);for(let n=minimum;n<=256;n++)for(let mode=0;mode<n;mode++){const next={...state,n,mode};if(fits(next)){layoutState.state=validate(next);renderWorkspace();return;}}toast('No collision-free Play scale fits these notes within 256 notes.');}
+function fitPlayHarmony(coords){const state=getLayoutStates()[0],fitted=fitGeneratedScale(state,coords.map(m=>m[1]));if(fitted===state)return;if(!fitted){toast('No collision-free Play scale fits these notes within 256 notes.');return;}layoutState.state=validate(fitted);renderWorkspace();}
 
 populateLimitOptions(Math.max(3,...states[0].basis),primeFilterForBasis(states[0].basis));
 let scaleFilter='2',diamondScope='mapping',manualTolerance=null,unifiedCenter='diamond',scaleView='line';
