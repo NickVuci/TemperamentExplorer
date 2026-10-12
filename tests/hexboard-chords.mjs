@@ -22,7 +22,9 @@ let played=[],downloaded=null;const states=[s];
 const ui=createHexboardWorkspace({getStates:()=>states,play:p=>played=p,refresh:()=>{},notify:()=>{},download:(name,data)=>downloaded=JSON.parse(data),getHz:()=>220});
 const click=act=>ui.click({closest:()=>({dataset:{hexAction:act}})});
 const saved=JSON.parse(JSON.stringify(ui.serialize()));saved.configs[0].periodWrapping=false;ui.restore(saved);const before=exportHexboard(s,saved.configs[0],220).file.tuningBundle.layouts[0].buttonOverrides;
-assert.ok(ui.showChord(coords,'Major triad'));ui.render();assert.deepEqual(ui.serialize(),saved);
+assert.ok(ui.showChord(coords,'Major triad'));ui.render();
+// Showing a chord changes only the panel mode (to Chord → places), never the saved layout.
+{const after=ui.serialize();assert.equal(after.chordMode,'places');assert.deepEqual({...after,chordMode:saved.chordMode},saved);}
 click('chords-play');assert.equal(played.length,3);const old=played;click('chords-next');click('chords-play');assert.notDeepEqual(played,old);
 for(let i=1;i<3;i++)assert.ok(Math.abs((played[i]-played[0])-(old[i]-old[0]))<1e-7);
 click('export');assert.deepEqual(downloaded.tuningBundle.layouts[0].buttonOverrides,before);

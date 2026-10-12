@@ -61,10 +61,11 @@ phones it scrolls away). All Discover panes scroll with the page. The directory 
   HexBoard, Advanced Layout Options), the board with a collapsible Key data box (selected-button
   colours, inspector, axes and coverage), and a side panel with Now playing (live readout and
   keys selected as a chord, with Find places), one Chords panel and Fingering practice. The Chords
-  panel has two modes. Chord → places: a directory search (Discover's lookup, `openInput`), the
-  harmony sent from Discover with its occurrences and fingerings, and the places of the chord being
-  placed (selected keys or a Note → chords pick). Note → chords: the chords on the selected key,
-  below. The app mounts the Note → chords and Practice panels into their slots after each redraw.
+  panel has three modes; the chosen one is saved in the session. Shapes, the first and default: a chord
+  menu and the key patterns of the chosen chord with their fingerings (see "Chord shapes" below).
+  Chord → places: a directory search (Discover's lookup, `openInput`), the harmony sent from Discover
+  with its occurrences and fingerings, and the places of the chord being placed (selected keys or a
+  Note → chords pick). Note → chords: the chords on the selected key, below. The app mounts the Note → chords and Practice panels into their slots after each redraw.
 - **Create** hosts the composition suite MVP (see "Composition suite" below). The
   material collection is also available there. Arrangement, recording, tuning
   conversion, account saving and WAV/MIDI export are not implemented.
@@ -1057,7 +1058,7 @@ highlight (Escape).
 | --- | --- |
 | Rules: exact-set completion, lifting keys between fingerings, wrong keys, skip, restore | `fingering-game.mjs` |
 | Panel markup and events (polls every 250 ms, redraws only on visible change) | `fingering-game-ui.mjs` |
-| The chord's fingerings and lighting one | `hexboard-ui.mjs#fingerings` / `#showFingering` (harmonic selection or finder) |
+| The chord's fingerings and lighting one | `hexboard-ui.mjs#fingerings` / `#showFingering` (a shape open in the Shapes view, else the harmonic selection or finder) |
 
 Lighting reuses the Play board's normal highlight, so the screen and a connected HexBoard both follow
 without any extra code. Lighting the next fingering is a highlight-only redraw (`refresh('highlight')`,
@@ -1097,10 +1098,17 @@ degree's keys on the board.
 
 ## Chord shapes (Play)
 
-Chord → places has two views: Selected voicing (the harmony sent from Discover, D-041) and Shapes.
-Shapes finds the physical key patterns of target chords on the current board and identifies selected
-keys (D-050). Targets are typed JI chords, the selected harmony, or the harmony directory's current
-size/form/family filters; the directory stays the only chord source (D-039).
+Shapes is the first and default mode of the Chords panel. It finds the physical key patterns of chords
+on the current board and identifies selected keys (D-050). It opens on a chord menu: the harmony focused
+in Discover, then the directory's listed JI chords (`harmonic-catalogue-ui.mjs#shapeTargets`), by size
+and then by the simpler integer form of each chord or its reciprocal, so 4:5:6 and 1/6:5:4 come first;
+nine show until More is chosen. Picking one shows that chord alone. Other chords can be typed (several
+separated by semicolons; Find shapes replaces the shown chords, Add adds to them), and Search options can
+search the directory's current size/form/family filters instead; the directory stays the only chord source
+(D-039). The chosen chords are searched without a click: the first menu chord on first view, a chord newly
+focused in Discover (it replaces the shown one), and the same chords again after a board or limit change,
+reopening the open shape when it still fits. Cancel stops this, and clearing the chords does not pick one
+again.
 
 Four records stay separate: the exact JI source (`chord-identity-v2`), its mapped coordinates, the
 geometric shape, and a reading that links each source member to a key. A geometric shape is a set of
@@ -1116,12 +1124,18 @@ renumbers it), possible inversions, and separately the sounding bass, which foll
 
 Search is exhaustive within declared bounds: every reference-lift voicing of 2–8-tone sources on
 enabled keys, a span of 6 key spacings (0 = whole board), all registers, 250,000 search nodes
-(at most 1,000,000) and 20,000 places. Optional root degree, root button, register and Play-scale
+(at most 1,000,000) and 20,000 fingerings. Optional root degree, root button, register and Play-scale
 filters apply to forward search. Results stop at the first limit and say which; counts are then lower
-bounds, and an empty result never proves absence or essential temperament. Cards show 24 per page,
-ranked by geometry score `100 / (1 + span + mean pair distance)` in neighbouring-key spacings, a
-compactness heuristic rather than a playability model; each shape's places start nearest the tonic
-button.
+bounds, and an empty result never proves absence or essential temperament. Results are a gallery of
+shape cards, 24 per page, ranked by geometry score `100 / (1 + span + mean pair distance)` in
+neighbouring-key spacings, a compactness heuristic rather than a playability model. Each card draws its
+pattern at one fixed key size (`hexboard-view.mjs#fingeringPattern`), turned like the board, with
+chord-tone numbers and the root outlined, so compact and spread shapes are told apart at a glance.
+Choosing a card opens the shape on the row below it (choosing it again closes it): its readings and
+facts, and a picker of its fingerings, each the whole board in miniature with that fingering lit
+(`fingeringMap`), 12 at a time, nearest the tonic button first. Chord → places uses the same miniatures
+for Find places and the harmony sent from Discover (which also draws each pattern), so every mode picks
+a fingering by sight.
 
 Identify selected keys reads exactly those keys, ignoring the forward span, scale, root and register
 filters. Its sources are the whole JI chord space and curated chords at the current limits with at least
@@ -1134,9 +1148,10 @@ Open in Discover focuses that directory chord. Find shapes for this chord runs a
 reading, and the geometry filter compares results with the identified keys (same size, same geometry,
 rotations and reflections, or a shared JI reading).
 
-Choosing a card or reading lights its keys with chord-tone numbers beside the keys' own labels; one key
-can carry several. Previous/Next steps through places, Hear plays them, and Add to collection adds the
-exact coordinates with shape provenance. Escape clears only the highlight. A retune keeps results and
+Choosing a fingering, card or reading lights its keys with chord-tone numbers beside the keys' own
+labels; one key can carry several. Previous/Next steps through the fingerings, Hear plays one, and Add to
+collection adds its exact coordinates with shape provenance. While a shape is open, Fingering practice
+drills its fingerings (Practise these fingerings scrolls to it). Escape clears only the highlight. A retune keeps results and
 recomputes sound from stored coordinates; a change to the mapping, scale, board structure, JI limits,
 targets or limits clears them.
 

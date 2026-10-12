@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {makeState} from '../dist/engine.mjs';
 import {buildBoard} from '../dist/hexboard.mjs';
+import {fingeringPattern,fingeringMap} from '../dist/hexboard-view.mjs';
 import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
 import {boardMarkup,compositionDeviceSnapshot} from '../dist/composition-board.mjs';
 import {createCompositionWorkspace} from '../dist/composition-ui.mjs';
@@ -60,4 +61,21 @@ assert.equal(compose.pressKey(65,2),true);assert.equal(voices.length,2);assert.e
 compose.releaseKey(65,3);assert.equal(voices[1].released,true);
 compose.dispose();
 assert.ok([...listeners.values()].every(list=>list.length===0),'disposing removes every Compose and player listener');
+// Fingering drawings: one key size for every pattern, the board's own turn, chord tones and the root.
+{
+ const s=makeState('meantone'),b=buildBoard(s,{base:7,style:'bosanquet',center:65,offset:0,rotation:0,register:0,outside:false});
+ const size=svg=>svg.match(/width="([\d.]+)" height="([\d.]+)"/).slice(1).map(Number);
+ const a=fingeringPattern(b,[65,66,75],{toneLabels:{65:[0],66:[1],75:[2,3]},root:65}),moved=fingeringPattern(b,[45,46,55]);
+ assert.deepEqual(size(a),size(moved),'a translated pattern is drawn at the same size');
+ assert.ok(size(fingeringPattern(b,[65,67]))[0]>size(fingeringPattern(b,[65,66]))[0],'a wider pattern is drawn wider, not shrunk to fit');
+ assert.equal((a.match(/<polygon/g)??[]).length,3);assert.match(a,/<g class="is-root"><polygon[^>]*\/><text[^>]*>1<\/text>/);assert.match(a,/>3,4<\/text>/);
+ const turned=fingeringPattern(b,[65,66],{rotation:1}),flat=fingeringPattern(b,[65,66]);
+ assert.ok(size(turned)[1]>size(flat)[1]&&size(turned)[0]<size(flat)[0],'a quarter turn follows the board');
+ const map=fingeringMap(b,[65,66,75],{root:65});
+ assert.equal((map.match(/<circle/g)??[]).length,b.keys.filter(k=>!k.command).length,'the miniature draws every note key');
+ assert.equal((map.match(/class="lit/g)??[]).length,3);assert.equal((map.match(/class="lit root"/g)??[]).length,1);
+ assert.ok(map.lastIndexOf('class="lit')>map.lastIndexOf('<circle class=""'),'lit keys are drawn on top');
+ assert.equal(fingeringPattern(b,[]),'');
+}
+
 console.log('HexBoard view: Compose draws Play’s picture; its keys hold, release and take physical presses through the shared player.');

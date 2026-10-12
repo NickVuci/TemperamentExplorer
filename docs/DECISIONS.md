@@ -925,7 +925,7 @@ placement, and that Find places gives exactly the old Map selected keys placemen
 
 **Consequences.** Searching for chords on the layout starts from a key. Do not reintroduce a
 board-wide chord list; extend Note → chords or the directory. `hexboard-chords.mjs#discoverBoardChords`
-remains only as the reference for that equivalence test.
+remains only as the reference for that equivalence test. D-050 later adds a Shapes mode, first and default, before these two.
 
 ## D-042 — Root and bass are distinct; a rooted chord is written root - chord
 
@@ -1120,7 +1120,8 @@ server-side preset storage without per-user scoping.
 
 ## D-050 — Chord shapes are translation-only physical patterns with exact reference lifts
 
-**Decision.** Play's Chord → places panel has a Shapes view over one engine (`chord-shapes.mjs`) for
+**Decision.** Play's Chords panel opens on a Shapes mode, before Chord → places and Note → chords
+(amending D-041's two modes), over one engine (`chord-shapes.mjs`) for
 forward search (target chords → shapes and places) and reverse identification (selected keys →
 readings). A shape's identity is its set of axial cells with translation removed; rotations and
 reflections are distinct shapes and are grouped only by an explicit filter. A source member reaches a

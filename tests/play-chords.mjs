@@ -19,7 +19,12 @@ assert.ok(at('<aside class="hex-chord-panel">')<at('<section class="play-now"')&
 assert.ok(at('data-live-chord-readout')>at('<section class="play-now"'),'the live readout is Now playing');
 assert.doesNotMatch(html,/Manual selection|Find chords on this layout|data-hex-finder|chords-search/,'the overlapping tools are gone');
 
-// Chord → places is the default mode: a directory search and the chord sent from Discover.
+// Shapes is the first and default mode: the chord menu and its key patterns.
+assert.equal(ws.chordMode(),'shapes');assert.match(html,/aria-selected="true">Shapes/);at('class="shape-explorer"');
+assert.ok(at('data-mode="shapes"')<at('data-mode="places"')&&at('data-mode="places"')<at('data-mode="notes"'),'Shapes is the first tab');
+assert.doesNotMatch(html,/data-hex-search-text/);
+// Chord → places: a directory search and the chord sent from Discover.
+ws.click(node({hexAction:'chord-mode',mode:'places'}));html=ws.render();
 assert.equal(ws.chordMode(),'places');assert.match(html,/aria-selected="true">Chord → places/);
 at('data-hex-search-text');at('class="catalogue-panel harmony-play"');
 ws.input({dataset:{hexSearchText:''},value:'4:5:6'});ws.click(node({hexAction:'chord-search'}));
@@ -63,4 +68,4 @@ ws.click(node({hexAction:'chord-mode',mode:'places'}));
  }
  assert.ok(checked>20,'a broad sample is compared');
 }
-console.log('Play chords: page layout, Chord → places and Note → chords, directory search, and equivalence with the replaced tools passed.');
+console.log('Play chords: page layout, Shapes first, Chord → places and Note → chords, directory search, and equivalence with the replaced tools passed.');

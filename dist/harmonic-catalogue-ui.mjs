@@ -145,6 +145,17 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
  // The bass list over the directory's visible rows (size range and type filters applied).
  const directoryRows=()=>filtered().filter(row=>directorySize(row)>=sizeMin&&directorySize(row)<=sizeMax&&formMatches(row,directoryFormFilter));
  const directoryBassEntries=(value=bass)=>value?bassEntries(directoryRows(),value):[];
+ // Play's chord-shape menu order within a size: the simpler integer form of the chord or its reciprocal,
+ // so 4:5:6 and 1/6:5:4 lead the triads, then the chord's own form (otonal before its utonal dual).
+ const menuRanks=new WeakMap(),termSum=text=>text.split(':').reduce((total,term)=>total+Number(term),0);
+ function menuRank(row){
+  if(!menuRanks.has(row)){
+   let rank=[Infinity,Infinity];
+   try{const identity=row.interpretation.identity,own=termSum(identity.aliases.otonal),dual=termSum(chordIdentity(identity.aliases.reciprocal).aliases.otonal);rank=[Math.min(own,dual),own];}catch{}
+   menuRanks.set(row,rank);
+  }
+  return menuRanks.get(row);
+ }
  // Opens a bass entry in the analysis on its inversion, remembering its bass.
  function chooseBassEntry(pick,value=bass){
   // The voicing's bass (realization variant ids are bass member indices) follows the chosen inversion.
@@ -460,7 +471,10 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
  }
  function setEnabled(value){if(enabled===value)return;enabled=!!value;if(!enabled){generation++;jobs.cancel();if(status==='loading'){stamp='';status='idle';}}else sync();}
  return {render,renderParts,change,click,sync,setEnabled,openInput,focus,focusExternal,matchPlayed,
-  shapeTargets:()=>({ready:!!result&&status!=='loading'&&status!=='error',complete:!!result?.complete,filters:{sizes:SIZE_RANGE.filter(size=>size>=sizeMin&&size<=sizeMax),form:directoryFormFilter==='et'?'all':directoryFormFilter,familyIds:[...new Set(directoryRows().filter(row=>row.kind==='ji').map(row=>row.familyId))]}}),
+  shapeTargets:()=>{const rows=directoryRows().filter(row=>row.kind==='ji');return {ready:!!result&&status!=='loading'&&status!=='error',complete:!!result?.complete,filters:{sizes:SIZE_RANGE.filter(size=>size>=sizeMin&&size<=sizeMax),form:directoryFormFilter==='et'?'all':directoryFormFilter,familyIds:[...new Set(rows.map(row=>row.familyId))]},
+   // The listed JI chords, smallest and simplest first, for Play's chord-shape menu.
+   chords:rows.map((row,order)=>({label:row.preferredLabel,size:directorySize(row),form:FORM_LABELS[formOf(row)]??'JI',rank:menuRank(row),order}))
+    .sort((a,b)=>a.size-b.size||a.rank[0]-b.rank[0]||a.rank[1]-b.rank[1]||a.order-b.order).slice(0,24).map(({order,rank,...chord})=>chord)};},
   /** Sets (or clears, with null) the shared bass filter {scale:'discover'|'play', degree}; returns the applied value. */
   setBass(value){const applied=setBass(value);refresh();return applied;},bass:()=>bass?{...bass}:null,bassEntries:()=>directoryBassEntries(),
   // The directory's chords with a scale degree as their root (every inversion); null while listing.

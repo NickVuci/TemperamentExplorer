@@ -55,7 +55,7 @@ useScaleHandler({target:useScaleButton,shiftKey:false});
 assert.equal(handoff.view,'hexboard');assert.ok(renderedPlay&&scrolled);
 assert.equal(boardStates()[0].n,states[0].n);assert.equal(boardStates()[0].mode,states[0].mode);
 boardStates()[0].n=31;boardStates()[0].mode=0;
-assert.ok(hex.showChord(coords,'Voiced chord')>0);assert.match(hex.render(),/Voiced chord/);assert.equal(boardStates()[0].n,31);
+assert.ok(hex.showChord(coords,'Voiced chord')>0);assert.equal(hex.chordMode(),'places','a placed collection chord opens Chord → places');assert.match(hex.render(),/Voiced chord/);assert.equal(boardStates()[0].n,31);
 const original=states[0].g;states[0].g+=.1;placed=null;collection.click({dataset:{material:'place',i:'1'}});assert.equal(placed,null);assert.match(notice,/source tuning/);collection.click({dataset:{material:'load',i:'1'}});assert.equal(loaded.g,original);assert.equal(boardStates()[0].g,states[0].g);
 collection.click({dataset:{material:'remove',i:'0'}});assert.equal(collection.serialize().length,1);
 // Exercise actual navigation logic with small interface stand-ins.

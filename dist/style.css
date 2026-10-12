@@ -4217,6 +4217,18 @@ footer {
 .shape-explorer textarea { resize: vertical; }
 .shape-explorer .panelactions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .shape-explorer button { min-height: 32px; font-size: 12px; padding: 6px 9px; }
+/* The chord menu: the directory's chords (and the one focused in Discover) as one-click choices. */
+.shape-chord-menu { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
+.shape-explorer .shape-chord { min-height: 34px; padding: 5px 11px; border-radius: 999px; font-family: var(--font-mono); font-size: 13px; }
+.shape-chord[aria-pressed="true"] { border-color: var(--a); background: var(--surface2); box-shadow: inset 0 0 0 1px var(--a); }
+.shape-chord small { margin-left: 6px; color: var(--muted); font-family: var(--font-ui); font-size: 10px; }
+.shape-explorer .shape-chord-more { min-height: 34px; padding: 5px 11px; border-radius: 999px; border-style: dashed; color: var(--muted); font-size: 12px; }
+.shape-type-chord { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 8px; }
+.shape-explorer .shape-type-chord input { flex: 1 1 170px; width: auto; min-width: 0; }
+.shape-type-chord button { white-space: nowrap; }
+/* Three Chords modes share the panel width without breaking their labels. */
+.play-chords > .play-chord-modes { display: flex; width: 100%; }
+.play-chords > .play-chord-modes button { flex: 1 1 auto; white-space: nowrap; padding: 4px 8px; }
 .shape-targets { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0; max-height: 160px; overflow: auto; }
 .shape-targets > span { display: flex; align-items: center; gap: 4px; padding-left: 8px; border: 1px solid var(--line); border-radius: 5px; font-size: 12px; }
 .shape-targets button { border: 0; background: none; min-height: 28px; }
@@ -4224,14 +4236,39 @@ footer {
 .shape-explorer details { margin: 12px 0; }
 .shape-explorer summary { font-size: 13px; color: var(--muted); cursor: pointer; }
 .shape-explorer details ul { max-height: 230px; overflow: auto; padding-left: 18px; font-size: 12px; }
-.shape-cards { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin: 12px 0; }
+/* The chosen shape opens on the row below its card; dense flow lets the next card fill its row. */
+.shape-cards { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); grid-auto-flow: dense; gap: 8px; margin: 12px 0; }
 .shape-card { display: flex; flex-direction: column; align-items: stretch; gap: 6px; text-align: left; border-radius: 8px; min-width: 0; }
 .shape-card[aria-pressed="true"] { border-color: var(--a); background: var(--surface2); }
 .shape-card span { overflow-wrap: anywhere; }
 .shape-card small { color: var(--muted); font-size: 11px; line-height: 1.4; }
-.shape-preview { display: block; width: 100%; height: 100px; pointer-events: none; }
-.shape-details { border: 1px solid var(--a); border-radius: 8px; padding: 12px; margin: 12px 0; overflow-wrap: anywhere; }
-.shape-details .shape-preview { height: 135px; }
+.shape-card-pattern { display: flex; align-items: center; justify-content: center; min-height: 96px; }
+.shape-details { grid-column: 1 / -1; border: 1px solid var(--a); border-radius: 8px; padding: 10px 12px; margin: 0 0 4px; overflow-wrap: anywhere; min-width: 0; }
+.shape-details-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.shape-details-head h5 { margin: 0; font-size: 15px; }
+.shape-explorer .shape-close { min-height: 28px; padding: 2px 9px; font-size: 16px; line-height: 1; }
+.shape-details-main { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.shape-details-main > div, .shape-details-main > p { flex: 1 1 160px; min-width: 0; }
+.shape-subhead { margin: 10px 0 4px; }
+.shape-details .panelactions > span { font-size: 12px; color: var(--muted); }
+
+/* Fingering drawings: a pattern at one key size, and the whole board in miniature with one fingering lit. */
+.fingering-pattern, .fingering-map { display: block; max-width: 100%; height: auto; flex: none; pointer-events: none; }
+.fingering-pattern polygon { fill: #e6dfcb; stroke: var(--mint); stroke-width: 1.3; stroke-linejoin: round; }
+.fingering-pattern .is-root polygon { stroke: #55b5ff; stroke-width: 2.4; }
+.fingering-pattern text { fill: #11151c; font-family: var(--font-mono); font-weight: 500; }
+.fingering-map circle { fill: var(--line); }
+.fingering-map circle.off { fill: var(--surface2); }
+.fingering-map circle.lit { fill: #e6dfcb; }
+.fingering-map circle.root { stroke: #55b5ff; stroke-width: 1.2; }
+.fingering-choices { display: grid; grid-template-columns: repeat(auto-fill,minmax(82px,1fr)); gap: 6px; margin: 6px 0 8px; }
+.fingering-choices .fingering-choice { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; padding: 6px 4px; font-size: 11px; line-height: 1.3; }
+.fingering-choice > span { max-width: 100%; overflow-wrap: anywhere; text-align: center; }
+.fingering-choice[aria-pressed="true"] { border-color: var(--a); background: var(--surface2); box-shadow: inset 0 0 0 1px var(--a); }
+.harmony-fingerings .fingering-choice { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 2px 10px; }
+.harmony-fingerings .fingering-choice > :not(.fingering-visual) { grid-column: 2; }
+.harmony-fingerings .fingering-visual { grid-row: span 2; }
+.fingering-visual { display: flex; align-items: center; gap: 8px; }
 .shape-identity { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 12px 0; overflow-wrap: anywhere; }
 .shape-identity h5 { margin: 0 0 6px; font-size: 13px; }
 .shape-readings { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 6px; max-height: 320px; overflow: auto; }
