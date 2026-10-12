@@ -4,8 +4,7 @@ import {makeState} from '../src/core/catalog.mjs';
 import {diamondLayout} from '../src/diamond/diamond-layout.mjs';
 import {diamondApproximation} from '../src/diamond/tonality-diamond.mjs';
 import {diamondFocus, matrixFocusDegrees, relativeRatios} from '../src/harmonic/harmonic-focus.mjs';
-import {readFileSync} from 'node:fs';
-import vm from 'node:vm';
+import {createFocusSync} from '../src/app/focus-sync.mjs';
 import {matrixScale} from '../src/core/matrix.mjs';
 import {noteCoordinate} from '../src/core/pitch.mjs';
 import {equivalencePolicy, quotientCoordinate} from '../src/harmonic/harmonic-equivalence.mjs';
@@ -270,74 +269,66 @@ for (const [s, ratios, expected] of [
   boundary.destroy();
 }
 
-// The app's diamond follow and matrix Shift-click, run from source against stand-ins.
-const app = readFileSync(new URL('../src/app.mjs', import.meta.url), 'utf8'),
-  slice = (start, end) => app.slice(app.indexOf(start), app.indexOf(end, app.indexOf(start)));
+// The app's focus sync: the diamond follow and matrix Shift-click, against stand-in workspaces.
 const calls = [],
   timers = [];
 let display = {kind: 'chord', source: 'selected'},
-  shown = [];
-const sandbox = vm.createContext({
-  harmonicMode: 'b',
-  view: 'unified',
-  states: [state],
-  settings: () => ({layout: 'notes'}),
-  matrixScale,
-  noteCoordinate,
-  toast: () => {},
-  applyHarmonicFocus: () => {},
-  relativeRatios,
-  harmonicWorkspace: {
+  shown = [],
+  following = true;
+const focusSync = createFocusSync({
+  getView: () => 'unified',
+  getState: () => state,
+  getSettings: () => ({layout: 'notes'}),
+  notify: () => {},
+  harmonic: {
     focusExternal: value => {
       calls.push(value);
       return true;
     },
-    followPlaying: () => sandbox.following
+    followPlaying: () => following,
+    focus: () => null
   },
-  following: true,
-  diamondWorkspace: {chordDisplay: () => display, displayCells: () => shown},
-  setTimeout: fn => {
-    timers.push(fn);
-    return timers.length;
-  },
-  clearTimeout: () => {}
+  diamond: {chordDisplay: () => display, displayCells: () => shown, showFocus: () => {}},
+  document: {querySelectorAll: () => []},
+  timers: {
+    setTimeout: fn => {
+      timers.push(fn);
+      return timers.length;
+    },
+    clearTimeout: () => {}
+  }
 });
-vm.runInContext(slice('let followTimer=null', 'function applyHarmonicFocus(){'), sandbox);
 const triad = ['1/1', '5/4', '3/2'].map((label, i) => {
   const cell = cells.find(c => c.label === label);
   return {...cell, id: 'c' + i};
 });
 shown = triad.slice(0, 2);
-sandbox.followDiamond();
+focusSync.followDiamond();
 assert.equal(calls.length, 0, 'two pitch classes are not followed');
 shown = triad;
-sandbox.followDiamond();
+focusSync.followDiamond();
 assert.equal(calls.length, 1, 'a selected triad is focused at once');
 assert.equal(JSON.stringify(calls[0].ratios), JSON.stringify(['1/1', '5/4', '3/2']));
 assert.equal(calls[0].coordinates.length, 3);
 display = {kind: 'chord', source: 'playing'};
-sandbox.followDiamond();
+focusSync.followDiamond();
 assert.equal(calls.length, 1, 'a held chord waits');
 timers.pop()();
 assert.equal(calls.length, 2, 'and is focused once it settles');
-sandbox.following = false;
-sandbox.followDiamond();
+following = false;
+focusSync.followDiamond();
 assert.equal(timers.length, 0, 'following can be switched off');
-sandbox.pickMatrixCell(0, 2);
+focusSync.pickMatrixCell(0, 2);
 assert.equal(calls.length, 2);
-sandbox.pickMatrixCell(0, 4);
+focusSync.pickMatrixCell(0, 4);
 assert.equal(calls.length, 3, 'three scale degrees form a chord');
 const m = matrixScale(state);
 assert.equal(
   JSON.stringify(calls.at(-1).coordinates),
   JSON.stringify([0, 2, 4].map(d => noteCoordinate(state, m.notes[d])))
 );
-sandbox.pickMatrixCell(0, 4);
-assert.equal(
-  vm.runInContext('matrixChordCells.size', sandbox),
-  1,
-  'Shift-clicking a picked cell removes it'
-);
+focusSync.pickMatrixCell(0, 4);
+assert.equal(focusSync.matrixPicks(), 1, 'Shift-clicking a picked cell removes it');
 ui.sync();
 while (ui.model().status !== 'complete') await new Promise(resolve => setTimeout(resolve, 5));
 assert.equal(
@@ -358,27 +349,27 @@ ui.focusExternal({ratios: ['1/1', '6/5', '8/5']});
 const handed = [],
   focused = [],
   playTimers = [];
-const play = vm.createContext({
-  harmonicMode: 'b',
-  harmonicWorkspace: {
-    selection: () => ({shapeId: 's', interpretationId: play.current, voicing: {coords: [[0, 0]]}}),
-    followPlaying: () => play.following,
+let current = 'a',
+  playFollowing = true;
+const play = createFocusSync({
+  harmonic: {
+    selection: () => ({shapeId: 's', interpretationId: current, voicing: {coords: [[0, 0]]}}),
+    followPlaying: () => playFollowing,
     focusExternal: value => {
       focused.push(value);
-      play.current = 'played';
+      current = 'played';
       return true;
     }
   },
-  hexWorkspace: {acceptHarmonicSelection: value => handed.push(value.interpretationId)},
-  current: 'a',
-  following: true,
-  setTimeout: fn => {
-    playTimers.push(fn);
-    return playTimers.length;
-  },
-  clearTimeout: () => {}
+  hex: {acceptHarmonicSelection: value => handed.push(value.interpretationId)},
+  timers: {
+    setTimeout: fn => {
+      playTimers.push(fn);
+      return playTimers.length;
+    },
+    clearTimeout: () => {}
+  }
 });
-vm.runInContext(slice('let playFocusKey=', 'function scheduleLiveChordUpdate('), play);
 play.syncPlayFocus();
 play.syncPlayFocus();
 assert.equal(JSON.stringify(handed), JSON.stringify(['a']), 'the same focus is handed over once');
@@ -395,7 +386,7 @@ assert.equal(focused.length, 1);
 assert.equal(focused[0].coordinates.length, 3, 'held notes focus their distinct coordinates');
 play.syncPlayFocus();
 assert.equal(handed.length, 1, 'a chord focused from Play is not handed back to Play');
-play.following = false;
+playFollowing = false;
 play.followPlay([{coordinate: [0, 0]}, {coordinate: [0, 1]}, {coordinate: [-2, 4]}]);
 assert.equal(playTimers.length, 0, 'following can be switched off');
 ui.destroy();

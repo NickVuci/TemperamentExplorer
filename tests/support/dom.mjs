@@ -298,7 +298,10 @@ export function cssRules(css = styleCss()) {
       .trim();
   return {
     rules,
-    /** Every rule whose selector list includes this selector, optionally inside a media query. */
+    /**
+     * Every rule whose selector list includes this selector. `media` limits the search to rules
+     * inside a matching media query, or with null to rules outside any media query.
+     */
     find(selector, {media} = {}) {
       const want = normalize(selector);
       return rules.filter(
@@ -306,7 +309,10 @@ export function cssRules(css = styleCss()) {
           normalize(rule.selector)
             .split(',')
             .some(part => part === want) &&
-          (media === undefined || (rule.media ?? '').replace(/\s+/g, ' ').includes(media))
+          (media === undefined ||
+            (media === null
+              ? rule.media === null
+              : (rule.media ?? '').replace(/\s+/g, ' ').includes(media)))
       );
     },
     /** The last value the cascade gives a property for this selector, by source order. */
