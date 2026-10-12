@@ -30,8 +30,8 @@ history or planning documents without confirming it is still canonical.
 - Record significant unrelated risks; fix them only when they block the task or
   threaten correctness.
 - The top-level files in `dist/` are authored source. Do not delete or regenerate
-  them as disposable build output. `npm run build` produces the Worker at
-  `dist/server/index.js` and its hosting manifest.
+  them as disposable build output. `npm run build` writes the static site to
+  `site/`.
 
 ## Model routing and delegation
 
@@ -83,8 +83,8 @@ For substantial work, use testable stages:
   refactors, coherent feature completion, or final acceptance.
 - Do not run the complete suite after every small edit.
 - Do not accept a visual result as proof when underlying calculations changed.
-- Preserve the package manager, lockfile, build system, session formats, database
-  schema, and hosting configuration unless the task requires a change.
+- Preserve the package manager, lockfile, build system, session formats, and
+  hosting configuration unless the task requires a change.
 
 Primary commands:
 

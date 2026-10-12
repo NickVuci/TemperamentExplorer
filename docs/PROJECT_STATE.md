@@ -756,8 +756,8 @@ Compatibility aliases and narrow session migrations are intentional.
 - Chord-space classification replaced streamed per-shape ET discovery
   (`discoverDyadicHarmony`) and the manual, bounded ET search in the directory.
 - The Cloudflare Worker and its D1 preset API were replaced by the static site and
-  `preset-store.mjs` (D-049). `server/`, `db/`, `drizzle/`, `drizzle.config.ts`,
-  `.openai/` and the drizzle dev dependencies are no longer built or used.
+  `preset-store.mjs` (D-049) and removed. `.openai/hosting.json` remains as hosting
+  configuration.
 
 ## Current boundaries and architectural issues
 
