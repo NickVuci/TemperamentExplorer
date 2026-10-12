@@ -383,10 +383,10 @@ Shift pedal and keyboard activation without replacing the SVG; voice lifecycle
 remains in `audio.mjs`. Cell fills indicate selection and playback without geometry
 changes. Layout and selection are included in session files and old sessions use
 the default layout. Changes to tuning, scale, source or filters invalidate selections.
-Transfers retain sounding integer coordinates. A retains its distinct-degree
-scale-fit handoff. B Chords accepts 2–8 source cell voices, including repeated
-or coincident coordinates, without changing the Discover scale. Larger B
-selections can be collected as scales. `diamond-harmonic-selection.mjs` records
+Transfers retain sounding integer coordinates. Map to HexBoard keeps its
+distinct-degree scale-fit handoff. Open in Chords accepts 2–8 source cell voices,
+including repeated or coincident coordinates, without changing the Discover scale.
+Larger selections can be added to the collection as scales. `diamond-harmonic-selection.mjs` records
 exact cell IDs, ratios, source coordinates and whether the sound is canonical
 or an alternative approximation. Reverse links require exact sounded ratios
 and coordinates; an unavailable current display is reported explicitly.
@@ -596,7 +596,7 @@ selection sent from Discover and explicit occurrence/fingering choices. The live
 readout follows held and Shift-latched voices; label interpretation never changes playback
 or persistent selection.
 
-In B mode the live readout reads held keys (screen or HexBoard) against the harmony directory
+The live readout reads held keys (screen or HexBoard) against the harmony directory
 (`played-chord.mjs#matchPlayedChord`, via the harmony workspace's `matchPlayed`). Keys reduce to
 pitch classes through the mapping, so register, doublings and spacing never change the match; the
 lowest key sets the bass. A listed chord shows its directory name, form badge and the rotation
@@ -770,8 +770,9 @@ Compatibility aliases and narrow session migrations are intentional.
   session and degree APIs remain intentional compatibility adapters.
 - `chord-discovery-v2.mjs#discoverChords` has no app consumer since D-039; only its
   tests and `scripts/profile-chord-v2.mjs` use it.
-- The material collection can save, play, inspect, and place scales/chords. A chord
-  progression and melody/phrase composition sequencer is not implemented.
+- The material collection can save, play, inspect, and place scales/chords.
+  Composition (progressions, melodies, playback and practice) lives in the
+  composition workspace described below.
 - Product limits include 256 scale notes, bounded chord discovery, 2–8-tone exact
   chord input, 20,000 retained physical placements, and 133 playable HexBoard
   buttons. Chord-shape searches also stop at 1,000,000 search nodes, 20,000
