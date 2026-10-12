@@ -11,9 +11,9 @@ interval/JI, chord, and HexBoard-layout application.
 - The application is a client-only browser ES-module interface deployed as a
   static site (D-049). It has no server code or server-side storage.
 - Top-level `dist/*` files are authored source. `scripts/build.mjs` writes the
-  static site to `site/`: authored files, minified bundles of `app.mjs`,
-  `comma-worker.mjs` and `chord-v2-worker.mjs`, minified CSS, and `sw.js` with its
-  shell list and a content-hash version.
+  static site to `site/`: the page, manifest and icons, minified bundles of
+  `app.mjs`, `comma-worker.mjs` and `chord-v2-worker.mjs`, minified CSS, and `sw.js`
+  with its shell list and a content-hash version.
 - `dist/app.mjs` is the main controller and owns navigation, primary temperament
   state, shared JI controls, session import/export, matrix rendering, and workspace
   integration.

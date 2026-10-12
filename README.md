@@ -17,9 +17,9 @@ host (GitHub Pages, Netlify, Cloudflare Pages) can serve `site/`, including from
 a subpath. Saved temperaments, layouts and chord shapes live in each browser's local storage;
 Settings → Export/Import saved presets moves them between browsers or devices.
 
-- `npm run build` writes `site/`: the authored files, the page and both module
-  workers as minified bundles, minified CSS, and the service worker stamped with
-  a hash of the app shell. Authored modules and CSS are not overwritten.
+- `npm run build` writes `site/`, which holds only the app shell: the page, the
+  app and both module workers as minified bundles, minified CSS, the manifest and
+  icons, and the service worker stamped with a hash of the shell.
 - `npm run preview` serves `site/` locally for checking offline and install
   behavior; service workers need `localhost` or HTTPS.
 - `npm run dev` serves `dist/` through Vite for interaction QA.
@@ -30,7 +30,7 @@ Settings → Export/Import saved presets moves them between browsers or devices.
   calculation workloads against current or previous sources.
 
 The browser receives one bundled ES module instead of fetching its dependency
-tree. Individual module URLs remain available for direct module consumers.
+tree.
 `manifest.webmanifest` makes the app installable. `sw.js` precaches the shell
 and prefers the network, so online visits run the deployed files and offline
 visits use the cache.

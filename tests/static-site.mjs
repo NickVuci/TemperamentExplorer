@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {existsSync,readFileSync} from 'node:fs';
+import {existsSync,readFileSync,readdirSync} from 'node:fs';
 import vm from 'node:vm';
 // Builds site/ and checks it is a complete static site with an offline shell.
 const built=spawnSync(process.execPath,['scripts/build.mjs'],{encoding:'utf8'});assert.equal(built.status,0,built.stderr);
 const site=name=>new URL('../site/'+name,import.meta.url),text=name=>readFileSync(site(name),'utf8');
+assert.deepEqual(readdirSync(site('')).sort(),['app.mjs','chord-v2-worker.mjs','comma-worker.mjs','icon-192.png','icon-512.png','icon.svg','index.html','manifest.webmanifest','style.css','sw.js'],'site/ holds only the app shell');
 const html=text('index.html');
 for(const ref of ['./manifest.webmanifest','./icon.svg','./icon-192.png','./app.mjs','./style.css'])assert.ok(html.includes(`"${ref}"`),ref+' is linked from the page');
 const manifest=JSON.parse(text('manifest.webmanifest'));assert.equal(manifest.start_url,'./');assert.equal(manifest.display,'standalone');
