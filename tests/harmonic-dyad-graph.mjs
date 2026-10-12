@@ -5,6 +5,7 @@ import {mappingContext} from '../dist/harmonic-context.mjs';
 import {projectCoordinateShape} from '../dist/chord-projection-v2.mjs';
 import {mapMonzo,ratioMonzo} from '../dist/ji-monzo.mjs';
 import {buildDyadIndex,domainsForShape} from '../dist/harmonic-dyad-graph.mjs';
+import {quotientCoordinate} from '../dist/harmonic-equivalence.mjs';
 
 function targetsFor(state,{oddLimit=27,representationPolicy='octave',primeFilter=null}={}){
  return targetSet({oddLimit,primeFilter,mappingSubgroup:state.basis,representationPolicy});
@@ -65,6 +66,21 @@ assert.ok(residue,'the exact target set contains a mapped first-octave-residue w
 assert.deepEqual(residue.coordinate,[1,0]);
 assert.notEqual(residue.key,pajaraIndex.vertices.find(vertex=>vertex.isUnisonClass).key);
 assert.deepEqual(pajaraIndex.policy.vector,[2,0]);
+
+// A reference prime other than 2 can put the mapped octave off the period axis. Vertices must
+// remain physical coordinates even though quotient classes use a different coordinate basis.
+for(const rows of [[[1,0,-1],[0,1,4]],[[1,1,0],[0,-1,4]],[[1,2,1],[0,2,3]]]){
+ const mapping={basis:[3,2,5],rows},index=buildDyadIndex(targetsFor(mapping,{oddLimit:9}),mapping);
+ assert.notEqual(index.policy.vector[1],0);
+ assert.ok(index.vertices.some(vertex=>JSON.stringify(vertex.coordinate)!==vertex.key));
+ for(const vertex of index.vertices){
+  assert.equal(quotientCoordinate(index.policy,vertex.coordinate).key,vertex.key);
+  for(const item of vertex.interpretations){
+   assert.deepEqual(vertex.coordinate,quotientCoordinate(index.policy,item.coordinate).representative);
+   assert.equal(JSON.stringify(item.classCoordinate),vertex.key,'target quotient labels retain their original meaning');
+  }
+ }
+}
 
 // Native exact analysis on a non-octave subgroup must retain 3/1 and its reciprocal.
 const tritave=fromCommas('245/243','3.5.7','Computed CWE'),nativeTargets=targetsFor(tritave,{oddLimit:15,representationPolicy:'native-exact',primeFilter:[3,5,7]});

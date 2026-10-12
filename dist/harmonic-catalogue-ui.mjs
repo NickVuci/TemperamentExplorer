@@ -263,7 +263,7 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
  function rotations(m){
   if(!entry||!m.geometry)return [];
   const s=m.state,octave=s.basis.includes(2);
-  return rotationCache.get(JSON.stringify([entry.id,s.basis,s.rows]),()=>{
+  return rotationCache.get(JSON.stringify([entry.id,entry.targetSetId,s.basis,s.rows]),()=>{
    // Rotations are written in the chord's form: a utonal chord's as 1/a:b:c, otonal and ambitonal ones as a:b:c.
    if(entry.kind==='ji'){const utonalChord=formOf(entry)==='utonal';
     return chordRotations(entry.interpretation.identity,octave).map(r=>{const utonal='1/'+[...r.dualTerms].reverse().join(':');
@@ -296,7 +296,7 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
  const commaCache=new BoundedCache(32);
  function etCommas(){
   if(entry?.kind!=='tempered'||entry.status!=='essentially-tempered')return [];
-  return commaCache.get(entry.id,()=>{try{const result=assessET(entry.shape,dyadIndex(getState()));return [...new Set((result.obstruction?.representativeCycles??[]).map(cycle=>cycle.commaRatio))];}catch{return [];}});
+  return commaCache.get(JSON.stringify([entry.id,entry.targetSetId]),()=>{try{const result=assessET(entry.shape,dyadIndex(getState()));return [...new Set((result.obstruction?.representativeCycles??[]).map(cycle=>cycle.commaRatio))];}catch{return [];}});
  }
  function spellings(m){
   if(entry?.kind!=='ji')return '';
@@ -364,8 +364,17 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
   const row=rowFor({ratios,coordinates});if(!row)return false;
   const changed=row.id!==entry?.id;
   if(changed){entry=row;selected=row.id;selectedRoot='';inversion=0;sourceSelection=null;remember(row);}
-  let next=0;
-  if(ratios?.length){const want=[...ratios].sort().join(':'),list=rotations(detailModel()),k=list.findIndex(r=>r.ratios&&[...r.ratios].sort().join(':')===want);if(k>=0)next=k;}
+  const m=detailModel(),list=rotations(m);let next=-1;
+  if(ratios?.length){const want=[...ratios].sort().join(':');next=list.findIndex(r=>r.ratios&&[...r.ratios].sort().join(':')===want);}
+  // A tempered match has no exact ratio rotation. Match its classes relative to the played bass,
+  // including when a different JI spelling shares the shape; transposition and doublings do not matter.
+  if(next<0&&coordinates?.length&&m.geometry){try{
+   const s=m.state,policy=equivalencePolicy(s,s.basis.includes(2)?'octave':'exact');
+   const relativeKeys=(points,root)=>[...new Set(points.map(point=>quotientCoordinate(policy,[point[0]-root[0],point[1]-root[1]]).key))].sort().join('|');
+   const bass=coordinates.reduce((lowest,point)=>coordinateCents(s,point)<coordinateCents(s,lowest)?point:lowest),want=relativeKeys(coordinates,bass),points=m.geometry.shape.coordinates;
+   next=list.findIndex(current=>{const member=rotationMember(m,current);return member>=0&&relativeKeys(points,points[member])===want;});
+  }catch{}}
+  if(next<0)next=0;
   if(!changed&&next===rotation)return true;
   rotation=next;revealRow(row);refresh();return true;
  }
@@ -373,7 +382,8 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
   const m=detailModel(),geometry=m.geometry;
   const followSwitch=`<label class="checklabel harmony-follow"><input type="checkbox" data-harmony-field="follow" ${followPlaying?'checked':''}> Follow what I play</label>`;
   const form=formOf(entry),commas=etCommas();
-  return `${followSwitch}<h4>${esc(rowLabel(entry))}${['ji','tempered'].includes(entry.kind)?` <span class="form-badge ${form}">${FORM_LABELS[form]}</span>`:''}</h4>${currentRotation(m)}${geometry?`${chordLineDiagram(m)}${rotationButtons(m)}${chordIntervalMatrix(m)}`:''}${spellings(m)}${entry.kind==='ji'||geometry?`<div class="panelactions">${entry.kind==='ji'?button('dual','Open reciprocal chord'):''}${geometry?`${button('hear',m.voice?'Hear voicing':'Hear mapped notes')}${button('collect','Add to collection',occurrenceShape(m.state,geometry.shape).members.length<2?'disabled':'')}${button('send','Send to Play')}`:''}</div>`:''}
+  const etContext=form==='et'?`<p class="harmony-et-context">ET is relative to the selected JI limits (odd limit ${esc(getSettings(getState()).limit??15)}): every pair has an allowed reading, but no single JI chord realizes them all within those limits. The displayed ratios label tempered intervals from the bass; inversions refer to the tempered chord.</p>`:'';
+  return `${followSwitch}<h4>${esc(rowLabel(entry))}${['ji','tempered'].includes(entry.kind)?` <span class="form-badge ${form}">${FORM_LABELS[form]}</span>`:''}</h4>${currentRotation(m)}${etContext}${geometry?`${chordLineDiagram(m)}${rotationButtons(m)}${chordIntervalMatrix(m)}`:''}${spellings(m)}${entry.kind==='ji'||geometry?`<div class="panelactions">${entry.kind==='ji'?button('dual','Open reciprocal chord'):''}${geometry?`${button('hear',m.voice?'Hear voicing':'Hear mapped notes')}${button('collect','Add to collection',occurrenceShape(m.state,geometry.shape).members.length<2?'disabled':'')}${button('send','Send to Play')}`:''}</div>`:''}
    ${entry.kind==='source'?'<p>Source sounding coordinates and voices are preserved.</p>':''}
    ${entry.kind==='ji'?otherReadings():''}
    ${!geometry?`<p>Outside the mapping subgroup · missing primes ${entry.missingPrimes?.join(', ')??'unknown'}. No sounding coordinates are available.</p>`:`
@@ -450,6 +460,7 @@ export function createHarmonicCatalogueWorkspace({getState,getPlayState=getState
  }
  function setEnabled(value){if(enabled===value)return;enabled=!!value;if(!enabled){generation++;jobs.cancel();if(status==='loading'){stamp='';status='idle';}}else sync();}
  return {render,renderParts,change,click,sync,setEnabled,openInput,focus,focusExternal,matchPlayed,
+  shapeTargets:()=>({ready:!!result&&status!=='loading'&&status!=='error',complete:!!result?.complete,filters:{sizes:SIZE_RANGE.filter(size=>size>=sizeMin&&size<=sizeMax),form:directoryFormFilter==='et'?'all':directoryFormFilter,familyIds:[...new Set(directoryRows().filter(row=>row.kind==='ji').map(row=>row.familyId))]}}),
   /** Sets (or clears, with null) the shared bass filter {scale:'discover'|'play', degree}; returns the applied value. */
   setBass(value){const applied=setBass(value);refresh();return applied;},bass:()=>bass?{...bass}:null,bassEntries:()=>directoryBassEntries(),
   // The directory's chords with a scale degree as their root (every inversion); null while listing.

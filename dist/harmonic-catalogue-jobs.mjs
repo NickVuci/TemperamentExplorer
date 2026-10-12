@@ -40,9 +40,9 @@ export function createHarmonicJobDispatcher({emit=()=>{},cacheEntries=8,maxCache
 }
 
 /** Latest-job controller, used identically with a browser Worker or fallback. */
-export function createHarmonicCatalogueJobs({workerFactory,onMessage=()=>{}}={}){
+export function createSearchJobs({workerFactory,onMessage=()=>{},getContextId=harmonicJobContextId,dispatcherFactory=createHarmonicJobDispatcher}={}){
  let sequence=0,active=null,destroyed=false,worker=null;
- const fallback=createHarmonicJobDispatcher({emit:receive});
+ const fallback=dispatcherFactory({emit:receive});
  function receive(message){
   if(destroyed||!active||message.requestId!==active.requestId||message.contextId!==active.contextId||message.kind!==active.kind)return;
   const terminal=message.type==='complete'||message.type==='error';
@@ -62,10 +62,12 @@ export function createHarmonicCatalogueJobs({workerFactory,onMessage=()=>{}}={})
  }
  return {run(kind,payload){
   if(destroyed)throw Error('Harmonic jobs controller is destroyed.');
-  const contextId=harmonicJobContextId(kind,payload);cancel();const requestId=++sequence;
+  const contextId=getContextId(kind,payload);cancel();const requestId=++sequence;
   const envelope={requestId,contextId,kind,payload:JSON.parse(canonicalHarmonicJSON(payload))};
   let resolve;const promise=new Promise(done=>{resolve=done;});active={requestId,contextId,kind,resolve,envelope};send(envelope);
   return {requestId,contextId,promise,cancel:()=>{if(active?.requestId===requestId)cancel();}};
  },cancel,destroy(){cancel();destroyed=true;detachWorker();fallback.destroy();},
  get usingWorker(){return !!worker;},get cacheMetrics(){return fallback.metrics;}};
 }
+
+export const createHarmonicCatalogueJobs=options=>createSearchJobs(options);

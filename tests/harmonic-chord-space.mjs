@@ -22,9 +22,20 @@ assert.equal(enumerateJIChordSpace(indexFor(makeState('septimal'),9)),nine,'JI c
 const porcupine=fromCommas('250/243','2.3.5','Computed CWE'),wide=enumerateJIChordSpace(indexFor(makeState('meantone'),15),{sizes:[2,3,4,5]}),narrow=enumerateJIChordSpace(indexFor(porcupine,15),{sizes:[3]});
 assert.ok(narrow.chords.length&&narrow.chords.every(chord=>chord.size===3&&wide.chords.includes(chord)),'temperaments sharing a basis and size ranges inside a computed range reuse one JI enumeration');
 
+// Mapping identity ignores paired prime-column permutations, but interpretation monzos use the
+// caller's working basis order. Cached chord-space records must preserve that order.
+for(const mapping of [makeState('meantone'),{basis:[2,5,3],rows:[[1,0,1],[0,4,1]]}]){
+ const index=indexFor(mapping,9),space=classifyChordSpace(index,{sizes:[3]});
+ for(const shape of space.shapes)for(const chord of shape.interpretations)assert.equal(temperedImage(chord,index).id,shape.id,'cached JI monzos map correctly after paired basis-column permutation');
+}
+
 // Image lookup must agree with the per-shape coherent JI lift proof, including native-exact subgroups.
 for(const [state,oddLimit,sizes]of [[makeState('meantone'),9,[2,3,4,5]],[makeState('meantone'),27,[3,4]],[septimal,15,[2,3,4]],
- [fromCommas('250/243','2.3.5','Computed CWE'),15,[3,4,5]],[fromCommas('245/243','3.5.7','Computed CWE'),9,[2,3,4]]]){
+ [fromCommas('250/243','2.3.5','Computed CWE'),15,[3,4,5]],[fromCommas('245/243','3.5.7','Computed CWE'),9,[2,3,4]],
+ [makeState('mohajira'),15,[3]],[makeState('mohajira'),27,[3]],
+ [{name:'Vertical octave',basis:[3,2,5],rows:[[1,0,-1],[0,1,4]]},9,[2,3,4]],
+ [{name:'Tilted octave',basis:[3,2,5],rows:[[1,1,0],[0,-1,4]]},9,[2,3,4]],
+ [{name:'Divided tilted octave',basis:[3,2,5],rows:[[1,2,1],[0,2,3]]},9,[2,3,4]]]){
  const index=indexFor(state,oddLimit),space=classifyChordSpace(index,{sizes});
  assert.equal(space.complete,true);assert.equal(space.counts.unknown,0);assert.equal(space.counts.unenumeratedImages,0);
  for(const shape of space.shapes){
@@ -39,6 +50,24 @@ for(const [state,oddLimit,sizes]of [[makeState('meantone'),9,[2,3,4,5]],[makeSta
 const meantone=makeState('meantone'),didymic=projectChord(meantone,chordIdentity('1:9/8:3/2:5/3')).shapeIdentities.octave.id;
 const status=limit=>classifyChordSpace(indexFor(meantone,limit),{sizes:[4]}).shapes.find(shape=>shape.id===didymic)?.status;
 assert.equal(status(9),'essentially-tempered');assert.equal(status(27),'ji');
+
+// A diamond spelling is not a coherent in-limit JI chord merely because its root intervals are
+// in the target set. Mohajira equates 11/9 and 27/22 by 243/242; the exact 18:22:27 chord needs
+// the pairwise interval 27/22, which first enters the odd-limit target set at 27.
+const mohajira=makeState('mohajira'),diamondInput='1/1:11/9:3/2',etSpelling='1/1:4/3:18/11';
+const diamondShape=projectChord(mohajira,chordIdentity(diamondInput)).shapeIdentities.octave.id;
+assert.equal(projectChord(mohajira,chordIdentity(etSpelling)).shapeIdentities.octave.id,diamondShape);
+assert.notEqual(family(diamondInput),family(etSpelling),'tempered equality does not make these exact JI chords inversions');
+for(const limit of [11,15,25,27]){
+ const index=indexFor(mohajira,limit),space=classifyChordSpace(index,{sizes:[3]}),shape=space.shapes.find(item=>item.id===diamondShape);
+ assert.equal(space.complete,true);
+ const targets=index.vertices.flatMap(vertex=>vertex.interpretations).map(item=>item.ratio);
+ assert.ok(targets.includes('11/9')&&targets.includes('3/2'));
+ assert.equal(targets.includes('27/22'),limit>=27);
+ assert.equal(shape.status,limit>=27?'ji':'essentially-tempered',`Mohajira 18:22:27 at odd limit ${limit}`);
+ assert.equal(assessET(shape.shape,index).status,limit>=27?'ji-liftable':'essentially-tempered');
+ assert.equal(shape.interpretations.some(chord=>family(chord.members.map(member=>member.ratio).join(':'))===family(diamondInput)),limit>=27);
+}
 
 // Every pair of a shape lists the JI intervals mapped to its tempered class.
 const index=indexFor(meantone,9),et=classifyChordSpace(index,{sizes:[4]}).shapes.find(shape=>shape.id===didymic);

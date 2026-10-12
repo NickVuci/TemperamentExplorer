@@ -14,7 +14,7 @@ Do not clean that directory. The build writes a static site to `site/`.
 
 The app runs entirely in the browser and needs no server code. Any static file
 host (GitHub Pages, Netlify, Cloudflare Pages) can serve `site/`, including from
-a subpath. Saved temperaments and layouts live in each browser's local storage;
+a subpath. Saved temperaments, layouts and chord shapes live in each browser's local storage;
 Settings → Export/Import saved presets moves them between browsers or devices.
 
 - `npm run build` writes `site/`: the authored files, the page and both module
@@ -49,6 +49,8 @@ visits use the cache.
 | Matrix spans, modes and pagination | `matrix.mjs` |
 | Chord inspection and scale discovery | `harmonic-inspection.mjs`, `chord-*v2.mjs` |
 | Board geometry, export, chord placement and layer colors | `hexboard*.mjs` calculation modules |
+| Physical chord shapes: geometry, forward/reverse search, sources, jobs, saved shapes | `geometric-shapes.mjs`, `chord-shapes.mjs`, `shape-*.mjs` |
+| Rejecting retunes that would change the scale or key assignments | `retuning-guard.mjs` |
 | Web Audio context, scheduling, held voices and cleanup | `audio.mjs` |
 | Pointer/keyboard/Shift-sustain interaction (no oscillator creation) | `hexboard-player.mjs` |
 | Shared HTML escaping and select options | `ui.mjs` |
@@ -150,5 +152,6 @@ rotation/mirroring, audio routing, colors, chord placement, overlaps and exports
 Legacy session field migrations and tuning-name aliases remain: they are
 compatibility code, not dead code. Existing safety caps also remain (256 generated
 scale notes; automatic finite-scale chord discovery up to 96 notes; separate
-board-based chord discovery). Saved sessions are read through the current
+board-based chord discovery; chord-shape searches up to 1,000,000 nodes and
+20,000 places). Saved sessions are read through the current
 compatibility paths without rewriting their stored formats.

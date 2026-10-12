@@ -56,7 +56,10 @@ export function buildDyadIndex(targetSet,mapping,{equivalence:requested}={}){
 
   const groups=new Map();
   for(const interpretation of mapped){
-   if(!groups.has(interpretation.classKey))groups.set(interpretation.classKey,{key:interpretation.classKey,coordinate:interpretation.classCoordinate,interpretations:[]});
+   // Graph differences use period/generator coordinates, not the transformed quotient labels.
+   // They differ when the mapped octave is not on the period axis.
+   if(!groups.has(interpretation.classKey))groups.set(interpretation.classKey,{key:interpretation.classKey,
+    coordinate:quotientCoordinate(policy,interpretation.coordinate).representative,interpretations:[]});
    groups.get(interpretation.classKey).interpretations.push(interpretation);
   }
   const vertices=[...groups.values()].sort((a,b)=>compareCoordinate(a.coordinate,b.coordinate)).map(group=>({

@@ -4206,3 +4206,40 @@ footer {
 /* Mounted panels sit flat inside the side panel instead of as separate boxes. */
 .hex-chord-panel .key-harmonies, .hex-chord-panel .fingering-game { background: none; border: 0; border-radius: 0; padding: 0; margin: 0; }
 .play-chords .key-harmonies h3 { font-size: 14px; }
+
+/* Physical patterns are a view of the selected harmony, alongside its exact voicing. */
+.shape-explorer { min-width: 0; }
+.shape-explorer h4 { margin: 12px 0 8px; }
+.shape-explorer p { font-size: 13px; line-height: 1.5; }
+.shape-explorer label { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 13px; color: var(--muted); margin: 8px 0; }
+.shape-explorer .checklabel { flex-direction: row; align-items: center; }
+.shape-explorer textarea, .shape-explorer input:not([type="checkbox"]), .shape-explorer select { width: 100%; min-width: 0; }
+.shape-explorer textarea { resize: vertical; }
+.shape-explorer .panelactions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.shape-explorer button { min-height: 32px; font-size: 12px; padding: 6px 9px; }
+.shape-targets { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0; max-height: 160px; overflow: auto; }
+.shape-targets > span { display: flex; align-items: center; gap: 4px; padding-left: 8px; border: 1px solid var(--line); border-radius: 5px; font-size: 12px; }
+.shape-targets button { border: 0; background: none; min-height: 28px; }
+.shape-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 4px 10px; }
+.shape-explorer details { margin: 12px 0; }
+.shape-explorer summary { font-size: 13px; color: var(--muted); cursor: pointer; }
+.shape-explorer details ul { max-height: 230px; overflow: auto; padding-left: 18px; font-size: 12px; }
+.shape-cards { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin: 12px 0; }
+.shape-card { display: flex; flex-direction: column; align-items: stretch; gap: 6px; text-align: left; border-radius: 8px; min-width: 0; }
+.shape-card[aria-pressed="true"] { border-color: var(--a); background: var(--surface2); }
+.shape-card span { overflow-wrap: anywhere; }
+.shape-card small { color: var(--muted); font-size: 11px; line-height: 1.4; }
+.shape-preview { display: block; width: 100%; height: 100px; pointer-events: none; }
+.shape-details { border: 1px solid var(--a); border-radius: 8px; padding: 12px; margin: 12px 0; overflow-wrap: anywhere; }
+.shape-details .shape-preview { height: 135px; }
+.shape-identity { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 12px 0; overflow-wrap: anywhere; }
+.shape-identity h5 { margin: 0 0 6px; font-size: 13px; }
+.shape-readings { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 6px; max-height: 320px; overflow: auto; }
+.shape-readings li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 12px; }
+.shape-readings li > small { color: var(--muted); flex: 1 1 160px; }
+.shape-readings li > p { flex-basis: 100%; margin: 0; font-size: 11px; }
+.shape-readings button[aria-pressed="true"] { border-color: var(--a); background: var(--surface2); }
+.saved-shape { display: flex; align-items: center; gap: 6px; margin: 8px 0; }
+.saved-shape > span { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 13px; }
+.saved-shape small { display: block; color: var(--muted); font-size: 11px; }
+@media(max-width:420px) { .shape-fields { grid-template-columns: minmax(0,1fr); } .shape-cards { gap: 6px; } }

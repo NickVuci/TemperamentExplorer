@@ -72,6 +72,7 @@ change('scope','temperament');
 ui.input({dataset:{harmonyField:'search'},value:''});
 const tempered=ui.model().result.items.find(row=>row.kind==='tempered'&&row.status==='essentially-tempered');assert.ok(tempered,'ET chords are listed without a manual search');
 click('select',{id:tempered.id});assert.doesNotMatch(ui.render(),/Every pair is a JI interval of the limit/);assert.match(ui.render(),/class="matrix chord-interval-matrix"/);assert.equal(ui.selection().voicing.voices.length,tempered.shape.coordinates.length);
+assert.match(ui.render(),/ET is relative to the selected JI limits \(odd limit 15\)/);assert.match(ui.render(),/inversions refer to the tempered chord/);
 const lineCents=kind=>[...ui.render().match(/class="chord-line-diagram"[^]*?<\/svg>/)[0].matchAll(new RegExp(kind+' (-?[\\d.]+) cents','g'))].map(m=>Number(m[1]));
 for(let i=0;i<tempered.shape.coordinates.length;i++){
  click('rotation',{index:String(i)});assert.equal(heard.length,tempered.shape.coordinates.length);assert.equal(heard[0],0,'every ET rotation auditions with the same tonic bass');assert.ok(heard.every(c=>c>=0&&c<state.p),'raw ET mapping representatives cannot move the preview into a low register');

@@ -1117,3 +1117,33 @@ key; a full quota or unreadable data is reported and never overwritten. Import
 also accepts responses saved from the retired `/api/presets`,
 `/api/layout-presets` and `/api/layout-defaults` routes. Do not reintroduce
 server-side preset storage without per-user scoping.
+
+## D-050 — Chord shapes are translation-only physical patterns with exact reference lifts
+
+**Decision.** Play's Chord → places panel has a Shapes view over one engine (`chord-shapes.mjs`) for
+forward search (target chords → shapes and places) and reverse identification (selected keys →
+readings). A shape's identity is its set of axial cells with translation removed; rotations and
+reflections are distinct shapes and are grouped only by an explicit filter. A source member reaches a
+key only by an exact integer multiple of the mapped voicing reference, verified in both coordinates;
+members on one full coordinate share one key, and distinct coordinates never merge. Reverse
+identification reads the fixed keys without forward filters; keys that repeat a sounding coordinate are
+an added doubling whose readings are reported apart from exact placements. A retune that would change
+either scale's coordinates or any key's assignment is rejected as a whole.
+
+**Rationale.** A fingering is learned in one orientation, so merging rotations or reflections would
+call different hand shapes the same. Cents can merge or reorder notes under tuning, while integer lifts
+keep the JI chord-tone order and stay exact in divided-period and generator-bearing-octave mappings; a
+plain `[1,0]` octave would be wrong there. Treating a doubled note as a new exact placement would claim a
+voicing the forward engine never generates. Rejecting structural retunes keeps every saved shape,
+selection and search result valid; silently reassigning keys would change what a remembered pattern
+plays.
+
+**Rejected alternatives.** A second chord catalogue or a board-wide chord list (D-039, D-041): sources
+come from typed targets or the directory's own filters, and results state their bounds. Ranking layouts
+by chords (D-036) waits for the later target-collection phase. Cents-tolerance matching, which cannot
+distinguish a voicing from a tuning coincidence. Storing scores or cents in saved shapes.
+
+**Consequences.** Saved shapes are certificates revalidated against the current board. The geometry
+score is a compactness heuristic, not a hand model; finger assignments, ergonomic ratings, weighted
+target collections, layout optimization and comparison across temperaments are later work and should
+extend these records rather than replace them.

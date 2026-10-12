@@ -3,25 +3,88 @@ import {validateJILimits} from './ji-limit-engine.mjs';
 import {enumerateCoordinateChords,createCoordinateInspector} from './harmonic-inspection.mjs';
 import {MAX_CHORD_TONES} from './chord-identity-v2.mjs';
 import {approximationSpan,noteCoordinate,sameCoordinate} from './pitch.mjs';
+import {physicalDistance} from './geometric-shapes.mjs';
 export function hexDistance(a,b){const x=(b.x-a.x+b.y-a.y)/2,y=a.y-b.y;return Math.max(Math.abs(x),Math.abs(y),Math.abs(x+y));}
 export function chordCoordinates(s,degrees,octaves={}){const ns=scale(s).notes;return degrees.map(i=>{const n=ns[i];if(!n)throw Error('A chord degree is absent from this scale.');const m=noteCoordinate(s,n);return [m[0]+(octaves[i]||0),m[1]];});}
+
+/** One physical-key/coordinate index for fixed voicings and bounded shape searches. */
+export function createBoardPlacementIndex(board,{eligible=key=>key.enabled&&!key.command}={}){
+ if(!Array.isArray(board?.keys))throw Error('Use a built HexBoard.');
+ const keys=board.keys.filter(eligible),byIndex=new Map(board.keys.map(key=>[key.index,key])),byCoordinate=new Map(),distances=new Map();
+ for(const key of keys){const id=key.m.join(',');if(!byCoordinate.has(id))byCoordinate.set(id,[]);byCoordinate.get(id).push(key);}
+ const distance=(a,b)=>{
+  a=typeof a==='number'?byIndex.get(a):a;b=typeof b==='number'?byIndex.get(b):b;
+  const id=a.index<b.index?`${a.index},${b.index}`:`${b.index},${a.index}`;
+  if(!distances.has(id))distances.set(id,{reach:hexDistance(a,b),span:physicalDistance(a,b)});
+  return distances.get(id);
+ };
+ return {board,keys,byIndex,byCoordinate,distance};
+}
+
+/**
+ * Enumerate one choice per domain. A choice is a board key or {key, ...certificate}.
+ * Search events are placements or bounded-work checkpoints; the return value is a
+ * completeness certificate. Sharing `budget` makes multiple roots one bounded job.
+ */
+export function* iteratePlacementAssignments(index,domains,{span=0,reach=0,distinctCoordinates=false,distinctKeys=true,
+ maxNodes=Infinity,maxPlacements=Infinity,signal,shouldCancel,checkpointEvery=256,preserveOrder=false,
+ budget={visited:0,placements:0}}={}){
+ if(!Array.isArray(domains)||domains.some(domain=>!Array.isArray(domain)))throw Error('Placement domains must be arrays.');
+ if(!Number.isFinite(span)||span<0||!Number.isFinite(reach)||reach<0||
+  !(maxNodes===Infinity||Number.isSafeInteger(maxNodes)&&maxNodes>=0)||!(maxPlacements===Infinity||Number.isSafeInteger(maxPlacements)&&maxPlacements>=0)||
+  !Number.isSafeInteger(checkpointEvery)||checkpointEvery<1)throw Error('Invalid placement search bounds.');
+ const asKey=choice=>{const key=choice?.key??choice;return typeof key==='number'?index.byIndex.get(key):key;};
+ const order=domains.map((_,i)=>i);if(!preserveOrder)order.sort((a,b)=>domains[a].length-domains[b].length||a-b);
+ const chosen=Array(domains.length),chosenKeys=Array(domains.length),usedKeys=new Set(),usedCoordinates=new Set();
+ let reason=null;
+ const cancelled=()=>signal?.aborted||shouldCancel?.();
+ function* visit(depth,currentReach,currentSpan){
+  if(cancelled()){reason='cancelled';return;}
+  if(depth===order.length){
+   if(budget.placements>=maxPlacements){reason='max-placements';return;}
+   budget.placements++;
+   yield {type:'placement',keys:chosenKeys.map(key=>key.index),choices:[...chosen],reach:currentReach,span:currentSpan};return;
+  }
+  const slot=order[depth];
+  for(const choice of domains[slot]){
+   if(cancelled()){reason='cancelled';return;}
+   if(budget.visited>=maxNodes){reason='max-nodes';return;}
+   budget.visited++;
+   if(budget.visited%checkpointEvery===0)yield {type:'search-checkpoint',visited:budget.visited,placements:budget.placements};
+   const key=asKey(choice);if(!key||!key.enabled||key.command)continue;
+   const coordinate=key.m.join(',');
+   if(distinctKeys&&usedKeys.has(key.index)||distinctCoordinates&&usedCoordinates.has(coordinate))continue;
+   let nextReach=currentReach,nextSpan=currentSpan,valid=true;
+   for(let i=0;i<depth;i++){
+    const distance=index.distance(key,chosenKeys[order[i]]);
+    nextReach=Math.max(nextReach,distance.reach);nextSpan=Math.max(nextSpan,distance.span);
+    if(reach&&nextReach>reach||span&&nextSpan>span+1e-10){valid=false;break;}
+   }
+   if(!valid)continue;
+   chosen[slot]=choice;chosenKeys[slot]=key;usedKeys.add(key.index);usedCoordinates.add(coordinate);
+   yield* visit(depth+1,nextReach,nextSpan);
+   usedKeys.delete(key.index);usedCoordinates.delete(coordinate);
+   if(reason)return;
+  }
+ }
+ if(domains.length&&domains.every(domain=>domain.length))yield* visit(0,0,0);
+ else if(cancelled())reason='cancelled';
+ return {complete:reason===null,limited:reason!==null&&reason!=='cancelled',cancelled:reason==='cancelled',reason,visited:budget.visited,placements:budget.placements};
+}
+
 export function chordPlacements(board,coordinates,near=65,{exact=false,periodCopies=false}={}){
  if(coordinates.length<2||coordinates.length>MAX_CHORD_TONES||coordinates.some(m=>!Array.isArray(m)||m.length!==2||!m.every(Number.isInteger)))throw Error('Choose two to eight chord notes.');
  const deltas=coordinates.map(m=>m.map((v,i)=>v-coordinates[0][i]));
  if(new Set(deltas.map(m=>m.join(','))).size!==deltas.length)throw Error('Choose distinct chord notes.');
- const keys=board.keys.filter(k=>k.enabled),byCoord=new Map();
- for(const key of keys){const id=key.m.join(',');if(!byCoord.has(id))byCoord.set(id,[]);byCoord.get(id).push(key);}
- const result=[],distance=k=>hexDistance(k,board.keys[near]);let limited=false;
+ const index=createBoardPlacementIndex(board),keys=index.keys,byCoord=index.byCoordinate;
+ const result=[],distance=k=>hexDistance(k,board.keys[near]),budget={visited:0,placements:0};let limited=false;
  for(const root of keys.toSorted((a,b)=>distance(a)-distance(b)||a.index-b.index).filter(root=>!exact||(periodCopies?root.m[1]===coordinates[0][1]:sameCoordinate(root.m,coordinates[0])))){
-  const choices=deltas.map((d,i)=>i?byCoord.get(d.map((v,j)=>v+root.m[j]).join(','))||[]:[root]);
+  const choices=deltas.map((d,i)=>i?[...(byCoord.get(d.map((v,j)=>v+root.m[j]).join(','))||[])]:[root]);
   if(choices.some(c=>!c.length))continue;
   for(const group of choices)group.sort((a,b)=>hexDistance(root,a)-hexDistance(root,b)||a.index-b.index);
-  function visit(notes){
-   if(limited)return;
-   if(notes.length===choices.length){if(result.length===20000){limited=true;return;}result.push({keys:notes.map(k=>k.index),reach:Math.max(...notes.flatMap(a=>notes.map(b=>hexDistance(a,b)))),...(exact?{periodShift:notes[0].m[0]-coordinates[0][0]}:{})});return;}
-   for(const key of choices[notes.length]){visit([...notes,key]);if(limited)break;}
-  }
-  visit([]);if(limited)break;
+  const iterator=iteratePlacementAssignments(index,choices,{preserveOrder:true,maxPlacements:20000,budget});let step;
+  while(!(step=iterator.next()).done)if(step.value.type==='placement')result.push({keys:step.value.keys,reach:step.value.reach,...(exact?{periodShift:root.m[0]-coordinates[0][0]}:{})});
+  limited=step.value.limited;if(limited)break;
  }
  result.sort((a,b)=>distance(board.keys[a.keys[0]])-distance(board.keys[b.keys[0]])||a.keys[0]-b.keys[0]||a.reach-b.reach);
  if(limited)Object.defineProperty(result,'limited',{value:true});

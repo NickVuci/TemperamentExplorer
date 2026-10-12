@@ -94,7 +94,8 @@ export function temperedImage(chord,index){
  * complete only when both enumerations finished inside their bounds.
  */
 export function classifyChordSpace(index,{sizes}={}){
- const wanted=requestedSizes(sizes),cacheKey=JSON.stringify([index.mappingId,index.targetSetId,index.equivalence,wanted]);
+ // Mapping IDs canonicalize paired column permutations; attached monzos retain working basis order.
+ const wanted=requestedSizes(sizes),cacheKey=JSON.stringify([index.mappingId,index.basis,index.targetSetId,index.equivalence,wanted]);
  return spaceCache.get(cacheKey,()=>{
   const space=enumerateJIChordSpace(index,{sizes:wanted}),images=new Map();let degenerate=0;
   for(const chord of space.chords){const image=temperedImage(chord,index);if(!image){degenerate++;continue;}

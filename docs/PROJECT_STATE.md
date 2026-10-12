@@ -254,6 +254,12 @@ integer number of EDO steps per period. JI Target can make an assigned coordinat
 pure. With an optimized period and one independent pure constraint, WE selects the
 remaining degree of freedom. Multiple incompatible pure assignments are rejected.
 
+A retune must keep the integer structure: `retuning-guard.mjs#preflightRetuning` builds the
+candidate (tuning panel, generator/period fields, JI explorer and assignment edits) without touching the
+live state, and commits Discover and Play together only when both scales' coordinates, the layout (with
+no automatic fallback) and every key's coordinate, degree, enabled and overlap state are unchanged.
+Otherwise nothing changes and the user is told to choose the scale or layout explicitly.
+
 Legacy tuning names are normalized when loading saved data; they are compatibility
 aliases, not additional current methods.
 
@@ -709,7 +715,7 @@ temperaments), with documented generators reduced by whole periods;
 `tests/catalog.mjs` cross-checks computed CWE tunings against published values.
 Saved snapshots are browser-local records with
 optimistic revisions (D-049). Settings → Export saved presets writes a
-`temperament-lab-presets-v1` backup of temperaments, layouts and default layouts;
+`temperament-lab-presets-v1` backup of temperaments, layouts, chord shapes and default layouts;
 Import saved presets validates each record, replaces records with the same id and
 skips invalid ones. It also reads responses saved from the retired site preset API. Session files remain
 `temperament-lab-v1` and preserve the primary temperament, views, linked JI
@@ -767,14 +773,17 @@ Compatibility aliases and narrow session migrations are intentional.
   progression and melody/phrase composition sequencer is not implemented.
 - Product limits include 256 scale notes, bounded chord discovery, 2–8-tone exact
   chord input, 20,000 retained physical placements, and 133 playable HexBoard
-  buttons.
+  buttons. Chord-shape searches also stop at 1,000,000 search nodes, 20,000
+  source chords and 512 typed targets; 512 shapes can be saved.
 
 ## Verification map
 
 `npm test` runs every top-level `tests/*.mjs` suite. Important coverage includes
 tuning methods and non-octave periods, frozen refactor outputs, shared JI controls,
 matrix spans, generated scales, chord identity/projection/occurrence/discovery/
-realization/session compatibility, HexBoard geometry/flips/colors/player/export,
+realization/session compatibility, chord shapes (brute-force placement parity,
+forward/reverse round trips, doublings, saved shapes, jobs, the Shapes view) and
+structural retuning rejection, HexBoard geometry/flips/colors/player/export,
 period order/wrapping, audio lifecycle, presets and preset backups, legacy-session
 migration, workflow structure, and the static site build with service-worker
 offline behavior. Browser installability and offline loading are checked manually.
@@ -1085,6 +1094,72 @@ shared bass while "Follow what I play" is on, so Discover lists the same chords.
 While the directory is still listing, only the layout shapes show. A key outside the Play scale has no
 directory chords. Compose's Root lane picks from the same entries. Not covered yet: marking the bass
 degree's keys on the board.
+
+## Chord shapes (Play)
+
+Chord → places has two views: Selected voicing (the harmony sent from Discover, D-041) and Shapes.
+Shapes finds the physical key patterns of target chords on the current board and identifies selected
+keys (D-050). Targets are typed JI chords, the selected harmony, or the harmony directory's current
+size/form/family filters; the directory stays the only chord source (D-039).
+
+Four records stay separate: the exact JI source (`chord-identity-v2`), its mapped coordinates, the
+geometric shape, and a reading that links each source member to a key. A geometric shape is a set of
+axial cells (`q = (x − y)/2, r = y`) with translation removed; its ID keeps orientation, so rotations and
+reflections are different shapes (`shapeOrientations` lists the twelve as their own IDs for optional
+grouping). A source member may move only by an exact integer multiple of the voicing reference
+(`key.m − rootKey.m = member.m − root.m + lift·reference.m`, checked in both coordinates); the reference
+is the mapped octave, including a generator component, else the mapped native reference interval.
+Source members on one full coordinate share one key and keep every identity; distinct source
+coordinates never merge in a voicing. Scale membership is tested on the voiced coordinates, not on the
+source spelling. Readings carry root key and degree, lifts, chord-tone order in exact JI (tuning never
+renumbers it), possible inversions, and separately the sounding bass, which follows the tuning.
+
+Search is exhaustive within declared bounds: every reference-lift voicing of 2–8-tone sources on
+enabled keys, a span of 6 key spacings (0 = whole board), all registers, 250,000 search nodes
+(at most 1,000,000) and 20,000 places. Optional root degree, root button, register and Play-scale
+filters apply to forward search. Results stop at the first limit and say which; counts are then lower
+bounds, and an empty result never proves absence or essential temperament. Cards show 24 per page,
+ranked by geometry score `100 / (1 + span + mean pair distance)` in neighbouring-key spacings, a
+compactness heuristic rather than a playability model; each shape's places start nearest the tonic
+button.
+
+Identify selected keys reads exactly those keys, ignoring the forward span, scale, root and register
+filters. Its sources are the whole JI chord space and curated chords at the current limits with at least
+as many tones as distinct sounding keys, plus the target and saved-shape chords. Spellings of one chord
+family on the same root key (4:5:6, 1:3:5, 5:6:8) are shown as one reading. Keys that repeat a sounding
+coordinate are an added doubling: no forward placement gives one note two keys, so the readings of the
+distinct notes are listed apart and cannot be saved as exact shapes. The pitch-class reading beside them
+is the live readout's directory/ET classification (`matchPlayed`), which ignores register and doublings;
+Open in Discover focuses that directory chord. Find shapes for this chord runs a forward search for a
+reading, and the geometry filter compares results with the identified keys (same size, same geometry,
+rotations and reflections, or a shared JI reading).
+
+Choosing a card or reading lights its keys with chord-tone numbers beside the keys' own labels; one key
+can carry several. Previous/Next steps through places, Hear plays them, and Add to collection adds the
+exact coordinates with shape provenance. Escape clears only the highlight. A retune keeps results and
+recomputes sound from stored coordinates; a change to the mapping, scale, board structure, JI limits,
+targets or limits clears them.
+
+| Concern | Owner |
+| --- | --- |
+| Axial cells, translation IDs, orientations, distances, geometry score, board structure key | `geometric-shapes.mjs` |
+| Board placement index and cooperative key assignment (shared with `chordPlacements`) | `hexboard-chords.mjs` |
+| Forward search, reverse identification, reference lifts, doublings | `chord-shapes.mjs` |
+| Bounded JI source universe for searches | `shape-targets.mjs` |
+| Worker/fallback jobs, structural cache keys, retune presentation | `shape-jobs.mjs` (via `chord-v2-worker.mjs`) |
+| Saved-shape certificates | `shape-preset-data.mjs`, stored by `preset-store.mjs` |
+| Shapes view, reading groups, highlights, saving, session settings | `shape-explorer-ui.mjs` |
+
+Saved shapes (at most 512) store the source chord, mapping, layout, keys and the exact member-to-key and
+lift certificate, never cents or scores; reading one revalidates it against its board. Find here searches
+the current board for the saved chord without loading its temperament or layout. Saved shapes are in
+preset backups as an optional `shapes` list; older backups import unchanged. Sessions keep the Shapes
+view's targets, limits, filters and chosen shape, not results.
+
+Not implemented: finger assignments and hands, ergonomic ratings, weighted target collections, layout
+ranking by chords, and comparison across temperaments. Without a Worker, the JI chord-space enumeration
+runs as one synchronous stage, as it does for the harmony directory; at extreme limits (odd limit 45 in
+an 11-limit temperament) it blocks for about two seconds.
 
 ## Responsiveness
 

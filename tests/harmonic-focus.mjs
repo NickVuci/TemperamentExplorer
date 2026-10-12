@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
+import {makeState,mapRatio} from '../dist/engine.mjs';
 import {diamondLayout} from '../dist/diamond-layout.mjs';
 import {diamondApproximation} from '../dist/tonality-diamond.mjs';
 import {diamondFocus,matrixFocusDegrees,relativeRatios} from '../dist/harmonic-focus.mjs';
@@ -9,6 +9,7 @@ import {matrixScale} from '../dist/matrix.mjs';
 import {noteCoordinate} from '../dist/pitch.mjs';
 import {equivalencePolicy,quotientCoordinate} from '../dist/harmonic-equivalence.mjs';
 import {createHarmonicCatalogueWorkspace} from '../dist/harmonic-catalogue-ui.mjs';
+import {fromCommas} from '../dist/tuning.mjs';
 
 // JI chords sit on diamond lines as written from 1/1: rows for otonal, columns for utonal, both otherwise.
 const geometry=diamondLayout({limit:15,primeLimit:null}),place=(form,ratios)=>diamondFocus(geometry.cells,{kind:'ji',form,ratios},{harmonics:geometry.harmonics});
@@ -53,8 +54,38 @@ const revealed=ui.takeReveal();assert.equal(revealed,ui.model().entry.id);assert
 assert.ok(ui.renderParts({directory:true}).list.includes(`data-id="${revealed.replaceAll('"','&quot;')}" aria-pressed="true"`),'the focused row is shown in its opened group');
 assert.equal(ui.focusExternal({coordinates:et.shape.coordinates}),true);assert.equal(ui.model().entry.id,et.id,'tempered coordinates find their shape');
 assert.equal(ui.focusExternal({ratios:['1/1','11/10','3/2']}),false,'a chord outside the directory is not focused');
+const majorSecond=[mapRatio(3,2,state),mapRatio(2,1,state),mapRatio(5,2,state)];
+assert.equal(ui.focusExternal({coordinates:majorSecond}),true);
+assert.equal(ui.focus().label,'4:5:6');assert.deepEqual(ui.focus().ratios,['1/1','4/3','5/3'],'coordinate-only focus preserves the played JI inversion');
+assert.equal(ui.focusExternal({ratios:['1/1','4/3','27/16'],coordinates:majorSecond}),true);
+assert.deepEqual(ui.focus().ratios,['1/1','4/3','5/3'],'an enharmonic JI spelling preserves the bass of its matched shape');
 ui.change({dataset:{harmonyField:'follow'},checked:false});assert.equal(ui.followPlaying(),false);assert.equal(ui.serialize().followPlaying,false);
 ui.restore({...ui.serialize(),followPlaying:true});assert.equal(ui.followPlaying(),true);
+
+// The Mohajira neutral triad is ET at odd limit 11, but its played rotation must still be preserved.
+{
+ const mohajira=makeState('mohajira'),neutral=createHarmonicCatalogueWorkspace({getState:()=>mohajira,getSettings:()=>({limit:11,primeLimit:mohajira.basis,tol:20})});
+ neutral.restore({sizeMin:3,sizeMax:3});neutral.setEnabled(true);while(neutral.model().status==='loading')await new Promise(resolve=>setTimeout(resolve,5));
+ assert.equal(neutral.focusExternal({ratios:['1/1','11/9','3/2'],coordinates:[[0,0],[0,1],[0,2]]}),true);
+ assert.equal(neutral.focus().form,'et');assert.equal(neutral.focus().rotation,1);
+ assert.match(neutral.render(),/Rotation <b>1\/1 · 11\/9 · 3\/2<\/b> · 1st inversion of 1\/1 · 4\/3 · 18\/11/);
+ assert.deepEqual(new Set(neutral.focus().classKeys),new Set(['[0,0]','[0,1]','[0,2]']),'the diamond highlights the played classes relative to its bass');
+ assert.equal(neutral.focusExternal({coordinates:[[3,6],[2,4],[2,5],[2,6]]}),true);
+ assert.equal(neutral.focus().rotation,1,'transposition and an octave doubling preserve the ET rotation');
+ assert.equal(neutral.focusExternal({coordinates:[[1,0],[0,1],[0,2]]}),true);
+ assert.equal(neutral.focus().rotation,2,'raising the lowest played note changes the ET bass');
+ neutral.destroy();
+}
+// Matching uses the full mapped octave in divided-period temperaments, and exact intervals without 2.
+for(const [s,ratios,expected] of [
+ [makeState('augmented'),[[5,4],[3,2],[2,1]],['1/1','6/5','8/5']],
+ [fromCommas('245/243','3.5.7','Computed CWE'),[[3,1],[5,1],[7,1]],['1/1','5/3','7/3']],
+]){
+ const boundary=createHarmonicCatalogueWorkspace({getState:()=>s,getSettings:()=>({limit:9,primeLimit:s.basis,tol:20})});
+ boundary.restore({sizeMin:3,sizeMax:3});boundary.setEnabled(true);while(boundary.model().status==='loading')await new Promise(resolve=>setTimeout(resolve,5));
+ assert.equal(boundary.focusExternal({coordinates:ratios.map(([n,d])=>mapRatio(n,d,s))}),true);
+ assert.deepEqual(boundary.focus().ratios,expected);boundary.destroy();
+}
 
 // The app's diamond follow and matrix Shift-click, run from source against stand-ins.
 const app=readFileSync(new URL('../dist/app.mjs',import.meta.url),'utf8'),slice=(start,end)=>app.slice(app.indexOf(start),app.indexOf(end,app.indexOf(start)));

@@ -33,7 +33,8 @@ export function boardPicture(s,cfg,b,{overlay=null,scaleOn=null,chord=cfg.chord?
   const look=keyAppearance(k,i,{colors,overlay,scaleOn,chord}),m=matches?.[i];
   const stroke=chord.includes(i)?OUTLINE.chord:i===root?OUTLINE.root:m?.mapped.length&&k.enabled?OUTLINE.mapped:m?.other.length&&k.enabled?OUTLINE.other:OUTLINE.plain;
   const label=k.conflict?'×':labels&&k.degree>=0?k.degree:'·';
-  return {index:i,key:k,command:false,...look,stroke,ink:textColor(look.fill),label,chordKey:chord.includes(i)};
+  const toneLabels=overlay?.toneLabels?.[i];
+  return {index:i,key:k,command:false,...look,...(Array.isArray(toneLabels)?{toneLabels:toneLabels.filter(Number.isSafeInteger)}:{}),stroke,ink:textColor(look.fill),label,chordKey:chord.includes(i)};
  });
  return {keys,center:cfg.center??65,deviceRotation:cfg.deviceRotation??0,periodLabels:!!cfg.showPeriodLabels,highlighted:!!(overlay?.keys?.length||chord.length)};
 }
@@ -48,17 +49,19 @@ export const hexPoints=(x,y,r,angle=0)=>Array.from({length:6},(_,j)=>{const a=(j
 export function boardSvg(picture,{className='hex-board',ariaLabel='HexBoard layout: 133 note buttons',keyClass=()=>'',keyData=look=>`data-hex-key="${look.index}"`,focusDisabled=true,
  // Extra SVG drawn on top of each key (centre x, y, key radius and the board's turn in radians), such as
  // the rhythm game's approach rings.
- keyExtra=()=>''}={}){
+ keyExtra=()=>'',visibleKeys=null,interactive=true}={}){
  const angle=picture.deviceRotation*Math.PI/2,radius=19,gap=2,pitch=Math.sqrt(3)*radius+gap;
  const positions=picture.keys.map(({key:k})=>{const x=k.x*pitch/2,y=k.y*pitch*Math.sqrt(3)/2;return {x:x*Math.cos(angle)-y*Math.sin(angle),y:x*Math.sin(angle)+y*Math.cos(angle)};});
- const visible=positions.filter((_,i)=>!picture.keys[i].command);
+ const shown=visibleKeys==null?null:new Set(visibleKeys);
+ const visible=positions.filter((_,i)=>!picture.keys[i].command&&(!shown||shown.has(picture.keys[i].index)));
+ if(!visible.length)return '';
  const xmin=Math.min(...visible.map(p=>p.x))-23,ymin=Math.min(...visible.map(p=>p.y))-23,width=Math.max(...visible.map(p=>p.x))-xmin+23,height=Math.max(...visible.map(p=>p.y))-ymin+23;
  const body=picture.keys.map((look,i)=>{
-  if(look.command)return '';
+  if(look.command||shown&&!shown.has(look.index))return '';
   const k=look.key,x=positions[i].x-xmin,y=positions[i].y-ymin,tone=look.tone,ink=look.ink,periodLabel=picture.periodLabels&&k.wrapped&&k.enabled;
-  const pts=hexPoints(x,y,radius,angle);
+  const pts=hexPoints(x,y,radius,angle),toneLabel=look.toneLabels?.length?look.toneLabels.map(n=>n+1).join(','):tone>=0?String(tone+1):'';
   const classes=[keyClass(look),look.lit?'is-lit':'',look.marked?'is-marked':'',look.chordKey?'is-chord':'',k.conflict?'is-overlap':''].filter(Boolean).join(' ');
-  return `<g class="${classes}" role="button" tabindex="${k.enabled||focusDisabled?0:-1}" aria-disabled="${!k.enabled}" ${keyData(look)} aria-label="Button ${i}, ${k.degree>=0?'degree '+k.degree:'outside scale'}, ${fmt(k.c)} cents${k.wrapped&&k.enabled?`, period register ${k.register}`:''}${k.conflict?', overlapping period copies':''}${tone>=0?`, chord tone ${tone+1}`:''}${k.enabled?'':', disabled'}"><title>Button ${i}${k.wrapped&&k.enabled?` · degree ${k.degree} · register ${k.register>=0?'+':''}${k.register}`:''}${k.conflict?` · Overlap: ${k.placements.map(p=>`degree ${p.degree}, copy ${p.copyRegister}`).join('; ')}`:''} · ${fmt(k.c)}¢; ${k.m[0]}P + ${k.m[1]}G</title><polygon points="${pts}" fill="${look.fill}" stroke="${look.stroke}" stroke-width="1.4" stroke-linejoin="round"/><text class="hex-key-label" x="${x+(tone>=0?-4:0)}" y="${y+(periodLabel?-1:4)}" text-anchor="middle" fill="${ink}" font-size="12">${look.label}</text>${tone>=0?`<text class="hex-chord-tone-label" x="${x+10}" y="${y+(periodLabel?-3:2)}" text-anchor="start" fill="${ink}" font-size="7" aria-hidden="true">${tone+1}</text>`:''}${periodLabel?`<text class="hex-period-label" x="${x}" y="${y+12}" text-anchor="middle" fill="${ink}" font-size="9">${signed(k.register)}P</text>`:''}${i===picture.center?`<circle cx="${x}" cy="${y-11}" r="2.5" fill="#dc8847"/>`:''}${keyExtra(look,x,y,radius,angle)}</g>`;
+  return `<g class="${classes}" ${interactive?`role="button" tabindex="${k.enabled||focusDisabled?0:-1}"`:""} aria-disabled="${!k.enabled}" ${interactive?keyData(look):""} aria-label="Button ${i}, ${k.degree>=0?'degree '+k.degree:'outside scale'}, ${fmt(k.c)} cents${k.wrapped&&k.enabled?`, period register ${k.register}`:''}${k.conflict?', overlapping period copies':''}${toneLabel?`, chord tone ${toneLabel}`:''}${k.enabled?'':', disabled'}"><title>Button ${i}${k.wrapped&&k.enabled?` · degree ${k.degree} · register ${k.register>=0?'+':''}${k.register}`:''}${k.conflict?` · Overlap: ${k.placements.map(p=>`degree ${p.degree}, copy ${p.copyRegister}`).join('; ')}`:''} · ${fmt(k.c)}¢; ${k.m[0]}P + ${k.m[1]}G</title><polygon points="${pts}" fill="${look.fill}" stroke="${look.stroke}" stroke-width="1.4" stroke-linejoin="round"/><text class="hex-key-label" x="${x+(tone>=0?-4:0)}" y="${y+(periodLabel?-1:4)}" text-anchor="middle" fill="${ink}" font-size="12">${look.label}</text>${tone>=0?`<text class="hex-chord-tone-label" x="${x+10}" y="${y+(periodLabel?-3:2)}" text-anchor="start" fill="${ink}" font-size="${toneLabel.length>3?5:7}" aria-hidden="true">${toneLabel}</text>`:''}${periodLabel?`<text class="hex-period-label" x="${x}" y="${y+12}" text-anchor="middle" fill="${ink}" font-size="9">${signed(k.register)}P</text>`:''}${i===picture.center?`<circle cx="${x}" cy="${y-11}" r="2.5" fill="#dc8847"/>`:''}${keyExtra(look,x,y,radius,angle)}</g>`;
  }).join('');
  return `<svg class="${className}${picture.highlighted?' has-chord':''}" viewBox="0 0 ${width} ${height}" role="group" aria-label="${ariaLabel}">${body}</svg>`;
 }
