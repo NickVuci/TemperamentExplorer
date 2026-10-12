@@ -10,18 +10,29 @@ testing the Compose piano roll and Play mode.
 ## Source and build
 
 **The top-level files in `dist/` are authored source, not disposable output.**
-Do not clean that directory. The generated Worker is `dist/server/index.js`;
-the generated hosting manifest is `dist/.openai/hosting.json`.
+Do not clean that directory. The build writes a static site to `site/`.
 
-- `npm run build` builds the browser entry in memory, minifies the served CSS,
-  and embeds assets into the Worker. Authored modules and CSS are not overwritten.
-- `npm test` runs every top-level `tests/*.mjs` suite. Build first: preset
-  integration tests exercise the generated Worker with an in-memory database.
+The app runs entirely in the browser and needs no server code. Any static file
+host (GitHub Pages, Netlify, Cloudflare Pages) can serve `site/`, including from
+a subpath. Saved temperaments and layouts live in each browser's local storage;
+Settings → Export/Import saved presets moves them between browsers or devices.
+
+- `npm run build` writes `site/`: the authored files, the page and both module
+  workers as minified bundles, minified CSS, and the service worker stamped with
+  a hash of the app shell. Authored modules and CSS are not overwritten.
+- `npm run preview` serves `site/` locally for checking offline and install
+  behavior; service workers need `localhost` or HTTPS.
+- `npm run dev` serves `dist/` through Vite for interaction QA.
+- `npm test` runs every top-level `tests/*.mjs` suite; the static-site suite
+  rebuilds `site/`.
 - `node scripts/benchmark.mjs [path/to/previous/dist]` runs identical local
   calculation workloads against current or previous sources.
 
 The browser receives one bundled ES module instead of fetching its dependency
 tree. Individual module URLs remain available for direct module consumers.
+`manifest.webmanifest` makes the app installable. `sw.js` precaches the shell
+and prefers the network, so online visits run the deployed files and offline
+visits use the cache.
 
 ## Where things belong
 
@@ -44,7 +55,8 @@ tree. Individual module URLs remain available for direct module consumers.
 | Workspace rendering/event adapters | `*-ui.mjs`, `tonality-diamond.mjs` |
 | App orchestration, navigation and session restoration | `app.mjs` |
 | Theme tokens, shared components and responsive refinements | `style.css` |
-| Account-scoped persistence, authorization and revisions | `server/`, `preset-data.mjs`, `state.mjs` |
+| Browser-local saved presets, backups and revisions | `preset-store.mjs`, `preset-data.mjs`, `state.mjs` |
+| Offline shell and install metadata | `sw.js`, `manifest.webmanifest`, `icon*` |
 
 `engine.mjs` retains its previous public exports by re-exporting the moved
 helpers and catalog. Likewise, `matrix.mjs`, `hexboard.mjs` and

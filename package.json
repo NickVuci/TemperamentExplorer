@@ -6,7 +6,8 @@
     "test": "node scripts/test.mjs",
     "build": "node scripts/build.mjs",
     "db:generate": "drizzle-kit generate",
-    "dev": "vite"
+    "dev": "vite",
+    "preview": "vite preview --outDir ../site"
   },
   "devDependencies": {
     "drizzle-kit": "0.31.10",

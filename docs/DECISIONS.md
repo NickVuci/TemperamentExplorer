@@ -182,6 +182,8 @@ frequency conversion, cancellation, and cleanup.
 
 ## D-010 — Saved temperament presets use the private site workspace
 
+**Superseded by D-049.**
+
 **Decision.** Saved preset records share one stable site workspace scope in D1;
 the preset API does not require a sign-in identity. Same-origin and optimistic
 revision checks remain in place.
@@ -1085,3 +1087,33 @@ it turned red as a wrong note and had to be released, although the chord had bee
 **Consequences.** Wait gives no musical accompaniment; Hear current notes auditions the notes to play.
 Do not reintroduce transport pacing, early presses or duration-based holds in Wait; rhythm practice
 belongs in Timed.
+
+## D-049 — Client-only static site with browser-local presets
+
+**Decision.** Temperament Lab ships as a static site with no server code. Saved
+temperaments, saved layouts and per-mapping default layouts are stored in the
+browser's `localStorage` by `preset-store.mjs`, which keeps the former API's
+validation, optimistic revisions and layout-default rules. Users move presets
+between browsers with Export/Import saved presets. A network-first service worker
+and web manifest make the app work offline and installable.
+
+**Rationale.** The app is meant to be public and usable without hosting a
+backend. The former D1 store had one site-wide scope (D-010), so making it public
+would have let every visitor overwrite or delete everyone else's presets.
+Everything else already ran in the browser. Network-first caching keeps
+online visits on the deployed version, so the main page and its workers never
+mix versions and no update prompt is needed.
+
+**Rejected alternatives.** Keeping the Worker as a static file server alongside
+another static host (two deployment paths); a fake `fetch` that answered the old
+`/api` routes locally (an HTTP layer with no server); IndexedDB (asynchronous
+multi-store transactions for a few small records that fit one atomic
+`localStorage` write); cache-first service-worker updates (stale versions until
+every tab closes, or a mixed page and worker after a forced update).
+
+**Consequences.** Presets do not sync between devices or browsers, and clearing
+site data deletes them unless exported. All presets share one `localStorage`
+key; a full quota or unreadable data is reported and never overwritten. Import
+also accepts responses saved from the retired `/api/presets`,
+`/api/layout-presets` and `/api/layout-defaults` routes. Do not reintroduce
+server-side preset storage without per-user scoping.

@@ -8,19 +8,25 @@ remain the strongest evidence when this document becomes stale.
 Temperament Lab is a rank-2 regular-temperament discovery, tuning, generated-scale,
 interval/JI, chord, and HexBoard-layout application.
 
-- The application is a browser ES-module interface served by a Cloudflare Worker.
-- Top-level `dist/*.mjs`, `dist/index.html`, and `dist/style.css` are authored
-  source. `scripts/build.mjs` bundles `dist/app.mjs` in memory and writes the Worker
-  to `dist/server/index.js`.
+- The application is a client-only browser ES-module interface deployed as a
+  static site (D-049). It has no server code or server-side storage.
+- Top-level `dist/*` files are authored source. `scripts/build.mjs` writes the
+  static site to `site/`: authored files, minified bundles of `app.mjs`,
+  `comma-worker.mjs` and `chord-v2-worker.mjs`, minified CSS, and `sw.js` with its
+  shell list and a content-hash version.
 - `dist/app.mjs` is the main controller and owns navigation, primary temperament
   state, shared JI controls, session import/export, matrix rendering, and workspace
   integration.
-- `npm run dev` serves the browser interface through Vite for interaction QA;
-  saved preset APIs still require the Worker runtime.
+- `npm run dev` serves `dist/` through Vite for interaction QA; `npm run preview`
+  serves the built `site/`.
 - Calculation modules are UI-independent where practical; `*-ui.mjs` modules own
   rendering and event adapters.
-- `server/index.mjs` serves embedded assets and site-scoped preset APIs backed
-  by the `DB` D1 binding.
+- `preset-store.mjs` owns saved temperaments, saved layouts and per-mapping
+  default layouts in browser `localStorage`, plus preset backup export/import.
+- `sw.js` precaches the app shell and answers network-first, falling back to the
+  cache offline (including Google Fonts once fetched). `manifest.webmanifest` and
+  the `icon*` files make the app installable. `app.mjs` registers the worker
+  after load on http(s) origins only.
 
 ## Main user workflow
 
@@ -667,15 +673,14 @@ the dropdown and the save/name controls; `layout-preset-data.mjs` owns
 `layoutFields`, `layoutConfig` and `layoutKey`.
 
 `layout-preset-data.mjs` validates named configurations and source context;
-`layout-presets.mjs` manages async save/update/rename/delete. `/api/layout-presets`
-reuses the existing revision-protected preset store under a separate layout scope.
-No schema migration is required. Presets are site-persistent across devices and
-separate from temperament presets. They capture geometry, MOS palette and growth,
+`layout-presets.mjs` manages async save/update/rename/delete through
+`preset-store.mjs`, in a list separate from temperament presets. Saved layouts
+are local to the browser. They capture geometry, MOS palette and growth,
 custom layer/button/degree colors, plus target scale/mode; loading preserves the
 active tuning. One saved layout can be set as each mapping's default; it is selected
 when entering that temperament, and shown first in its saved-layout list. Default
-selections use a separate revision-protected site-persistent settings record, so
-they do not rewrite layout presets or need a schema migration. Incompatible
+selections use a separate revision-protected defaults record, so they do not
+rewrite layout presets; deleting a layout clears its default. Incompatible
 mappings or invalid retunings are shown disabled. Saved preset IDs survive session
 save/restore, while sessions retain the complete current board configuration
 independently of backend access.
@@ -696,8 +701,11 @@ verification with an external software Web Audio renderer; `tests/audio.mjs`
 covers the lifecycle and pointer integration without that dependency.
 
 Built-in and saved temperaments appear in the same Discover selector. Built-ins
-come from `catalog.mjs`; saved snapshots use site-scoped D1 records with
-optimistic revisions and do not require sign-in. Session files remain
+come from `catalog.mjs`; saved snapshots are browser-local records with
+optimistic revisions (D-049). Settings → Export saved presets writes a
+`temperament-lab-presets-v1` backup of temperaments, layouts and default layouts;
+Import saved presets validates each record, replaces records with the same id and
+skips invalid ones. It also reads responses saved from the retired site preset API. Session files remain
 `temperament-lab-v1` and preserve the primary temperament, views, linked JI
 settings (odd limit, optional prime limit or prime subgroup, and tolerance),
 material, comma search, chord state, and HexBoard settings. Workflow version 8
@@ -734,6 +742,9 @@ Compatibility aliases and narrow session migrations are intentional.
   remain independent of the optional prime-limit filter.
 - Chord-space classification replaced streamed per-shape ET discovery
   (`discoverDyadicHarmony`) and the manual, bounded ET search in the directory.
+- The Cloudflare Worker and its D1 preset API were replaced by the static site and
+  `preset-store.mjs` (D-049). `server/`, `db/`, `drizzle/`, `drizzle.config.ts`,
+  `.openai/` and the drizzle dev dependencies are no longer built or used.
 
 ## Current boundaries and architectural issues
 
@@ -758,8 +769,9 @@ Compatibility aliases and narrow session migrations are intentional.
 tuning methods and non-octave periods, frozen refactor outputs, shared JI controls,
 matrix spans, generated scales, chord identity/projection/occurrence/discovery/
 realization/session compatibility, HexBoard geometry/flips/colors/player/export,
-period order/wrapping, audio lifecycle, presets, legacy-session migration, and
-workflow structure.
+period order/wrapping, audio lifecycle, presets and preset backups, legacy-session
+migration, workflow structure, and the static site build with service-worker
+offline behavior. Browser installability and offline loading are checked manually.
 
 ## Composition suite (MVP)
 

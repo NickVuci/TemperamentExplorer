@@ -26,7 +26,7 @@ const defaults=()=>({periodWrapping:true,showPeriodLabels:false,periodPlacement:
 const validColorMap=(map,min,max,excluded)=>map&&typeof map==='object'&&!Array.isArray(map)&&Object.entries(map).every(([n,v])=>/^\d+$/.test(n)&&Number(n)>=min&&Number(n)<=max&&!excluded?.has(Number(n))&&validColor(v));
 // matchPlayed reads held keys against the harmony directory; null keeps the curated recognizer's
 // reading.
-export function createHexboardWorkspace({matchPlayed=()=>null,getJI,setJI,getStates,play,refresh,notify,download,getHz,onCollect,onInspect,getBassEntries=()=>[],onBrowseHarmony=()=>{},onFitHarmonicScale=()=>{},onSearch=()=>{},request=globalThis.fetch}){
+export function createHexboardWorkspace({matchPlayed=()=>null,getJI,setJI,getStates,play,refresh,notify,download,getHz,onCollect,onInspect,getBassEntries=()=>[],onBrowseHarmony=()=>{},onFitHarmonicScale=()=>{},onSearch=()=>{},presetStore}){
  // The finder holds one chord to place (selected keys, a Note → chords pick, or a chord from elsewhere).
  const freshFinder=()=>({groups:[],selected:-1,placement:0,signature:'',imported:null});
  // The Chords panel's mode: 'places' (Chord → places) or 'notes' (Note → chords); searchText is its draft.
@@ -34,7 +34,7 @@ export function createHexboardWorkspace({matchPlayed=()=>null,getJI,setJI,getSta
  let scaleHighlight=null,harmonicHighlight=null,coverageKey=null,keepRestoredBase=false;
  const refreshLayoutChooser=()=>{const doc=globalThis.document,host=doc?.querySelector('.layout-recommendations');if(!host)return;const active=doc.activeElement,editing=active?.dataset?.layoutName!==undefined,selection=editing?[active.selectionStart,active.selectionEnd]:null;const cfg=config(),saved=savedLayouts.catalog();host.outerHTML=chooser.markup(state(),cfg,saved,'chooser');const options=doc.querySelector('.layout-recommendation-options');if(options)options.outerHTML=chooser.markup(state(),cfg,saved,'advanced');if(editing){const input=doc.querySelector('[data-layout-name]');if(input&&!input.disabled){input.focus({preventScroll:true});if(selection[0]!=null)input.setSelectionRange(...selection);}}};
  const chooser=createLayoutChooser();
- const savedLayouts=createLayoutPresets({refresh:refreshLayoutChooser,notify,request});
+ const savedLayouts=createLayoutPresets({refresh:refreshLayoutChooser,notify,store:presetStore});
  // A layout record by id: a built-in layout or one of the site's saved layouts.
  const presetById=id=>BUILTIN_LAYOUTS.find(p=>p.id===id)??savedLayouts.catalog().items.find(p=>p.id===id);
  let colorScope='key',configs=[defaults()],finders=[freshFinder()],defaultScope='',buttonColorContext=null;
