@@ -855,7 +855,9 @@ or musical context. Defaults are Timed, 100% speed, repeat off, hints lit on a d
 and a 100% trainer target; existing browser preferences remain in effect (a saved hints-off switch reads as Off). Musical editing, recording and
 step entry are available only in Compose; Play auditions never enter composition notes.
 
-The stage shows a note highway (one lane per pitch in its key colour and a hit line) beside the board.
+The stage shows a note highway beside the board, at its height: one lane per pitch in its key colour,
+each note a solid head where it starts and a lighter tail for its length, and a hit line that in Timed
+carries the Good and Perfect windows at the current speed.
 With hints on, keys light only for the notes to play now, never beside later ones (D-047): in Timed a
 suggested key lights from its note's onset until it is played or missed, while on screen its ring
 closes onto it over the lead time; in Wait only the next onset's keys are lit and ringed, from the

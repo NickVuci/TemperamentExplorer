@@ -4017,121 +4017,163 @@ footer {
 .roll-mark.is-take { border: 1px solid #ff9aa2; background: rgba(226,92,102,.6); }
 .roll-mark.is-take.is-open { box-shadow: 0 0 10px rgba(255,120,130,.8); }
 /* Compose Play: setup, the note highway beside the HexBoard, judgements and results. */
-.game { margin-top: 4px; }
-.game-setup { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap: 18px; align-items: start; }
-.game-setup-form { padding: 16px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
-.game-setup-form h3 { margin: 0 0 6px; font-size: 20px; }
-.game-fields { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px 14px; margin: 14px 0; }
-.game-fields label { display: flex; flex-direction: column; align-items: stretch; gap: 5px; margin: 0; font-size: 13px; color: var(--muted); text-align: left; }
-.game-fields select, .composition-suite .game-fields input[type=number] { width: 100%; padding: 7px 9px; font-size: 14px; }
-.game-fields .game-check { flex-direction: row; align-items: center; gap: 8px; grid-column: 1 / -1; color: var(--text); }
-.game-fields .game-check input { width: auto; }
-.game-speed-control { grid-column: 1 / -1; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--inset-bg); }
-.game-speed-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
-.game-speed-heading label { max-width: 130px; }
-.game-speed-heading output { padding-bottom: 8px; color: var(--text); font-variant-numeric: tabular-nums; }
-.game-fields .game-speed-range { margin: 10px 0; }
+/* Judgement colours match the HexBoard's LED flashes (composition-game-ui.mjs); the cue is the theme's gold. */
+.game {
+  --cue: var(--b);
+  --hit: #3ddc84;
+  --good: #9be35b;
+  --near: #ffb347;
+  --miss: #ff5a5f;
+  --held: var(--a);
+  margin-top: 4px;
+}
+.game .viewnote, .game-hint { margin: 0; font-size: 13px; color: var(--muted); }
+.game-meta { margin: 0; font-size: 13px; color: var(--muted); }
+.game-meta b { color: var(--text); font-weight: 600; }
+.game-meta button { min-height: 30px; margin-left: 6px; padding: 4px 10px; font-size: 13px; }
+.game-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0; }
+.game .comp-primary { min-height: 44px; padding: 10px 24px; font-size: 16px; font-weight: 600; }
+/* Setup: the settings beside a preview of the board */
+.game-setup { display: grid; grid-template-columns: minmax(0,1.05fr) minmax(0,1fr); gap: 18px; align-items: start; }
+.game-setup-form { padding: 18px 20px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.game .game-setup-form h3 { margin: 0; font-size: 20px; font-weight: 600; }
+.game-intro { max-width: 62ch; margin: 6px 0 18px; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.game-fields, .game-bars { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px 16px; }
+.game-bars { grid-column: 1 / -1; }
+.game .game-fields label, .game .game-bars label, .game .game-target, .game .game-advanced label { display: flex; flex-direction: column; align-items: stretch; gap: 5px; margin: 0; font-size: 13px; color: var(--muted); }
+.game .game-fields select, .game .game-bars input, .game .game-target input, .game .game-advanced select { width: 100%; padding: 7px 9px; font-size: 14px; }
+.game .game-check { display: flex; flex-direction: row; align-items: center; gap: 9px; margin: 12px 0 0; font-size: 14px; color: var(--text); }
+.game .game-check input { width: 16px; height: 16px; margin: 0; accent-color: var(--a); }
+/* Settings that only a Timed run uses; Wait dims them and says why. */
+.game-timed { min-width: 0; margin: 20px 0 0; padding: 12px 0 0; border: 0; border-top: 1px solid var(--line); }
+.game-timed legend { padding: 0 10px 0 0; font-size: 14px; font-weight: 600; color: var(--text); }
+.game-timed.is-off > :not(legend, .game-timed-note) { opacity: .45; }
+.game-timed-note { margin: 0 0 10px; font-size: 13px; color: var(--muted); }
+.game-speed { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 8px 14px; margin: 0 0 14px; }
+.game .game-speed-value { display: flex; flex-direction: row; align-items: center; gap: 7px; margin: 0; font-size: 13px; color: var(--muted); }
+.game .game-speed-value input { width: 74px; padding: 6px 8px; font-size: 14px; }
+.game-speed-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.game-speed-presets button { min-height: 32px; padding: 4px 12px; font-size: 13px; }
+.game-speed-presets button[aria-pressed=true] { border-color: var(--a); background: var(--surface2); color: var(--text); }
+.game-speed > output { font: 500 14px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--text); }
+.game .game-speed-range { grid-column: 1 / -1; display: block; margin: 0; }
+.game-speed-range input { width: 100%; margin: 0; accent-color: var(--a); }
 .game-speed-range .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-.game-speed-range input { width: 100%; margin: 0; accent-color: #508ce5; }
-.game-speed-presets { display: flex; flex-wrap: wrap; gap: 7px; }
-.game-speed-presets button { min-height: 32px; padding: 4px 12px; }
-.game-speed-presets button[aria-pressed=true] { border-color: #508ce5; background: var(--surface2); }
-.game-advanced { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
-.game-advanced summary { cursor: pointer; }
-.game-advanced h4 { margin: 12px 0 6px; }
-.game-advanced label { display: grid; gap: 5px; margin: 10px 0; color: var(--muted); font-size: 13px; }
-.game-advanced select { width: 100%; }
-.game-preview { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
-.game-preview h4 { margin: 0 0 6px; font-size: 15px; }
-.game-preview output { display: block; min-height: 1.5em; overflow-wrap: anywhere; font-size: 14px; }
-.game-preview-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.game-preview-actions button { flex: 1; min-height: 36px; padding: 6px 10px; }
-.game-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0 0; }
-.game-actions .comp-primary { min-height: 44px; padding: 10px 22px; font-size: 16px; }
-.game-meta { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
-.game-meta button { min-height: 30px; padding: 4px 10px; font-size: 13px; margin-left: 6px; }
-.game-board-wrap { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
-.game .composition-board.hex-board { width: 100%; max-height: 460px; display: block; overflow: visible; }
-/* Score display */
-.game-hud { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; padding: 10px 14px; margin-bottom: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
-.game-hud > div > span { display: block; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
-.game-hud b { font: 700 24px var(--font-mono); font-variant-numeric: tabular-nums; }
-.game-combo { min-width: 9ch; font: 700 15px var(--font-ui); color: #ffd166; }
-.game-progress { flex: 1; min-width: 120px; height: 6px; border-radius: 3px; background: var(--inset-bg); overflow: hidden; }
-.game-progress i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #4387ed, #65d6b8); }
-.game-controls { display: flex; flex-wrap: wrap; gap: 8px; }
+.game .game-target { max-width: 200px; margin-top: 12px; }
+.game-unreachable { margin: 6px 0 0; padding-left: 20px; font-size: 13px; color: var(--muted); }
+.game-start { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 20px 0 0; padding-top: 16px; border-top: 1px solid var(--line); }
+.game-start .game-meta { margin-left: auto; }
+.game-setup-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px 18px; margin-top: 14px; }
+.game-advanced summary { cursor: pointer; font-size: 13px; }
+.game-advanced[open] { flex-basis: 100%; }
+.game-advanced h4 { margin: 12px 0 4px; font-size: 14px; font-weight: 600; }
+.game .game-advanced .viewnote { margin: 0 0 10px; }
+.game-advanced button { margin-top: 10px; }
+.game-board-wrap { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--board-bg); }
+.game .composition-board.hex-board { display: block; width: 100%; max-height: 460px; overflow: visible; }
+.game-board-wrap > .game-hint { margin-top: 8px; }
+.game-preview { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 10px; }
+.game .game-preview h4 { margin: 0; font-size: 14px; font-weight: 600; }
+.game-preview output { flex: 1; min-width: 10ch; font: 500 14px var(--font-mono); color: var(--text); overflow-wrap: anywhere; }
+.game-preview-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.game-preview-actions button { min-height: 32px; padding: 4px 12px; font-size: 13px; }
+/* The run's header: score, pass and controls, with the section's progress along its foot */
+.game-hud { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 8px 22px; margin-bottom: 12px; padding: 12px 16px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.game-stats { display: flex; gap: 24px; margin: 0; }
+.game-stats dt { font-size: 12px; color: var(--muted); }
+.game-stats dd { margin: 2px 0 0; font: 600 22px/1.15 var(--font-mono); font-variant-numeric: tabular-nums; }
+.game-combo { margin: 0; font: 600 15px var(--font-ui); color: var(--cue); }
+.game-controls { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .game-controls button { min-height: 36px; padding: 6px 14px; }
 .game-controls button[hidden] { display: none; }
-.game-hud .game-pass b { font-size: 18px; }
-.game-wait-instructions { margin: 0 0 12px; }
-/* The stage: highway, then the board */
-.game-stage { display: grid; grid-template-columns: minmax(0,1.5fr) minmax(0,1fr); gap: 14px; align-items: start; }
-.game-highway { position: relative; display: grid; grid-template-columns: 52px minmax(0,1fr); border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: #0e131b; }
-.game-lanes { display: flex; flex-direction: column; border-right: 1px solid var(--line); background: var(--surface2); }
-.game-lanes span { display: flex; align-items: center; height: var(--lane-h); padding-left: 10px; font: 600 13px var(--font-mono); box-shadow: inset 4px 0 0 var(--key); }
-.game-lanes sup { font-size: 9px; }
-.game-window { position: relative; height: calc(var(--lanes) * var(--lane-h)); overflow: hidden; background: repeating-linear-gradient(to bottom, rgba(255,255,255,.035) 0 var(--lane-h), transparent var(--lane-h) calc(2 * var(--lane-h))); }
-.game-track { position: absolute; top: 0; left: 0; height: 100%; width: 1px; will-change: transform; }
+.game-progress { grid-column: 1 / -1; height: 3px; margin: 4px -16px 0; background: var(--inset-bg); }
+.game-progress i { display: block; height: 100%; transform: scaleX(0); transform-origin: left; background: linear-gradient(90deg, var(--a), var(--mint)); }
+/* The stage: the highway beside the board, the same height. Lanes share the height the board gives it. */
+.game-stage { display: grid; grid-template-columns: minmax(0,1.45fr) minmax(0,1fr); gap: 14px; align-items: stretch; }
+.game-highway { position: relative; display: grid; grid-template-rows: minmax(0,1fr) auto; min-width: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--board-bg); }
+.game-road { display: grid; grid-template-columns: 44px minmax(0,1fr); min-height: calc(var(--lanes) * 26px); container-type: size; }
+.game-lanes, .game-window { --lane-h: clamp(26px, calc(100cqh / var(--lanes)), 84px); --lane-top: max(0px, calc((100cqh - var(--lanes) * var(--lane-h)) / 2)); }
+.game-lanes { display: flex; flex-direction: column; padding-top: var(--lane-top); border-right: 1px solid var(--line); background: var(--surface); }
+.game-lanes span { display: flex; align-items: center; justify-content: center; height: var(--lane-h); font: 600 13px var(--font-mono); color: var(--text); box-shadow: inset 3px 0 0 var(--key); }
+.game-lanes sup { font-size: 9px; color: var(--muted); }
+.game-window { position: relative; overflow: hidden; }
+.game-window::before { content: ''; position: absolute; left: 0; right: 0; top: var(--lane-top); height: calc(var(--lanes) * var(--lane-h)); background: repeating-linear-gradient(to bottom, rgba(238,242,247,.03) 0 var(--lane-h), transparent var(--lane-h) calc(2 * var(--lane-h))); pointer-events: none; }
+.game-track { position: absolute; top: 0; bottom: 0; left: 0; width: 1px; will-change: transform; }
 /* Wait steps from one onset to the next: the highway glides there instead of jumping. */
-.game-highway.is-step .game-track { transition: transform .18s ease-out; }
-.game-bar, .game-beat { position: absolute; top: 0; bottom: 0; left: calc(var(--x) * var(--ppt, 0) * 1px); width: 1px; background: rgba(205,215,235,.22); }
+.game-highway.is-step .game-track { transition: transform .24s cubic-bezier(.2,.8,.2,1); }
+.game-bar, .game-beat { position: absolute; top: var(--lane-top); height: calc(var(--lanes) * var(--lane-h)); left: calc(var(--x) * var(--ppt, 0) * 1px); width: 1px; background: rgba(205,215,235,.2); }
 .game-beat { background: rgba(205,215,235,.07); }
-.game-note { position: absolute; top: calc(var(--lane) * var(--lane-h) + 4px); height: calc(var(--lane-h) - 8px); left: calc(var(--x) * var(--ppt, 0) * 1px); width: max(10px, calc(var(--w) * var(--ppt, 0) * 1px - 2px)); box-sizing: border-box; border-radius: 6px; background: var(--key); border: 1px solid rgba(255,255,255,.55); box-shadow: 0 0 10px color-mix(in srgb, var(--key) 55%, transparent); overflow: hidden; }
-.game-note b { position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font: 700 11px/1 var(--font-mono); color: #fff; text-shadow: 0 0 3px #000, 0 0 2px #000; }
+.game-note { --note-color: var(--key); --head: 26px; --note-h: min(calc(var(--lane-h) - 12px), 56px); position: absolute; top: calc(var(--lane-top) + var(--lane) * var(--lane-h) + (var(--lane-h) - var(--note-h)) / 2); left: calc(var(--x) * var(--ppt, 0) * 1px); width: max(var(--head), calc(var(--w) * var(--ppt, 0) * 1px - 3px)); height: var(--note-h); border-radius: 7px; background: linear-gradient(90deg, var(--note-color) 0 var(--head), color-mix(in srgb, var(--note-color) 20%, transparent) var(--head)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--note-color) 70%, white); transform-origin: calc(var(--head) / 2) 50%; }
+.game-note b { position: absolute; top: 50%; left: 0; width: var(--head); transform: translateY(-50%); text-align: center; font: 600 12px/1 var(--font-mono); color: var(--ink, #0d1626); }
 .game-note b sup { font-size: 8px; }
-.game-note.is-perfect, .game-note.is-great, .game-note.is-good, .game-note.is-ok { opacity: .3; border-color: #3ddc84; box-shadow: 0 0 14px rgba(61,220,132,.8); }
-.game-note.is-miss { opacity: .45; background: #5a1f26; border-color: #ff4d4d; box-shadow: none; }
-.game-hitline { position: absolute; top: 0; bottom: 0; left: 96px; width: 3px; margin-left: -1px; background: #e9f1ff; box-shadow: 0 0 12px rgba(233,241,255,.8); pointer-events: none; }
-.game-feedback { position: absolute; top: 6px; left: 52px; right: 0; text-align: center; font: 800 20px var(--font-ui); letter-spacing: .02em; pointer-events: none; text-shadow: 0 2px 8px #000; }
-.game-feedback.is-perfect { color: #ffd166; }
-.game-feedback.is-great, .game-feedback.is-ok { color: #3ddc84; }
-.game-feedback.is-good { color: #65d6b8; }
-.game-feedback.is-held { color: #9cc2ff; font-size: 16px; }
-.game-feedback.is-miss, .game-feedback.is-wrong { color: #ff6b6b; }
-.game-feedback.is-near { color: #ffb347; font-size: 16px; }
-.game-overlay { position: absolute; left: 52px; right: 0; bottom: 10px; text-align: center; font: 700 18px var(--font-ui); color: #e9f1ff; pointer-events: none; text-shadow: 0 2px 8px #000; }
-.game-overlay.is-count { top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 64px; color: #ffd166; }
-/* Board cues: a ring closes onto each key as its note arrives; keys flash with the judgement. */
-.game-ring { fill: none; stroke: #ffd166; stroke-width: 3; opacity: 0; transform-box: fill-box; transform-origin: center; pointer-events: none; filter: drop-shadow(0 0 1.5px #000) drop-shadow(0 0 1px #000); }
-.game-board .comp-board-key.game-soon polygon { stroke: #ffd166; stroke-width: 3; }
-.game-board .comp-board-key.game-now polygon { fill: #ffd166; }
-.game-board .comp-board-key.game-flash-perfect polygon, .game-board .comp-board-key.game-flash-great polygon, .game-board .comp-board-key.game-flash-ok polygon { fill: #3ddc84; }
-.game-board .comp-board-key.game-flash-good polygon { fill: #9be35b; }
-.game-board .comp-board-key.game-flash-miss polygon, .game-board .comp-board-key.game-flash-wrong polygon { fill: #ff4d4d; }
-.game-board .comp-board-key.game-flash-near polygon { fill: #ffb347; }
+.game-note.is-perfect, .game-note.is-great, .game-note.is-ok { --note-color: var(--hit); --ink: #0d1626; opacity: .6; }
+.game-note.is-good { --note-color: var(--good); --ink: #0d1626; opacity: .6; }
+.game-note.is-miss { --note-color: color-mix(in srgb, var(--miss) 45%, var(--board-bg)); --ink: var(--text); opacity: .6; box-shadow: inset 0 0 0 1px var(--miss); }
+/* The hit line, with the Good window around it and the Perfect window inside that (Timed only). */
+.game-hitline { position: absolute; top: 0; bottom: 0; left: var(--hit-x); width: 2px; margin-left: -1px; background: var(--text); pointer-events: none; }
+.game-hitline::before, .game-hitline::after { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); pointer-events: none; }
+.game-hitline::before { width: var(--good-w, 0px); background: linear-gradient(90deg, transparent, rgba(238,242,247,.06) 18% 82%, transparent); }
+.game-hitline::after { width: var(--perfect-w, 0px); background: rgba(238,242,247,.09); }
+.game-highway.is-step .game-hitline::before, .game-highway.is-step .game-hitline::after { display: none; }
+.game-feedback { position: absolute; top: 10px; left: calc(var(--hit-x) + 14px); padding: 3px 11px; border-radius: 999px; background: rgba(17,21,28,.88); box-shadow: 0 0 0 1px var(--line); font: 600 14px var(--font-ui); white-space: nowrap; pointer-events: none; }
+.game-feedback:empty { display: none; }
+.game-feedback.is-perfect, .game-feedback.is-great, .game-feedback.is-ok { color: var(--hit); }
+.game-feedback.is-good { color: var(--good); }
+.game-feedback.is-near { color: var(--near); }
+.game-feedback.is-miss, .game-feedback.is-wrong { color: var(--miss); }
+.game-feedback.is-held { color: var(--held); }
+/* Below the highway: what Wait needs played or released, or that the run is paused. A count-in beat fills the highway instead. */
+.game-overlay { display: block; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--surface); font: 500 14px/1.4 var(--font-ui); color: var(--text); }
+.game-overlay:empty { display: none; }
+.game-overlay.is-count { position: absolute; inset: 0 0 0 44px; display: grid; place-items: center; padding: 0; border: 0; background: none; font: 600 76px/1 var(--font-mono); color: var(--cue); text-shadow: 0 2px 18px var(--board-bg); pointer-events: none; }
+/* Board cues: the key's own outline closes onto it as its note arrives; keys flash with the judgement. */
+.game-board .comp-board-key polygon:not(.game-ring) { transition: fill .14s ease-out, stroke .14s ease-out; }
+.game-ring { fill: none; stroke: var(--cue); stroke-width: 2; vector-effect: non-scaling-stroke; opacity: 0; transform-box: fill-box; transform-origin: center; pointer-events: none; }
+.game-board .comp-board-key.game-soon polygon:not(.game-ring) { stroke: var(--cue); stroke-width: 2.5; }
+.game-board .comp-board-key.game-now polygon:not(.game-ring) { fill: var(--cue); stroke: #fff3d1; }
+.game-board .comp-board-key:is(.game-flash-perfect, .game-flash-great, .game-flash-ok) polygon:not(.game-ring) { fill: var(--hit); }
+.game-board .comp-board-key.game-flash-good polygon:not(.game-ring) { fill: var(--good); }
+.game-board .comp-board-key:is(.game-flash-miss, .game-flash-wrong) polygon:not(.game-ring) { fill: var(--miss); }
+.game-board .comp-board-key.game-flash-near polygon:not(.game-ring) { fill: var(--near); }
+.game-board .comp-board-key:is(.game-now, .game-flash-perfect, .game-flash-great, .game-flash-ok, .game-flash-good, .game-flash-miss, .game-flash-wrong, .game-flash-near) .hex-key-label { fill: #121722; }
 /* Results */
-.game-results { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 14px 22px; align-items: center; padding: 18px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
-.game-results.is-wait { grid-template-columns: minmax(0,1fr); }
-.game-repeat { grid-column: 1 / -1; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--inset-bg); }
-.game-repeat p { margin: 0; font-variant-numeric: tabular-nums; }
-.game-grade { display: grid; place-items: center; width: 110px; height: 110px; border-radius: 50%; font: 800 56px var(--font-ui); color: #0d1626; background: #9cc2ff; box-shadow: 0 0 30px rgba(156,194,255,.35); }
-.game-grade.is-S { background: #ffd166; box-shadow: 0 0 34px rgba(255,209,102,.55); }
-.game-grade.is-A { background: #3ddc84; }
-.game-grade.is-B { background: #65d6b8; }
-.game-grade.is-C { background: #e9bd5d; }
-.game-grade.is-D { background: #ff8a8a; }
-.game-result-main h3 { margin: 0 0 4px; font-size: 24px; }
-.game-big { margin: 0; font: 700 20px var(--font-mono); font-variant-numeric: tabular-nums; }
-.game-counts { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin: 0; }
-.game-counts div { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--inset-bg); }
+.game-results { display: grid; gap: 18px; padding: 20px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.game-result-head { display: flex; align-items: center; gap: 20px; }
+.game-grade { flex: none; display: grid; place-items: center; width: 96px; height: 96px; border-radius: 50%; font: 700 48px var(--font-ui); color: #0d1626; background: var(--a); }
+.game-grade.is-S { background: var(--cue); box-shadow: 0 0 0 5px color-mix(in srgb, var(--cue) 28%, transparent); }
+.game-grade.is-A { background: var(--hit); }
+.game-grade.is-B { background: var(--mint); }
+.game-grade.is-C { background: #c9a35a; }
+.game-grade.is-D { background: #e58b8b; }
+.game .game-result-main h3 { margin: 0 0 4px; font-size: 22px; font-weight: 600; }
+.game-big { margin: 0 0 4px; font: 600 20px var(--font-mono); font-variant-numeric: tabular-nums; }
+.game-counts { display: flex; flex-wrap: wrap; margin: 0; border-block: 1px solid var(--line); }
+.game-counts div { flex: 1 1 92px; padding: 10px 14px; border-left: 1px solid var(--line); }
+.game-counts div:first-child { padding-left: 0; border-left: 0; }
 .game-counts dt { font-size: 12px; color: var(--muted); }
-.game-counts dd { margin: 2px 0 0; font: 700 20px var(--font-mono); }
-.game-counts .is-perfect dd { color: #ffd166; } .game-counts .is-great dd { color: #3ddc84; } .game-counts .is-good dd { color: #65d6b8; } .game-counts .is-miss dd { color: #ff6b6b; }
-.game-timing, .game-weak { grid-column: 1 / -1; }
-.game-timing h4, .game-weak h4 { margin: 4px 0 6px; font-size: 14px; }
-.game-timing p { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
+.game-counts dd { margin: 3px 0 0; font: 600 22px var(--font-mono); font-variant-numeric: tabular-nums; }
+.game-counts :is(.is-perfect, .is-great) dd { color: var(--hit); }
+.game-counts .is-good dd { color: var(--good); }
+.game-counts .is-miss dd { color: var(--miss); }
+.game .game-timing h4, .game .game-weak h4 { margin: 0 0 6px; font-size: 14px; font-weight: 600; }
+.game-timing p { margin: 0 0 10px; font-size: 14px; color: var(--muted); }
 .game-histogram { display: flex; align-items: flex-end; gap: 3px; height: 80px; padding: 0 2px; border-bottom: 1px solid var(--line); }
-.game-histogram i { flex: 1; height: max(2px, calc(var(--h) * 78px)); border-radius: 3px 3px 0 0; background: #65d6b8; }
-.game-histogram i.is-perfect { background: #ffd166; } .game-histogram i.is-great { background: #3ddc84; }
-.game-histogram-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 3px; }
+.game-histogram i { flex: 1; height: max(2px, calc(var(--h) * 78px)); border-radius: 3px 3px 0 0; background: var(--mint); }
+.game-histogram i.is-perfect { background: var(--hit); }
+.game-histogram i.is-great { background: color-mix(in srgb, var(--hit) 65%, var(--mint)); }
+.game-histogram-axis { display: flex; justify-content: space-between; margin-top: 3px; font-size: 11px; color: var(--muted); }
 .game-weak > div { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
 .game-weak button { min-height: 32px; padding: 4px 12px; font-size: 13px; }
-.game-results .game-actions { grid-column: 1 / -1; }
-.game-calibrate p { color: var(--muted); }
-.game-calibrate .game-big { color: var(--text); margin: 14px 0; }
-@media (max-width: 1000px) { .game-setup, .game-stage { grid-template-columns: minmax(0,1fr); } }
-@media (max-width: 560px) { .game-fields { grid-template-columns: minmax(0,1fr); } .game-results { grid-template-columns: minmax(0,1fr); justify-items: start; } .game-repeat { width: 100%; box-sizing: border-box; } .game-hud { gap: 8px 14px; } .game-hud b { font-size: 20px; } .game-preview-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); } .game-controls { width: 100%; } .game-controls button { flex: 1; } }
-@media (prefers-reduced-motion: reduce) { .game-note, .game-highway.is-step .game-track { transition: none; } }
+.game-repeat { display: grid; gap: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--inset-bg); }
+.game-repeat p { margin: 0; font-variant-numeric: tabular-nums; }
+.game-repeat-bar { display: block; height: 3px; border-radius: 2px; background: var(--a); transform: scaleX(var(--left)); transform-origin: left; animation: game-countdown var(--total) linear forwards; animation-delay: calc(-1 * var(--elapsed)); }
+.game-repeat-bar.is-paused { animation-play-state: paused; }
+@keyframes game-countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.game-calibrate .game-big { margin: 16px 0; color: var(--text); }
+.game-calibrate .game-actions { margin-top: 16px; }
+@media (max-width: 1000px) { .game-setup, .game-stage { grid-template-columns: minmax(0,1fr); } .game-road { height: clamp(150px, calc(var(--lanes) * 40px), 420px); } }
+@media (max-width: 560px) { .game-fields, .game-bars { grid-template-columns: minmax(0,1fr); } .game-setup-form { padding: 16px; } .game-speed { grid-template-columns: auto minmax(0,1fr); } .game-speed-presets { grid-column: 1 / -1; grid-row: 2; } .game-start .game-meta { margin-left: 0; flex-basis: 100%; } .game-hud { grid-template-columns: minmax(0,1fr) auto; } .game-controls { grid-column: 1 / -1; justify-content: stretch; } .game-controls button { flex: 1; } .game-stats { gap: 18px; } .game-stats dd { font-size: 19px; } .game-preview-actions { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); width: 100%; } .game-result-head { align-items: flex-start; gap: 14px; } .game-grade { width: 68px; height: 68px; font-size: 34px; } .game-counts div { flex-basis: 40%; } .game-counts div:nth-child(odd) { padding-left: 0; border-left: 0; } }
+@media (prefers-reduced-motion: reduce) { .game-highway.is-step .game-track, .game-board .comp-board-key polygon:not(.game-ring) { transition: none; } .game-repeat-bar { animation: none; } }
 @media (max-width: 700px) {
   .roll-toolbar { gap: 8px; }
   .roll-grid-controls { flex-wrap: wrap; }

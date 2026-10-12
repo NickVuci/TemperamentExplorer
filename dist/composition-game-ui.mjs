@@ -9,7 +9,7 @@ import {buildChart,createGame,WINDOWS,INPUT_SLACK_MS,PARTS,MATCHES,MODES} from '
 import {heardSeconds,CLICK} from './composition-transport.mjs';
 import {PPQ,barTicks,contentEndTick} from './composition-project.mjs';
 import {degreeOf,resolveTone} from './composition-context.mjs';
-import {mosLayers,keyColor} from './hexboard-colors.mjs';
+import {mosLayers,keyColor,textColor} from './hexboard-colors.mjs';
 import {compositionDeviceSnapshot} from './composition-board.mjs';
 import {pieceFingering} from './composition-game-route.mjs';
 
@@ -20,12 +20,20 @@ export const SECTIONS=[['all','Whole piece'],['loop','Loop region'],['bars','Bar
 // Note hints during a run: the keys to play lit on an otherwise dark HexBoard, lit over the layout,
 // or none at all (the layout only, on the HexBoard and the screen).
 export const LIGHTS=[['dark','Keys to play lit, rest dark'],['layout','Keys to play lit over the layout'],['off','Off: layout only (hard)']];
-export const LANE_HEIGHT=30,HIT_X=96;
+// Notes reach the highway's hit line this many pixels from its left edge; Timed repeat waits this long.
+export const HIT_X=96,REPEAT_SECONDS=3;
 const SETTINGS_KEY='temperament-lab-game-settings',OFFSET_KEY='temperament-lab-game-offset',BEST_KEY='temperament-lab-game-best';
 const CAL_CLICKS=12,CAL_SKIP=4,CAL_BPM=90;
 const DEFAULTS=Object.freeze({part:'melody',match:'exact',mode:'play',speed:100,guide:'quiet',click:true,countIn:1,lead:2,section:'all',fromBar:1,toBar:4,trainer:false,targetSpeed:100,repeat:false,lights:'dark'});
 const FLASH_MS=260,FEEDBACK_MS=700,WAIT_END_MS=1000;
+// Judgement colours: the HexBoard's LEDs, and the bursts and pops on screen (style.css uses the same).
 const FLASH_COLORS={perfect:'#3ddc84',great:'#3ddc84',good:'#9be35b',ok:'#3ddc84',miss:'#ff4d4d',wrong:'#ff4d4d',near:'#ffb347'};
+// Screen motion that answers a judgement: a burst outward from a played key, a pop on its highway note
+// and on the feedback, and a pulse on each count-in beat. None of it runs with reduced motion.
+const BURST=[{opacity:1,transform:'scale(1)',strokeWidth:3.5},{opacity:.85,transform:'scale(1.32)',strokeWidth:3,offset:.4},{opacity:0,transform:'scale(1.7)',strokeWidth:1.5}],BURST_TIMING={duration:420,easing:'ease-out'};
+const NOTE_POP=[{transform:'scaleY(1.28)',filter:'brightness(1.6)'},{transform:'none',filter:'none'}],NOTE_POP_TIMING={duration:240,easing:'ease-out'};
+const FEEDBACK_POP=[{transform:'translateY(5px) scale(.9)',opacity:0},{transform:'none',opacity:1}],FEEDBACK_POP_TIMING={duration:170,easing:'cubic-bezier(.2,.8,.3,1.2)'};
+const COUNT_PULSE=[{transform:'scale(1.35)',opacity:.35},{transform:'none',opacity:1}],COUNT_PULSE_TIMING={duration:300,easing:'cubic-bezier(.2,.7,.3,1)'};
 const RESULT_TEXT={perfect:'Perfect',great:'Great',good:'Good',miss:'Miss',ok:'Yes'};
 
 function browserStorage(){
@@ -62,6 +70,12 @@ export function createGameController({document:doc,audio,transport,getProject,ge
   let fingeringProject=null,fingeringIdentity=null,buttonUse=0,preferenceVersion=0,pieceCache=null;
   const playedButtons=new Map();
   const flashes=new Map(),inputKeys=new Map(); // key index → flash; hold id → actual board key
+  // shown: the judgement feedback last drawn, so each new one pops once; counted: the count-in beat drawn.
+  let shown=null,counted='';
+  // Reduced motion keeps every cue and judgement but drops the bursts, pops and the rings' approach.
+  const motionQuery=globalThis.matchMedia?.('(prefers-reduced-motion: reduce)');
+  const still=()=>!!motionQuery?.matches;
+  const animate=(el,frames,timing)=>{if(el&&!still())el.animate?.(frames,timing);};
   const quiet=fn=>{stopping=true;try{fn();}finally{stopping=false;}};
   const save=()=>storage.set(SETTINGS_KEY,settings);
   const active=()=>run?.settings??settings;
@@ -195,7 +209,10 @@ export function createGameController({document:doc,audio,transport,getProject,ge
     const s=active(),colors=keyColors(p,playingBoard()),lanes=new Map();
     for(const t of targets){
       const id=s.match==='degree'&&t.degree!==null?`d${t.degree}`:t.coordinate.join(',');
-      if(!lanes.has(id))lanes.set(id,{id,degree:t.degree,register:s.match==='degree'?0:t.register,cents:s.match==='degree'&&t.degree!==null?resolveTone(p.context,p.context.scale.degrees[t.degree].coordinate).cents:t.cents,color:colors.get(t.coordinate.join(','))??'#829cff'});
+      if(!lanes.has(id)){
+        const color=colors.get(t.coordinate.join(','))??'#829cff';
+        lanes.set(id,{id,degree:t.degree,register:s.match==='degree'?0:t.register,cents:s.match==='degree'&&t.degree!==null?resolveTone(p.context,p.context.scale.degrees[t.degree].coordinate).cents:t.cents,color,ink:textColor(color)});
+      }
     }
     return [...lanes.values()].sort((a,b)=>b.cents-a.cents);
   }
@@ -259,7 +276,7 @@ export function createGameController({document:doc,audio,transport,getProject,ge
     phase='results';waitingTick=null;cleanAudio();refresh();
     if(s.repeat){
       if(s.mode==='learn')again(true);
-      else{repeatCountdown={seconds:3,paused:false};refresh();scheduleRepeat();}
+      else{repeatCountdown={seconds:REPEAT_SECONDS,paused:false};refresh();scheduleRepeat();}
     }
   }
   function scheduleRepeat(){
@@ -330,16 +347,22 @@ export function createGameController({document:doc,audio,transport,getProject,ge
       flashes.set(k,{cls,until});
     }
   }
+  // A played key's ring bursts outward in its judgement's colour.
+  function burst(keys,cls){
+    for(const id of keys)animate(doc.querySelector?.(`[data-game-ring="${Number(id)}"]`),BURST.map(f=>({...f,stroke:FLASH_COLORS[cls]})),BURST_TIMING);
+  }
   function say(text,cls){feedback={text,cls,until:now()+FEEDBACK_MS};}
   function react(r,keyId){
     if(!r)return;
     const keys=keyId!==undefined&&keyId!==null?[keyId]:[];
     if(r.kind==='learn-hit'){
       for(const t of r.targets)markNote(t);
-      flash((r.holdIds??[]).map(id=>inputKeys.get(id)).filter(k=>k!==undefined&&k!==null),'ok');
+      const played=(r.holdIds??[]).map(id=>inputKeys.get(id)).filter(k=>k!==undefined&&k!==null);
+      flash(played,'ok');burst(played,'ok');
       say('Yes','ok');
     }else if(r.kind==='hit'){
-      flash(keys.length?keys:route.has(r.target.index)?[route.get(r.target.index)]:[],r.result);
+      const played=keys.length?keys:route.has(r.target.index)?[route.get(r.target.index)]:[];
+      flash(played,r.result);burst(played,r.result);
       say(r.result==='ok'?'Yes':`${RESULT_TEXT[r.result]}${Number.isFinite(r.offsetMs)&&Math.abs(r.offsetMs)>=10?` · ${Math.abs(Math.round(r.offsetMs))} ms ${r.offsetMs<0?'early':'late'}`:''}`,r.result);
       for(const t of r.targets??[r.target])markNote(t);
     }else if(r.kind==='miss'){flash(route.has(r.target.index)?[route.get(r.target.index)]:[],'miss');say('Miss','miss');markNote(r.target);}
@@ -347,7 +370,12 @@ export function createGameController({document:doc,audio,transport,getProject,ge
     else if(r.kind==='early'||r.kind==='late'){flash(keys,'near');say(r.kind==='early'?'Too early':'Too late','near');}
     else if(r.kind==='hold'&&r.held)say('Held','held');
   }
-  function markNote(t){const el=doc.querySelector?.(`[data-game-note="${t.index}"]`);if(el)el.className=`game-note is-${t.result}`;}
+  // A played note's head takes its judgement colour and pops; a missed one only changes colour.
+  function markNote(t){
+    const el=doc.querySelector?.(`[data-game-note="${t.index}"]`);if(!el)return;
+    el.className=`game-note is-${t.result}`;
+    if(t.result!=='miss')animate(el,NOTE_POP,NOTE_POP_TIMING);
+  }
 
   // ---- each frame ----
   function loop(){if(frame===null&&raf)frame=raf(step);}
@@ -367,8 +395,13 @@ export function createGameController({document:doc,audio,transport,getProject,ge
     const highway=doc.querySelector?.('[data-game-highway]'),track=doc.querySelector?.('[data-game-track]');
     if(highway&&track){
       const width=highway.clientWidth||0,next=width>HIT_X?(width-HIT_X)/(s.lead*engine.tps):ppt;
-      if(next&&Math.abs(next-ppt)>1e-9){ppt=next;track.style.setProperty('--ppt',String(ppt));}
-      track.style.transform=`translateX(${HIT_X-(v-chart.from)*ppt}px)`;
+      if(next&&Math.abs(next-ppt)>1e-9){
+        ppt=next;track.style.setProperty('--ppt',String(ppt));
+        // The hit line carries the Good window, and the Perfect window inside it, at this scale.
+        const span=ms=>`${2*ms/1000*engine.tps*ppt}px`;
+        highway.style.setProperty('--good-w',span(WINDOWS.good));highway.style.setProperty('--perfect-w',span(WINDOWS.perfect));
+      }
+      track.style.transform=`translate3d(${HIT_X-(v-chart.from)*ppt}px,0,0)`;
     }
     // Hints never light a later note beside a current one. Timed lights a suggested key only while its
     // note is due and not yet played or missed; on screen its ring still closes onto the key over the
@@ -393,7 +426,11 @@ export function createGameController({document:doc,audio,transport,getProject,ge
     for(const k of rings)if(!soon.has(k)){const ring=doc.querySelector?.(`[data-game-ring="${k}"]`);if(ring){ring.style.opacity='0';ring.style.transform='';}const key=doc.querySelector?.(`[data-comp-key="${k}"]`);key?.classList.remove('game-soon');key?.classList.remove('game-now');}
     for(const [k,f] of soon){
       const ring=doc.querySelector?.(`[data-game-ring="${k}"]`);
-      if(ring){const x=Math.min(1,Math.max(0,f));ring.style.opacity=String(.3+.7*(1-x));ring.style.transform=`scale(${1+1.6*x})`;}
+      if(ring){
+        // The outline closes at an even rate, so its distance reads as time, and fades in as it nears.
+        const x=Math.min(1,Math.max(0,f)),near=1-x;
+        ring.style.opacity=String(.15+.85*near*near*(3-2*near));ring.style.transform=still()?'':`scale(${1+1.25*x})`;
+      }
       const key=doc.querySelector?.(`[data-comp-key="${k}"]`);
       key?.classList.toggle('game-soon',f<.4);key?.classList.toggle('game-now',light.has(k));
     }
@@ -408,24 +445,35 @@ export function createGameController({document:doc,audio,transport,getProject,ge
     set('[data-game-score]',learn?`${s.judged} / ${s.total}`:s.score.toLocaleString('en'));
     set('[data-game-combo]',!learn&&s.combo>1?`${s.combo} combo${s.multiplier>1?` · ×${s.multiplier}`:''}`:'');
     set('[data-game-accuracy]',learn?'':`${s.accuracy.toFixed(1)}%`);
-    const bar=doc.querySelector?.('[data-game-progress]');if(bar)bar.style.width=`${learn?100*s.judged/Math.max(1,s.total):Math.max(0,Math.min(100,100*(v-chart.from)/Math.max(1,chart.to-chart.from)))}%`;
+    const bar=doc.querySelector?.('[data-game-progress]');
+    if(bar)bar.style.transform=`scaleX(${learn?s.judged/Math.max(1,s.total):Math.max(0,Math.min(1,(v-chart.from)/Math.max(1,chart.to-chart.from)))})`;
     const fb=doc.querySelector?.('[data-game-feedback]');
-    if(fb){const live=feedback&&feedback.until>now();const text=live?feedback.text:'';if(fb.textContent!==text){fb.textContent=text;fb.className=`game-feedback${live?` is-${feedback.cls}`:''}`;}}
+    if(fb){
+      const live=!!feedback&&feedback.until>now(),text=live?feedback.text:'';
+      if(fb.textContent!==text){fb.textContent=text;fb.className=`game-feedback${live?` is-${feedback.cls}`:''}`;}
+      // Each new judgement pops, even one that reads like the last.
+      if(live&&feedback!==shown){shown=feedback;fb.className=`game-feedback is-${feedback.cls}`;animate(fb,FEEDBACK_POP,FEEDBACK_POP_TIMING);}
+    }
   }
   function paintOverlay(){
     const el=doc.querySelector?.('[data-game-overlay]');if(!el)return;
     const count=transport.countingIn?.();
     let text='';
-    if(paused)text='Paused · Space to resume';
+    if(paused)text='Paused. Press Space to resume.';
     else if(count)text=`${count.beats-count.beat+1}`;
     else if(waitingTick!==null){
-      const w=engine.waiting();
-      text=`Play ${w.required.map(t=>noteName(t.coordinate)).join(' · ')}`;
-      if(w.missing.length)text+=` · Missing ${w.missing.map(t=>noteName(t.coordinate)).join(' · ')}`;
-      if(w.extras.length)text+=` · Release ${[...new Set(w.extras.map(t=>noteName(t.coordinate)))].join(' · ')}`;
+      // The notes to play; once some are held, the ones still missing; and any to lift first.
+      const w=engine.waiting(),names=list=>[...new Set(list.map(t=>noteName(t.coordinate)))].join(' · ');
+      const parts=[`Play ${names(w.required)}`];
+      if(w.missing.length&&w.missing.length<w.required.length)parts.push(`Missing ${names(w.missing)}`);
+      if(w.extras.length)parts.push(`Release ${names(w.extras)} first`);
+      text=parts.length>1?`${parts.join('. ')}.`:parts[0];
     }
     if(el.textContent!==text)el.textContent=text;
     el.classList.toggle('is-count',!!count&&!paused);
+    // Each count-in beat pulses as it appears.
+    if(count&&!paused&&text!==counted)animate(el,COUNT_PULSE,COUNT_PULSE_TIMING);
+    counted=count&&!paused?text:'';
     const hear=doc.querySelector?.('[data-comp="game-hear-current"]');if(hear)hear.hidden=waitingTick===null;
   }
 
