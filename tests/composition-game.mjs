@@ -3,8 +3,9 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {buildChart,createGame,gradeFor,WINDOWS,POINTS,HOLD_BONUS,NEAR_MS,INPUT_SLACK_MS} from '../dist/composition-game.mjs';
-import {createProject,addEvent,PPQ} from '../dist/composition-project.mjs';
+import {createProject,addEvent,parseProject,PPQ} from '../dist/composition-project.mjs';
 import {captureContext} from '../dist/composition-context.mjs';
+import {boardSnapshot} from '../dist/composition-cues.mjs';
 
 const demo=JSON.parse(await readFile(new URL('./fixtures/composition/phase0-demo.json',import.meta.url),'utf8'));
 const ctx=captureContext(demo.musicalContext.state,220);
@@ -111,6 +112,18 @@ const chart=buildChart(project,{part:'melody'});
   const loose=createGame(chart,{tps:TPS,match:'degree',context:ctx});assert.equal(loose.press('a',up(deg(0)),0).result,'perfect','any register of the degree when asked');
 }
 {
+  // Any register on an equal-step layout: meantone tuned to 12 EDO on an unwrapped board has keys past the
+  // scale's chain of fifths that only sound a degree's pitch class (G♯ for A♭); their coordinate has no
+  // degree. Every key offered for a degree is one the judge accepts for it.
+  const sample=parseProject(await readFile(new URL('../examples/compositions/01-clockwork-12edo.composition.json',import.meta.url),'utf8'));
+  const unwrapped={...sample,layout:{...sample.layout,style:'bosanquet',periodWrapping:false}};
+  const cells=boardSnapshot(unwrapped).cells,at=new Map(cells.map(c=>[c.index,c.coordinate]));
+  assert.ok(cells.some(c=>c.degree<0),'the board has keys that only sound a degree');
+  const edo=buildChart(unwrapped,{part:'both'}),g=createGame(edo,{tps:TPS,match:'degree',context:unwrapped.context});
+  assert.ok(edo.targets.every(t=>t.degreeKeys.length&&t.keys.every(k=>t.degreeKeys.includes(k))),'every note keeps its keys');
+  for(const t of edo.targets)for(const k of t.degreeKeys)assert.notEqual(g.press(`${t.id}@${k}`,at.get(k),t.tick).kind,'wrong',`key ${k} offered for degree ${t.degree}`);
+}
+{
   // Wait: all selected parts at one onset form one group; duplicate pitches need one down.
   const both=buildChart(project,{part:'both'}),g=createGame(both,{tps:TPS,mode:'learn'});
   assert.deepEqual(g.pending().map(t=>t.tick),[0,0,0,0],'the melody note and the chord tones that start together');
@@ -178,6 +191,22 @@ const waitGame=(rows,opts={})=>createGame(waitChart(rows),{tps:TPS,mode:'learn',
   assert.equal(g.press('second',deg(0),0).kind,'learn-hit','a fresh hold of that pitch satisfies the repeated onset');
   assert.equal(g.press('third',deg(0),0).kind,'learn-hit','notes held from earlier onsets never block the next');
   assert.equal(g.state().wrong,0);
+}
+{
+  // A note just played, pressed again (a bouncing key or a double tap), is a repeat as in Timed: it is
+  // no wrong note, never counts and never blocks the next notes.
+  const g=waitGame([[0,480,deg(0)],[0,480,deg(2)],[0,480,deg(4)],[480,960,deg(1)],[480,960,deg(3)],[960,1440,deg(5)]]);
+  for(const [id,m] of [['a',deg(0)],['b',deg(2)]])assert.equal(g.press(id,m,0).kind,'partial');
+  assert.equal(g.press('c',deg(4),0).kind,'learn-hit');
+  assert.equal(g.release('c',0).kind,'partial');
+  assert.equal(g.press('c-bounce',deg(4),0).kind,'repeat','the chord just completed is played again');
+  assert.equal(g.state().wrong,0);assert.equal(g.waiting().extras.length,0,'a repeat is not in the way');
+  assert.equal(g.press('stray',deg(6),0).kind,'wrong','a pitch neither due nor just played is still wrong');
+  g.release('stray',0);
+  assert.equal(g.press('d',deg(1),0).kind,'partial');assert.equal(g.press('e',deg(3),0).kind,'learn-hit','the next chord completes as usual');
+  assert.equal(g.press('a-again',deg(0),0).kind,'wrong','only the notes just completed repeat');
+  g.release('a-again',0);assert.equal(g.press('f',deg(5),0).kind,'learn-hit');
+  assert.equal(g.state().wrong,2);assert.equal(g.state().done,true);
 }
 {
   // Any-register matching is shared with Timed mode and deduplicates octave copies.

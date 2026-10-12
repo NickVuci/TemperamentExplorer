@@ -874,7 +874,9 @@ player's pace (D-048): it plays no backing, count-in or metronome and runs no cl
 due as soon as the run starts and each next onset as soon as the one before it is complete, so a
 press is never early. An onset completes when all its distinct matching pitches are held together.
 Released taps do not accumulate, and stray notes must be released; notes already played may stay held
-into later onsets but never count for them, so a repeated pitch needs a new press. The highway glides
+into later onsets but never count for them, so a repeated pitch needs a new press. Pressing a note of
+the onset just completed again (a bouncing key or a double tap) is a repeat, as in Timed: never a
+wrong note or a stray. The highway glides
 to each next onset, and the results follow a second after the last one. Wait shows the required
 notes, missing tones and notes to release, with completed-note progress and Hear current notes. Its
 results show completed notes and wrong notes; it has no timing score, accuracy, combo or grade. Both
@@ -946,7 +948,9 @@ Stop/Escape cancels every group.
 
 Cue seam. `buildCueTimeline` yields one cue per sounding tone with its coordinate,
 cents, Hz, degree/register, onset/release (ticks and seconds) and every enabled
-layout key whose `buildBoard` coordinate matches exactly. A pitch with no key stays
+layout key whose `buildBoard` coordinate matches exactly. Its any-degree keys are those
+whose own coordinate has the tone's degree, as presses are judged; an equal-step key that
+only sounds that pitch class (G♯ for A♭ in 12 EDO) is not one. A pitch with no key stays
 audible and carries a stated reason. `toPracticeTargets` exports a versioned
 `temperament-lab-practice-targets-v1` file with an explicit match mode
 (`exact-coordinate`, `any-degree`, `button`) for other consumers. The Play controller

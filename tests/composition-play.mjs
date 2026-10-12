@@ -209,6 +209,26 @@ await test('Wait lights only the next notes to play',async()=>{
   assert.ok(!keyNode(h,k0).classList.contains('game-now'),'played notes go out');h.close();
 });
 
+await test('Wait: a key bouncing as its chord completes stays green and is no wrong note',async()=>{
+  // All the lit keys are played and the chord moves on; the HexBoard then reports one of them lifting
+  // and pressing again. That press is the chord just played, not a wrong note against the next one.
+  const p=project([],[[0,960,[0,2,4]],[960,960,[1,3,5]]]),board=compositionBoard(p).board;
+  const h=harness({p,settings:{mode:'learn',part:'chords'}});await h.start();h.controller.step();
+  const lit=litKeys(h);assert.equal(lit.length,3,'the chord lights its three keys');
+  for(const k of lit)h.down(`k${k}`,board.keys[k].m,k);await flush();
+  assert.equal(h.controller.view().waitingTick,960,'the chord is complete and the next one is due');
+  const last=lit.at(-1);h.up(`k${last}`);h.down(`bounce${last}`,board.keys[last].m,last);await flush();
+  assert.equal(h.controller.engine.state().wrong,0,'the bounce is not a wrong note');
+  for(const k of lit)assert.ok(keyNode(h,k).classList.contains('game-flash-ok'),`key ${k} stays green`);
+  assert.ok(!keyNode(h,last).classList.contains('game-flash-wrong'),'nothing turns red');
+  assert.equal(h.document.querySelector('[data-game-feedback]').textContent,'Yes');
+  assert.equal(h.controller.engine.waiting().extras.length,0,'and nothing has to be released before the next chord');
+  for(const id of [...lit.slice(0,-1).map(k=>`k${k}`),`bounce${last}`])h.up(id);
+  h.controller.step();const next=litKeys(h);
+  for(const k of next)h.down(`n${k}`,board.keys[k].m,k);await flush();
+  assert.equal(h.controller.engine.state().judged,6);assert.equal(h.controller.engine.state().wrong,0);h.close();
+});
+
 await test('Note hints light the HexBoard dark, over the layout or not at all',async()=>{
   assert.equal(normalizeSettings({}).lights,'dark');assert.equal(normalizeSettings({hints:true}).lights,'dark');
   assert.equal(normalizeSettings({hints:false}).lights,'off','a saved Note hints switch that was off becomes the hard layout');

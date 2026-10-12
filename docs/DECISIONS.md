@@ -1070,15 +1070,17 @@ and the screen's rings. Do not light device keys ahead of their onset, or later 
 run starts and each next onset as soon as the one before it is complete; an onset completes when all
 its distinct matching pitches are held together with fresh presses and no stray notes. Notes already
 accepted may stay held into later onsets whatever their written length, but never count for them, so
-a repeated pitch needs a new press. The highway glides from onset to onset, and the results follow a
-second after the last one so its notes can ring. The transport's pause-at-boundary option, which only
-Wait used, is removed; bounded runs end after their grace window.
+a repeated pitch needs a new press. A press of a note of the onset just completed is a repeat, as in
+Timed: it never counts, is no wrong note and blocks nothing. The highway glides from onset to onset,
+and the results follow a second after the last one so its notes can ring. The transport's
+pause-at-boundary option, which only Wait used, is removed; bounded runs end after their grace window.
 
 **Rationale.** Wait previously played the backing between onsets and paused the transport at each one.
 Restarting it after every completed onset made the highway and board jump, presses made before the
 transport reached the next onset were rejected as early, and written durations decided which held
 notes blocked the next one. Wait is for learning which buttons to play in order, so rhythm is left to
-Timed.
+Timed. A key that bounced or was tapped twice as its chord completed was judged against the next onset:
+it turned red as a wrong note and had to be released, although the chord had been played.
 
 **Consequences.** Wait gives no musical accompaniment; Hear current notes auditions the notes to play.
 Do not reintroduce transport pacing, early presses or duration-based holds in Wait; rhythm practice

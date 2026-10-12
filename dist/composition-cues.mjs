@@ -13,14 +13,19 @@ export const MATCH_MODES=['exact-coordinate','any-degree','button'];
 /**
  * Read-only view of the layout's playable keys for the project's own context.
  * `key.m` is already the final sounding coordinate (wrapped registers included), so
- * a coordinate may have several cells; none is the pitch's identity.
+ * a coordinate may have several cells; none is the pitch's identity. A cell's degree is
+ * its own coordinate's, as presses are judged: an equal-step key that only sounds a
+ * degree's pitch class (G♯ for A♭ in 12 EDO) has none, whatever the board labels it.
  */
 export function boardSnapshot(project){
   if(!project.layout)return {status:'no-layout',reason:'This composition has no saved layout, so keys cannot be suggested. It still plays.',cells:[]};
   let board;
   try{board=buildBoard(project.context.state,project.layout);}
   catch(error){return {status:'unavailable',reason:`The saved layout cannot be built: ${error.message}`,cells:[]};}
-  const cells=board.keys.filter(k=>k.enabled&&!k.command).map(k=>({index:k.index,coordinate:[k.m[0]===0?0:k.m[0],k.m[1]===0?0:k.m[1]],degree:k.degree}));
+  const cells=board.keys.filter(k=>k.enabled&&!k.command).map(k=>{
+    const coordinate=[k.m[0]===0?0:k.m[0],k.m[1]===0?0:k.m[1]];
+    return {index:k.index,coordinate,degree:degreeOf(project.context,coordinate)?.degree??-1};
+  });
   return {status:'ok',cells};
 }
 

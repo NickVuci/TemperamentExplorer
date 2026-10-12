@@ -10,7 +10,8 @@
 // other press is a wrong note and breaks the combo. Notes a quarter long or longer also score a hold
 // when kept down to their end. Learn (Wait): no clock runs; the notes are played in order, each onset
 // due as soon as the one before it is complete, until all its distinct pitches are held together with
-// fresh presses and no stray notes. Notes already played may stay held.
+// fresh presses and no stray notes. Notes already played may stay held, and pressing a note just
+// played again is a repeat there too.
 import {buildCueTimeline,boardSnapshot} from './composition-cues.mjs';
 import {degreeOf} from './composition-context.mjs';
 import {PPQ,barTicks} from './composition-project.mjs';
@@ -56,6 +57,7 @@ export function createGame(chart,{tps,match='exact',context=null,mode='play',off
   const ticks=targets.map(t=>t.tick);
   const holds=new Map();
   const learnHolds=new Map();   // hold id → {key, coordinate, tick it counts for (null if none), accepted}
+  let justPlayed=new Set();     // Wait: the pitches of the onset completed last
   let combo=0,maxCombo=0,score=0,wrong=0,holdsScored=0,missCursor=0,learned=0;
   const multiplier=()=>1+Math.min(3,Math.floor(combo/10))*.5;
   const lowerBound=x=>{let lo=0,hi=ticks.length;while(lo<hi){const mid=(lo+hi)>>1;if(ticks[mid]<x)lo=mid+1;else hi=mid;}return lo;};
@@ -91,6 +93,7 @@ export function createGame(chart,{tps,match='exact',context=null,mode='play',off
       const group=pending(),holdIds=[];
       for(const t of group){t.result='ok';t.offsetMs=null;learned++;}
       for(const [holdId,h] of learnHolds)if(h.tick===status.tick){holdIds.push(holdId);h.accepted=true;}
+      justPlayed=new Set(group.map(t=>t.key));
       return {kind:'learn-hit',targets:group,holdIds,result:'ok'};
     }
     return {kind:fallback,...(coordinate?{coordinate:[...coordinate]}:{}),waiting:status};
@@ -99,12 +102,18 @@ export function createGame(chart,{tps,match='exact',context=null,mode='play',off
   /** Clear physical holds when the host pauses or restarts; pending targets remain unchanged. */
   function clearHolds(){holds.clear();learnHolds.clear();}
 
-  /** A down: Timed hit/early/late/repeat/wrong; Wait learn-hit with all targets, or partial/wrong. */
+  /** A down: Timed hit/early/late/repeat/wrong; Wait learn-hit with all targets, or partial/repeat/wrong. */
   function press(holdId,coordinate,v){
     const key=keyOf(coordinate);
     if(mode==='learn'){
       if(learnHolds.has(holdId))return learnResult();
       const status=waiting(),matches=status.required.some(t=>t.key===key);
+      // A note of the onset just completed, pressed again (a bouncing key or a double tap), is a repeat
+      // as in Timed: like a note already played it may stay held, but it never counts and is no stray.
+      if(!matches&&justPlayed.has(key)){
+        learnHolds.set(holdId,{key,coordinate:[...coordinate],tick:null,accepted:true});
+        return {kind:'repeat',coordinate:[...coordinate]};
+      }
       learnHolds.set(holdId,{key,coordinate:[...coordinate],tick:matches?status.tick:null,accepted:false});
       if(!matches){wrong++;return learnResult('wrong',coordinate);}
       return learnResult('partial',coordinate);
