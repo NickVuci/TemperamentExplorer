@@ -1,7 +1,7 @@
 // Frozen pre-refactor results protect mathematical output, modes and exports.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {scale, targets, classifyTargets} from '../src/core/engine.mjs';
+import {scale, targets, createTargetClassifier} from '../src/core/engine.mjs';
 import {presets, makeState} from '../src/core/catalog.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
 import {matrixScale, matrixInterval} from '../src/core/matrix.mjs';
@@ -50,10 +50,11 @@ for (const original of states) {
     }
   for (const mode of [0, 3, original.n - 1]) {
     const s = {...original, mode};
-    const matrix = matrixScale({...s, matrixOctave: true});
+    const matrix = matrixScale({...s, matrixOctave: true}),
+      classify = createTargetClassifier(s, ts, 10);
     for (let i = 0; i < matrix.n; i++)
       for (let j = 0; j <= matrix.n; j++) {
-        matches.push(classifyTargets(s, matrixInterval(matrix, i, j), ts, 10));
+        matches.push(classify(matrixInterval(matrix, i, j)));
       }
     for (const t of ts) {
       // This frozen pre-split snapshot used "scale" for the mode-only view.

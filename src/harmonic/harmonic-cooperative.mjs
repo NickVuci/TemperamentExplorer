@@ -1,6 +1,10 @@
 /** Drive one algorithm in either synchronous compatibility or cooperative mode. */
 export const searchCheckpoint = Object.freeze({type: 'search-checkpoint'});
-export const eventLoopBoundary = () => new Promise(resolve => setTimeout(resolve, 0));
+// Browsers yield through a zero-delay timer. Node (tests and tools) has setImmediate, which
+// avoids timer resolution (about 15 ms on Windows) on every yield.
+export const eventLoopBoundary = globalThis.setImmediate
+  ? () => new Promise(resolve => globalThis.setImmediate(resolve))
+  : () => new Promise(resolve => setTimeout(resolve, 0));
 export function finishSearch(iterator) {
   let step;
   do {
