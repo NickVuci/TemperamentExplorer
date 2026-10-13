@@ -1,14 +1,12 @@
 import {
   parsePrimeFilterInput,
   DEFAULT_ODD_LIMIT,
-  formatPrimeFilter,
   primeFilterForBasis,
   validateJILimits
 } from './core/ji-limit-engine.mjs';
 import {createDiamondWorkspace} from './diamond/diamond-workspace.mjs';
 import {fitDiamondChord} from './diamond/diamond-layout.mjs';
 import {createFocusSync} from './app/focus-sync.mjs';
-import {periodDescription} from './core/pitch.mjs';
 import {createHarmonicCatalogueWorkspace} from './harmonic/harmonic-catalogue-ui.mjs';
 import {
   syncUnifiedPanelHeights,
@@ -19,13 +17,14 @@ import {
   normalizeUnifiedCenter
 } from './ui/discover-unified.mjs';
 import {withDefaultScale} from './core/default-scale.mjs';
-import {renderScaleView, normalizeScaleView, linkScaleDegree} from './ui/scale-view.mjs';
-import {esc, option, fixed as fmt, signedFixed as sign} from './ui/ui.mjs';
-import {allTargets, visibleTargets, spanControl, renderMatrix} from './app/matrix-view.mjs';
+import {linkScaleDegree} from './ui/scale-view.mjs';
+import {fixed as fmt, signedFixed as sign} from './ui/ui.mjs';
+import {allTargets, spanControl, renderMatrix} from './app/matrix-view.mjs';
 import {fillDiamondDetails as showDiamondDetails} from './app/diamond-details.mjs';
 import {createJISettings, clampTolerance} from './app/ji-settings.mjs';
 import {sessionFile, readSession, MAX_SESSION_BYTES} from './app/session.mjs';
 import {createTuningPanel} from './app/tuning-panel.mjs';
+import {createScalePane} from './app/scale-pane.mjs';
 import {createAudioEngine} from './ui/audio.mjs';
 import {createCompositionWorkspace} from './composition/composition-ui.mjs';
 import {createHexboardDevice} from './hexboard/hexboard-device.mjs';
@@ -44,22 +43,9 @@ import {createHexboardWorkspace} from './hexboard/hexboard-ui.mjs';
 import {matrixScale, matrixInterval} from './core/matrix.mjs';
 import {createCommaWorkspace} from './ui/comma-ui.mjs';
 import {createChordWorkspace} from './ui/chord-ui.mjs';
-import {
-  scale,
-  scaleChoices,
-  mapRatio,
-  classifyTargets,
-  createTargetClassifier,
-  fitGeneratedScale
-} from './core/engine.mjs';
+import {classifyTargets, fitGeneratedScale} from './core/engine.mjs';
 import {makeState} from './core/catalog.mjs';
-import {
-  findScaleMilestones,
-  scaleDefaultKey,
-  scaleMilestoneMarkers,
-  modeMilestoneMarker,
-  formatModeRanges
-} from './core/scale-milestones.mjs';
+import {scaleDefaultKey} from './core/scale-milestones.mjs';
 const $ = q => document.querySelector(q);
 const jiSettings = createJISettings({
   $,
@@ -172,11 +158,9 @@ function fitPlayHarmony(coords) {
 }
 
 populateLimitOptions(Math.max(3, ...state.basis), primeFilterForBasis(state.basis));
-let scaleFilter = '2',
-  diamondScope = 'mapping',
+let diamondScope = 'mapping',
   manualTolerance = null,
-  unifiedCenter = 'diamond',
-  scaleView = 'line';
+  unifiedCenter = 'diamond';
 let coverageSignature = scaleDefaultKey(state, coverageSettings(state));
 function syncCoverageDefaults() {
   const s = state,
@@ -460,78 +444,45 @@ const tuningPanel = createTuningPanel({
   play: pitches => playPitches(pitches),
   showDiscover: () => (view = 'unified')
 });
-const stateName = s => `${s.name}[${s.n}]`;
+const scalePane = createScalePane({
+  getState: () => state,
+  setState: s => (state = s),
+  coverageSettings: s => coverageSettings(s),
+  settings: s => settings(s),
+  get harmonic() {
+    return harmonicWorkspace;
+  },
+  get material() {
+    return materialWorkspace;
+  },
+  place: item => placeMaterial(item),
+  playPitches: pitches => playPitches(pitches),
+  playSequence: notes => playSequence(notes),
+  download: (name, text) => download(name, text),
+  // Use scale in Play: Play takes the Discover scale and mode.
+  useInPlay: () => {
+    getLayoutStates();
+    layoutState.state.n = state.n;
+    layoutState.state.mode = state.mode;
+    hexWorkspace.clearHighlight();
+    view = 'hexboard';
+    renderWorkspace();
+    $('#workspace').scrollIntoView({behavior: 'smooth', block: 'start'});
+  },
+  showScale: () => {
+    selected = null;
+    stop();
+    view = 'unified';
+    renderWorkspace();
+  },
+  render: () => render(),
+  notify: message => toast(message)
+});
 function toast(t) {
   $('#toast').textContent = t;
   $('#toast').style.display = 'block';
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => ($('#toast').style.display = 'none'), 4500);
-}
-
-function scaleMilestoneCard(id, title, result, detail) {
-  return `<button type="button" class="scale-milestone" data-scale-milestone="${id}" ${result ? '' : 'disabled'}><span>${title}</span><b>${result ? `${result.n} notes · ${esc(result.signature)}` : `Not found through 256 notes`}</b><small>${result ? detail : 'No qualifying scale within the generated-size search.'}</small></button>`;
-}
-function scaleControls() {
-  const s = state,
-    idx = 0,
-    milestones = findScaleMilestones(s, coverageSettings(s)),
-    all = scaleChoices(s, scaleFilter),
-    choices = new Map(all.map(x => [x.n, x]));
-  const allGenerated = scaleChoices(s, 'all');
-  for (const n of [
-    milestones.interval?.n,
-    milestones.intervalMOS?.n,
-    milestones.diamond?.n,
-    milestones.diamondMOS?.n
-  ])
-    if (n && !choices.has(n)) {
-      const candidate = allGenerated.find(x => x.n === n);
-      if (candidate) choices.set(n, candidate);
-    }
-  const scaleOptions = [...choices.values()]
-    .sort((a, b) => a.n - b.n)
-    .map(x => {
-      const markers = scaleMilestoneMarkers(milestones, x.n);
-      return option(
-        x.n,
-        `${x.n} notes · ${x.signature}${x.retained ? ' · current (outside filter)' : ''}${markers.length ? ` · ${markers.join(' · ')}` : ''}`,
-        s.n
-      );
-    })
-    .join('');
-  const modeOptions = Array.from({length: s.n}, (_, i) =>
-    option(i, `${i + 1} / ${s.n}${modeMilestoneMarker(milestones, s.n, i) ? ' · DC' : ''}`, s.mode)
-  ).join('');
-  const diamondScaleDetail = milestones.diamond
-    ? `completing mode${milestones.diamond.modes.length === 1 ? '' : 's'} ${formatModeRanges(milestones.diamond.modes)}`
-    : 'all completing modes';
-  const diamondMOSDetail = milestones.diamondMOS
-    ? `completing mode${milestones.diamondMOS.modes.length === 1 ? '' : 's'} ${formatModeRanges(milestones.diamondMOS.modes)}`
-    : 'all completing modes';
-  return `<div class="formrow scale-head"><label>Scale<select data-s="${idx}" data-field="n">${scaleOptions}</select></label><label>Mode<select data-s="${idx}" data-field="mode">${modeOptions}</select></label></div><details class="scale-advanced" ${document.querySelector('.unified-scale-controls .scale-advanced')?.open ? 'open' : ''}><summary>Advanced scale options</summary><label>Scales<select data-scale-filter>${option('all', 'All', scaleFilter)}${option('2', '2 step sizes', scaleFilter)}${option('3', '3 step sizes', scaleFilter)}</select></label><section class="scale-milestones" aria-label="Scale coverage milestones"><h4>Coverage milestones</h4><div class="scale-milestone-grid">${scaleMilestoneCard('interval', 'First interval-complete scale', milestones.interval, 'Mode-independent interval matrix')}${scaleMilestoneCard('intervalMOS', 'First interval-complete MOS', milestones.intervalMOS, 'Opens in default mode 1')}${scaleMilestoneCard('diamond', 'First diamond-complete scale', milestones.diamond, diamondScaleDetail)}${scaleMilestoneCard('diamondMOS', 'First diamond-complete MOS', milestones.diamondMOS, diamondMOSDetail)}</div><p>${milestones.limit}-odd-limit · ${esc(formatPrimeFilter(milestones.primeLimit))} · ${milestones.mappedTargetCount} mapped interval classes${milestones.unmappedTargetCount ? ` · ${milestones.unmappedTargetCount} outside-basis targets excluded` : ``} · IC: full matrix · DC: one tonic · modulo one period</p></section></details>`;
-}
-// Each degree's JI reading (and the period's) uses the interval matrix's classifier and target filter.
-function scaleDegreeReadings(s, a) {
-  const cfg = settings(s),
-    classify = createTargetClassifier(s, allTargets(cfg.ts, s, cfg), cfg.tol);
-  return {
-    maxError: cfg.maxError,
-    readings: [...a.notes, {c: s.p, k: 0}].map(v => {
-      const shown = visibleTargets(classify({c: v.c, k: v.k}), cfg);
-      return shown.find(t => t.identity) || shown[0] || null;
-    })
-  };
-}
-function scaleDetails() {
-  const s = state,
-    idx = 0,
-    a = scale(s),
-    bass = harmonicWorkspace.bass();
-  return `<section class="scale-details" data-scale-view="${scaleView}">
-${renderScaleView({s, a, idx, view: scaleView, bassDegree: bass?.scale === 'discover' ? bass.degree : -1, ...scaleDegreeReadings(s, a)})}
-<div class="panelactions"><button data-action="scale" data-s="${idx}">▶ Play scale</button><button data-hex-open="${idx}" class="primary">Use scale in Play</button><button data-scale-action="collect">Add scale to collection</button><button data-scale-action="place">Highlight on current layout</button><button data-action="export" data-s="${idx}">Export .scl</button></div>
-${a.collision ? '<p class="notice">This tuning collapses notes. Choose a smaller size.</p>' : ''}
-</section>`;
 }
 
 function coverageSettings(s) {
@@ -555,8 +506,8 @@ function unifiedWorkspace() {
         : targetTable(),
     directory: unifiedDirectory(parts),
     detail: manualChordInspector ? chordWorkspace.render() : unifiedDetail(parts),
-    scaleControls: scaleControls(),
-    scaleMarkup: scaleDetails()
+    scaleControls: scalePane.controls(),
+    scaleMarkup: scalePane.details()
   });
 }
 function targetTable() {
@@ -1074,10 +1025,6 @@ function playSequence(notes) {
   stop();
   return audioEngine.playSequence(notes);
 }
-function playScale(idx = 0) {
-  const s = state;
-  return playSequence([...scale(s).notes.map(v => v.c), s.p]);
-}
 function download(name, text, type = 'text/plain') {
   const url = URL.createObjectURL(new Blob([text], {type})),
     a = document.createElement('a');
@@ -1115,11 +1062,7 @@ document.addEventListener('change', e => {
     renderWorkspace();
     return;
   }
-  if (e.target.hasAttribute('data-scale-filter')) {
-    scaleFilter = e.target.value;
-    render();
-    return;
-  }
+  if (scalePane.change(e.target)) return;
   if (materialWorkspace.change(e.target)) return;
   if (presetWorkspace.change(e.target)) return;
   if (hexWorkspace.change(e.target)) return;
@@ -1136,21 +1079,6 @@ document.addEventListener('change', e => {
   if (commaWorkspace.change(e.target)) return;
   if (chordWorkspace.change(e.target)) return;
   if (tuningPanel.change(e.target)) return;
-  const f = e.target.dataset.field;
-  if (!f) return;
-  const old = structuredClone(state);
-  try {
-    let s = state;
-    s[f] = Number(e.target.value);
-    if (f === 'n') s.mode = 0;
-    delete state.tuningReport;
-    validate(state);
-    render();
-  } catch (err) {
-    state = old;
-    toast(err.message);
-    render();
-  }
 });
 document.addEventListener('click', e => {
   for (const open of document.querySelectorAll('.app-header details[open]'))
@@ -1174,43 +1102,13 @@ document.addEventListener('click', e => {
   if (hexWorkspace.click(e.target, e.shiftKey)) return;
   const b = e.target.closest('button');
   if (!b) return;
-  if (b.dataset.scaleMilestone) {
-    const milestones = findScaleMilestones(state, coverageSettings(state)),
-      result = milestones[b.dataset.scaleMilestone];
-    if (!result) return;
-    state = validate({...state, n: result.n, mode: result.mode ?? 0});
-    selected = null;
-    stop();
-    view = 'unified';
-    renderWorkspace();
-    return;
-  }
+  if (scalePane.click(b)) return;
   if (materialWorkspace.click(b)) return;
-  if (b.dataset.scaleAction) {
-    if (b.dataset.scaleAction === 'collect') materialWorkspace.addScale();
-    else
-      placeMaterial({
-        kind: 'scale',
-        coords: scale(state).notes.map(n => [Math.round((n.c - n.k * state.g) / state.p), n.k]),
-        label: `${state.n} notes · mode ${state.mode + 1}`
-      });
-    return;
-  }
   if (b.dataset.section) {
     switchSection(b.dataset.section);
     return;
   }
   if (presetWorkspace.click(b)) return;
-  if (b.dataset.hexOpen !== undefined) {
-    getLayoutStates();
-    layoutState.state.n = state.n;
-    layoutState.state.mode = state.mode;
-    hexWorkspace.clearHighlight();
-    view = 'hexboard';
-    renderWorkspace();
-    $('#workspace').scrollIntoView({behavior: 'smooth', block: 'start'});
-    return;
-  }
   if (b.dataset.matrixPage) {
     const [, axis, page] = b.dataset.matrixPage.split(',').map(Number);
     matrixPages[0][axis] = page;
@@ -1231,10 +1129,6 @@ document.addEventListener('click', e => {
       unifiedCenter = normalizeUnifiedCenter(b.dataset.unifiedCenter);
       selected = null;
       renderWorkspace();
-    } else if (b.dataset.scaleView) {
-      scaleView = normalizeScaleView(b.dataset.scaleView);
-      const details = $('.unified-scale .scale-details');
-      if (details) details.outerHTML = scaleDetails();
     } else if (b.dataset.label) {
       $('#labels').value = b.dataset.label;
       refreshMatrixLabels();
@@ -1244,42 +1138,6 @@ document.addEventListener('click', e => {
       else {
         focusSync.clearMatrixPicks();
         inspect(i, j);
-      }
-    } else if (b.dataset.target) {
-      const [, n, d] = b.dataset.target.split(',').map(Number),
-        m = mapRatio(n, d, state);
-      playPitches([0, m[0] * state.p + m[1] * state.g]);
-    } else if (b.dataset.note) {
-      const degree = Number(b.dataset.note);
-      playPitches([scale(state).notes[degree].c]);
-      /* A degree in the scale module also becomes the directory's bass note. */ if (
-        b.classList.contains('scale-degree')
-      ) {
-        harmonicWorkspace.setBass({scale: 'discover', degree});
-        for (const dot of document.querySelectorAll('.scale-degree')) {
-          const bass = Number(dot.dataset.note) === degree;
-          dot.classList.toggle('is-bass', bass);
-          dot.setAttribute('aria-pressed', String(bass));
-        }
-      }
-    } else if (b.dataset.action) {
-      const idx = 0,
-        s = state;
-      if (b.dataset.action === 'scale') playScale(idx);
-      if (b.dataset.action === 'export') {
-        if (scale(s).collision)
-          throw Error('Choose a scale without pitch collisions before exporting.');
-        download(
-          `${s.name.replace(/[^a-z0-9]/gi, '-')}-${s.n}.scl`,
-          `! Temperament Lab\n${stateName(s)}; ${s.tuning}; ${periodDescription(s)}; generator ${s.g} cents\n${s.n}\n!\n${[
-            ...scale(s)
-              .notes.slice(1)
-              .map(v => v.c),
-            s.p
-          ]
-            .map(v => v.toFixed(8))
-            .join('\n')}\n`
-        );
       }
     }
   } catch (err) {
@@ -1325,12 +1183,11 @@ $('#reset').onclick = () => {
   $('#limit').value = String(DEFAULT_ODD_LIMIT);
   $('#primeLimit').value = 'basis';
   $('#targetfilter').value = 'mapped';
-  scaleFilter = '2';
+  scalePane.restore(null);
   stop();
   view = 'unified';
   lastViews.discover = 'unified';
   unifiedCenter = 'diamond';
-  scaleView = 'line';
   lastViews.play = 'hexboard';
   lastViews.create = 'composition';
   layoutState = null;
@@ -1358,11 +1215,11 @@ $('#save').onclick = () =>
         commaSearch: commaWorkspace.serialize(),
         hexboard: hexWorkspace.serialize(),
         settings: {
-          scaleFilter,
+          scaleFilter: scalePane.settings().scaleFilter,
           diamondScope,
           view,
           unifiedCenter,
-          scaleView,
+          scaleView: scalePane.settings().scaleView,
           lastViews: {...lastViews},
           targetfilter: $('#targetfilter').value,
           showoutside: true,
@@ -1397,7 +1254,7 @@ $('#file').onchange = async e => {
     chordWorkspace.restore(workspaces.chords, validate);
     commaWorkspace.restore(workspaces.commaSearch);
     hexWorkspace.restore(workspaces.hexboard);
-    scaleFilter = session.scaleFilter;
+    scalePane.restore(session);
     diamondScope = session.diamondScope;
     state = session.state;
     $('#primeLimit').value = 'basis';
@@ -1415,7 +1272,6 @@ $('#file').onchange = async e => {
     lastViews.play = 'hexboard';
     lastViews.create = 'composition';
     unifiedCenter = session.unifiedCenter;
-    scaleView = session.scaleView;
     view = session.view;
     materialWorkspace.restore(session.material);
     coverageSignature = scaleDefaultKey(state, coverageSettings(state));

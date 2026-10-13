@@ -271,5 +271,49 @@ assert.deepEqual(
   [String(milestones.intervalMOS.n), '0'],
   'an interval-complete MOS opens in mode 1'
 );
+
+// The scale's own actions.
+const voices = () => page.audio.started.length,
+  session = async () => {
+    page.click('#save');
+    return JSON.parse(await page.downloaded(/session\.json$/));
+  };
+let before = voices();
+page.click('[data-action="scale"]');
+await page.settle();
+assert.ok(voices() > before, 'Play scale sounds');
+page.click('[data-action="export"]');
+const scl = (await page.downloaded(/\.scl$/)).split('\n');
+assert.deepEqual(scl.slice(0, 1), ['! Temperament Lab']);
+assert.equal(scl[2], '7', 'the Scala file lists seven pitches');
+assert.equal(scl.slice(4, 11).length, 7);
+assert.equal(scl[10], '1200.00000000', 'the last pitch is the period');
+before = voices();
+page.click('.scale-degree[data-note="2"]');
+await page.settle();
+assert.ok(voices() > before, 'a degree sounds');
+assert.ok(
+  $$('.scale-degree').every(
+    dot => dot.classList.contains('is-bass') === (dot.dataset.note === '2')
+  ),
+  'the pressed degree becomes the bass'
+);
+page.click('[data-scale-view="horogram"]');
+await page.settle();
+assert.equal($('.scale-details').dataset.scaleView, 'horogram');
+assert.equal((await session()).settings.scaleView, 'horogram', 'the scale view is saved');
+const collected = (await session()).material.length;
+page.click('[data-scale-action="collect"]');
+await page.settle();
+assert.equal((await session()).material.length, collected + 1, 'the scale joins the collection');
+const sizes = $('[data-field="n"]').options.length;
+page.change('[data-scale-filter]', 'all');
+await page.settle();
+assert.ok($('[data-field="n"]').options.length > sizes, 'All lists more scale sizes');
+assert.equal((await session()).settings.scaleFilter, 'all');
+page.click('[data-scale-action="place"]');
+await page.settle();
+assert.equal($('#play-view').hidden, false, 'Highlight on current layout opens Play');
+assert.ok($('#play-view .scale-highlight'), 'the scale is highlighted on the layout');
 assert.deepEqual(page.errors, []);
 await page.close();
