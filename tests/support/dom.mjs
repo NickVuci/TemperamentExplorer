@@ -254,6 +254,23 @@ export async function bootApp({html = indexHtml(), url = 'http://localhost/'} = 
     section(name) {
       return page.click(`#tab-${name}`);
     },
+    /** Opens a session file through the Load control, as if the user picked it. */
+    async openSession(data, input = '#file') {
+      const el = page.element(input),
+        file = new window.File(
+          [typeof data === 'string' ? data : JSON.stringify(data)],
+          'session.json',
+          {
+            type: 'application/json'
+          }
+        );
+      Object.defineProperty(el, 'files', {value: [file], configurable: true});
+      el.dispatchEvent(new window.Event('change', {bubbles: true}));
+      await page.until(() => el.value === '', {message: 'the file to be read'});
+      await page.settle();
+    },
+    /** The current toast message. */
+    toast: () => document.querySelector('#toast')?.textContent ?? '',
     /** The text of the most recent download whose file name matches. */
     async downloaded(pattern) {
       const file = downloads.findLast(item => pattern.test(item.name));

@@ -1,329 +1,117 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import vm from 'node:vm';
-import {targets} from '../src/core/engine.mjs';
-import {makeState, presets} from '../src/core/catalog.mjs';
-import {
-  parsePrimeFilterInput,
-  targetSet,
-  primeFilterForBasis,
-  validateJILimits
-} from '../src/core/ji-limit-engine.mjs';
-import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
-import {createHarmonicCatalogueWorkspace} from '../src/harmonic/harmonic-catalogue-ui.mjs';
-import {
-  renderUnified,
-  unifiedDirectory,
-  unifiedDetail,
-  unifiedCenterView
-} from '../src/ui/discover-unified.mjs';
+import {makeState} from '../src/core/catalog.mjs';
+import {bootApp, parseHtml} from './support/dom.mjs';
 
-// Model DOM ownership: replacing a workspace detaches every child, including
-// shared controls unless the application has parked them outside that workspace.
-class Element {
-  constructor(id = '', className = '') {
-    this.id = id;
-    this.className = className;
-    this.children = [];
-    this.parent = null;
-    this.value = '';
-    this.html = '';
-  }
-  appendChild(node) {
-    if (node.parent) node.parent.children.splice(node.parent.children.indexOf(node), 1);
-    node.parent = this;
-    this.children.push(node);
-    return node;
-  }
-  set innerHTML(html) {
-    this.html = html;
-    for (const child of this.children) child.parent = null;
-    this.children = [];
-    if (html.includes('class="harmony-heading"'))
-      this.appendChild(new Element('', 'harmony-heading'));
-    for (const pane of ['directory', 'detail'])
-      if (html.includes(`data-unified-pane="${pane}"`)) {
-        const node = new Element();
-        node.pane = pane;
-        this.appendChild(node);
-      }
-  }
-  get innerHTML() {
-    return this.html;
-  }
-  querySelector(selector) {
-    const pane = selector.match(/^\[data-unified-pane="(\w+)"\]$/)?.[1];
-    return (
-      this.descendants().find(node =>
-        pane
-          ? node.pane === pane
-          : selector.startsWith('#')
-            ? node.id === selector.slice(1)
-            : selector.startsWith('.') && node.className === selector.slice(1)
-      ) ?? null
-    );
-  }
-  descendants() {
-    return this.children.flatMap(child => [child, ...child.descendants()]);
-  }
+// The harmony directory is the only catalogue: the page has no classic-view toggle.
+const index = parseHtml();
+assert.equal(index.querySelector('#harmonic-version, .harmony-ab-selector'), null);
+assert.doesNotMatch(index.body.textContent, /Classic view/, 'the classic-view toggle is removed');
+
+const page = await bootApp(),
+  {$, $$, document} = page,
+  directory = () => $('[data-unified-pane="directory"]'),
+  complete = () => /\d+ chords · complete/.test(directory()?.textContent ?? ''),
+  chordCount = () => Number(directory().textContent.match(/(\d+) chords · complete/)[1]);
+
+// Redraws replace the workspace, so the shared JI controls must be parked and returned rather
+// than rebuilt: the same nodes stay connected through every redraw.
+const controls = $('#ji-controls'),
+  limit = $('#limit'),
+  primeLimit = $('#primeLimit');
+function controlsSurvive() {
+  assert.equal($('#ji-controls'), controls, 'shared controls stay connected');
+  assert.equal($('#limit'), limit, 'odd-limit control keeps its identity');
+  assert.equal($('#primeLimit'), primeLimit, 'prime-limit control keeps its identity');
+  assert.equal($$('#ji-controls').length, 1);
 }
-const root = new Element(),
-  add = (id, parent = root) => parent.appendChild(new Element(id));
-for (const id of [
-  'workspace',
-  'explore-scale-controls',
-  'material-host',
-  'inspector',
-  'ji-controls-parking',
-  'target-controls-parking',
-  'matrix-controls-parking',
-  'matrix-label-controls-parking'
-])
-  add(id);
-const controls = add('ji-controls'),
-  limit = add('limit', controls),
-  primeLimit = add('primeLimit', controls);
-add('tolerance', controls);
-limit.value = '15';
-primeLimit.value = 'basis';
-add('targetfilter', add('target-controls')).value = 'mapped';
-add('layout', add('matrix-controls')).value = 'distance';
-add('labels', add('matrix-label-controls')).value = 'ratios';
-const document = {
-  activeElement: null,
-  querySelector: selector => root.querySelector(selector),
-  querySelectorAll: () => []
-};
-const context = vm.createContext({
-  compositionWorkspace: {
-    pause() {},
-    stop() {},
-    refresh() {},
-    click: () => false,
-    change: () => false
-  },
-  document,
-  $: document.querySelector,
-  states: [makeState('meantone')],
-  view: 'unified',
-  unifiedCenter: 'diamond',
-  unifiedCenterView,
-  renderUnified,
-  unifiedDirectory,
-  unifiedDetail,
-  targetTable: () => '<div>Diamond</div>',
-  matrix: () => '',
-  diamondWorkspace: {mountOptions() {}},
-  fillDiamondDetails: () => {},
-  harmonicMode: 'b',
-  manualChordInspector: false,
-  renderingWorkspace: false,
-  selected: null,
-  manualTolerance: null,
-  liveChordContext: null,
-  parsePrimeFilterInput,
-  primeFilterForBasis,
-  targets,
-  validateJILimits,
-  automaticTolerance: () => 20,
-  syncUnifiedPanelHeights: () => {},
-  applyHarmonicFocus: () => {},
-  revealDirectoryRow: () => {},
-  syncAudioControls: () => {},
-  placeDiamondTolerance: () => {},
-  populateLimitOptions: () => {},
-  syncCoverageDefaults: () => {},
-  syncNavigation: () => {},
-  scaleControls: () => '',
-  sectionFor: v => (v === 'composition' ? 'create' : 'discover'),
-  scaleDetails: () => '<section>Scale view</section>',
-  materialWorkspace: {render: () => ''},
-  hexWorkspace: {prepareForTemperament: () => {}},
-  hexPlayer: null,
-  diamondPlayer: null,
-  placeMatrixControls: () => {},
-  placeTargetControls: () => {},
-  chordWorkspace: {render: () => '<section>Manual chord inspector</section>'}
-});
-const app = readFileSync(new URL('../src/app.mjs', import.meta.url), 'utf8');
-const html = readFileSync(new URL('../src/index.html', import.meta.url), 'utf8');
-assert.doesNotMatch(
-  html,
-  /harmonic-version|harmony-ab-selector|Classic view/,
-  'the classic-view toggle is removed'
+async function ready(message) {
+  await page.until(complete, {message});
+  controlsSurvive();
+  assert.ok(chordCount() > 0, `${message}: the directory lists chords`);
+}
+await ready('the first catalogue');
+
+// Each kind of mapping: 5-limit, higher limit, subgroups with gaps, divided octaves.
+for (const key of ['meantone', 'magic11', 'porkypine', 'rastmic', 'pajara7', 'ennealimmal']) {
+  page.chooseTemperament(key);
+  controlsSurvive();
+  await ready(`${key}: the catalogue refreshes`);
+  assert.equal(
+    $('[data-saved-preset="0"]').value,
+    `builtin:${key}`,
+    `${key} is the current temperament`
+  );
+}
+
+// Changing the shared limit launches a new catalogue for the new target set.
+page.chooseTemperament('meantone');
+await ready('meantone again');
+const at15 = chordCount();
+page.change(limit, 9);
+controlsSurvive();
+await ready('the 9-odd-limit catalogue');
+assert.ok(chordCount() < at15, 'a smaller limit lists fewer chords');
+
+// Native selects close after committing a choice: the redraw does not refocus the replacement.
+// Text fields keep focus and caret while the result list redraws.
+const scope = $('[data-harmony-field="scope"]');
+scope.focus();
+page.change(scope, 'discover');
+await page.settle();
+assert.notEqual(
+  document.activeElement?.dataset?.harmonyField,
+  'scope',
+  'Browse selection does not reopen its native picker during redraw'
 );
-assert.doesNotMatch(
-  app,
-  /harmonicMode|temperament-harmony-ab|setHarmonicMode/,
-  'the harmony directory is the only mode; neither sessions nor browser preferences can select another'
+page.change('[data-harmony-field="scope"]', 'temperament');
+await ready('the whole-temperament catalogue');
+const search = $('[data-harmony-field="search"]');
+search.focus();
+search.value = '4:5:6';
+search.setSelectionRange(3, 3);
+page.input(search);
+await page.settle();
+const typed = document.activeElement;
+assert.equal(typed?.dataset?.harmonyField, 'search', 'typing retains focus after the redraw');
+assert.equal(typed.value, '4:5:6');
+assert.deepEqual(
+  [typed.selectionStart, typed.selectionEnd],
+  [3, 3],
+  'the search caret is preserved'
 );
+page.input(typed, '');
+await ready('the full directory');
+
+// Leaving Discover while a catalogue is still loading keeps the controls available.
+page.change(limit, 15);
+page.section('play');
+await page.settle();
+controlsSurvive();
 assert.doesNotMatch(
-  readFileSync(new URL('../src/hexboard/hexboard-ui.mjs', import.meta.url), 'utf8'),
-  /chord-catalog-ui|getHarmonicMode|layout alternatives/,
+  $('#play-view').textContent,
+  /layout alternatives|Classic/,
   'Play has no classic catalogue or layout-alternatives search'
 );
-for (const name of [
-  'coverageSettings',
-  'settings',
-  'parkJIControls',
-  'placeJIControls',
-  'refreshHarmony',
-  'unifiedWorkspace',
-  'renderWorkspace'
-]) {
-  const source = app.split('\n').find(line => line.startsWith(`function ${name}(`));
-  assert.ok(source, name);
-  vm.runInContext(source, context);
-}
-let refreshes = 0;
-const ui = createHarmonicCatalogueWorkspace({
-  getState: () => context.states[0],
-  getSettings: state => context.settings(state),
-  refresh: () => {
-    refreshes++;
-    context.refreshHarmony();
-  }
+page.section('discover');
+await ready('the catalogue after returning to Discover');
+assert.equal(chordCount(), at15);
+
+// Old Discover view names (from sessions or handoffs) open the unified screen, and an old
+// harmony-mode preference has no effect.
+await page.openSession({
+  format: 'temperament-lab-v1',
+  workflowVersion: 7,
+  harmonicMode: 'a',
+  states: [makeState('meantone')],
+  settings: {view: 'scales', harmonicMode: 'a'}
 });
-context.harmonicWorkspace = ui;
-const host = document.querySelector('#workspace');
-function controlsSurvive() {
-  assert.equal(document.querySelector('#ji-controls'), controls, 'shared controls stay connected');
-  assert.equal(document.querySelector('#limit'), limit, 'odd-limit control keeps its identity');
-  assert.equal(
-    document.querySelector('#primeLimit'),
-    primeLimit,
-    'prime-limit control keeps its identity'
-  );
-  assert.equal(root.descendants().filter(node => node.id === 'ji-controls').length, 1);
-  assert.equal(context.renderingWorkspace, false, 'redraw ownership is released');
-}
-async function ready() {
-  const deadline = Date.now() + 10000;
-  while (ui.model().status === 'loading') {
-    assert.ok(Date.now() < deadline, 'discovery completes');
-    await new Promise(resolve => setTimeout(resolve, 5));
-  }
-  controlsSurvive();
-  assert.equal(ui.model().error, '');
-  assert.ok(ui.model().result?.complete);
-  assert.ok(ui.model().result.items.length);
-  // A catalogue refresh rewrites only the directory pane; a full redraw rewrites the workspace.
-  assert.match(
-    host.querySelector('[data-unified-pane="directory"]')?.innerHTML || host.innerHTML,
-    /\d+ chords · complete/
-  );
-}
-try {
-  // Use the real application redraw and real catalogue callbacks, rather than a
-  // no-op refresh callback, through each built-in temperament change.
-  for (const key of Object.keys(presets)) {
-    context.states[0] = makeState(key);
-    context.renderWorkspace();
-    controlsSurvive();
-    await ready();
-    assert.equal(
-      ui.model().result.mappingId,
-      mappingContext(context.states[0]).id,
-      `${key}: the refreshed catalogue uses the current mapping`
-    );
-    assert.equal(
-      controls.parent.id,
-      'ji-controls-parking',
-      'Diamond-specific advanced controls remain parked while shared limit inputs retain their identities.'
-    );
-  }
-  assert.ok(
-    refreshes > Object.keys(presets).length,
-    'loading, progress and terminal redraws were exercised'
-  );
-  // A limit change can also launch a new job during the isolated harmony redraw.
-  limit.value = '9';
-  context.refreshHarmony();
-  controlsSurvive();
-  await ready();
-  assert.equal(
-    ui.model().result.targetSetId,
-    targetSet({
-      oddLimit: 9,
-      primeFilter: context.settings(context.states[0]).primeLimit,
-      mappingSubgroup: context.states[0].basis,
-      representationPolicy: 'octave'
-    }).id,
-    'Changing the shared limit replaces the catalogue target context.'
-  );
-  // Leaving discovery during a pending job must keep the controls available to A.
-  // Old Discover view names (from sessions or handoffs) all open the unified screen.
-  context.states[0] = makeState('meantone');
-  context.renderWorkspace();
-  context.view = 'scales';
-  context.renderWorkspace();
-  controlsSurvive();
-  assert.equal(context.view, 'unified');
-  await new Promise(resolve => setTimeout(resolve, 5));
-  assert.match(host.innerHTML, /Scale view/);
-  assert.equal(controls.parent.id, 'ji-controls-parking');
-  context.view = 'chords';
-  context.renderWorkspace();
-  await ready();
-  // Native selects must close after committing a choice. Refocusing their
-  // replacement can reopen the picker; only text editors need caret restoration.
-  const querySelector = host.querySelector.bind(host);
-  let focusCount = 0,
-    caret = null;
-  const replacement = {
-    value: '',
-    type: 'search',
-    focus: () => {
-      focusCount++;
-    },
-    setSelectionRange: (start, end) => {
-      caret = [start, end];
-    }
-  };
-  host.querySelector = selector =>
-    selector.startsWith('[data-harmony-field=') ? replacement : querySelector(selector);
-  document.activeElement = {tagName: 'SELECT', dataset: {harmonyField: 'scope'}, value: 'discover'};
-  assert.equal(ui.change(document.activeElement), true);
-  assert.equal(ui.model().scope, 'discover');
-  assert.equal(focusCount, 0, 'Browse selection does not reopen its native picker during redraw');
-  document.activeElement = {
-    tagName: 'SELECT',
-    dataset: {harmonyField: 'scope'},
-    value: 'temperament'
-  };
-  ui.change(document.activeElement);
-  await ready();
-  assert.equal(
-    focusCount,
-    0,
-    'catalogue loading and completion do not refocus the selected dropdown'
-  );
-  document.activeElement = {
-    tagName: 'INPUT',
-    dataset: {harmonyField: 'search'},
-    value: '4:5:6',
-    selectionStart: 3,
-    selectionEnd: 3
-  };
-  ui.input(document.activeElement);
-  assert.equal(focusCount, 1, 'typing retains focus after the result list redraw');
-  assert.equal(replacement.value, '4:5:6');
-  assert.deepEqual(caret, [3, 3], 'the search caret is preserved');
-  document.activeElement = null;
-  host.querySelector = querySelector;
-  // A thrown renderer must release ownership so the next redraw can recover.
-  const renderParts = ui.renderParts;
-  ui.renderParts = () => {
-    throw Error('Renderer failed');
-  };
-  assert.throws(() => context.refreshHarmony(), /Renderer failed/);
-  controlsSurvive();
-  ui.renderParts = renderParts;
-  context.refreshHarmony();
-  await ready();
-} finally {
-  ui.destroy();
-}
+assert.equal(page.toast(), 'Session opened');
+assert.equal($('#discover-view').hidden, false);
+assert.ok($('.unified-main'), 'the unified screen is shown');
+controlsSurvive();
+await ready('the restored catalogue');
+assert.deepEqual(page.errors, []);
 console.log(
-  'Application discovery redraws preserve shared JI controls through all built-in temperaments, limit changes, pending navigation and renderer recovery.'
+  'Application discovery redraws preserve shared JI controls through temperament and limit changes, pending navigation, focus handling and old session views.'
 );
+await page.close();
