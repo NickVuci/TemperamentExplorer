@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
 import {diamondLayout} from '../src/diamond/diamond-layout.mjs';
 import {
   diamondRatios,
@@ -14,6 +13,7 @@ import {primeFilterForBasis} from '../src/core/ji-limit-engine.mjs';
 import {makeState} from '../src/core/catalog.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
 import {bestApproximations, bestModeApproximations} from '../src/core/approximation-compat.mjs';
+import {cssRules} from './support/dom.mjs';
 const ratios = diamondRatios(5);
 assert.equal(ratios.length, 9);
 const primeLimited = diamondRatios(5, 3);
@@ -316,32 +316,34 @@ assert.equal(wholeOctaveMode.mapped, true);
 assert.ok(wholeOctaveAvailable.c > divided.p);
 assert.ok(Math.abs(wholeOctaveAvailable.error) < Math.abs(onePeriodAvailable.error));
 assert.equal(wholeOctaveAvailable.mapped, true);
-const style = readFileSync(new URL('../src/style.css', import.meta.url), 'utf8');
+const css = cssRules(),
+  selectors = css.rules.map(rule => rule.selector).join('\n');
 assert.doesNotMatch(
-  style,
+  selectors,
   /diamond-cell\s*>\s*path:first-of-type|diamond-divider/,
   'legacy competing cell-border rules are removed'
 );
-assert.match(
-  style,
-  /\.diamond-cell > \.diamond-cell-fill\s*\{[^}]*stroke:\s*none;[^}]*shape-rendering:\s*crispEdges;/,
+assert.deepEqual(
+  ['stroke', 'shape-rendering'].map(name => css.value('.diamond-cell > .diamond-cell-fill', name)),
+  ['none', 'crispedges'],
   'fills avoid per-cell outlines and order-dependent edge blending'
 );
-assert.match(
-  style,
-  /\.diamond-grid\s*\{[^}]*stroke-width:\s*1;[^}]*vector-effect:\s*non-scaling-stroke;[^}]*pointer-events:\s*none;/,
+assert.deepEqual(
+  ['stroke-width', 'vector-effect', 'pointer-events'].map(name => css.value('.diamond-grid', name)),
+  ['1', 'non-scaling-stroke', 'none'],
   'one consistent screen-width grid preserves pointer interaction'
 );
 assert.doesNotMatch(
-  style,
+  selectors,
   /\.diamond-cell\.(?:selected|is-playing|focus-highlight)\s*>\s*\.diamond-cell-fill/,
   'active states preserve the interval colour'
 );
-assert.match(
-  style,
-  /\.diamond-cell.selected text,\s*\.diamond-cell.is-playing text,\s*\.diamond-cell.focus-highlight text\s*\{\s*font-weight: 800;/,
-  'all active states bold the numbers without recolouring them'
-);
+for (const state of ['selected', 'is-playing', 'focus-highlight'])
+  assert.equal(
+    css.value(`.diamond-cell.${state} text`, 'font-weight'),
+    '800',
+    'all active states bold the numbers without recolouring them'
+  );
 assert.match(
   html,
   /class="diamond-cell-active-divider"/,

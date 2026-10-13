@@ -343,7 +343,8 @@ export function cssRules(css = styleCss()) {
      * inside a matching media query, or with null to rules outside any media query.
      */
     find(selector, {media} = {}) {
-      const want = normalize(selector);
+      const want = normalize(selector),
+        compact = text => text.replace(/\s+/g, '');
       return rules.filter(
         rule =>
           normalize(rule.selector)
@@ -352,7 +353,7 @@ export function cssRules(css = styleCss()) {
           (media === undefined ||
             (media === null
               ? rule.media === null
-              : (rule.media ?? '').replace(/\s+/g, ' ').includes(media)))
+              : compact(rule.media ?? '').includes(compact(media))))
       );
     },
     /** The last value the cascade gives a property for this selector, by source order. */

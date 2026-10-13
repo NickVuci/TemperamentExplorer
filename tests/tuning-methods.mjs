@@ -14,6 +14,7 @@ import {presetSnapshot} from '../src/presets/preset-data.mjs';
 import {canonicalHarmonicJSON} from '../src/harmonic/harmonic-types.mjs';
 import {validateState} from '../src/core/state.mjs';
 import {mappingContext} from '../src/harmonic/harmonic-context.mjs';
+import {bootApp} from './support/dom.mjs';
 const close = (a, b, t = 1e-6) => assert.ok(Math.abs(a - b) < t, `${a} != ${b}`),
   s = makeState('meantone');
 assert.equal(tuningMethods.length, 5);
@@ -79,53 +80,6 @@ assert.equal(tuningConfig({...s, tuning: 'Published WE'}).fixed, true);
 console.log(
   'All five tuning methods apply, fixed/free periods, WE/CWE equivalence, single and multiple JI constraints, outside mappings, non-octave periods and preset round trips passed.'
 );
-const {readFileSync} = await import('node:fs'),
-  {default: vm} = await import('node:vm');
-const source = readFileSync(new URL('../src/app.mjs', import.meta.url), 'utf8');
-let onChange,
-  live = [makeState('meantone'), makeState('dreamtone')];
-const inert = {change: () => false};
-const context = vm.createContext({
-  compositionWorkspace: inert,
-  harmonicMode: 'a',
-  harmonicWorkspace: inert,
-  structuredClone,
-  states: live,
-  tuningConfig,
-  jiChordWorkspace: inert,
-  materialWorkspace: inert,
-  presetWorkspace: inert,
-  hexWorkspace: inert,
-  commaWorkspace: inert,
-  chordWorkspace: inert,
-  document: {
-    addEventListener: (_, fn) =>
-      (onChange = e => {
-        e.target.hasAttribute ??= () => false;
-        fn(e);
-      })
-  },
-  applyPanelTuning: (idx, cfg) => (live[idx] = applyTuningMethod(live[idx], cfg)),
-  readTuning: () => ({method: 'Weil–Euclidean', fixed: false}),
-  toast: e => {
-    throw Error(e);
-  },
-  render: () => {}
-});
-vm.runInContext(
-  source.split('\n').find(line => line.startsWith("document.addEventListener('change',")),
-  context
-);
-for (const method of tuningMethods) {
-  live[0] = {...s, g: 690};
-  onChange({target: {dataset: {field: 'tuning', s: '0'}, value: method, closest: () => null}});
-  assert.equal(live[0].tuning, method);
-  assert.notEqual(live[0].g, 690);
-}
-onChange({target: {dataset: {tune: 'optimizePeriod'}, closest: () => ({dataset: {s: '0'}})}});
-assert.notEqual(live[0].p, 1200);
-console.log('Actual dropdown and tuning-option change handlers apply immediately.');
-
 for (const comma of ['81/80', '128/125', '245/243']) {
   const temp = fromCommas(comma, comma === '245/243' ? '3.5.7' : '2.3.5');
   assert.equal(tuningConfig(temp).fixed, true);
@@ -136,18 +90,6 @@ for (const comma of ['81/80', '128/125', '245/243']) {
 }
 assert.equal(tuningConfig(makeState('porcupine11')).fixed, true);
 close(makeState('porcupine11').p, 1200);
-vm.runInContext(
-  source.split('\n').find(line => line.startsWith('function readTuning(')),
-  context
-);
-const panel = checked => ({
-  dataset: {s: '0'},
-  querySelectorAll: () => [{dataset: {tune: 'optimizePeriod'}, type: 'checkbox', checked}]
-});
-assert.equal(context.readTuning(panel(true)).fixed, false);
-assert.equal(context.readTuning(panel(false)).fixed, true);
-assert.ok(!source.includes('data-tune="period"'));
-assert.ok(source.includes('>Optimize period</label>'));
 console.log('Optimize-period defaults, inverse checkbox, and reference-period restoration passed.');
 
 assert.equal(tuningConfig(s).targets, 'primes');
@@ -156,52 +98,6 @@ for (const tuning of ['Prime Least Squares', 'Prime least squares']) {
   assert.equal(tuningMethod(legacy), 'Least Squares');
   assert.equal(tuningConfig(legacy).targets, 'primes');
 }
-assert.ok(
-  !source
-    .slice(source.indexOf('function tuningControls('), source.indexOf('function applyPanelTuning('))
-    .includes('class="tuning-report"')
-);
-assert.doesNotMatch(
-  source,
-  /class="tuning-controls"|<summary>Tuning options<\/summary>/,
-  'the separate Tuning options menu is removed'
-);
-
-live[0] = makeState('meantone');
-onChange({target: {dataset: {optimizePeriod: '0'}, checked: true, closest: () => null}});
-assert.equal(tuningConfig(live[0]).fixed, false);
-assert.notEqual(live[0].p, 1200);
-onChange({target: {dataset: {optimizePeriod: '0'}, checked: false, closest: () => null}});
-assert.equal(tuningConfig(live[0]).fixed, true);
-close(live[0].p, 1200);
-assert.ok(
-  !source
-    .slice(source.indexOf('function tuningControls('), source.indexOf('function applyPanelTuning('))
-    .includes('data-optimize-period')
-);
-assert.ok(source.includes('class="period-summary"'));
-const panelMarkup = source.slice(
-    source.indexOf('function renderPanel('),
-    source.indexOf('function scaleControls(')
-  ),
-  advancedTuning = panelMarkup.indexOf('class="advanced-tuning-options"');
-assert.match(
-  panelMarkup,
-  /<div class="tuning-choice"><label>Tuning<select[\s\S]*?<\/label><div class="tuning-summary"/,
-  'the tuning menu and vertically stacked tuning values share the two-column primary row'
-);
-assert.ok(advancedTuning > panelMarkup.indexOf('class="tuning-summary"'));
-assert.doesNotMatch(panelMarkup.slice(0, advancedTuning), />Optimize period</);
-assert.match(
-  panelMarkup.slice(advancedTuning),
-  /<summary>Advanced tuning options<\/summary>[\s\S]*>Optimize period<\/label>/,
-  'period optimization is inside its collapsed advanced section at the module bottom'
-);
-assert.match(
-  panelMarkup,
-  /<summary>Advanced tuning options<\/summary><div class="header-popover-panel">\$\{tuningOptions\}/,
-  'method-specific controls render inside the Advanced tuning options panel'
-);
 // Harmonic jobs serialize the whole temperament state and reject undefined values, so every tuning
 // method must leave a state that has never explored a target without an `explore` key at all.
 for (const start of [
@@ -244,3 +140,66 @@ for (const start of [
   assert.doesNotThrow(() => canonicalHarmonicJSON({state: retuned}));
 }
 console.log('Visible period checkbox retunes immediately and restores the pure period.');
+
+// In the app, the tuning menu and its options apply immediately.
+const page = await bootApp(),
+  {$, $$} = page;
+await page.until(
+  () => /chords · complete/.test($('[data-unified-pane="directory"]')?.textContent ?? ''),
+  {message: 'the first catalogue'}
+);
+async function current() {
+  page.click('#save');
+  return JSON.parse(await page.downloaded(/session\.json$/)).states[0];
+}
+async function choose(selector, value) {
+  page.change(selector, value);
+  await page.settle();
+  return current();
+}
+for (const method of tuningMethods) {
+  const before = await current(),
+    after = await choose('[data-field="tuning"]', method);
+  assert.equal(tuningMethod(after), method, `${method} is applied from the menu`);
+  assert.notEqual(after.g, before.g, `${method} retunes the generator`);
+  assert.equal($('[data-field="tuning"]').value, method);
+}
+// Optimize period is a visible checkbox: checked frees the period, unchecked restores the pure one.
+await choose('[data-field="tuning"]', 'Weil–Euclidean');
+let tuned = await choose('[data-optimize-period="0"]', true);
+assert.equal(tuningConfig(tuned).fixed, false);
+assert.notEqual(tuned.p, 1200);
+tuned = await choose('[data-optimize-period="0"]', false);
+assert.equal(tuningConfig(tuned).fixed, true);
+close(tuned.p, 1200);
+
+await choose('[data-field="tuning"]', 'Minimax');
+const targets = await choose('.advanced-tuning-options [data-tune="targets"]', '7');
+assert.equal(tuningConfig(targets).targets, '7', 'method options apply immediately');
+
+// The tuning menu and the stacked tuning values share the primary row; period optimization and
+// method-specific controls sit in the collapsed Advanced tuning options below them.
+const choice = $('.tuning-choice'),
+  advanced = $('.advanced-tuning-options'),
+  follows = (a, b) =>
+    Boolean(a.compareDocumentPosition(b) & page.window.Node.DOCUMENT_POSITION_FOLLOWING);
+assert.equal(choice.firstElementChild.tagName, 'LABEL');
+assert.ok(choice.firstElementChild.querySelector('select[data-field="tuning"]'));
+assert.ok(choice.firstElementChild.nextElementSibling.matches('.tuning-summary'));
+assert.ok($('.tuning-summary .period-summary'));
+assert.ok(follows($('.tuning-summary'), advanced));
+assert.equal(advanced.querySelector('summary').textContent, 'Advanced tuning options');
+const optimize = $('[data-optimize-period="0"]').closest('label');
+assert.equal(optimize.textContent, 'Optimize period');
+assert.ok(advanced.contains(optimize), 'period optimization is inside the advanced section');
+assert.ok(advanced.querySelector('.header-popover-panel [data-tune="targets"]'));
+assert.equal($('#tuning-panel .tuning-report'), null);
+assert.equal($('[data-tune="period"]'), null);
+assert.equal($('.tuning-controls'), null, 'the separate Tuning options menu is removed');
+assert.ok(
+  $$('summary').every(summary => summary.textContent !== 'Tuning options'),
+  'the separate Tuning options menu is removed'
+);
+assert.deepEqual(page.errors, []);
+console.log('Actual dropdown, tuning-option and Optimize period controls apply immediately.');
+await page.close();

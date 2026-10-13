@@ -1,6 +1,6 @@
 import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
+import {bootApp} from './support/dom.mjs';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
 import {
   diamondLayout,
   parseDiamondHarmonics,
@@ -304,30 +304,6 @@ const workspace = createDiamondWorkspace({
   onTuningChange: centsFor => (retuned = centsFor),
   onChordChange: info => (chordReadout = info)
 });
-const workspaceSource = readFileSync(
-  new URL('../src/diamond/diamond-workspace.mjs', import.meta.url),
-  'utf8'
-);
-const optionsMarkup = workspaceSource.slice(
-  workspaceSource.indexOf('function optionsMarkup(){'),
-  workspaceSource.indexOf('function mountOptions()')
-);
-assert.doesNotMatch(
-  optionsMarkup,
-  /Pointer action/,
-  'pointer action belongs on the canvas, not in advanced options'
-);
-assert.match(
-  workspaceSource,
-  /interaction==='select'\?/,
-  'selection actions render only in cell-selection mode'
-);
-const appSource = readFileSync(new URL('../src/app.mjs', import.meta.url), 'utf8');
-assert.match(
-  appSource,
-  /onActiveNotesChange:notes=>diamondWorkspace\.updatePlaying\(notes\)/,
-  'diamond playback forwards its held notes to chord display'
-);
 workspace.restore({harmonics: '4:5:6', fold: false, interaction: 'select', selected: []});
 const diamondMarkup = workspace.render(cfg, '');
 assert.match(diamondMarkup, /data-diamond-chord/, 'the diamond has a live JI chord readout');
@@ -519,3 +495,29 @@ assert.ok(
   board.showChord(coords, 'Diamond 4:5:6', {exact: true, periodCopies: true}) > 0,
   'diamond coordinates produce real voiced HexBoard placements'
 );
+
+// In the app, the pointer action sits on the canvas rather than in the advanced diamond options, and
+// notes held on the diamond reach its interval readout.
+const page = await bootApp(),
+  {$} = page;
+await page.until(
+  () => /chords · complete/.test($('[data-unified-pane="directory"]')?.textContent ?? ''),
+  {message: 'the first catalogue'}
+);
+assert.ok($('.diamond-pointer-controls [data-diamond-setting="interaction"]'));
+assert.doesNotMatch(
+  $('[data-diamond-settings]').textContent,
+  /Pointer action/,
+  'pointer action belongs on the canvas, not in advanced options'
+);
+const key = $('.tonality-diamond [data-diamond-key]'),
+  detail = () => $('#diamond-detail-0');
+assert.equal(detail().hidden, true);
+page.pointer(key, 'pointerdown');
+await page.settle();
+assert.equal(detail().hidden, false, 'diamond playback forwards its held notes to the readout');
+page.pointer(key, 'pointerup');
+await page.settle();
+assert.equal(detail().hidden, true, 'releasing the note clears the readout');
+assert.deepEqual(page.errors, []);
+await page.close();
