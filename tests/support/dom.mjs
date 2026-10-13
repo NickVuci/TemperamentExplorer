@@ -331,10 +331,12 @@ export function cssRules(css = styleCss()) {
     }
   };
   visit(style.sheet.cssRules, null);
+  // Selectors compare without regard to spacing or attribute-value quote style.
   const normalize = selector =>
     selector
       .replace(/\s+/g, ' ')
       .replace(/\s*([>,+~])\s*/g, '$1')
+      .replace(/'/g, '"')
       .trim();
   return {
     rules,
@@ -356,10 +358,14 @@ export function cssRules(css = styleCss()) {
               : compact(rule.media ?? '').includes(compact(media))))
       );
     },
-    /** The last value the cascade gives a property for this selector, by source order. */
+    /**
+     * The last value the cascade gives a property for this selector, by source order. Commas are
+     * spaced the way the parser spaces them elsewhere, since custom-property values keep the
+     * stylesheet's own spacing.
+     */
     value(selector, property, options) {
       const found = this.find(selector, options)
-        .map(rule => rule.style.getPropertyValue(property))
+        .map(rule => rule.style.getPropertyValue(property).replace(/\s*,\s*/g, ', '))
         .filter(Boolean);
       return found.at(-1) ?? '';
     }

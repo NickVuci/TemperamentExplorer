@@ -191,7 +191,7 @@ assert.equal(
 for (const pane of ['.unified-directory', '.unified-analysis'])
   for (const [property, value] of Object.entries({
     position: 'static',
-    height: 'var(--unified-center-height,auto)',
+    height: 'var(--unified-center-height, auto)',
     'min-height': '0px',
     'overflow-y': 'auto'
   }))
