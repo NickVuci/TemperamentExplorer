@@ -93,6 +93,59 @@ page.change(span, 'octave');
 await page.settle();
 assert.equal(page.$('#diamond-span-controls [data-matrix-span="0"]').value, 'octave');
 assert.match(page.$('#diamond-span-controls').textContent, /repeated periods/);
+
+// The matrix in the centre: inspecting a cell, cell labels, paging and building a chord.
+page.chooseTemperament('meantone');
+await page.settle();
+page.click('[data-unified-center="matrix"]');
+await page.settle();
+const voices = page.audio.started.length;
+page.click('.matrix [data-cell="0,2"]');
+await page.settle();
+const inspector = page.$('#inspector');
+assert.equal(inspector.hidden, false, 'a clicked cell is inspected');
+assert.match(inspector.textContent, /^0 → 2/);
+assert.equal(page.audio.started.length - voices, 2, 'both notes of the interval sound');
+page.click('#tab-play');
+await page.settle();
+page.click('#tab-discover');
+await page.settle();
+assert.match(
+  page.$('#inspector').textContent,
+  /^0 → 2/,
+  'the inspected interval survives a redraw'
+);
+page.click('[data-label="cents"]');
+await page.settle();
+assert.equal(page.$('#labels').value, 'cents');
+assert.match(page.$('.matrix [data-cell="0,2"]').textContent, /^\d+\.\d$/, 'cells show cents');
+// Matrices over 96 notes are paged.
+page.change('[data-scale-filter]', 'all');
+await page.settle();
+const large = [...page.$('[data-field="n"]').options].find(option => Number(option.value) > 96);
+assert.ok(large, 'meantone offers a scale over 96 notes');
+page.change('[data-field="n"]', large.value);
+await page.settle();
+const rows = () =>
+  page
+    .$('.matrix-pages')
+    .textContent.match(/Rows (\d+)–(\d+)/)
+    .slice(1)
+    .map(Number);
+assert.deepEqual(rows()[0], 0, 'a large matrix opens on its first page');
+page.click('[data-matrix-page="0,0,1"]');
+await page.settle();
+assert.ok(rows()[0] > 0, 'the next page of rows');
+page.change('[data-field="n"]', '7');
+await page.settle();
+page.click('.matrix [data-cell="0,2"]');
+await page.settle();
+page.click('#inspector [data-buildchord]');
+await page.settle();
+assert.ok(
+  page.$('[data-unified-pane="detail"]').querySelector('[data-chord-field], [data-chord-action]'),
+  'Build a chord opens the chord inspector'
+);
 assert.deepEqual(page.errors, []);
 console.log(
   'Octave matrix repetition, mapping, stretched endpoints, modes, session, and paging checks passed.'

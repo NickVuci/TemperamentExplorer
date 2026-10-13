@@ -18,8 +18,7 @@ import {
 } from './ui/discover-unified.mjs';
 import {withDefaultScale} from './core/default-scale.mjs';
 import {linkScaleDegree} from './ui/scale-view.mjs';
-import {fixed as fmt, signedFixed as sign} from './ui/ui.mjs';
-import {allTargets, spanControl, renderMatrix} from './app/matrix-view.mjs';
+import {createMatrixPane, spanControl} from './app/matrix-view.mjs';
 import {fillDiamondDetails as showDiamondDetails} from './app/diamond-details.mjs';
 import {createJISettings, clampTolerance} from './app/ji-settings.mjs';
 import {sessionFile, readSession, MAX_SESSION_BYTES} from './app/session.mjs';
@@ -39,10 +38,9 @@ import {createPresetWorkspace} from './presets/preset-ui.mjs';
 import {browserPresetStore} from './presets/preset-store.mjs';
 import {validateState as validate} from './core/state.mjs';
 import {createHexboardWorkspace} from './hexboard/hexboard-ui.mjs';
-import {matrixScale, matrixInterval} from './core/matrix.mjs';
 import {createCommaWorkspace} from './ui/comma-ui.mjs';
 import {createChordWorkspace} from './ui/chord-ui.mjs';
-import {classifyTargets, fitGeneratedScale} from './core/engine.mjs';
+import {fitGeneratedScale} from './core/engine.mjs';
 import {makeState} from './core/catalog.mjs';
 import {scaleDefaultKey} from './core/scale-milestones.mjs';
 const $ = q => document.querySelector(q);
@@ -67,7 +65,6 @@ function populateLimitOptions(basisLimit, primeBasisFilter) {
 }
 let state = withDefaultScale(makeState('meantone')),
   view = 'matrices',
-  selected = null,
   toastTimer;
 let manualChordInspector = false;
 // Catalogue rendering can synchronously request a loading/progress refresh.
@@ -168,8 +165,8 @@ function syncCoverageDefaults() {
   if (key !== coverageSignature) {
     state = withDefaultScale(s, toast, cfg);
     coverageSignature = key;
-    selected = null;
-    matrixPages[0] = [0, 0];
+    matrixPane.deselect();
+    matrixPane.firstPage();
   }
 }
 let audioSettings = {tonic: 220, wave: 'triangle'};
@@ -184,8 +181,8 @@ const presetWorkspace = createPresetWorkspace({
   getStates: () => [state],
   apply: (idx, s) => {
     state = validate(s);
-    selected = null;
-    matrixPages[0] = [0, 0];
+    matrixPane.deselect();
+    matrixPane.firstPage();
     stop();
     render();
   },
@@ -234,7 +231,7 @@ function placeMaterial(item) {
         : 'No complete placement on this layout. Try a larger target scale or another layout.'
     );
   view = 'hexboard';
-  selected = null;
+  matrixPane.deselect();
   renderWorkspace();
 }
 const materialWorkspace = createMaterialWorkspace({
@@ -247,7 +244,7 @@ const materialWorkspace = createMaterialWorkspace({
   load: s => {
     state = validate(s);
     coverageSignature = scaleDefaultKey(state, coverageSettings(state));
-    selected = null;
+    matrixPane.deselect();
     stop();
     view = 'scales';
     render();
@@ -281,7 +278,7 @@ const harmonicWorkspace = createHarmonicCatalogueWorkspace({
     materialWorkspace.add('chord', s, coords, label, options),
   onSendToHexBoard: value => {
     view = 'hexboard';
-    selected = null;
+    matrixPane.deselect();
     focusSync.rememberPlayFocus(value);
     hexWorkspace.acceptHarmonicSelection(value);
     renderWorkspace();
@@ -381,7 +378,7 @@ const diamondWorkspace = createDiamondWorkspace({
       throw error;
     }
     view = 'chords';
-    selected = null;
+    matrixPane.deselect();
     stop();
     render();
   }
@@ -424,11 +421,27 @@ const hexWorkspace = createHexboardWorkspace({
     coverageSignature = scaleDefaultKey(state, coverageSettings(state));
     chordWorkspace.fromCoordinates(coords, label);
     view = 'unified';
-    selected = null;
+    matrixPane.deselect();
     render();
   }
 });
-const matrixPages = [[0, 0]];
+const matrixPane = createMatrixPane({
+  getState: () => state,
+  settings: s => settings(s),
+  isShown: () => view === 'matrices' || (view === 'unified' && unifiedCenter === 'matrix'),
+  play: pitches => playPitches(pitches),
+  get focus() {
+    return focusSync;
+  },
+  buildChord: (i, j) => {
+    chordWorkspace.fromInterval(i, j);
+    manualChordInspector = true;
+    view = 'unified';
+    renderWorkspace();
+  },
+  render: () => renderWorkspace(),
+  notify: message => toast(message)
+});
 const tuningPanel = createTuningPanel({
   getState: () => state,
   setState: s => (state = s),
@@ -469,7 +482,7 @@ const scalePane = createScalePane({
     $('#workspace').scrollIntoView({behavior: 'smooth', block: 'start'});
   },
   showScale: () => {
-    selected = null;
+    matrixPane.deselect();
     stop();
     view = 'unified';
     renderWorkspace();
@@ -490,18 +503,13 @@ function coverageSettings(s) {
 function settings(s) {
   return jiSettings.current(s);
 }
-function matrix() {
-  const {html, page} = renderMatrix(state, settings(state), matrixPages[0]);
-  matrixPages[0] = page;
-  return html;
-}
 function unifiedWorkspace() {
   const parts = harmonicWorkspace.renderParts({directory: true});
   return renderUnified({
     center: unifiedCenter,
     centerMarkup:
       unifiedCenter === 'matrix'
-        ? `<div class="matrixpair single">${matrix(0)}</div>`
+        ? `<div class="matrixpair single">${matrixPane.html()}</div>`
         : targetTable(),
     directory: unifiedDirectory(parts),
     detail: manualChordInspector ? chordWorkspace.render() : unifiedDetail(parts),
@@ -553,28 +561,9 @@ function syncNavigation() {
 function switchSection(section) {
   if (!Object.hasOwn(lastViews, section)) return;
   view = lastViews[section];
-  selected = null;
+  matrixPane.deselect();
   stop();
   renderWorkspace();
-}
-// Label changes update existing cells so scrolling, focus and matrix placement stay intact.
-function refreshMatrixLabels() {
-  if (view !== 'matrices' && !(view === 'unified' && unifiedCenter === 'matrix')) return;
-  const template = document.createElement('template');
-  template.innerHTML = matrix();
-  const cells = document.querySelectorAll('.matrix [data-cell]'),
-    next = template.content.querySelectorAll('.matrix [data-cell]');
-  cells.forEach((cell, i) => {
-    if (!next[i]) return;
-    cell.innerHTML = next[i].innerHTML;
-    cell.classList.toggle('ratio-cell', $('#labels').value === 'ratios');
-  });
-  document.querySelectorAll('[data-label]').forEach(b => {
-    const active = b.dataset.label === $('#labels').value;
-    b.classList.toggle('active', active);
-    b.setAttribute('aria-pressed', String(active));
-  });
-  focusSync.applyFocus();
 }
 function parkJIControls() {
   const controls = $('#ji-controls'),
@@ -696,7 +685,6 @@ function renderWorkspace({keepNotes = false} = {}) {
     if (liveChordContext)
       liveChordRecognizer.prepare(liveChordContext.state, liveChordContext.settings);
     tuningPanel.refreshExplorer();
-    $('#inspector').hidden = ['scales', 'chords', 'hexboard', 'targets'].includes(c) || !selected;
     $('#layout').disabled = c === 'targets';
     $('#labels').disabled = c !== 'matrices';
     document.querySelectorAll('[data-label]').forEach(b => {
@@ -718,8 +706,7 @@ function renderWorkspace({keepNotes = false} = {}) {
     placeTargetControls(c);
     placeJIControls(c);
     if (c === 'targets') fillDiamondDetails();
-    if (selected && !['scales', 'chords', 'hexboard', 'targets'].includes(c))
-      inspect(...selected, false);
+    matrixPane.restoreInspector(!['scales', 'chords', 'hexboard', 'targets'].includes(c));
   } finally {
     renderingWorkspace = false;
     syncUnifiedPanelHeights();
@@ -746,25 +733,6 @@ function render() {
   tuningPanel.render();
   renderCommaSearch();
   renderWorkspace();
-}
-function inspect(i, j, play = true) {
-  const s = state,
-    cfg = settings(s),
-    m = matrixScale(s);
-  if (i >= m.n || j > m.n || (j === m.n && cfg.layout !== 'distance')) {
-    selected = null;
-    $('#inspector').replaceChildren();
-    $('#inspector').hidden = true;
-    return;
-  }
-  const v = matrixInterval(m, i, j, cfg.layout),
-    match = classifyTargets(s, v, allTargets(cfg.ts, s, cfg), cfg.tol);
-  selected = [i, j];
-  const describe = t => `${t.label} (${sign(t.error)} ¢${t.within ? '' : ', outside tolerance'})`;
-  const text = `<b>${i} → ${v.end}${v.period ? (m.periods > 1 ? ' + octave' : ' + period') : ''}</b> &nbsp; ${fmt(v.c, 4)} ¢ · ${v.k} generators.<br><span class="target-mapped">Mapped:</span> ${match.mapped.length ? match.mapped.map(describe).join('; ') : 'none in this target set'}.<br><span class="target-hit">Other approximations:</span> ${match.hits.length ? match.hits.map(t => describe(t) + ' · ' + t.reason.toLowerCase()).join('; ') : 'none within tolerance'}.<br><button data-explore="cell" data-s="0" data-m="${Math.round((v.c - v.k * s.g) / s.p)},${v.k}">Explore a target for this interval</button>${m.periods === 1 ? `<button data-buildchord="0,${i},${v.end}">Build a chord from this interval</button>` : ''}`;
-  $('#inspector').innerHTML = text;
-  $('#inspector').hidden = false;
-  if (play) playPitches([m.notes[i].c, m.notes[i].c + v.c]);
 }
 // Create > Composition. Playback is scoped in the shared audio engine; auditions in Create never cancel it.
 const compositionWorkspace = createCompositionWorkspace({
@@ -806,7 +774,7 @@ const compositionWorkspace = createCompositionWorkspace({
     layoutState = null;
     getLayoutStates();
     layoutState.state = validate({...layoutState.state, n: setup.n, mode: setup.mode});
-    selected = null;
+    matrixPane.deselect();
     stop();
     view = 'composition';
     lastViews.create = 'composition';
@@ -969,16 +937,7 @@ document.addEventListener('change', e => {
   if (materialWorkspace.change(e.target)) return;
   if (presetWorkspace.change(e.target)) return;
   if (hexWorkspace.change(e.target)) return;
-  if (e.target.dataset.matrixSpan !== undefined) {
-    const idx = Number(e.target.dataset.matrixSpan);
-    state.matrixOctave = e.target.value === 'octave';
-    matrixPages[idx] = [0, 0];
-    selected = null;
-    $('#inspector').replaceChildren();
-    $('#inspector').hidden = true;
-    renderWorkspace();
-    return;
-  }
+  if (matrixPane.change(e.target)) return;
   if (commaWorkspace.change(e.target)) return;
   if (chordWorkspace.change(e.target)) return;
   if (tuningPanel.change(e.target)) return;
@@ -1012,42 +971,21 @@ document.addEventListener('click', e => {
     return;
   }
   if (presetWorkspace.click(b)) return;
-  if (b.dataset.matrixPage) {
-    const [, axis, page] = b.dataset.matrixPage.split(',').map(Number);
-    matrixPages[0][axis] = page;
-    renderWorkspace();
-    return;
-  }
+  if (matrixPane.click(b, e.shiftKey)) return;
   if (commaWorkspace.click(b)) return;
   if (chordWorkspace.click(b)) return;
   if (tuningPanel.click(b)) return;
   try {
-    if (b.dataset.buildchord) {
-      const [, i, j] = b.dataset.buildchord.split(',').map(Number);
-      chordWorkspace.fromInterval(i, j);
-      manualChordInspector = true;
-      view = 'unified';
-      renderWorkspace();
-    } else if (b.dataset.unifiedCenter) {
+    if (b.dataset.unifiedCenter) {
       unifiedCenter = normalizeUnifiedCenter(b.dataset.unifiedCenter);
-      selected = null;
+      matrixPane.deselect();
       renderWorkspace();
-    } else if (b.dataset.label) {
-      $('#labels').value = b.dataset.label;
-      refreshMatrixLabels();
-    } else if (b.dataset.cell) {
-      const [i, j] = b.dataset.cell.split(',').map(Number);
-      if (e.shiftKey) focusSync.pickMatrixCell(i, j);
-      else {
-        focusSync.clearMatrixPicks();
-        inspect(i, j);
-      }
     }
   } catch (err) {
     toast(err.message);
   }
 });
-$('#labels').addEventListener('change', refreshMatrixLabels);
+$('#labels').addEventListener('change', () => matrixPane.refreshLabels());
 ['layout', 'targetfilter'].forEach(id => $('#' + id).addEventListener('change', renderWorkspace));
 $('#limit').addEventListener('change', () => {
   const input = $('#limit');
@@ -1100,7 +1038,7 @@ $('#reset').onclick = () => {
   chordWorkspace.restore(null, validate);
   commaWorkspace.restore(null);
   hexWorkspace.restore(null);
-  selected = null;
+  matrixPane.deselect();
   render();
 };
 $('#save').onclick = () =>
@@ -1187,7 +1125,7 @@ $('#file').onchange = async e => {
         mode: session.layoutScale.mode
       });
     if (workspaces.hexboard?.configs) hexWorkspace.preserveCurrentLayout();
-    selected = null;
+    matrixPane.deselect();
     stop();
     compositionWorkspace.restore(session.composition);
     render();

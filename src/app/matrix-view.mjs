@@ -3,7 +3,7 @@
 import {ratioWithinJILimits} from '../core/ji-limit-engine.mjs';
 import {octavePeriods} from '../core/pitch.mjs';
 import {matrixScale, matrixInterval, matrixWindow} from '../core/matrix.mjs';
-import {createTargetClassifier} from '../core/engine.mjs';
+import {createTargetClassifier, classifyTargets} from '../core/engine.mjs';
 import {errorColor} from '../core/ji-error-color.mjs';
 import {option, fixed as fmt, signedFixed as sign} from '../ui/ui.mjs';
 
@@ -112,5 +112,127 @@ export function renderMatrix(s, cfg, page = [0, 0]) {
   return {
     page: [w.rowPage, w.colPage],
     html: `<div class="matrixbox"><div class="matrixheading" data-matrix-labels-host></div>${octavePeriods(s) > 1 ? `<div class="matrix-span">${spanControl(s, 0)}</div>` : ''}${pages}<p class="viewnote matrix-chord-hint">Shift-click cells to build a chord from their scale degrees.</p><div class="matrixscroll"><table class="matrix" style="--matrix-columns:${w.colEnd - w.colStart}" aria-label="Scale interval matrix">${body}</tbody></table></div><div class="matrix-options-host" data-matrix-controls-host></div></div>`
+  };
+}
+
+/**
+ * The matrix in the running app: paging, the cell inspector, Shift-click chord picks, cell labels
+ * and the span choice. deps: `getState()`, `settings(s)`, `isShown()` (the matrix is the centre
+ * view), `play(pitches)`, `focus` (the focus sync), `buildChord(i, j)`, `render()` (redraws the
+ * workspace), `notify(message)` and optional `document`.
+ */
+export function createMatrixPane(deps) {
+  const doc = () => deps.document ?? globalThis.document,
+    $ = selector => doc().querySelector(selector);
+  let page = [0, 0],
+    selected = null;
+
+  function html() {
+    const s = deps.getState(),
+      result = renderMatrix(s, deps.settings(s), page);
+    page = result.page;
+    return result.html;
+  }
+
+  function hideInspector() {
+    $('#inspector').replaceChildren();
+    $('#inspector').hidden = true;
+  }
+
+  // Describes one interval and its targets, and offers to explore it or build a chord from it.
+  function inspect(i, j, play = true) {
+    const s = deps.getState(),
+      cfg = deps.settings(s),
+      m = matrixScale(s);
+    if (i >= m.n || j > m.n || (j === m.n && cfg.layout !== 'distance')) {
+      selected = null;
+      hideInspector();
+      return;
+    }
+    const v = matrixInterval(m, i, j, cfg.layout),
+      match = classifyTargets(s, v, allTargets(cfg.ts, s, cfg), cfg.tol);
+    selected = [i, j];
+    const describe = t => `${t.label} (${sign(t.error)} ¢${t.within ? '' : ', outside tolerance'})`;
+    $('#inspector').innerHTML =
+      `<b>${i} → ${v.end}${v.period ? (m.periods > 1 ? ' + octave' : ' + period') : ''}</b> &nbsp; ${fmt(v.c, 4)} ¢ · ${v.k} generators.<br><span class="target-mapped">Mapped:</span> ${match.mapped.length ? match.mapped.map(describe).join('; ') : 'none in this target set'}.<br><span class="target-hit">Other approximations:</span> ${match.hits.length ? match.hits.map(t => describe(t) + ' · ' + t.reason.toLowerCase()).join('; ') : 'none within tolerance'}.<br><button data-explore="cell" data-s="0" data-m="${Math.round((v.c - v.k * s.g) / s.p)},${v.k}">Explore a target for this interval</button>${m.periods === 1 ? `<button data-buildchord="0,${i},${v.end}">Build a chord from this interval</button>` : ''}`;
+    $('#inspector').hidden = false;
+    if (play) deps.play([m.notes[i].c, m.notes[i].c + v.c]);
+  }
+
+  // Label changes update existing cells so scrolling, focus and matrix placement stay intact.
+  function refreshLabels() {
+    if (!deps.isShown()) return;
+    const template = doc().createElement('template');
+    template.innerHTML = html();
+    const cells = doc().querySelectorAll('.matrix [data-cell]'),
+      next = template.content.querySelectorAll('.matrix [data-cell]');
+    cells.forEach((cell, i) => {
+      if (!next[i]) return;
+      cell.innerHTML = next[i].innerHTML;
+      cell.classList.toggle('ratio-cell', $('#labels').value === 'ratios');
+    });
+    doc()
+      .querySelectorAll('[data-label]')
+      .forEach(b => {
+        const active = b.dataset.label === $('#labels').value;
+        b.classList.toggle('active', active);
+        b.setAttribute('aria-pressed', String(active));
+      });
+    deps.focus.applyFocus();
+  }
+
+  return {
+    html,
+    refreshLabels,
+    /** Forgets the inspected interval. */
+    deselect() {
+      selected = null;
+    },
+    /** Returns to the first page, for a new scale. */
+    firstPage() {
+      page = [0, 0];
+    },
+    /** After a workspace redraw: shows the inspected interval again, or hides the inspector. */
+    restoreInspector(shown) {
+      $('#inspector').hidden = !shown || !selected;
+      if (shown && selected) inspect(...selected, false);
+    },
+    /** Handles a button press in the matrix or its inspector. Returns whether it was the pane's. */
+    click(button, shiftKey = false) {
+      const {dataset} = button;
+      try {
+        if (dataset.matrixPage) {
+          const [, axis, value] = dataset.matrixPage.split(',').map(Number);
+          page[axis] = value;
+          deps.render();
+        } else if (dataset.cell) {
+          const [i, j] = dataset.cell.split(',').map(Number);
+          if (shiftKey) deps.focus.pickMatrixCell(i, j);
+          else {
+            deps.focus.clearMatrixPicks();
+            inspect(i, j);
+          }
+        } else if (dataset.label) {
+          $('#labels').value = dataset.label;
+          refreshLabels();
+        } else if (dataset.buildchord) {
+          const [, i, j] = dataset.buildchord.split(',').map(Number);
+          deps.buildChord(i, j);
+        } else return false;
+      } catch (error) {
+        deps.notify(error.message);
+      }
+      return true;
+    },
+    /** Handles the span choice. Returns whether it was the pane's. */
+    change(el) {
+      if (el.dataset.matrixSpan === undefined) return false;
+      deps.getState().matrixOctave = el.value === 'octave';
+      page = [0, 0];
+      selected = null;
+      hideInspector();
+      deps.render();
+      return true;
+    }
   };
 }
