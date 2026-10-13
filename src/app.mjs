@@ -84,7 +84,7 @@ import {
 const $ = q => document.querySelector(q);
 const jiSettings = createJISettings({
   $,
-  getState: () => states[0],
+  getState: () => state,
   getDiamondScope: () => diamondScope,
   getManualTolerance: () => manualTolerance,
   diamondLayout: () => diamondWorkspace.layout()
@@ -95,13 +95,13 @@ function populateLimitOptions(basisLimit, primeBasisFilter) {
     oddSelection = odd.value || String(DEFAULT_ODD_LIMIT),
     primeSelection = prime.value;
   prime.placeholder = 'e.g. 11 or 2.3.5.11';
-  prime.title = `basis = current temperament basis (${states[0].basis.join('.')}); blank = no prime filter`;
+  prime.title = `basis = current temperament basis (${state.basis.join('.')}); blank = no prime filter`;
   odd.value = oddSelection === 'basis' ? String(basisLimit) : oddSelection;
   const automatic = primeSelection === 'basis' || prime.dataset.basisValue === primeSelection;
-  prime.value = automatic ? states[0].basis.join('.') : primeSelection;
+  prime.value = automatic ? state.basis.join('.') : primeSelection;
   if (automatic) prime.dataset.basisValue = prime.value;
 }
-let states = [withDefaultScale(makeState('meantone'))],
+let state = withDefaultScale(makeState('meantone')),
   view = 'matrices',
   selected = null,
   toastTimer;
@@ -178,12 +178,12 @@ function refreshHarmony() {
   }
 }
 function fitPlayHarmony(coords) {
-  const state = getLayoutStates()[0],
+  const play = getLayoutStates()[0],
     fitted = fitGeneratedScale(
-      state,
+      play,
       coords.map(m => m[1])
     );
-  if (fitted === state) return;
+  if (fitted === play) return;
   if (!fitted) {
     toast('No collision-free Play scale fits these notes within 256 notes.');
     return;
@@ -192,19 +192,19 @@ function fitPlayHarmony(coords) {
   renderWorkspace();
 }
 
-populateLimitOptions(Math.max(3, ...states[0].basis), primeFilterForBasis(states[0].basis));
+populateLimitOptions(Math.max(3, ...state.basis), primeFilterForBasis(state.basis));
 let scaleFilter = '2',
   diamondScope = 'mapping',
   manualTolerance = null,
   unifiedCenter = 'diamond',
   scaleView = 'line';
-let coverageSignature = scaleDefaultKey(states[0], coverageSettings(states[0]));
+let coverageSignature = scaleDefaultKey(state, coverageSettings(state));
 function syncCoverageDefaults() {
-  const s = states[0],
+  const s = state,
     cfg = coverageSettings(s),
     key = scaleDefaultKey(s, cfg);
   if (key !== coverageSignature) {
-    states[0] = withDefaultScale(s, toast, cfg);
+    state = withDefaultScale(s, toast, cfg);
     coverageSignature = key;
     selected = null;
     matrixPages[0] = [0, 0];
@@ -219,9 +219,9 @@ const lastViews = {discover: 'unified', play: 'hexboard', create: 'composition'}
 const sectionFor = v => (v === 'hexboard' ? 'play' : v === 'composition' ? 'create' : 'discover');
 const presetWorkspace = createPresetWorkspace({
   getJI: coverageSettings,
-  getStates: () => states,
+  getStates: () => [state],
   apply: (idx, s) => {
-    states[idx] = validate(s);
+    state = validate(s);
     selected = null;
     matrixPages[0] = [0, 0];
     stop();
@@ -236,7 +236,7 @@ const presetWorkspace = createPresetWorkspace({
 });
 let layoutState = null;
 function getLayoutStates() {
-  const source = states[0],
+  const source = state,
     signature = scaleDefaultKey(source, coverageSettings(source));
   if (!layoutState || layoutState.signature !== signature)
     layoutState = {
@@ -276,15 +276,15 @@ function placeMaterial(item) {
   renderWorkspace();
 }
 const materialWorkspace = createMaterialWorkspace({
-  getState: () => states[0],
+  getState: () => state,
   validate,
   play: (notes, kind) => (kind === 'scale' ? playSequence(notes) : playPitches(notes)),
   refresh: () => renderWorkspace(),
   notify: toast,
   place: placeMaterial,
   load: s => {
-    states[0] = validate(s);
-    coverageSignature = scaleDefaultKey(states[0], coverageSettings(states[0]));
+    state = validate(s);
+    coverageSignature = scaleDefaultKey(state, coverageSettings(state));
     selected = null;
     stop();
     view = 'scales';
@@ -298,7 +298,8 @@ const chordWorkspace = createChordWorkspace({
     renderWorkspace();
   },
   getJI: settings,
-  getStates: () => states,
+  getStates: () => [state],
+  setState: s => (state = s),
   play: playPitches,
   refresh: full => (full ? render() : renderWorkspace()),
   notify: toast,
@@ -308,7 +309,7 @@ const chordWorkspace = createChordWorkspace({
     placeMaterial({kind: 'chord', coords, label, exact: options?.exact})
 });
 const harmonicWorkspace = createHarmonicCatalogueWorkspace({
-  getState: () => states[0],
+  getState: () => state,
   getPlayState: () => getLayoutStates()[0],
   getSettings: settings,
   refresh: refreshHarmony,
@@ -330,7 +331,7 @@ const harmonicWorkspace = createHarmonicCatalogueWorkspace({
   }
 });
 const commaWorkspace = createCommaWorkspace({
-  getStates: () => states,
+  getStates: () => [state],
   generate: (basis, list) => {
     presetWorkspace.receiveCommas(0, basis, list);
     document.querySelector('[data-preset-commas]')?.focus();
@@ -354,7 +355,7 @@ const focusSync = createFocusSync({
   get hex() {
     return hexWorkspace;
   },
-  getState: () => states[0],
+  getState: () => state,
   getView: () => view,
   getSettings: s => settings(s),
   notify: message => toast(message),
@@ -384,7 +385,7 @@ function showLiveChord() {
 }
 const diamondWorkspace = createDiamondWorkspace({
   document,
-  getState: () => states[0],
+  getState: () => state,
   refresh: () => renderWorkspace(),
   notify: toast,
   play: playPitches,
@@ -395,7 +396,7 @@ const diamondWorkspace = createDiamondWorkspace({
   },
   onTuningChange: centsFor => diamondPlayer?.retune(centsFor),
   onCollect: item =>
-    materialWorkspace.add(item.kind, states[0], item.coords, item.label, {
+    materialWorkspace.add(item.kind, state, item.coords, item.label, {
       exact: true,
       harmonicSelection: item.harmonicSelection
     }),
@@ -408,13 +409,13 @@ const diamondWorkspace = createDiamondWorkspace({
       renderWorkspace();
       return;
     }
-    const next = fitDiamondChord(states[0], item.coords),
-      previous = states[0];
+    const next = fitDiamondChord(state, item.coords),
+      previous = state;
     try {
-      states[0] = validate(next);
+      state = validate(next);
       chordWorkspace.fromCoordinates(item.coords, item.label);
     } catch (error) {
-      states[0] = previous;
+      state = previous;
       throw error;
     }
     view = 'chords';
@@ -457,8 +458,8 @@ const hexWorkspace = createHexboardWorkspace({
     materialWorkspace.add('chord', s, coords, label, {exact: true, ...options}),
   onInspect: (s, coords, label) => {
     manualChordInspector = true;
-    states[0] = validate(structuredClone(s));
-    coverageSignature = scaleDefaultKey(states[0], coverageSettings(states[0]));
+    state = validate(structuredClone(s));
+    coverageSignature = scaleDefaultKey(state, coverageSettings(state));
     chordWorkspace.fromCoordinates(coords, label);
     view = 'unified';
     selected = null;
@@ -478,7 +479,7 @@ function clampTolerance(value) {
   return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : null;
 }
 function readTuning(panel) {
-  const cfg = {...tuningConfig(states[Number(panel.dataset.s)])};
+  const cfg = {...tuningConfig(state)};
   panel.querySelectorAll('[data-tune]').forEach(el => {
     const key = el.dataset.tune;
     if (key === 'edoChoice') {
@@ -500,16 +501,16 @@ function tuningControls(s, idx) {
 }
 function commitRetuning(idx, candidate) {
   const result = preflightRetuning({
-    currentState: states[idx],
+    currentState: state,
     candidateState: candidate,
-    playState: layoutState?.state ?? states[idx],
+    playState: layoutState?.state ?? state,
     layoutConfig: hexWorkspace.retuningSnapshot()
   });
-  states[idx] = result.state;
+  state = result.state;
   if (layoutState) layoutState.state = result.playState;
   stop();
 }
-function applyPanelTuning(idx, cfg, draft = states[idx]) {
+function applyPanelTuning(idx, cfg, draft = state) {
   try {
     commitRetuning(idx, applyTuningMethod(structuredClone(draft), cfg));
   } catch (e) {
@@ -527,7 +528,7 @@ function renderPresetControls(host, idx) {
   if (editor && target) target.replaceChildren(editor);
 }
 function renderPanel(idx) {
-  const s = states[idx],
+  const s = state,
     advancedTuningOpen = $('#tuning-panel .advanced-tuning-options')?.open,
     tuningOptions = tuningControls(s, idx),
     canOptimizePeriod = tuningMethod(s) !== 'EDO';
@@ -548,7 +549,7 @@ function scaleMilestoneCard(id, title, result, detail) {
   return `<button type="button" class="scale-milestone" data-scale-milestone="${id}" ${result ? '' : 'disabled'}><span>${title}</span><b>${result ? `${result.n} notes · ${esc(result.signature)}` : `Not found through 256 notes`}</b><small>${result ? detail : 'No qualifying scale within the generated-size search.'}</small></button>`;
 }
 function scaleControls() {
-  const s = states[0],
+  const s = state,
     idx = 0,
     milestones = findScaleMilestones(s, coverageSettings(s)),
     all = scaleChoices(s, scaleFilter),
@@ -599,7 +600,7 @@ function scaleDegreeReadings(s, a) {
   };
 }
 function scaleDetails() {
-  const s = states[0],
+  const s = state,
     idx = 0,
     a = scale(s),
     bass = harmonicWorkspace.bass();
@@ -617,7 +618,7 @@ function settings(s) {
   return jiSettings.current(s);
 }
 function matrix() {
-  const {html, page} = renderMatrix(states[0], settings(states[0]), matrixPages[0]);
+  const {html, page} = renderMatrix(state, settings(state), matrixPages[0]);
   matrixPages[0] = page;
   return html;
 }
@@ -636,7 +637,7 @@ function unifiedWorkspace() {
   });
 }
 function targetTable() {
-  const s = states[0];
+  const s = state;
   return `<div class="diamond-pair single">${diamondWorkspace.render({...settings(s), scope: diamondScope}, '')}</div>`;
 }
 function fillDiamondDetails() {
@@ -735,7 +736,7 @@ function placeJIControls(v) {
     panel?.appendChild(controls);
     diamondWorkspace.mountOptions();
     const host = $('#diamond-span-controls');
-    if (host) host.innerHTML = spanControl(states[0], 0, 'Target span') || '';
+    if (host) host.innerHTML = spanControl(state, 0, 'Target span') || '';
     const source = $('#diamond-scope')?.closest('label'),
       canvas = panel?.querySelector('.diamond-canvas');
     if (source && canvas) {
@@ -798,7 +799,7 @@ function renderWorkspace({keepNotes = false} = {}) {
     harmonicWorkspace.setEnabled(true);
     placeDiamondTolerance(null);
     parkJIControls();
-    populateLimitOptions(Math.max(3, ...states[0].basis), primeFilterForBasis(states[0].basis));
+    populateLimitOptions(Math.max(3, ...state.basis), primeFilterForBasis(state.basis));
     syncCoverageDefaults();
     hexWorkspace.prepareForTemperament();
     if (!keepNotes) hexPlayer?.reset();
@@ -818,12 +819,12 @@ function renderWorkspace({keepNotes = false} = {}) {
       c = v === 'unified' ? unifiedCenterView(unifiedCenter) : v;
     const cfg = settings();
     liveChordContext =
-      v === 'hexboard' ? {state: states[0], settings: {...cfg, familyRecognition: true}} : null;
+      v === 'hexboard' ? {state: state, settings: {...cfg, familyRecognition: true}} : null;
     if (liveChordContext)
       liveChordRecognizer.prepare(liveChordContext.state, liveChordContext.settings);
     document.querySelectorAll('[data-explore-body]').forEach(el => {
       const idx = Number(el.dataset.exploreBody);
-      el.innerHTML = explorerBody(states[idx], idx);
+      el.innerHTML = explorerBody(state, idx);
     });
     $('#inspector').hidden = ['scales', 'chords', 'hexboard', 'targets'].includes(c) || !selected;
     $('#layout').disabled = c === 'targets';
@@ -877,7 +878,7 @@ function render() {
   renderWorkspace();
 }
 function inspect(i, j, play = true) {
-  const s = states[0],
+  const s = state,
     cfg = settings(s),
     m = matrixScale(s);
   if (i >= m.n || j > m.n || (j === m.n && cfg.layout !== 'distance')) {
@@ -929,12 +930,12 @@ const compositionWorkspace = createCompositionWorkspace({
   notify: toast,
   download: (name, text, type) => download(name, text, type),
   onLights: () => hexboardSync.schedule(),
-  loadState: state => {
-    states[0] = validate(state);
-    coverageSignature = scaleDefaultKey(states[0], coverageSettings(states[0]));
+  loadState: setup => {
+    state = validate(setup);
+    coverageSignature = scaleDefaultKey(state, coverageSettings(state));
     layoutState = null;
     getLayoutStates();
-    layoutState.state = validate({...layoutState.state, n: state.n, mode: state.mode});
+    layoutState.state = validate({...layoutState.state, n: setup.n, mode: setup.mode});
     selected = null;
     stop();
     view = 'composition';
@@ -1154,7 +1155,7 @@ function playSequence(notes) {
   return audioEngine.playSequence(notes);
 }
 function playScale(idx = 0) {
-  const s = states[idx];
+  const s = state;
   return playSequence([...scale(s).notes.map(v => v.c), s.p]);
 }
 function download(name, text, type = 'text/plain') {
@@ -1204,7 +1205,7 @@ document.addEventListener('change', e => {
   if (hexWorkspace.change(e.target)) return;
   if (e.target.dataset.matrixSpan !== undefined) {
     const idx = Number(e.target.dataset.matrixSpan);
-    states[idx].matrixOctave = e.target.value === 'octave';
+    state.matrixOctave = e.target.value === 'octave';
     matrixPages[idx] = [0, 0];
     selected = null;
     $('#inspector').replaceChildren();
@@ -1220,7 +1221,7 @@ document.addEventListener('change', e => {
   }
   if (e.target.dataset.optimizePeriod !== undefined) {
     const idx = Number(e.target.dataset.optimizePeriod);
-    applyPanelTuning(idx, {...tuningConfig(states[idx]), fixed: !e.target.checked});
+    applyPanelTuning(idx, {...tuningConfig(state), fixed: !e.target.checked});
     return;
   }
   const tunePanel = e.target.closest('.advanced-tuning-options');
@@ -1231,20 +1232,20 @@ document.addEventListener('change', e => {
   const f = e.target.dataset.field;
   if (!f) return;
   const idx = Number(e.target.dataset.s),
-    old = structuredClone(states[idx]);
+    old = structuredClone(state);
   try {
-    let s = states[idx];
+    let s = state;
     if (f === 'tuning') {
       applyPanelTuning(idx, {...tuningConfig(s), method: e.target.value});
       return;
     }
     s[f] = Number(e.target.value);
     if (f === 'n') s.mode = 0;
-    delete states[idx].tuningReport;
-    validate(states[idx]);
+    delete state.tuningReport;
+    validate(state);
     render();
   } catch (err) {
-    states[idx] = old;
+    state = old;
     toast(err.message);
     render();
   }
@@ -1272,10 +1273,10 @@ document.addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b) return;
   if (b.dataset.scaleMilestone) {
-    const milestones = findScaleMilestones(states[0], coverageSettings(states[0])),
+    const milestones = findScaleMilestones(state, coverageSettings(state)),
       result = milestones[b.dataset.scaleMilestone];
     if (!result) return;
-    states[0] = validate({...states[0], n: result.n, mode: result.mode ?? 0});
+    state = validate({...state, n: result.n, mode: result.mode ?? 0});
     selected = null;
     stop();
     view = 'unified';
@@ -1288,11 +1289,8 @@ document.addEventListener('click', e => {
     else
       placeMaterial({
         kind: 'scale',
-        coords: scale(states[0]).notes.map(n => [
-          Math.round((n.c - n.k * states[0].g) / states[0].p),
-          n.k
-        ]),
-        label: `${states[0].n} notes · mode ${states[0].mode + 1}`
+        coords: scale(state).notes.map(n => [Math.round((n.c - n.k * state.g) / state.p), n.k]),
+        label: `${state.n} notes · mode ${state.mode + 1}`
       });
     return;
   }
@@ -1303,8 +1301,8 @@ document.addEventListener('click', e => {
   if (presetWorkspace.click(b)) return;
   if (b.dataset.hexOpen !== undefined) {
     getLayoutStates();
-    layoutState.state.n = states[0].n;
-    layoutState.state.mode = states[0].mode;
+    layoutState.state.n = state.n;
+    layoutState.state.mode = state.mode;
     hexWorkspace.clearHighlight();
     view = 'hexboard';
     renderWorkspace();
@@ -1348,11 +1346,11 @@ document.addEventListener('click', e => {
       }
     } else if (b.dataset.target) {
       const [, n, d] = b.dataset.target.split(',').map(Number),
-        m = mapRatio(n, d, states[0]);
-      playPitches([0, m[0] * states[0].p + m[1] * states[0].g]);
+        m = mapRatio(n, d, state);
+      playPitches([0, m[0] * state.p + m[1] * state.g]);
     } else if (b.dataset.note) {
       const degree = Number(b.dataset.note);
-      playPitches([scale(states[0]).notes[degree].c]);
+      playPitches([scale(state).notes[degree].c]);
       /* A degree in the scale module also becomes the directory's bass note. */ if (
         b.classList.contains('scale-degree')
       ) {
@@ -1365,7 +1363,7 @@ document.addEventListener('click', e => {
       }
     } else if (b.dataset.action) {
       const idx = 0,
-        s = states[0],
+        s = state,
         panel = $('#temperament-panel');
       if (b.dataset.action === 'scale') playScale(idx);
       if (b.dataset.action === 'export') {
@@ -1416,7 +1414,7 @@ document.addEventListener('click', e => {
           next.g = (s.g / s.p) * next.p;
         }
         validate(next);
-        states[idx] = next;
+        state = next;
         render();
         toast('Custom mapping applied; choose a tuning next');
       }
@@ -1444,7 +1442,7 @@ $('#limit').addEventListener('change', () => {
 $('#primeLimit').addEventListener('change', () => {
   const input = $('#primeLimit');
   try {
-    parsePrimeFilterInput(input.value, states[0].basis);
+    parsePrimeFilterInput(input.value, state.basis);
     delete input.dataset.basisValue;
     input.setCustomValidity('');
     renderWorkspace();
@@ -1475,7 +1473,7 @@ $('#reset').onclick = () => {
   layoutState = null;
   materialWorkspace.restore(null);
   compositionWorkspace.restore(null);
-  states = [withDefaultScale(makeState('meantone'))];
+  state = withDefaultScale(makeState('meantone'));
   chordWorkspace.restore(null, validate);
   commaWorkspace.restore(null);
   hexWorkspace.restore(null);
@@ -1485,12 +1483,12 @@ $('#reset').onclick = () => {
 function restorePrimaryState(data) {
   if (!Array.isArray(data.states) || ![1, 2].includes(data.states.length))
     throw Error('Choose a Temperament Lab session file.');
-  const state = data.states[0];
-  validate(state);
+  const saved = data.states[0];
+  validate(saved);
   return {
-    ...state,
-    key: presets[state.key] ? state.key : 'custom',
-    tuning: typeof state.tuning === 'string' ? state.tuning : 'Manual'
+    ...saved,
+    key: presets[saved.key] ? saved.key : 'custom',
+    tuning: typeof saved.tuning === 'string' ? saved.tuning : 'Manual'
   };
 }
 $('#save').onclick = () =>
@@ -1501,7 +1499,7 @@ $('#save').onclick = () =>
         format: sessionFormat(compositionWorkspace.serialize()),
         workflowVersion: 8,
         harmonicCatalogue: harmonicWorkspace.serialize(),
-        states: [states[0]],
+        states: [state],
         material: materialWorkspace.serialize(),
         diamond: diamondWorkspace.serialize(),
         layoutScale: {n: getLayoutStates()[0].n, mode: getLayoutStates()[0].mode},
@@ -1554,7 +1552,7 @@ $('#file').onchange = async e => {
       ? data.settings.scaleFilter
       : '2';
     diamondScope = normalizeDiamondScope(data.settings?.diamondScope, data.workflowVersion);
-    states = [restorePrimaryState(data)];
+    state = restorePrimaryState(data);
     const restorePrimeLimit =
       Number(data.workflowVersion ?? 0) < 5 &&
       (data.settings?.primeLimit === undefined || data.settings.primeLimit === '')
@@ -1608,7 +1606,7 @@ $('#file').onchange = async e => {
           })
         }))
     );
-    coverageSignature = scaleDefaultKey(states[0], coverageSettings(states[0]));
+    coverageSignature = scaleDefaultKey(state, coverageSettings(state));
     layoutState = null;
     getLayoutStates();
     if (data.layoutScale) {
@@ -1785,7 +1783,7 @@ function nearestSummary(s) {
 }
 function changeExplore(el) {
   const idx = Number(el.dataset.s),
-    s = structuredClone(states[idx]);
+    s = structuredClone(state);
   try {
     s.explore = {...s.explore, notice: ''};
     if (el.dataset.exploreField === 'ratio') {
@@ -1805,7 +1803,7 @@ function changeExplore(el) {
 }
 function handleExplore(b) {
   const idx = Number(b.dataset.s),
-    s = structuredClone(states[idx]),
+    s = structuredClone(state),
     action = b.dataset.explore;
   s.explore = {...s.explore, open: true, notice: ''};
   if (action === 'open') {
@@ -1831,7 +1829,7 @@ function handleExplore(b) {
     if (tuningConfig(s).jiAll)
       applyPanelTuning(idx, {...tuningConfig(s), jiAll: s.assignments.length > 0}, s);
     else {
-      states[idx] = s;
+      state = s;
       render();
     }
     return;
@@ -1854,14 +1852,14 @@ function handleExplore(b) {
     };
     next.explore.notice = 'Extension adopted. Related targets now follow the extended mapping.';
     validate(next);
-    states[idx] = next;
+    state = next;
     render();
     return;
   }
   const t = jiSelection(s);
   s.explore.m = [...t.m];
   if (action === 'listen') {
-    states[idx] = s;
+    state = s;
     playPitches([0, t.m[0] * s.p + t.m[1] * s.g]);
     return;
   }
@@ -1882,7 +1880,7 @@ function handleExplore(b) {
     );
     return;
   }
-  states[idx] = s;
+  state = s;
   render();
 }
 document.addEventListener('visibilitychange', () => {

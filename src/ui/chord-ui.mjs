@@ -15,6 +15,7 @@ import {renderCoordinateAssessment} from '../harmonic/harmonic-inspection-ui.mjs
 export function createChordWorkspace({
   getJI,
   getStates,
+  setState = s => (getStates()[0] = s),
   play,
   refresh,
   notify,
@@ -312,7 +313,7 @@ export function createChordWorkspace({
       if (act === 'load-pin') {
         const p = ui.pins[i];
         if (p) {
-          getStates()[0] = structuredClone(p.state);
+          setState(structuredClone(p.state));
           choose(p.degrees);
           ui.octaves[0] = {...p.octaves};
           results = null;
