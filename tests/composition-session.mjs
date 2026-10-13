@@ -8,8 +8,10 @@ import {
   compositionForSave,
   compositionFromSession
 } from '../src/composition/composition-session.mjs';
+import {makeState} from '../src/core/catalog.mjs';
 import {captureContext} from '../src/composition/composition-context.mjs';
 import {createProject, addEvent, makeEvent} from '../src/composition/composition-project.mjs';
+import {bootApp} from './support/dom.mjs';
 
 const corpus = JSON.parse(
   await readFile(new URL('./fixtures/composition/phase0-corpus.json', import.meta.url), 'utf8')
@@ -87,31 +89,54 @@ assert.equal(legacy.format, SESSION_V1);
 assert.equal('composition' in legacy, false);
 assert.equal(compositionFromSession(legacy), null);
 
-// app.mjs wiring: the composition is validated before any other part of the session is restored (atomic load).
-const app = await readFile(new URL('../src/app.mjs', import.meta.url), 'utf8');
-assert.ok(app.includes('compositionFromSession(data)'), 'loader validates the composition');
-const lines = app.split(/\r?\n/),
-  loadIndex = lines.findIndex(l => l.includes("$('#file').onchange"));
-const loadText = lines.slice(loadIndex, loadIndex + 3).join('\n');
-assert.ok(
-  loadText.indexOf('compositionFromSession(data)') >= 0 &&
-    loadText.indexOf('compositionFromSession(data)') <
-      loadText.indexOf('harmonicWorkspace.restore(data.harmonicCatalogue)'),
-  'validation precedes every restore'
-);
-assert.ok(
-  loadText.indexOf('compositionWorkspace.restore(composition)') >
-    loadText.indexOf('states=[restorePrimaryState(data)]'),
-  'the project is restored after the setup it depends on'
-);
-assert.ok(
-  app.includes('format:sessionFormat(compositionWorkspace.serialize())') &&
-    app.includes('...compositionForSave(compositionWorkspace.serialize())'),
-  'saves use the envelope rules'
-);
-assert.ok(
-  /materialWorkspace\.restore\(null\);compositionWorkspace\.restore\(null\)/.test(app),
-  'Reset closes the open composition'
-);
+// In the app, the composition is validated before any other part of the session is restored, so
+// a bad file changes nothing (atomic load).
+const page = await bootApp(),
+  {$} = page,
+  current = () => $('[data-saved-preset="0"]').value,
+  composeText = () => {
+    page.section('create');
+    return $('#create-view').textContent;
+  };
+await page.openSession({
+  format: SESSION_V2,
+  workflowVersion: 8,
+  states: [makeState('porcupine')],
+  settings: {limit: 9, view: 'composition'},
+  composition: {...project, tempo: 5}
+});
+assert.match(page.toast(), /tempo/, 'the invalid composition is reported');
+assert.equal(current(), 'builtin:meantone', 'the temperament is not restored');
+assert.equal($('#limit').value, '15', 'settings are not restored');
+assert.doesNotMatch(composeText(), /session piece/, 'no composition opens');
+
+// A valid session restores the setup, then the project that depends on it.
+await page.openSession({
+  format: SESSION_V2,
+  workflowVersion: 8,
+  states: [corpus.fixtures[0].state],
+  settings: {limit: 9},
+  composition: project
+});
+assert.equal(page.toast(), 'Session opened');
+assert.equal($('#limit').value, '9');
+assert.match(composeText(), /session piece/, 'the composition opens');
+
+// Saves use the envelope rules.
+page.click('#save');
+let saved = JSON.parse(await page.downloaded(/session\.json$/));
+assert.equal(saved.format, SESSION_V2);
+assert.deepEqual(compositionFromSession(saved), project);
+
+// Reset closes the open composition.
+page.click('#reset');
+await page.settle();
+assert.doesNotMatch(composeText(), /session piece/, 'Reset closes the open composition');
+page.click('#save');
+saved = JSON.parse(await page.downloaded(/session\.json$/));
+assert.equal(saved.format, SESSION_V1);
+assert.equal('composition' in saved, false);
+assert.deepEqual(page.errors, []);
 
 console.log('composition-session: ok');
+await page.close();

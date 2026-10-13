@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
 import {makeState} from '../src/core/catalog.mjs';
 import {
   DEFAULT_ODD_LIMIT,
@@ -8,6 +7,7 @@ import {
 } from '../src/core/ji-limit-engine.mjs';
 import {createChordWorkspace} from '../src/ui/chord-ui.mjs';
 import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
+import {bootApp, cssRules, parseHtml} from './support/dom.mjs';
 const states = [makeState('meantone')];
 assert.equal(DEFAULT_ODD_LIMIT, 15);
 let ji = {limit: 5, primeLimit: 3, tol: 2};
@@ -59,62 +59,103 @@ chords.restore(saved, () => {});
 assert.equal(chords.serialize().limit, 11);
 assert.equal(chords.serialize().primeLimit, 7);
 assert.equal(chords.serialize().tol, 20);
-const html = readFileSync('src/index.html', 'utf8'),
-  app = readFileSync('src/app.mjs', 'utf8');
-assert.equal(html.match(/id="limit"/g).length, 1);
-assert.equal(html.match(/id="primeLimit"/g).length, 1);
-assert.equal(html.match(/id="tolerance"/g).length, 1);
-assert.equal(html.match(/id="target-controls"/g).length, 1);
-assert.doesNotMatch(html, /id="showoutside"/);
-assert.equal(html.match(/id="matrix-controls"/g).length, 1);
-assert.match(html, /id="ji-controls-parking" hidden/);
-assert.match(html, /id="limit" type="number" min="3" max="97" step="2" value="15"/);
-assert.match(html, /Prime-limit\/basis/);
-assert.match(html, /id="primeLimit" type="text" value="basis"/);
-assert.match(app, /parsePrimeFilterInput\(primeLimitSelection,basisPrimes\)/);
-assert.match(app, /workflowVersion:8/);
-assert.match(app, /manualTolerance,tonic:/);
-assert.match(app, /manualTolerance=Number\(data.workflowVersion\?\?0\)>=7/);
-assert.match(app, /clampTolerance\(data.settings.manualTolerance\)/);
-assert.match(app, /states:\[states\[0\]\]/);
-assert.doesNotMatch(app, /comparisonEnabled|compareWorkspace|compare-matrices/);
-assert.match(app, /restorePrimeLimit=Number\(data.workflowVersion\?\?0\)<5/);
-assert.match(html, /step="2"/);
-assert.match(app, /parsePrimeFilterInput/);
-assert.match(app, /\$\('#limit'\)\.value=String\(DEFAULT_ODD_LIMIT\)/);
-assert.doesNotMatch(app, /for\(const value of PRIME_LIMIT_VALUES\)/);
 assert.ok(ODD_LIMIT_VALUES.every(n => n % 2 === 1));
 assert.ok(
   PRIME_LIMIT_VALUES.every(n =>
     PRIME_LIMIT_VALUES.filter(p => p <= n).every(p => n === p || n % p !== 0)
   )
 );
-const sharedHtml = readFileSync('src/index.html', 'utf8'),
-  sharedStyle = readFileSync('src/style.css', 'utf8');
-const advancedOptions =
-  sharedHtml.match(
-    /<details id="ji-controls" class="advanced-approximation-options">[\s\S]*?\/details>/
-  )?.[0] ?? '';
-assert.match(advancedOptions, /id="diamond-scope" data-diamond-scope/);
-assert.match(advancedOptions, /data-diamond-settings/);
-assert.match(sharedHtml, /id="approximation-module"[\s\S]*?id="limit"/);
-assert.match(sharedHtml, /id="approximation-module"[\s\S]*?id="primeLimit"/);
-assert.doesNotMatch(advancedOptions, /Tolerance · cents/);
-assert.match(sharedHtml, /<input id="tolerance" type="hidden"/);
-assert.doesNotMatch(advancedOptions, /Tolerance · cents/);
-assert.match(sharedHtml, /id="target-controls" class="target-controls"/);
-assert.match(app, /\$\('#approximation-module'\).insertBefore/);
-assert.doesNotMatch(sharedHtml, /<details class="advanced-approximation-options"[^>]*open/);
-assert.match(
-  sharedStyle,
-  /\.advanced-approximation-options\s*\{[^}]*margin:\s*8px 0 0;[^}]*padding:\s*0;[^}]*border:\s*0;/
+
+// One shared set of JI controls in the page.
+const html = parseHtml();
+for (const id of ['limit', 'primeLimit', 'tolerance', 'target-controls', 'matrix-controls'])
+  assert.equal(html.querySelectorAll(`#${id}`).length, 1, `one #${id}`);
+assert.equal(html.querySelector('#showoutside'), null);
+assert.equal(html.querySelector('#ji-controls-parking').hidden, true);
+const limitInput = html.querySelector('#limit');
+assert.deepEqual(
+  ['type', 'min', 'max', 'step', 'value'].map(name => limitInput.getAttribute(name)),
+  ['number', '3', '97', '2', '15']
 );
-assert.match(
-  sharedStyle,
-  /\.advanced-approximation-options\[open\]\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\);/
+const primeInput = html.querySelector('#primeLimit');
+assert.deepEqual([primeInput.type, primeInput.getAttribute('value')], ['text', 'basis']);
+assert.match(html.body.textContent, /Prime-limit\/basis/);
+assert.equal(html.querySelector('#tolerance').type, 'hidden');
+assert.ok(html.querySelector('#target-controls.target-controls'));
+const module = html.querySelector('#approximation-module');
+assert.ok(module.querySelector('#limit') && module.querySelector('#primeLimit'));
+const advanced = html.querySelector('details#ji-controls.advanced-approximation-options');
+assert.ok(advanced.querySelector('#diamond-scope[data-diamond-scope]'));
+assert.ok(advanced.querySelector('[data-diamond-settings]'));
+assert.doesNotMatch(advanced.textContent, /Tolerance · cents/);
+assert.equal(
+  html.querySelector('details.advanced-approximation-options[open]'),
+  null,
+  'advanced options start closed'
 );
-assert.doesNotMatch(sharedStyle, /\.diamond-gradient\s*\{/);
-assert.match(sharedStyle, /\.matrix \.cell \.target-chip\s*\{[^}]*color:\s*#11151c;/);
+
+const css = cssRules();
+assert.deepEqual(
+  ['margin', 'padding', 'border-width'].map(name =>
+    css.value('.advanced-approximation-options', name)
+  ),
+  ['8px 0px 0px', '0px', '0px']
+);
+assert.equal(css.value('.advanced-approximation-options[open]', 'display'), 'grid');
+assert.equal(
+  css.value('.advanced-approximation-options[open]', 'grid-template-columns', {media: null}),
+  'repeat(3, minmax(0, 1fr))'
+);
+assert.deepEqual(css.find('.diamond-gradient'), []);
+assert.equal(css.value('.matrix .cell .target-chip', 'color'), 'rgb(17, 21, 28)');
+
+// In the app, the target controls sit in the approximation module and sessions carry the shared
+// settings.
+const page = await bootApp(),
+  {$} = page,
+  save = async () => {
+    page.click('#save');
+    return JSON.parse(await page.downloaded(/session\.json$/));
+  };
+await page.until(
+  () => /chords · complete/.test($('[data-unified-pane="directory"]')?.textContent ?? ''),
+  {message: 'the first catalogue'}
+);
+assert.equal($('#target-controls').parentElement, $('#approximation-module'));
+assert.equal($('#target-controls').nextElementSibling, $('#diamond-tolerance-host'));
+assert.equal(page.document.querySelector('[data-compare], .compare-matrices'), null);
+page.change('#primeLimit', '7');
+page.change('#limit', 9);
+await page.settle();
+let session = await save();
+assert.equal(session.workflowVersion, 8);
+assert.equal(session.states.length, 1, 'one temperament per session');
+assert.deepEqual(
+  [session.settings.limit, session.settings.primeLimit, session.settings.manualTolerance],
+  ['9', '7', null]
+);
+assert.equal(session.settings.tonic, 220);
+page.change('#primeLimit', 'not a prime');
+await page.settle();
+assert.equal((await save()).settings.primeLimit, 'basis', 'an invalid prime filter falls back');
+
+// Older sessions: no prime filter before version 5 means the basis, and a manual tolerance is
+// only read from version 7.
+const older = (workflowVersion, settings) =>
+  page.openSession({...session, workflowVersion, settings: {...session.settings, ...settings}});
+await older(4, {primeLimit: undefined, manualTolerance: 5});
+session = await save();
+assert.deepEqual([session.settings.primeLimit, session.settings.manualTolerance], ['basis', null]);
+await older(7, {primeLimit: '7', manualTolerance: 5});
+session = await save();
+assert.deepEqual([session.settings.primeLimit, session.settings.manualTolerance], ['7', 5]);
+
+// Reset restores the default odd limit.
+page.click('#reset');
+await page.settle();
+assert.equal($('#limit').value, String(DEFAULT_ODD_LIMIT));
+assert.deepEqual(page.errors, []);
 console.log(
   'Odd and prime filters share settings across chord and HexBoard workspaces; valid selector ranges are generated centrally.'
 );
+await page.close();

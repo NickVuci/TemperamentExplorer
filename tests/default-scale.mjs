@@ -7,6 +7,7 @@ import {findScaleMilestones, scaleCoverageTarget} from '../src/core/scale-milest
 import {createPresetWorkspace} from '../src/presets/preset-ui.mjs';
 import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
 import {applyTuningMethod} from '../src/core/tuning-methods.mjs';
+import {bootApp} from './support/dom.mjs';
 
 // Interval complete: every mapped diamond interval occurs between two notes of the scale, in any mode.
 function intervalCovers(s, options) {
@@ -139,85 +140,97 @@ console.log(
   'Shared scale defaults: first interval-complete MOS on mode 1, poor-temperament fallback, selected limits, presets, non-octave periods, collision bounds, base MOS, manual edits and restoration passed.'
 );
 
-// Execute the actual app's context/default wiring without a browser renderer.
-const {readFileSync} = await import('node:fs');
-const {runInNewContext} = await import('node:vm');
-const {scaleDefaultKey} = await import('../src/core/scale-milestones.mjs');
-const {primeFilterForBasis, validateJILimits, parsePrimeFilterInput} =
-  await import('../src/core/ji-limit-engine.mjs');
-const app = readFileSync('src/app.mjs', 'utf8');
-const fields = {'#limit': {value: '15'}, '#primeLimit': {value: 'basis'}};
-const context = {
-  states: [withDefaultScale(makeState('meantone'))],
-  layoutState: null,
-  coverageSignature: '',
-  matrixPages: [[0, 0]],
-  selected: null,
-  $: selector => fields[selector],
-  withDefaultScale,
-  scaleDefaultKey,
-  primeFilterForBasis,
-  validateJILimits,
-  parsePrimeFilterInput,
-  structuredClone,
-  toast: () => {}
-};
-for (const name of ['coverageSettings', 'syncCoverageDefaults', 'getLayoutStates'])
-  runInNewContext(
-    app.split('\n').find(line => line.startsWith(`function ${name}(`)),
-    context
-  );
-context.syncCoverageDefaults();
-let layout = context.getLayoutStates()[0];
-assert.equal(layout.n, 7);
-assert.equal(layout.mode, 0);
-layout.n = 12;
-layout.mode = 2;
-context.states[0].n = 7;
-context.states[0].mode = 4;
-context.syncCoverageDefaults();
-assert.equal(context.states[0].n, 7, 'manual Discover size survives redraw');
-assert.equal(context.getLayoutStates()[0].n, 12, 'independent manual layout survives redraw');
-fields['#limit'].value = '5';
-context.syncCoverageDefaults();
-layout = context.getLayoutStates()[0];
-assert.equal(context.states[0].n, 5);
-assert.equal(context.states[0].mode, 0);
-assert.equal(layout.n, 5);
-assert.equal(layout.mode, 0);
-// Exercise both independent selections across generator and period changes,
-// including an EDO collision: retuning cannot silently substitute a scale.
-context.states[0].n = 7;
-context.states[0].mode = 4;
-layout.n = 12;
-layout.mode = 2;
-for (const [p, g] of [
-  [1200, 701],
-  [1198, 695],
-  [1200, 700]
-]) {
-  context.states[0].p = p;
-  context.states[0].g = g;
-  context.syncCoverageDefaults();
-  layout = context.getLayoutStates()[0];
-  assert.equal(context.states[0].n, 7, 'retuning preserves Discover size');
-  assert.equal(context.states[0].mode, 4, 'retuning preserves Discover mode');
-  assert.equal(layout.n, 12, 'retuning preserves Play size');
-  assert.equal(layout.mode, 2, 'retuning preserves Play mode');
-  assert.equal(layout.p, p, 'Play receives retuned period');
-  assert.equal(layout.g, g, 'Play receives retuned generator');
+// In the app, Discover and Play keep independent scale choices. Both take the default scale when the
+// temperament or JI limits change, and keep a manual choice through redraws and retunings.
+const page = await bootApp(),
+  {$} = page;
+async function choose(selector, value) {
+  const el = page.element(selector);
+  if (el.tagName === 'SELECT')
+    assert.ok(
+      [...el.options].some(option => option.value === String(value)),
+      `${value} is offered`
+    );
+  page.change(el, value);
+  await page.settle();
 }
-context.states[0] = makeState('porcupine');
-context.syncCoverageDefaults();
-layout = context.getLayoutStates()[0];
-const changed = defaultScale(context.states[0], context.coverageSettings(context.states[0]));
-assert.equal(context.states[0].n, changed.n, 'mapping changes still apply defaults');
-assert.equal(layout.mode, changed.mode, 'mapping changes still apply Play defaults');
-context.states[0].n = 12;
-context.states[0].mode = 2;
-context.coverageSignature = scaleDefaultKey(
-  context.states[0],
-  context.coverageSettings(context.states[0])
+async function show(section) {
+  page.section(section);
+  await page.settle();
+}
+async function scales() {
+  await show('discover');
+  const discover = ['n', 'mode'].map(field => Number($(`[data-field="${field}"]`).value));
+  await show('play');
+  const play = ['target', 'mode'].map(field => Number($(`[data-hex-field="${field}"]`).value));
+  return {discover, play};
+}
+async function chooseScales({discover, play} = manual) {
+  await show('discover');
+  await choose('[data-field="n"]', discover[0]);
+  await choose('[data-field="mode"]', discover[1]);
+  await show('play');
+  await choose('[data-hex-field="target"]', play[0]);
+  await choose('[data-hex-field="mode"]', play[1]);
+}
+const manual = {discover: [7, 4], play: [12, 2]};
+await page.until(
+  () => /chords · complete/.test($('[data-unified-pane="directory"]')?.textContent ?? ''),
+  {message: 'the first catalogue'}
 );
-context.syncCoverageDefaults();
-assert.equal(context.states[0].n, 12, 'adopting restored context preserves a saved scale');
+assert.deepEqual(await scales(), {discover: [7, 0], play: [7, 0]});
+await chooseScales();
+assert.deepEqual(await scales(), manual, 'manual Discover and Play scales survive redraws');
+await choose('#limit', 5);
+assert.deepEqual(await scales(), {discover: [5, 0], play: [5, 0]}, 'a new limit applies defaults');
+
+// Retuning cannot silently substitute a scale, and Play receives the new tuning.
+await chooseScales();
+let generator, period;
+for (const [method, optimizePeriod] of [
+  ['Minimax', false],
+  ['EDO', false],
+  ['Least Squares', false],
+  ['Minimax', true]
+]) {
+  await choose('[data-field="tuning"]', method);
+  const box = $('[data-optimize-period="0"]');
+  if (box && box.checked !== optimizePeriod) await choose(box, optimizePeriod);
+  [generator, period] = [...$('.tuning-summary').textContent.matchAll(/(-?[\d.]+) ¢/g)].map(match =>
+    Number(match[1])
+  );
+  assert.deepEqual(await scales(), manual, `retuning to ${method} preserves both scales`);
+  page.click('[data-hex-action="export"]');
+  const {details} = JSON.parse(await page.downloaded(/HexBoard\.json$/));
+  assert.equal(details.generatorCents, generator, `Play receives the ${method} generator`);
+  assert.equal(details.periodCents, period, `Play receives the ${method} period`);
+  assert.deepEqual([details.scale.notes, details.scale.mode - 1], manual.play);
+}
+assert.notEqual(period, 1200, 'an optimized period reaches Play');
+
+// A new temperament still applies the defaults: the default scale in Discover, and in Play the size
+// of the recommended layout, on mode 1.
+page.chooseTemperament('porcupine');
+await page.settle();
+const porcupine = defaultScale(makeState('porcupine'), {limit: 5, primeLimit: 5}),
+  after = await scales(),
+  layout = $('#layout-recommendation-choice');
+assert.deepEqual(after.discover, [porcupine.n, 0]);
+assert.match(layout.selectedOptions[0].textContent, new RegExp(`· ${after.play[0]} notes$`));
+assert.equal(after.play[1], 0);
+
+// A restored session keeps its saved scales.
+const kept = {discover: [8, 2], play: [7, 1]};
+await chooseScales(kept);
+page.click('#save');
+const savedSession = await page.downloaded(/session\.json$/);
+page.click('#reset');
+await page.settle();
+await page.openSession(savedSession);
+assert.equal(page.toast(), 'Session opened');
+assert.deepEqual(await scales(), kept, 'opening a session preserves its saved scales');
+assert.deepEqual(page.errors, []);
+console.log(
+  'App scale defaults: independent Discover and Play choices, limit and temperament defaults, retuning and session restore passed.'
+);
+await page.close();

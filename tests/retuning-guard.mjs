@@ -1,14 +1,12 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import vm from 'node:vm';
 import {scale} from '../src/core/engine.mjs';
 import {makeState} from '../src/core/catalog.mjs';
 import {BUILTIN_LAYOUTS} from '../src/hexboard/builtin-layouts.mjs';
 import {buildBoard} from '../src/hexboard/hexboard.mjs';
 import {noteCoordinate} from '../src/core/pitch.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
-import {applyTuningMethod, tuningConfig, jiSelection} from '../src/core/tuning-methods.mjs';
 import {preflightRetuning, RETUNING_STRUCTURE_MESSAGE} from '../src/core/retuning-guard.mjs';
+import {bootApp} from './support/dom.mjs';
 
 const builtin = key =>
   structuredClone(BUILTIN_LAYOUTS.find(row => row.id === 'builtin:' + key).state);
@@ -145,168 +143,119 @@ console.log(
   'Retuning boundaries cover collisions, reordered scales, independent Play scales, MOS fallback, axes, pitch aliases, divided and non-octave periods.'
 );
 
-// Execute the real app transaction and event adapters; a rejected draft must not leak
-// through explorer metadata, assignment arrays, direct edits, or a render-time repair.
-const source = readFileSync(new URL('../src/app.mjs', import.meta.url), 'utf8');
-let onChange,
-  stops = 0,
-  renders = 0,
-  panels = 0,
-  notices = [];
-const inert = {change: () => false};
-const config = {
-  ...structuredClone(layout),
-  chord: [65, 66],
-  keyColors: {65: '#abcdef'},
-  savedLayoutId: 'saved-test'
-};
-const context = vm.createContext({
-  structuredClone,
-  preflightRetuning,
-  applyTuningMethod,
-  tuningConfig,
-  jiSelection,
-  states: [structuredClone(meantone)],
-  layoutState: {signature: 'unchanged', state: {...structuredClone(meantone), mode: 1}},
-  selected: [1, 2],
-  view: 'unified',
-  hexWorkspace: {
-    ...inert,
-    retuningSnapshot: () => structuredClone(config),
-    serialize: () => {
-      throw Error('Mutating serialization must not be used');
-    }
-  },
-  compositionWorkspace: inert,
-  harmonicWorkspace: inert,
-  materialWorkspace: inert,
-  presetWorkspace: inert,
-  commaWorkspace: inert,
-  chordWorkspace: inert,
-  document: {addEventListener: (_, fn) => (onChange = fn)},
-  stop: () => stops++,
-  render: () => renders++,
-  renderPanel: () => panels++,
-  toast: text => notices.push(text),
-  settings: () => ({ts: []}),
-  allTargets: () => [],
-  near: () => ({label: '5/4'}),
-  readTuning: () => ({method: 'JI Target', fixed: true, jiAll: false}),
-  $: () => ({querySelector: () => ({scrollIntoView: () => {}})})
-});
-vm.runInContext(
-  source.slice(
-    source.indexOf('function commitRetuning('),
-    source.indexOf('function renderPresetControls(')
-  ),
-  context
-);
-vm.runInContext(
-  source.slice(
-    source.indexOf('function changeExplore('),
-    source.indexOf("document.addEventListener('visibilitychange'")
-  ),
-  context
-);
-vm.runInContext(
-  source.split('\n').find(line => line.startsWith("document.addEventListener('change',")),
-  context
-);
-const change = (dataset, value, extra = {}) =>
-  onChange({
-    target: {
-      dataset: {s: '0', ...dataset},
-      value,
-      hasAttribute: () => false,
-      closest: () => null,
-      ...extra
-    }
-  });
-function reset(extra = {}) {
-  context.states = [{...structuredClone(meantone), ...structuredClone(extra)}];
-  context.layoutState = {signature: 'unchanged', state: {...structuredClone(meantone), mode: 1}};
-  stops = 0;
-  renders = 0;
-  panels = 0;
-  notices = [];
-}
-function rejectsEdit(edit) {
-  const before = structuredClone({
-    states: context.states,
-    layoutState: context.layoutState,
-    config,
-    selected: context.selected
-  });
-  edit();
-  assert.deepEqual(
-    structuredClone({
-      states: context.states,
-      layoutState: context.layoutState,
-      config,
-      selected: context.selected
-    }),
-    before
+// In the app, every tuning control commits atomically: a rejected draft does not leak through
+// explorer metadata, assignments, the Play layout or a redraw.
+const page = await bootApp(),
+  {$} = page;
+const ready = () =>
+  page.until(
+    () => /chords · complete/.test($('[data-unified-pane="directory"]')?.textContent ?? ''),
+    {message: 'the catalogue'}
   );
-  assert.equal(stops, 0);
-  assert.equal(renders, 0, 'rejected edits redraw controls, not the mutating workspace');
-  assert.ok(panels > 0);
-  assert.ok(notices.length);
+await ready();
+async function snapshot() {
+  page.click('#save');
+  const saved = JSON.parse(await page.downloaded(/session\.json$/));
+  return {
+    state: saved.states[0],
+    layoutScale: saved.layoutScale,
+    hexboard: saved.hexboard,
+    generator: $('.tuning-summary').textContent
+  };
+}
+async function rejected(edit, message) {
+  await ready();
+  const before = await snapshot(),
+    workspace = $('.unified-main');
+  $('#toast').textContent = '';
+  await edit();
+  await page.settle();
+  assert.notEqual(page.toast(), '', `${message}: the reason is shown`);
+  assert.deepEqual(await snapshot(), before, `${message}: nothing changes`);
+  assert.equal($('.unified-main'), workspace, `${message}: only the controls redraw`);
 }
 
-reset();
-change({field: 'g'}, String(meantone.g + 0.001));
-assert.equal(context.states[0].g, meantone.g + 0.001, notices.join(' | '));
-assert.equal(context.layoutState.state.g, meantone.g + 0.001);
-assert.equal(context.layoutState.state.mode, 1);
-assert.deepEqual(context.selected, [1, 2]);
-assert.equal(stops, 1);
-reset();
-rejectsEdit(() => change({field: 'g'}, '600'));
-reset();
-rejectsEdit(() => change({field: 'p'}, '1000'));
-const badTarget = {
-  tuning: 'JI Target',
+// A valid JI target commits.
+page.change('[data-field="tuning"]', 'JI Target');
+await page.settle();
+const tuned = await snapshot();
+assert.equal(tuned.state.tuning, 'JI Target');
+assert.equal(
+  tuned.state.g,
+  (1200 * Math.log2(5 / 4) + 2400) / 4,
+  'pure 5/4 at -2 periods + 4 generators'
+);
+assert.deepEqual(tuned.layoutScale, {n: 7, mode: 0}, 'Play keeps its scale');
+
+// Explorer edits that would move the selected scale or layout are rejected.
+await rejected(
+  () => page.change('[data-explore-field="choice"]', '0,1'),
+  'an alternative interval'
+);
+await rejected(() => page.change('[data-explore-field="a"]', '0'), 'direct coordinates');
+await rejected(
+  () => page.change('[data-explore-field="ratio"]', 'not a ratio'),
+  'an invalid ratio'
+);
+assert.match(page.toast(), /integer ratios/);
+
+// A session can hold a JI target draft that no longer fits. Every control that would apply it is
+// rejected without changing anything.
+const draft = {
+  ...tuned.state,
   explore: {ratio: '5/4', m: [0, 1], open: false},
-  tuneConfig: {method: 'JI Target', fixed: true, jiAll: false}
+  tuneConfig: {...tuned.state.tuneConfig, method: 'JI Target', fixed: true, jiAll: false}
 };
-for (const dataset of [{field: 'tuning'}, {tune: 'pure'}, {optimizePeriod: '0'}]) {
-  reset(badTarget);
-  rejectsEdit(() =>
-    change(dataset, 'JI Target', {
-      checked: false,
-      closest: selector => (dataset.tune ? {dataset: {s: '0'}} : null)
-    })
-  );
-}
-reset({explore: {ratio: '5/4', m: [-2, 4], open: false}});
-rejectsEdit(() => context.changeExplore({dataset: {s: '0', exploreField: 'choice'}, value: '0,1'}));
-reset({explore: {ratio: '5/4', m: [-2, 4], open: false}});
-rejectsEdit(() => context.changeExplore({dataset: {s: '0', exploreField: 'a'}, value: '0'}));
-reset({explore: {ratio: '5/4', m: [-2, 4], open: false}});
-rejectsEdit(() =>
-  context.changeExplore({dataset: {s: '0', exploreField: 'ratio'}, value: 'not a ratio'})
-);
-for (const action of ['open', 'cell', 'pure', 'pureall', 'add', 'remove']) {
-  const assignments =
-    action === 'remove'
-      ? [
-          {label: '5/4', c: 1200 * Math.log2(5 / 4), m: [0, 1]},
-          {label: '3/2', c: 1200 * Math.log2(3 / 2), m: [0, 1]}
-        ]
-      : action === 'pureall'
-        ? [{label: '5/4', c: 1200 * Math.log2(5 / 4), m: [0, 1]}]
-        : [];
-  reset({
-    ...badTarget,
-    assignments,
-    tuneConfig: {...badTarget.tuneConfig, jiAll: ['add', 'remove'].includes(action)}
-  });
-  rejectsEdit(() => context.handleExplore({dataset: {s: '0', explore: action, m: '0,1', i: '1'}}));
-}
-// A rejected method retains its old committed config/report instead of being relabelled Manual.
-reset({tuningReport: 'committed report'});
-rejectsEdit(() => context.applyPanelTuning(0, {method: 'no such method'}));
-assert.equal(context.states[0].tuningReport, 'committed report');
+await page.openSession({
+  format: 'temperament-lab-v1',
+  workflowVersion: 8,
+  states: [draft],
+  layoutScale: tuned.layoutScale
+});
+assert.equal(page.toast(), 'Session opened');
+const explorerButton = action => () => page.click(`[data-explore="${action}"]`);
+await rejected(() => page.change('[data-field="tuning"]', 'JI Target'), 'choosing JI Target');
+await rejected(() => page.change('[data-optimize-period="0"]', true), 'Optimize period');
+await rejected(explorerButton('pure'), 'Use this target');
+await page.openSession({
+  format: 'temperament-lab-v1',
+  workflowVersion: 8,
+  states: [
+    {
+      ...draft,
+      assignments: [{label: '5/4', c: 1200 * Math.log2(5 / 4), m: [0, 1]}],
+      tuneConfig: {...draft.tuneConfig, jiAll: true}
+    }
+  ],
+  layoutScale: tuned.layoutScale
+});
+for (const action of ['add', 'pureall']) await rejected(explorerButton(action), action);
+await page.openSession({
+  format: 'temperament-lab-v1',
+  workflowVersion: 8,
+  states: [
+    {
+      ...draft,
+      assignments: [
+        {label: '5/4', c: 1200 * Math.log2(5 / 4), m: [0, 1]},
+        {label: '3/2', c: 1200 * Math.log2(3 / 2), m: [0, 1]}
+      ],
+      tuneConfig: {...draft.tuneConfig, jiAll: true}
+    }
+  ],
+  layoutScale: tuned.layoutScale
+});
+await rejected(() => page.click('[data-explore="remove"][data-i="1"]'), 'removing an assignment');
+// Play received the committed tuning and nothing from the rejected drafts. (Visiting Play starts
+// background work that redraws Discover later, so it comes last.)
+page.section('play');
+await page.settle();
+page.click('[data-hex-action="export"]');
+const exported = JSON.parse(await page.downloaded(/HexBoard\.json$/)).details;
+assert.equal(exported.generatorCents, Number(tuned.state.g.toFixed(4)));
+assert.deepEqual([exported.scale.notes, exported.scale.mode], [7, 1]);
+assert.deepEqual(page.errors, []);
 console.log(
-  'Real tuning, direct P/G, Optimize period, JI explorer and assignment adapters commit atomically and preserve rejected state.'
+  'Real tuning, Optimize period, JI explorer and assignment adapters commit atomically and preserve rejected state.'
 );
+await page.close();

@@ -58,12 +58,24 @@ export function installPage(window) {
   Object.defineProperty(globalThis, 'window', {value: window, configurable: true, writable: true});
 }
 
-// jsdom has no layout, observers or media queries; the app only needs them to exist.
-function addMissingBrowserApis(window, downloads) {
+// jsdom has no layout, observers or media queries; the app only needs them to exist. Resize
+// observers are recorded so a test can report a size change with `page.resize(element)`.
+function addMissingBrowserApis(window, downloads, observers) {
   window.ResizeObserver ??= class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
+    constructor(callback) {
+      this.callback = callback;
+      this.targets = new Set();
+      observers.add(this);
+    }
+    observe(target) {
+      this.targets.add(target);
+    }
+    unobserve(target) {
+      this.targets.delete(target);
+    }
+    disconnect() {
+      this.targets.clear();
+    }
   };
   window.matchMedia ??= query => ({
     media: query,
@@ -168,10 +180,11 @@ export function fakeAudio() {
 export async function bootApp({html = indexHtml(), url = 'http://localhost/'} = {}) {
   const errors = [],
     downloads = [],
+    observers = new Set(),
     virtualConsole = new VirtualConsole();
   virtualConsole.on('jsdomError', error => errors.push(error));
   const {window} = new JSDOM(html, {url, pretendToBeVisual: true, virtualConsole});
-  addMissingBrowserApis(window, downloads);
+  addMissingBrowserApis(window, downloads, observers);
   installPage(window);
   const audio = fakeAudio();
   window.AudioContext = globalThis.AudioContext = audio.AudioContext;
@@ -244,6 +257,16 @@ export async function bootApp({html = indexHtml(), url = 'http://localhost/'} = 
       el.dispatchEvent(
         new window.KeyboardEvent('keydown', {key, bubbles: true, cancelable: true, ...init})
       );
+      return el;
+    },
+    /** Gives an element a layout size and notifies the resize observers watching it. */
+    resize(target, {width = 0, height = 0} = {}) {
+      const el = page.element(target);
+      Object.defineProperty(el, 'offsetWidth', {value: width, configurable: true});
+      Object.defineProperty(el, 'offsetHeight', {value: height, configurable: true});
+      for (const observer of observers)
+        if (observer.targets.has(el))
+          observer.callback([{target: el, contentRect: {width, height}}], observer);
       return el;
     },
     /** Picks a built-in temperament from the temperament chooser. */

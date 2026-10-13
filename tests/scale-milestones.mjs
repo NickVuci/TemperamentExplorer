@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
 import {generatedSizes, mapRatio, targets} from '../src/core/engine.mjs';
 import {makeState} from '../src/core/catalog.mjs';
 import {fromCommas} from '../src/core/tuning.mjs';
@@ -11,6 +10,7 @@ import {
   modeMilestoneMarker,
   formatModeRanges
 } from '../src/core/scale-milestones.mjs';
+import {bootApp, cssRules} from './support/dom.mjs';
 
 function mappedCoordinates(s, options = {limit: Math.max(3, ...s.basis), primeLimit: null}) {
   const {limit, primeLimit} = options,
@@ -146,20 +146,6 @@ assert.equal(
   'unmapped Dreamtone ratios are excluded'
 );
 
-const app = readFileSync(new URL('../src/app.mjs', import.meta.url), 'utf8');
-const css = readFileSync(new URL('../src/style.css', import.meta.url), 'utf8');
-assert.match(app, /data-scale-milestone/, 'coverage cards are actionable');
-assert.match(app, /scaleMilestoneMarkers\(milestones,x\.n\)/, 'the scale menu gets IC/DC suffixes');
-assert.match(
-  app,
-  /modeMilestoneMarker\(milestones,s\.n,i\)/,
-  'completing modes are marked in the mode menu'
-);
-assert.match(
-  css,
-  /\.scale-milestone-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2/,
-  'the four result buttons use a compact two-column grid'
-);
 console.log(
   'Scale coverage milestones: exact mapped interval matrices, tonic-relative modes, all-mode MOS search, subgroup filtering, selection markers, and results passed.'
 );
@@ -242,3 +228,48 @@ assert.notEqual(
   'tuning participates in cache identity'
 );
 assert.throws(() => findScaleMilestones(makeState('meantone'), {limit: 4}), /Odd limit/);
+
+// In the app, the scale and mode menus mark coverage milestones, and each milestone card selects its
+// scale.
+assert.match(
+  cssRules().value('.scale-milestone-grid', 'grid-template-columns'),
+  /^repeat\(2,/,
+  'the four result buttons use a compact two-column grid'
+);
+const page = await bootApp(),
+  {$, $$} = page,
+  milestones = findScaleMilestones(makeState('meantone'), {limit: 15, primeLimit: 5}),
+  optionText = (field, value) =>
+    [...$(`[data-field="${field}"]`).options].find(option => option.value === String(value))
+      ?.textContent;
+await page.until(
+  () => /chords · complete/.test($('[data-unified-pane="directory"]')?.textContent ?? ''),
+  {message: 'the first catalogue'}
+);
+for (const key of ['interval', 'intervalMOS', 'diamond', 'diamondMOS']) {
+  const {n} = milestones[key];
+  assert.ok(
+    optionText('n', n).endsWith(` · ${scaleMilestoneMarkers(milestones, n).join(' · ')}`),
+    `the scale menu marks ${n} notes`
+  );
+}
+assert.equal($$('[data-scale-milestone]').length, 4, 'coverage cards are actionable');
+page.click('[data-scale-milestone="diamond"]');
+await page.settle();
+assert.equal($('[data-field="n"]').value, String(milestones.diamond.n));
+assert.equal($('[data-field="mode"]').value, String(milestones.diamond.mode));
+for (const mode of [milestones.diamond.mode, (milestones.diamond.mode + 1) % milestones.diamond.n])
+  assert.equal(
+    optionText('mode', mode).endsWith(' · DC'),
+    modeMilestoneMarker(milestones, milestones.diamond.n, mode) === 'DC',
+    'completing modes are marked in the mode menu'
+  );
+page.click('[data-scale-milestone="intervalMOS"]');
+await page.settle();
+assert.deepEqual(
+  [$('[data-field="n"]').value, $('[data-field="mode"]').value],
+  [String(milestones.intervalMOS.n), '0'],
+  'an interval-complete MOS opens in mode 1'
+);
+assert.deepEqual(page.errors, []);
+await page.close();
