@@ -25,10 +25,9 @@ import {createJISettings, clampTolerance} from './app/ji-settings.mjs';
 import {sessionFile, readSession, MAX_SESSION_BYTES} from './app/session.mjs';
 import {createTuningPanel} from './app/tuning-panel.mjs';
 import {createScalePane} from './app/scale-pane.mjs';
+import {createHexboardConnection} from './app/hexboard-connection.mjs';
 import {createAudioEngine} from './ui/audio.mjs';
 import {createCompositionWorkspace} from './composition/composition-ui.mjs';
-import {createHexboardDevice} from './hexboard/hexboard-device.mjs';
-import {createHexboardSync, clampBrightness} from './hexboard/hexboard-sync.mjs';
 import {createFingeringGame} from './composition/fingering-game.mjs';
 import {createFingeringGameUi} from './composition/fingering-game-ui.mjs';
 import {createKeyHarmoniesUi} from './hexboard/key-harmonies-ui.mjs';
@@ -859,30 +858,10 @@ const keyHarmoniesUi = createKeyHarmoniesUi({
   isPlayView: () => view === 'hexboard',
   isShown: () => hexWorkspace.chordMode() === 'notes'
 });
-// Physical HexBoard (Web MIDI, delegated control): its keys play through the Play board's own
-// pointer path, and its lights follow the layout, highlights and held keys.
-const hexboardDevice = createHexboardDevice({
-  onKey: (index, down, t) => {
-    if (down) {
-      hexboardSync.keyDown(index, t);
-      scheduleHexboardProbe();
-    } else hexboardSync.keyUp(index);
-  },
-  onEncoder: event => {
-    if (event === 'press') {
-      stop();
-      if (view === 'hexboard') {
-        hexWorkspace.clearHighlight();
-        renderWorkspace();
-      }
-    }
-  },
-  onStatus: (state, detail) => showHexboardStatus(state, detail)
-});
-// Physical keys press the on-screen board that is showing: the open composition's, else Play's.
+// Physical HexBoard: its keys press the on-screen board that is showing, the open composition's
+// or else Play's.
 const composing = () => view === 'composition' && compositionWorkspace.open;
-const hexboardSync = createHexboardSync({
-  device: hexboardDevice,
+const hexboard = createHexboardConnection({
   pressKey: (index, t) =>
     (composing()
       ? compositionWorkspace.pressKey(index, t)
@@ -891,93 +870,17 @@ const hexboardSync = createHexboardSync({
     composing() ? compositionWorkspace.releaseKey(index) : hexPlayer?.releaseKey(String(index)),
   getSnapshot: () =>
     composing() ? compositionWorkspace.deviceSnapshot() : hexWorkspace.deviceSnapshot(),
-  startVoice: c => audioEngine.startVoice(c)
-});
-// Overall LED brightness for a connected board, remembered in this browser.
-const HEXBOARD_BRIGHTNESS_KEY = 'temperament-lab-hexboard-brightness';
-function showHexboardBrightness(value) {
-  const input = $('#hexboard-brightness'),
-    out = $('#hexboard-brightness-value'),
-    percent = Math.round(value * 100);
-  if (input) input.value = String(percent);
-  if (out) out.textContent = `${percent}%`;
-}
-{
-  let saved = null;
-  try {
-    saved = globalThis.localStorage?.getItem(HEXBOARD_BRIGHTNESS_KEY);
-  } catch {}
-  showHexboardBrightness(
-    hexboardSync.setBrightness(saved === null ? 1 : clampBrightness(Number(saved) / 100))
-  );
-}
-$('#hexboard-brightness').oninput = e => {
-  const value = hexboardSync.setBrightness(Number(e.target.value) / 100);
-  showHexboardBrightness(value);
-  try {
-    globalThis.localStorage?.setItem(HEXBOARD_BRIGHTNESS_KEY, String(Math.round(value * 100)));
-  } catch {}
-};
-// Latency probe: the board's key-to-sound time inside the app, and the audio device's own buffering.
-let hexboardConnectedName = '',
-  hexboardProbeTimer = null;
-function hexboardConnectedText() {
-  const delay = hexboardSync.inputDelay(),
-    output = audioEngine.outputLatency();
-  const probe =
-    delay === null
-      ? ''
-      : ` · key to sound ${delay.toFixed(1)} ms in the app${output === null ? '' : ` + ${output.toFixed(0)} ms audio output`}`;
-  return `HexBoard connected${hexboardConnectedName ? ': ' + hexboardConnectedName : ''}${probe}`;
-}
-function scheduleHexboardProbe() {
-  if (hexboardProbeTimer) return;
-  hexboardProbeTimer = setTimeout(() => {
-    hexboardProbeTimer = null;
-    if (!hexboardDevice.connected) return;
-    const text = $('#hexboard-status');
-    if (text) {
-      text.textContent = hexboardConnectedText();
-      text.title = text.textContent;
+  audio: audioEngine,
+  onEncoderPress: () => {
+    stop();
+    if (view === 'hexboard') {
+      hexWorkspace.clearHighlight();
+      renderWorkspace();
     }
-  }, 400);
-}
-function showHexboardStatus(state, detail = {}) {
-  const button = $('#hexboard-connect'),
-    text = $('#hexboard-status');
-  button.textContent = state === 'connected' ? 'Disconnect HexBoard' : 'Connect HexBoard';
-  button.disabled = state === 'connecting';
-  if (state === 'connected') hexboardConnectedName = detail.name ?? '';
-  const message =
-    state === 'connected'
-      ? hexboardConnectedText()
-      : state === 'connecting'
-        ? 'Connecting…'
-        : state === 'error'
-          ? detail.message
-          : detail.reason === 'unplugged'
-            ? 'HexBoard unplugged'
-            : '';
-  text.textContent = message;
-  text.title = message;
-  const brightness = $('.hexboard-brightness');
-  if (brightness) brightness.hidden = state !== 'connected';
-  if (state === 'connected') hexboardSync.start();
-  else {
-    hexboardSync.stop();
-    if (state === 'disconnected') hexboardSync.releaseAll();
-    if (state === 'error') toast(message);
-  }
-}
-$('#hexboard-connect').onclick = async () => {
-  if (hexboardDevice.connected) {
-    hexboardSync.releaseAll();
-    hexboardDevice.disconnect();
-    return;
-  }
-  void audioEngine.prepare().catch(() => {});
-  await hexboardDevice.connect();
-};
+  },
+  notify: message => toast(message)
+});
+const hexboardSync = hexboard.sync;
 function stop() {
   hexPlayer?.reset();
   diamondPlayer?.reset();
@@ -1390,8 +1293,7 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('pagehide', () => compositionWorkspace.pause());
 window.addEventListener('pagehide', () => {
-  hexboardSync.releaseAll();
-  hexboardDevice.disconnect();
+  hexboard.release();
 });
 // The practice panels follow the view in the same event as the switch, so the Play page renders once, fully
 // formed, and nothing is left behind on Discover. (Registered last, so the app's own handlers have already run.)
