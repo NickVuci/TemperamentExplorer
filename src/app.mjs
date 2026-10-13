@@ -1,13 +1,16 @@
-import {parsePrimeFilterInput, DEFAULT_ODD_LIMIT, formatPrimeFilter, primeFilterForBasis, validateJILimits, ratioWithinJILimits} from './core/ji-limit-engine.mjs';
+import {parsePrimeFilterInput, DEFAULT_ODD_LIMIT, formatPrimeFilter, primeFilterForBasis, validateJILimits} from './core/ji-limit-engine.mjs';
 import {createDiamondWorkspace} from './diamond/diamond-workspace.mjs';
 import {fitDiamondChord} from './diamond/diamond-layout.mjs';
 import {createFocusSync} from './app/focus-sync.mjs';
-import {octavePeriods, sameCoordinate as same, purePeriod, periodDescription} from './core/pitch.mjs';
+import {sameCoordinate as same, purePeriod, periodDescription} from './core/pitch.mjs';
 import {createHarmonicCatalogueWorkspace} from './harmonic/harmonic-catalogue-ui.mjs';
 import {syncUnifiedPanelHeights,renderUnified,unifiedDirectory,unifiedDetail,unifiedCenterView,normalizeUnifiedCenter} from './ui/discover-unified.mjs';
 import {withDefaultScale} from './core/default-scale.mjs';
 import {renderScaleView,normalizeScaleView,linkScaleDegree} from './ui/scale-view.mjs';
-import {esc,option} from './ui/ui.mjs';
+import {esc,option,fixed as fmt,signedFixed as sign} from './ui/ui.mjs';
+import {nearestTarget,allTargets,visibleTargets,spanControl,renderMatrix} from './app/matrix-view.mjs';
+import {fillDiamondDetails as showDiamondDetails} from './app/diamond-details.mjs';
+import {createJISettings} from './app/ji-settings.mjs';
 import {createAudioEngine} from './ui/audio.mjs';
 import {createCompositionWorkspace} from './composition/composition-ui.mjs';
 import {createHexboardDevice} from './hexboard/hexboard-device.mjs';
@@ -16,8 +19,7 @@ import {createFingeringGame} from './composition/fingering-game.mjs';
 import {createFingeringGameUi} from './composition/fingering-game-ui.mjs';
 import {createKeyHarmoniesUi} from './hexboard/key-harmonies-ui.mjs';
 import {sessionFormat,compositionForSave,isSessionFormat,compositionFromSession} from './composition/composition-session.mjs';
-import {normalizeDiamondScope,maximumDiamondError,renderDiamondTolerance} from './diamond/tonality-diamond.mjs';
-import {errorColor,maximumMappedTargetError} from './core/ji-error-color.mjs';
+import {normalizeDiamondScope,renderDiamondTolerance} from './diamond/tonality-diamond.mjs';
 import {createHexboardPlayer} from './hexboard/hexboard-player.mjs';
 import {createLiveChordRecognizer} from './chords/live-chord-recognition.mjs';
 import {createMaterialWorkspace} from './ui/material-ui.mjs';
@@ -27,16 +29,17 @@ import {createPresetWorkspace} from './presets/preset-ui.mjs';
 import {browserPresetStore} from './presets/preset-store.mjs';
 import {validateState as validate} from './core/state.mjs';
 import {createHexboardWorkspace} from './hexboard/hexboard-ui.mjs';
-import {matrixScale, matrixInterval, matrixWindow} from './core/matrix.mjs';
+import {matrixScale, matrixInterval} from './core/matrix.mjs';
 import {createCommaWorkspace} from './ui/comma-ui.mjs';
 import {createChordWorkspace} from './ui/chord-ui.mjs';
 import {target, assignment, checkAssignments, coordinate} from './core/assignments.mjs';
 import {candidates,nearestReport} from './core/approximation-compat.mjs';
 import {supportingEdos} from './core/tuning.mjs';
-import {scale, scaleChoices, mapRatio, targets, classifyTargets, createTargetClassifier, fitGeneratedScale} from './core/engine.mjs';
+import {scale, scaleChoices, mapRatio, classifyTargets, createTargetClassifier, fitGeneratedScale} from './core/engine.mjs';
 import {presets, makeState} from './core/catalog.mjs';
 import {findScaleMilestones,scaleDefaultKey,scaleMilestoneMarkers,modeMilestoneMarker,formatModeRanges} from './core/scale-milestones.mjs';
 const $=q=>document.querySelector(q);
+const jiSettings=createJISettings({$,getState:()=>states[0],getDiamondScope:()=>diamondScope,getManualTolerance:()=>manualTolerance,diamondLayout:()=>diamondWorkspace.layout()});
 function populateLimitOptions(basisLimit,primeBasisFilter){
  const odd=$('#limit'),prime=$('#primeLimit'),oddSelection=odd.value||String(DEFAULT_ODD_LIMIT),primeSelection=prime.value;
  prime.placeholder='e.g. 11 or 2.3.5.11';prime.title=`basis = current temperament basis (${states[0].basis.join('.')}); blank = no prime filter`;
@@ -112,10 +115,10 @@ function showLiveChord(){
 const diamondWorkspace=createDiamondWorkspace({document,getState:()=>states[0],refresh:()=>renderWorkspace(),notify:toast,play:playPitches,onInspect:()=>fillDiamondDetails(),onChordChange:()=>{fillDiamondDetails();focusSync.followDiamond();},onTuningChange:centsFor=>diamondPlayer?.retune(centsFor),onCollect:item=>materialWorkspace.add(item.kind,states[0],item.coords,item.label,{exact:true,harmonicSelection:item.harmonicSelection}),onPlace:placeMaterial,onChord:item=>{if(item.harmonicSelection){view='unified';manualChordInspector=false;harmonicWorkspace.openSelection(item.harmonicSelection);renderWorkspace();return;}const next=fitDiamondChord(states[0],item.coords),previous=states[0];try{states[0]=validate(next);chordWorkspace.fromCoordinates(item.coords,item.label);}catch(error){states[0]=previous;throw error;}view='chords';selected=null;stop();render();}});
 const hexWorkspace=createHexboardWorkspace({getShapeDirectory:()=>harmonicWorkspace.shapeTargets(),onFocusHarmony:coordinates=>focusSync.focusPlayedHarmony(coordinates),matchPlayed:coordinates=>harmonicWorkspace.matchPlayed(coordinates),getJI:settings,setJI:patch=>{if(patch.tol!==undefined)manualTolerance=clampTolerance(patch.tol)??0;if(patch.limit!==undefined)$('#limit').value=String(patch.limit);if(patch.primeLimit!==undefined)$('#primeLimit').value=Array.isArray(patch.primeLimit)?patch.primeLimit.join('.'):patch.primeLimit==null?'':String(patch.primeLimit);if(patch.filter!==undefined)$('#targetfilter').value=patch.filter;},getStates:getLayoutStates,play:playPitches,refresh:mode=>mode===true?render():renderWorkspace({keepNotes:mode==='highlight'}),notify:toast,download,getHz:()=>audioSettings.tonic,getBassEntries:value=>harmonicWorkspace.bassEntriesFor(value),onBrowseHarmony:()=>{view='unified';manualChordInspector=false;renderWorkspace();},onSearch:text=>focusSync.searchPlayChord(text),onFitHarmonicScale:fitPlayHarmony,onCollect:(s,coords,label,options)=>materialWorkspace.add('chord',s,coords,label,{exact:true,...options}),onInspect:(s,coords,label)=>{manualChordInspector=true;states[0]=validate(structuredClone(s));coverageSignature=scaleDefaultKey(states[0],coverageSettings(states[0]));chordWorkspace.fromCoordinates(coords,label);view='unified';selected=null;render();}});
 const matrixPages=[[0,0]];
-const stateName=s=>`${s.name}[${s.n}]`,fmt=(x,n=2)=>Number(x).toFixed(n),sign=x=>`${x>=0?'+':''}${fmt(x)}`;
+const stateName=s=>`${s.name}[${s.n}]`;
 function toast(t){$('#toast').textContent=t;$('#toast').style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').style.display='none',4500);}
 function clampTolerance(value){const n=Number(value);return Number.isFinite(n)?Math.max(0,Math.min(100,n)):null;}
-function readTuning(panel){const cfg={...tuningConfig(states[Number(panel.dataset.s)])};panel.querySelectorAll('[data-tune]').forEach(el=>{const key=el.dataset.tune;if(key==='edoChoice'){[cfg.n,cfg.k,cfg.h]=el.value.split(':');}else if(key==='optimizePeriod')cfg.fixed=!el.checked;else cfg[key]=el.type==='checkbox'?el.checked:el.value;});return cfg;}
+function readTuning(panel){const cfg={...tuningConfig(states[Number(panel.dataset.s)])};panel.querySelectorAll('[data-tune]').forEach(el=>{const key=el.dataset.tune;if(key==='edoChoice'){[cfg.n,cfg.k,cfg.h]=el.value.split(':');}else cfg[key]=el.type==='checkbox'?el.checked:el.value;});return cfg;}
 function tuningControls(s,idx){const cfg=tuningConfig(s),method=cfg.method;if(!['Minimax','Least Squares','EDO','JI Target'].includes(method))return '';const options=method==='EDO'?supportingEdos(s,Number(cfg.edoMax),cfg.edoVariants):[];
  return `${method==='EDO'?'<p>EDO fixes the octave at 1200¢.</p>':''}
  ${method==='EDO'?`<label>EDO<select data-tune="edoChoice">${options.length?options.map(v=>option(v.n+':'+v.k+':'+v.periodSteps,`${v.n}edo · ${v.k} generator steps${v.patent?'':' · nearby val'}`,cfg.n+':'+cfg.k+':'+cfg.h)).join(''):'<option value="">No supporting EDO</option>'}</select></label><details><summary>EDO search options</summary><label>Search up to<select data-tune="edoMax">${[100,500,1000,5000].map(n=>option(n,n,cfg.edoMax)).join('')}</select></label><label class="checklabel"><input type="checkbox" data-tune="edoVariants" ${cfg.edoVariants?'checked':''}>Include nearby non-patent vals</label><p>Every listed mapping tempers out the temperament’s commas.</p></details>`:''}
@@ -159,67 +162,12 @@ ${renderScaleView({s,a,idx,view:scaleView,bassDegree:bass?.scale==='discover'?ba
 ${a.collision?'<p class="notice">This tuning collapses notes. Choose a smaller size.</p>':''}
 </section>`;}
 
-function automaticTolerance(){const s=states[0],limitSelection=$('#limit').value,limit=limitSelection==='basis'?Math.max(3,...s.basis):Number(limitSelection),primeSelection=$('#primeLimit').value===$('#primeLimit').dataset?.basisValue?'basis':$('#primeLimit').value,primeLimit=parsePrimeFilterInput(primeSelection,s.basis),cfg={limit,primeLimit};validateJILimits({oddLimit:limit,primeLimit});const ts=allTargets(targets(limit,primeLimit),s,cfg);return Math.max(maximumMappedTargetError(s,ts),maximumDiamondError(s,{...cfg,scope:diamondScope,diamondLayout:diamondWorkspace.layout(),filter:$('#targetfilter').value,outside:true}));}
-function coverageSettings(s){const basisPrimes=s.basis,basisLimit=Math.max(3,...basisPrimes),limit=$('#limit').value==='basis'?basisLimit:Number($('#limit').value),primeLimitSelection=$('#primeLimit').value===$('#primeLimit').dataset?.basisValue?'basis':$('#primeLimit').value,primeLimit=parsePrimeFilterInput(primeLimitSelection,basisPrimes);validateJILimits({oddLimit:limit,primeLimit});return {limit,primeLimit,primeLimitSelection};}
-function settings(s=states[0]){const cfg=coverageSettings(s),autoTolerance=automaticTolerance(),tol=manualTolerance??autoTolerance;$('#tolerance').value=String(tol);return {...cfg,layout:$('#layout').value,labels:$('#labels').value,ts:targets(cfg.limit,cfg.primeLimit),tol,maxError:tol,autoTolerance,toleranceAutomatic:manualTolerance===null,filter:$('#targetfilter').value,outside:true};}
-function near(c,ts){return [...ts,{c:1200,label:'2/1'}].reduce((a,t)=>Math.abs(t.c-c)<Math.abs(a.c-c)?t:a,{c:0,label:'1/1'});}
-function allTargets(ts,s,cfg){const extras=[{n:1,d:1,label:'1/1',c:0},{n:2,d:1,label:'2/1',c:1200},...(s.basis[0]===2?[]:[{n:s.basis[0],d:1,label:`${s.basis[0]}/1`,c:1200*Math.log2(s.basis[0])}])];return [...extras.filter(t=>ratioWithinJILimits(t.n,t.d,{oddLimit:cfg.limit,primeLimit:cfg.primeLimit})),...ts];}
-function visibleTargets(match,cfg){const hasMappedHit=match.mapped.some(t=>t.within);const hits=match.hits.filter(t=>!hasMappedHit||t.reason!=='Outside temperament basis');return [...(cfg.filter==='hits'?[]:match.mapped.filter(t=>t.within||cfg.outside)),...(cfg.filter==='mapped'?[]:hits)];}
-function targetMarkup(t){return `<span class="target-chip ${t.identity?(t.within?'target-mapped':'target-outside'):'target-hit'}"><small>${t.identity?(t.within?'M':'M×'):(t.reason==='Outside temperament basis'?'O':'A')}</small> ${t.label}</span>`;}
-function targetCellMarkup(items){if(!items.length)return '—';const first=targetMarkup(items[0]);return `<span class="target-cell-content">${first}${items.length>1?`<small class="target-more">+${items.length-1}</small>`:''}</span>`;}
-function spanControl(s,idx,label='Matrix span'){
- if(octavePeriods(s)<=1)return '';
- const m=matrixScale(s),value=m.periods===1?'period':'octave';
- return `<div class="span-control"><label>${label}<select data-matrix-span="${idx}">${option('period','One period',value)}${option('octave','Whole octave',value)}</select></label><p>${m.periods>1?`${m.periods} repeated periods · ${m.n} notes · tempered octave ${fmt(m.p,4)} ¢`:`${s.n} notes · one period ${fmt(s.p,4)} ¢`}</p></div>`;
-}
-function matrix(){
- const s=states[0],cfg=settings(s),classify=createTargetClassifier(s,allTargets(cfg.ts,s,cfg),cfg.tol),ascending=cfg.layout==='distance',m=matrixScale(s),notes=m.notes,w=matrixWindow(m,ascending,...matrixPages[0]);matrixPages[0]=[w.rowPage,w.colPage];
- let body='<thead><tr><th scope="col" title="Starting note in cents">¢</th>'+Array.from({length:w.colEnd-w.colStart},(_,x)=>{const j=x+w.colStart;return `<th scope="col">${j===m.n?'('+j+')':j}</th>`;}).join('')+'</tr></thead><tbody>';
- for(let i=w.rowStart;i<w.rowEnd;i++){
-  body+=`<tr><th scope="row" title="Starting note ${i}: ${fmt(notes[i].c,4)} cents">${fmt(notes[i].c,1)}</th>`;
-  for(let j=w.colStart;j<w.colEnd;j++){
-   const v=matrixInterval(m,i,j,cfg.layout),c=v.c,match=classify(v),shown=visibleTargets(match,cfg);
-   const text=cfg.labels==='cents'?fmt(c,1):cfg.labels==='generators'?(v.k>0?'+':'')+v.k:targetCellMarkup(shown);
-   const colorTarget=shown.find(t=>t.identity)||shown[0],color=colorTarget?errorColor(colorTarget.error,cfg.maxError):'#1c2531',ink=colorTarget?'#11151c':'';
-   body+=`<td><button class="cell ${cfg.labels==='ratios'?'ratio-cell':''}" style="background:${color}${ink?`;color:${ink}`:''}" data-cell="${i},${j}" aria-label="Scale, starting note ${fmt(notes[i].c,1)} cents, ${ascending?'ascending step':'destination degree'} ${j}, ${fmt(c)} cents" title="${fmt(c,4)} ¢${shown.map(t=>` · ${t.identity?(t.within?'Mapped':'Mapped outside tolerance'):(t.reason==='Outside temperament basis'?'Outside subgroup':'Alternative approximation')} ${t.label}: ${sign(t.error)} ¢`).join('')}">${text}</button></td>`;
-  }
-  body+='</tr>';
- }
- return `<div class="matrixbox"><div class="matrixheading" data-matrix-labels-host></div>${octavePeriods(s)>1?`<div class="matrix-span">${spanControl(s,0)}</div>`:''}${w.rowPages>1||w.colPages>1?`<div class="matrix-pages">${[['Rows',w.rowStart,w.rowEnd,m.n,w.rowPage,w.rowPages,0],['Columns',w.colStart,w.colEnd,m.n+(ascending?1:0),w.colPage,w.colPages,1]].map(([label,start,end,total,page,pages,axis])=>`<span>${label} ${start}–${end-1} / ${total} <button data-matrix-page="0,${axis},${page-1}" ${page===0?'disabled':''} aria-label="Previous ${label.toLowerCase()}">←</button><button data-matrix-page="0,${axis},${page+1}" ${page===pages-1?'disabled':''} aria-label="Next ${label.toLowerCase()}">→</button></span>`).join('')}</div>`:''}<p class="viewnote matrix-chord-hint">Shift-click cells to build a chord from their scale degrees.</p><div class="matrixscroll"><table class="matrix" style="--matrix-columns:${w.colEnd-w.colStart}" aria-label="Scale interval matrix">${body}</tbody></table></div><div class="matrix-options-host" data-matrix-controls-host></div></div>`;
-}
-function diamondIntervalTable(intervals,tol,explanation=''){
- const memberColor=interval=>interval.errorCents===null?'var(--muted)':errorColor(interval.errorCents,tol);
- const ratios=intervals.map(interval=>`<th scope="col" title="JI interval">${esc(interval.ratio)}</th>`).join(''),ideal=intervals.map(interval=>`<td title="JI cents">${fmt(interval.idealCents,3)}¢</td>`).join('');
- const tempered=intervals.map(interval=>`<td style="--approximation-color:${memberColor(interval)}" title="Tempered cents"${interval.description?` aria-label="${esc(interval.description)}"`:''}>${interval.temperedCents===null?'—':`${fmt(interval.temperedCents,3)}¢`}</td>`).join(''),deviations=intervals.map(interval=>`<td style="--approximation-color:${memberColor(interval)}" title="Signed deviation from JI">${interval.errorCents===null?'—':`${sign(interval.errorCents)}¢`}</td>`).join('');
- return `<table class="diamond-interval-table" aria-label="JI and tempered intervals"><thead><tr>${ratios}</tr><tr>${ideal}</tr></thead><tbody class="diamond-chord-approximation"${explanation?` title="${esc(explanation)}"`:''}><tr>${tempered}</tr><tr>${deviations}</tr></tbody></table>`;
-}
+function coverageSettings(s){return jiSettings.coverage(s);}
+function settings(s){return jiSettings.current(s);}
+function matrix(){const {html,page}=renderMatrix(states[0],settings(states[0]),matrixPages[0]);matrixPages[0]=page;return html;}
 function unifiedWorkspace(){const parts=harmonicWorkspace.renderParts({directory:true});return renderUnified({center:unifiedCenter,centerMarkup:unifiedCenter==='matrix'?`<div class="matrixpair single">${matrix(0)}</div>`:targetTable(),directory:unifiedDirectory(parts),detail:manualChordInspector?chordWorkspace.render():unifiedDetail(parts),scaleControls:scaleControls(),scaleMarkup:scaleDetails()});}
 function targetTable(){const s=states[0];return `<div class="diamond-pair single">${diamondWorkspace.render({...settings(s),scope:diamondScope},'')}</div>`;}
-// A single cell shows the one approximation it sounds (its diamondApproximation status), the
-// same reading the chord readout and playback use for that cell.
-function diamondDetails(cell){
- const cfg=settings(states[0]),tol=cfg.maxError??cfg.tol,status=cell.status,v=status?.approximation??null;
- const empty=v?'':status?.source==='mapping'&&!status.mappedCoordinate?'Outside temperament basis.':'No interval matches the current target display filter.';
- const intervals=[{ratio:cell.label,idealCents:cell.c,temperedCents:v?v.c:null,errorCents:v?v.error:null,
-  ...(v?{description:`Tempered cents: ${fmt(v.c,3)}¢; ${v.mapped?'Mapped':'Alternative approximation'}; ${coordinate(v.m)}${status.source==='scale'&&!v.available?'; absent from this scale':''}`}:{})}];
- return `<div class="diamond-chord-heading" aria-hidden="true"></div>${diamondIntervalTable(intervals,tol)}${empty?`<p class="viewnote">${esc(empty)}</p>`:''}`;
-}
-function diamondChordDetails(chord){
- if(!chord)return '';
- const tuning=chord.tuning,cfg=settings(),ratio=chord.kind==='collection'?`${chord.cardinality} pitches`:chord.form==='utonal'?chord.utonal:chord.otonal;
- const heading=`<div class="diamond-chord-heading"><h4>${esc(ratio)}</h4></div>`;
- if(!tuning)return heading;
- const tol=cfg.maxError??cfg.tol,explanation=tuning.available?`Total chord error: ${fmt(tuning.totalErrorCents,3)} cents. Sum of absolute errors across all ${tuning.intervalCount} note pairs.`:'Some notes have no available approximation.';
- return `${heading}${diamondIntervalTable(tuning.intervals,tol,explanation)}${tuning.available?'':'<p class="viewnote">Some notes have no available approximation.</p>'}`;
-}
-function fillDiamondDetails(){
- const el=$('#diamond-detail-0');if(!el)return;
- const active=diamondWorkspace.displayCells(),chord=active.length?diamondWorkspace.chordDisplay():null,cell=el.querySelector('[data-diamond-cell-detail]'),readout=el.querySelector('[data-diamond-chord]');
- const single=active.length&&!chord?diamondDetails(active[0]):'';
- if(cell){cell.hidden=!single;cell.innerHTML=single;}else el.innerHTML=chord?diamondChordDetails(chord):single;
- if(readout){readout.innerHTML=diamondChordDetails(chord);readout.hidden=!chord;}
- el.hidden=active.length===0;
-}
+function fillDiamondDetails(){const el=$('#diamond-detail-0');if(el)showDiamondDetails(el,diamondWorkspace,()=>{const cfg=settings();return cfg.maxError??cfg.tol;});}
 
 function syncNavigation(){
  const section=sectionFor(view);lastViews[section]=view;
@@ -367,7 +315,7 @@ function explorerBody(s,idx){
 function impliedTargets(next,old){return `<div class="tablewrap"><table><thead><tr><th>Target</th><th>Coordinates</th><th>Error</th></tr></thead><tbody>${settings(next).ts.filter(t=>!mapRatio(t.n,t.d,old)&&mapRatio(t.n,t.d,next)).map(t=>{const m=mapRatio(t.n,t.d,next);return `<tr><td>${t.label}</td><td>${coordinate(m)}</td><td>${sign(m[0]*next.p+m[1]*next.g-t.c)} ¢</td></tr>`;}).join('')}</tbody></table></div><p>Related ratios through odd limit 13, using the current tuning.</p>`;}
 function nearestSummary(s){const r=nearestReport(s,settings(s).ts);return `<p>${r.mapped} targets in the mapping; ${r.alternative} have a strictly closer alternative in this scale; ${r.absent} have their mapped interval absent. ${r.outside} targets are outside the subgroup.</p>`;}
 function changeExplore(el){const idx=Number(el.dataset.s),s=structuredClone(states[idx]);try{s.explore={...s.explore,notice:''};if(el.dataset.exploreField==='ratio'){s.explore.ratio=el.value;delete s.explore.m;}else if(el.dataset.exploreField==='choice')s.explore.m=el.value.split(',').map(Number);else{const old=jiSelection(s);s.explore.m=[...old.m];s.explore.m[el.dataset.exploreField==='a'?0:1]=Number(el.value);}applyPanelTuning(idx,{...tuningConfig(s),method:'JI Target',jiAll:false},s);}catch(e){toast(e.message);renderPanel(idx);}}
-function handleExplore(b){const idx=Number(b.dataset.s),s=structuredClone(states[idx]),action=b.dataset.explore;s.explore={...s.explore,open:true,notice:''};if(action==='open'){applyPanelTuning(idx,{...tuningConfig(s),method:'JI Target'},s);return;}if(action==='cell'){s.explore.m=b.dataset.m.split(',').map(Number);const c=s.explore.m[0]*s.p+s.explore.m[1]*s.g,ji=settings(s);s.explore.ratio=near(c,allTargets(ji.ts,s,ji)).label;if(applyPanelTuning(idx,{...tuningConfig(s),method:'JI Target',jiAll:false},s)){view='unified';$('#tuning-panel').querySelector('.advanced-tuning-options').open=true;$('#tuning-panel').querySelector('.target-explorer').scrollIntoView({block:'center',behavior:'smooth'});}return;}
+function handleExplore(b){const idx=Number(b.dataset.s),s=structuredClone(states[idx]),action=b.dataset.explore;s.explore={...s.explore,open:true,notice:''};if(action==='open'){applyPanelTuning(idx,{...tuningConfig(s),method:'JI Target'},s);return;}if(action==='cell'){s.explore.m=b.dataset.m.split(',').map(Number);const c=s.explore.m[0]*s.p+s.explore.m[1]*s.g,ji=settings(s);s.explore.ratio=nearestTarget(c,allTargets(ji.ts,s,ji)).label;if(applyPanelTuning(idx,{...tuningConfig(s),method:'JI Target',jiAll:false},s)){view='unified';$('#tuning-panel').querySelector('.advanced-tuning-options').open=true;$('#tuning-panel').querySelector('.target-explorer').scrollIntoView({block:'center',behavior:'smooth'});}return;}
  if(action==='remove'){s.assignments.splice(Number(b.dataset.i),1);if(tuningConfig(s).jiAll)applyPanelTuning(idx,{...tuningConfig(s),jiAll:s.assignments.length>0},s);else{states[idx]=s;render();}return;}
  if(action==='adopt'){const result=checkAssignments(s,s.assignments||[]);if(result.status!=='compatible'||!result.extended)throw Error('There is no complete compatible extension to adopt.');const next={...s,basis:result.basis,rows:result.rows,key:'custom',name:s.name+' extension',commas:'custom mapping',tuning:'Manual',generatorLabel:'',tuningReport:'Mapping extended from selected assignments. Period and generator tuning retained.'};next.explore.notice='Extension adopted. Related targets now follow the extended mapping.';validate(next);states[idx]=next;render();return;}
  const t=jiSelection(s);s.explore.m=[...t.m];if(action==='listen'){states[idx]=s;playPitches([0,t.m[0]*s.p+t.m[1]*s.g]);return;}
