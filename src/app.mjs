@@ -8,7 +8,7 @@ import {
 import {createDiamondWorkspace} from './diamond/diamond-workspace.mjs';
 import {fitDiamondChord} from './diamond/diamond-layout.mjs';
 import {createFocusSync} from './app/focus-sync.mjs';
-import {sameCoordinate as same, purePeriod, periodDescription} from './core/pitch.mjs';
+import {periodDescription} from './core/pitch.mjs';
 import {createHarmonicCatalogueWorkspace} from './harmonic/harmonic-catalogue-ui.mjs';
 import {
   syncUnifiedPanelHeights,
@@ -21,16 +21,11 @@ import {
 import {withDefaultScale} from './core/default-scale.mjs';
 import {renderScaleView, normalizeScaleView, linkScaleDegree} from './ui/scale-view.mjs';
 import {esc, option, fixed as fmt, signedFixed as sign} from './ui/ui.mjs';
-import {
-  nearestTarget,
-  allTargets,
-  visibleTargets,
-  spanControl,
-  renderMatrix
-} from './app/matrix-view.mjs';
+import {allTargets, visibleTargets, spanControl, renderMatrix} from './app/matrix-view.mjs';
 import {fillDiamondDetails as showDiamondDetails} from './app/diamond-details.mjs';
 import {createJISettings, clampTolerance} from './app/ji-settings.mjs';
 import {sessionFile, readSession, MAX_SESSION_BYTES} from './app/session.mjs';
+import {createTuningPanel} from './app/tuning-panel.mjs';
 import {createAudioEngine} from './ui/audio.mjs';
 import {createCompositionWorkspace} from './composition/composition-ui.mjs';
 import {createHexboardDevice} from './hexboard/hexboard-device.mjs';
@@ -42,14 +37,6 @@ import {renderDiamondTolerance} from './diamond/tonality-diamond.mjs';
 import {createHexboardPlayer} from './hexboard/hexboard-player.mjs';
 import {createLiveChordRecognizer} from './chords/live-chord-recognition.mjs';
 import {createMaterialWorkspace} from './ui/material-ui.mjs';
-import {
-  tuningMethods,
-  tuningMethod,
-  tuningConfig,
-  applyTuningMethod,
-  jiSelection
-} from './core/tuning-methods.mjs';
-import {preflightRetuning} from './core/retuning-guard.mjs';
 import {createPresetWorkspace} from './presets/preset-ui.mjs';
 import {browserPresetStore} from './presets/preset-store.mjs';
 import {validateState as validate} from './core/state.mjs';
@@ -57,9 +44,6 @@ import {createHexboardWorkspace} from './hexboard/hexboard-ui.mjs';
 import {matrixScale, matrixInterval} from './core/matrix.mjs';
 import {createCommaWorkspace} from './ui/comma-ui.mjs';
 import {createChordWorkspace} from './ui/chord-ui.mjs';
-import {target, assignment, checkAssignments, coordinate} from './core/assignments.mjs';
-import {candidates, nearestReport} from './core/approximation-compat.mjs';
-import {supportingEdos} from './core/tuning.mjs';
 import {
   scale,
   scaleChoices,
@@ -68,7 +52,7 @@ import {
   createTargetClassifier,
   fitGeneratedScale
 } from './core/engine.mjs';
-import {presets, makeState} from './core/catalog.mjs';
+import {makeState} from './core/catalog.mjs';
 import {
   findScaleMilestones,
   scaleDefaultKey,
@@ -225,7 +209,7 @@ const presetWorkspace = createPresetWorkspace({
   refresh: () => {
     document
       .querySelectorAll('[data-preset-controls]')
-      .forEach(el => renderPresetControls(el, Number(el.dataset.presetControls)));
+      .forEach(el => tuningPanel.renderPresetControls(el));
   },
   notify: toast
 });
@@ -462,78 +446,26 @@ const hexWorkspace = createHexboardWorkspace({
   }
 });
 const matrixPages = [[0, 0]];
+const tuningPanel = createTuningPanel({
+  getState: () => state,
+  setState: s => (state = s),
+  getPlayState: () => layoutState?.state ?? null,
+  setPlayState: s => (layoutState.state = s),
+  layoutSnapshot: () => hexWorkspace.retuningSnapshot(),
+  presets: presetWorkspace,
+  settings: s => settings(s),
+  stop: () => stop(),
+  render: () => render(),
+  notify: message => toast(message),
+  play: pitches => playPitches(pitches),
+  showDiscover: () => (view = 'unified')
+});
 const stateName = s => `${s.name}[${s.n}]`;
 function toast(t) {
   $('#toast').textContent = t;
   $('#toast').style.display = 'block';
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => ($('#toast').style.display = 'none'), 4500);
-}
-function readTuning(panel) {
-  const cfg = {...tuningConfig(state)};
-  panel.querySelectorAll('[data-tune]').forEach(el => {
-    const key = el.dataset.tune;
-    if (key === 'edoChoice') {
-      [cfg.n, cfg.k, cfg.h] = el.value.split(':');
-    } else cfg[key] = el.type === 'checkbox' ? el.checked : el.value;
-  });
-  return cfg;
-}
-function tuningControls(s, idx) {
-  const cfg = tuningConfig(s),
-    method = cfg.method;
-  if (!['Minimax', 'Least Squares', 'EDO', 'JI Target'].includes(method)) return '';
-  const options = method === 'EDO' ? supportingEdos(s, Number(cfg.edoMax), cfg.edoVariants) : [];
-  return `${method === 'EDO' ? '<p>EDO fixes the octave at 1200¢.</p>' : ''}
- ${method === 'EDO' ? `<label>EDO<select data-tune="edoChoice">${options.length ? options.map(v => option(v.n + ':' + v.k + ':' + v.periodSteps, `${v.n}edo · ${v.k} generator steps${v.patent ? '' : ' · nearby val'}`, cfg.n + ':' + cfg.k + ':' + cfg.h)).join('') : '<option value="">No supporting EDO</option>'}</select></label><details><summary>EDO search options</summary><label>Search up to<select data-tune="edoMax">${[100, 500, 1000, 5000].map(n => option(n, n, cfg.edoMax)).join('')}</select></label><label class="checklabel"><input type="checkbox" data-tune="edoVariants" ${cfg.edoVariants ? 'checked' : ''}>Include nearby non-patent vals</label><p>Every listed mapping tempers out the temperament’s commas.</p></details>` : ''}
- ${['Minimax', 'Least Squares'].includes(method) ? `<label>Targets<select data-tune="targets">${option('primes', 'Basis primes', cfg.targets)}${[5, 7, 9, 13].map(n => option(n, `${n}-odd-limit · mapped`, cfg.targets)).join('')}${option('custom', 'Custom intervals', cfg.targets)}</select></label>${cfg.targets === 'custom' ? `<label>Intervals<input data-tune="custom" value="${esc(cfg.custom)}" placeholder="3/2, 5/4, 6/5"></label>` : ''}` : ''}
- ${method === 'JI Target' ? `${explorer(s, idx)}` : ''}
-`;
-}
-function commitRetuning(idx, candidate) {
-  const result = preflightRetuning({
-    currentState: state,
-    candidateState: candidate,
-    playState: layoutState?.state ?? state,
-    layoutConfig: hexWorkspace.retuningSnapshot()
-  });
-  state = result.state;
-  if (layoutState) layoutState.state = result.playState;
-  stop();
-}
-function applyPanelTuning(idx, cfg, draft = state) {
-  try {
-    commitRetuning(idx, applyTuningMethod(structuredClone(draft), cfg));
-  } catch (e) {
-    toast(e.message);
-    renderPanel(idx);
-    return false;
-  }
-  render();
-  return true;
-}
-function renderPresetControls(host, idx) {
-  host.innerHTML = presetWorkspace.render(idx);
-  const editor = host.querySelector('.temperament-editor'),
-    target = $('#advanced-temperament-editor');
-  if (editor && target) target.replaceChildren(editor);
-}
-function renderPanel(idx) {
-  const s = state,
-    advancedTuningOpen = $('#tuning-panel .advanced-tuning-options')?.open,
-    tuningOptions = tuningControls(s, idx),
-    canOptimizePeriod = tuningMethod(s) !== 'EDO';
-  $('#temperament-controls').innerHTML = `<div data-preset-controls="${idx}"></div>`;
-  renderPresetControls($('#temperament-controls [data-preset-controls]'), idx);
-  $('#tuning-panel').innerHTML =
-    `<div class="tuning-choice"><label>Tuning<select data-s="${idx}" data-field="tuning">${tuningMethods.map(v => option(v, v, tuningMethod(s))).join('')}</select></label><div class="tuning-summary" aria-label="Current tuning"><span>Generator <b>${fmt(s.g, 4)} ¢</b></span><div class="period-summary"><span>Period <b>${fmt(s.p, 4)} ¢</b></span></div></div></div>
-${/^EDO \d+$/.test(s.tuning) ? `<p class="notice">Induced val: ⟨${s.rows[0].map((v, i) => v * Math.round((s.p * Number(s.tuning.slice(4))) / 1200) + s.rows[1][i] * Math.round((s.g * Number(s.tuning.slice(4))) / 1200)).join(' ')}] · may be non-patent.</p>` : ''}
-${tuningOptions || canOptimizePeriod ? `<details class="advanced-tuning-options" data-s="${idx}" ${advancedTuningOpen ? 'open' : ''}><summary>Advanced tuning options</summary><div class="header-popover-panel">${tuningOptions}${canOptimizePeriod ? `<label class="period-optimize"><input type="checkbox" data-optimize-period="${idx}" ${!tuningConfig(s).fixed ? 'checked' : ''}>Optimize period</label>` : ''}</div></details>` : ''}
-`;
-  const mappingOpen = $('#mapping-options details')?.open;
-  $('#mapping-options').innerHTML =
-    `<details class="mapping"><summary>Mapping & custom temperament</summary><p>Columns: ${s.basis.join(', ')}. Rows: period, generator.</p><pre>${s.rows.map(r => '⟨' + r.join(' ') + ']').join('\n')}\nCommas: ${esc(s.commas || 'derived from mapping')}</pre><label>Prime basis<input data-custom="basis" value="${s.basis.join(' ')}"></label><label>Mapping rows · one per line<textarea data-custom="rows">${s.rows.map(r => r.join(' ')).join('\n')}</textarea></label><button data-action="mapping" data-s="${idx}">Apply custom mapping</button><p>${presets[s.key] ? `<a href="${presets[s.key].source}" target="_blank" rel="noreferrer">Preset definition and tuning source ↗</a>` : 'Custom mapping: prime least-squares tuning is calculated here.'}</p></details>`;
-  if (mappingOpen) $('#mapping-options details').open = true;
 }
 
 function scaleMilestoneCard(id, title, result, detail) {
@@ -813,10 +745,7 @@ function renderWorkspace({keepNotes = false} = {}) {
       v === 'hexboard' ? {state: state, settings: {...cfg, familyRecognition: true}} : null;
     if (liveChordContext)
       liveChordRecognizer.prepare(liveChordContext.state, liveChordContext.settings);
-    document.querySelectorAll('[data-explore-body]').forEach(el => {
-      const idx = Number(el.dataset.exploreBody);
-      el.innerHTML = explorerBody(state, idx);
-    });
+    tuningPanel.refreshExplorer();
     $('#inspector').hidden = ['scales', 'chords', 'hexboard', 'targets'].includes(c) || !selected;
     $('#layout').disabled = c === 'targets';
     $('#labels').disabled = c !== 'matrices';
@@ -864,7 +793,7 @@ function renderCommaSearch() {
   commaSizeObserver.observe(inputs);
 }
 function render() {
-  renderPanel(0);
+  tuningPanel.render();
   renderCommaSearch();
   renderWorkspace();
 }
@@ -1206,30 +1135,12 @@ document.addEventListener('change', e => {
   }
   if (commaWorkspace.change(e.target)) return;
   if (chordWorkspace.change(e.target)) return;
-  if (e.target.dataset.exploreField) {
-    changeExplore(e.target);
-    return;
-  }
-  if (e.target.dataset.optimizePeriod !== undefined) {
-    const idx = Number(e.target.dataset.optimizePeriod);
-    applyPanelTuning(idx, {...tuningConfig(state), fixed: !e.target.checked});
-    return;
-  }
-  const tunePanel = e.target.closest('.advanced-tuning-options');
-  if (tunePanel && e.target.dataset.tune) {
-    applyPanelTuning(Number(tunePanel.dataset.s), readTuning(tunePanel));
-    return;
-  }
+  if (tuningPanel.change(e.target)) return;
   const f = e.target.dataset.field;
   if (!f) return;
-  const idx = Number(e.target.dataset.s),
-    old = structuredClone(state);
+  const old = structuredClone(state);
   try {
     let s = state;
-    if (f === 'tuning') {
-      applyPanelTuning(idx, {...tuningConfig(s), method: e.target.value});
-      return;
-    }
     s[f] = Number(e.target.value);
     if (f === 'n') s.mode = 0;
     delete state.tuningReport;
@@ -1308,6 +1219,7 @@ document.addEventListener('click', e => {
   }
   if (commaWorkspace.click(b)) return;
   if (chordWorkspace.click(b)) return;
+  if (tuningPanel.click(b)) return;
   try {
     if (b.dataset.buildchord) {
       const [, i, j] = b.dataset.buildchord.split(',').map(Number);
@@ -1326,8 +1238,6 @@ document.addEventListener('click', e => {
     } else if (b.dataset.label) {
       $('#labels').value = b.dataset.label;
       refreshMatrixLabels();
-    } else if (b.dataset.explore) {
-      handleExplore(b);
     } else if (b.dataset.cell) {
       const [i, j] = b.dataset.cell.split(',').map(Number);
       if (e.shiftKey) focusSync.pickMatrixCell(i, j);
@@ -1354,8 +1264,7 @@ document.addEventListener('click', e => {
       }
     } else if (b.dataset.action) {
       const idx = 0,
-        s = state,
-        panel = $('#temperament-panel');
+        s = state;
       if (b.dataset.action === 'scale') playScale(idx);
       if (b.dataset.action === 'export') {
         if (scale(s).collision)
@@ -1371,43 +1280,6 @@ document.addEventListener('click', e => {
             .map(v => v.toFixed(8))
             .join('\n')}\n`
         );
-      }
-      if (b.dataset.action === 'mapping') {
-        const basis = panel
-            .querySelector('[data-custom=basis]')
-            .value.trim()
-            .split(/[\s,.]+/)
-            .map(Number),
-          rows = panel
-            .querySelector('[data-custom=rows]')
-            .value.trim()
-            .split('\n')
-            .map(r =>
-              r
-                .trim()
-                .split(/[\s,]+/)
-                .map(Number)
-            );
-        const next = {
-          ...s,
-          key: 'custom',
-          name: 'Custom temperament',
-          generatorLabel: '',
-          basis,
-          rows,
-          commas: 'custom mapping',
-          tuning: 'Manual',
-          assignments: [],
-          explore: undefined
-        };
-        if (basis[0] !== s.basis[0] || rows[0]?.[0] !== s.rows[0][0]) {
-          next.p = (purePeriod(next) * s.p) / purePeriod(s);
-          next.g = (s.g / s.p) * next.p;
-        }
-        validate(next);
-        state = next;
-        render();
-        toast('Custom mapping applied; choose a tuning next');
       }
     }
   } catch (err) {
@@ -1657,171 +1529,6 @@ if (globalThis.navigator?.serviceWorker && /^https?:$/.test(location.protocol))
     once: true
   });
 
-function explorer(s, idx) {
-  return `<div class="target-explorer" data-explorer="${idx}"><div data-explore-body="${idx}">${explorerBody(s, idx)}</div></div>`;
-}
-function explorerBody(s, idx) {
-  const cfg = {ratio: tuningConfig(s).pure || '5/4', ...s.explore},
-    list = s.assignments || [];
-  let t,
-    cs = [],
-    chosen,
-    error = '';
-  try {
-    t = target(cfg.ratio || '5/4');
-    cs = candidates(s, t);
-    chosen = cs.find(c => same(c.m, cfg.m)) || cs.find(c => c.mapped) || cs[0];
-    if (cfg.m && !cs.some(c => same(c.m, cfg.m))) {
-      const m = assignment(t, cfg.m).m,
-        c = m[0] * s.p + m[1] * s.g;
-      chosen = {m, c, error: c - t.c, available: false, mapped: same(m, mapRatio(t.n, t.d, s))};
-      cs.push(chosen);
-    }
-  } catch (e) {
-    error = e.message;
-  }
-  const check = checkAssignments(s, list),
-    m = t && mapRatio(t.n, t.d, s),
-    draft =
-      chosen &&
-      checkAssignments(s, [...list.filter(x => x.label !== t.label), assignment(t, chosen.m)]);
-  const pill = status => (status === 'compatible' ? 'good' : status === 'conflict' ? 'bad' : 'dim');
-  return `<p>Pick a ratio and the interval you want to use for it. Other approximations stay available even when they disagree with the mapping.</p><label>JI target<input data-explore-field="ratio" data-s="${idx}" value="${esc(cfg.ratio || '5/4')}" placeholder="7/4"></label>${error ? `<p role="status" class="bad">${esc(error)}</p>` : `<label>Interval to use<select data-explore-field="choice" data-s="${idx}">${cs.map(c => option(c.m.join(','), `${fmt(c.c, 3)} ¢ · ${sign(c.error)} ¢ error · ${c.mapped ? 'Mapped' : m ? 'Alternative' : 'Outside subgroup'}${c.available ? '' : ' · absent from this scale'} · ${coordinate(c.m)}`, chosen.m.join(','))).join('')}</select></label><p>${m ? `Mapped interval: ${esc(coordinate(m))}.` : 'This ratio is outside the current subgroup.'} Search covers ascending intervals in this ${s.n}-note scale plus the mapped interval.</p><details><summary>Enter coordinates directly</summary><div class="formrow"><label>Periods<input type="number" step="1" data-explore-field="a" data-s="${idx}" value="${chosen.m[0]}"></label><label>Generators<input type="number" step="1" data-explore-field="b" data-s="${idx}" value="${chosen.m[1]}"></label></div></details><p class="${pill(draft.status)}" role="status">${esc(draft.message)}</p>${draft.detail ? `<details><summary>Why?</summary><p>${esc(draft.detail)}</p></details>` : ''}<div class="panelactions"><button data-explore="listen" data-s="${idx}">▶ Hear interval</button><button data-explore="pure" data-s="${idx}" class="primary">Use this target</button><button data-explore="add" data-s="${idx}">Add assignment</button></div><p>Changing the target or its coordinates retunes immediately. Period settings above apply. Tuning does not adopt a mapping.</p>`}
- ${cfg.notice ? `<p class="tuning-report" role="status">${esc(cfg.notice)}</p>` : ''}
- ${
-   list.length
-     ? `<div class="assignment-list"><b>Selected assignments</b>${list
-         .map((x, i) => {
-           const c = x.m[0] * s.p + x.m[1] * s.g,
-             available = candidates(s, x).some(v => same(v.m, x.m) && v.available);
-           return `<div><span>${esc(x.label)} → ${esc(coordinate(x.m))}<br>${fmt(c, 3)} ¢ · ${sign(c - x.c)} ¢ error${available ? '' : ' · absent from this scale'}</span><button data-explore="remove" data-s="${idx}" data-i="${i}" aria-label="Remove ${esc(x.label)} assignment">Remove</button></div>`;
-         })
-         .join(
-           ''
-         )}<p class="${pill(check.status)}" role="status">${esc(check.message)}</p>${check.detail ? `<details><summary>Explain conflict or limitation</summary><p>${esc(check.detail)}</p></details>` : ''}<div class="panelactions"><button data-explore="adopt" data-s="${idx}" ${check.status === 'compatible' && check.extended ? '' : 'disabled'}>Adopt extension</button><button data-explore="pureall" data-s="${idx}">Use all assignments</button></div>${check.status === 'compatible' && check.extended ? `<details><summary>Implied target assignments after extension</summary>${impliedTargets({...s, basis: check.basis, rows: check.rows}, s)}</details>` : ''}</div>`
-     : ''
- }
- <details><summary>Check nearest approximations in this scale</summary>${nearestSummary(s)}<p>This checks the selected odd-limit targets against the current mapping and finite scale. It is not a consistency verdict for every interval of the infinite tuning. Equal pitches at different generator coordinates remain distinct here.</p><a href="https://en.xen.wiki/w/Consistency" target="_blank" rel="noreferrer">About consistency</a></details>`;
-}
-function impliedTargets(next, old) {
-  return `<div class="tablewrap"><table><thead><tr><th>Target</th><th>Coordinates</th><th>Error</th></tr></thead><tbody>${settings(
-    next
-  )
-    .ts.filter(t => !mapRatio(t.n, t.d, old) && mapRatio(t.n, t.d, next))
-    .map(t => {
-      const m = mapRatio(t.n, t.d, next);
-      return `<tr><td>${t.label}</td><td>${coordinate(m)}</td><td>${sign(m[0] * next.p + m[1] * next.g - t.c)} ¢</td></tr>`;
-    })
-    .join(
-      ''
-    )}</tbody></table></div><p>Related ratios through odd limit 13, using the current tuning.</p>`;
-}
-function nearestSummary(s) {
-  const r = nearestReport(s, settings(s).ts);
-  return `<p>${r.mapped} targets in the mapping; ${r.alternative} have a strictly closer alternative in this scale; ${r.absent} have their mapped interval absent. ${r.outside} targets are outside the subgroup.</p>`;
-}
-function changeExplore(el) {
-  const idx = Number(el.dataset.s),
-    s = structuredClone(state);
-  try {
-    s.explore = {...s.explore, notice: ''};
-    if (el.dataset.exploreField === 'ratio') {
-      s.explore.ratio = el.value;
-      delete s.explore.m;
-    } else if (el.dataset.exploreField === 'choice') s.explore.m = el.value.split(',').map(Number);
-    else {
-      const old = jiSelection(s);
-      s.explore.m = [...old.m];
-      s.explore.m[el.dataset.exploreField === 'a' ? 0 : 1] = Number(el.value);
-    }
-    applyPanelTuning(idx, {...tuningConfig(s), method: 'JI Target', jiAll: false}, s);
-  } catch (e) {
-    toast(e.message);
-    renderPanel(idx);
-  }
-}
-function handleExplore(b) {
-  const idx = Number(b.dataset.s),
-    s = structuredClone(state),
-    action = b.dataset.explore;
-  s.explore = {...s.explore, open: true, notice: ''};
-  if (action === 'open') {
-    applyPanelTuning(idx, {...tuningConfig(s), method: 'JI Target'}, s);
-    return;
-  }
-  if (action === 'cell') {
-    s.explore.m = b.dataset.m.split(',').map(Number);
-    const c = s.explore.m[0] * s.p + s.explore.m[1] * s.g,
-      ji = settings(s);
-    s.explore.ratio = nearestTarget(c, allTargets(ji.ts, s, ji)).label;
-    if (applyPanelTuning(idx, {...tuningConfig(s), method: 'JI Target', jiAll: false}, s)) {
-      view = 'unified';
-      $('#tuning-panel').querySelector('.advanced-tuning-options').open = true;
-      $('#tuning-panel')
-        .querySelector('.target-explorer')
-        .scrollIntoView({block: 'center', behavior: 'smooth'});
-    }
-    return;
-  }
-  if (action === 'remove') {
-    s.assignments.splice(Number(b.dataset.i), 1);
-    if (tuningConfig(s).jiAll)
-      applyPanelTuning(idx, {...tuningConfig(s), jiAll: s.assignments.length > 0}, s);
-    else {
-      state = s;
-      render();
-    }
-    return;
-  }
-  if (action === 'adopt') {
-    const result = checkAssignments(s, s.assignments || []);
-    if (result.status !== 'compatible' || !result.extended)
-      throw Error('There is no complete compatible extension to adopt.');
-    const next = {
-      ...s,
-      basis: result.basis,
-      rows: result.rows,
-      key: 'custom',
-      name: s.name + ' extension',
-      commas: 'custom mapping',
-      tuning: 'Manual',
-      generatorLabel: '',
-      tuningReport:
-        'Mapping extended from selected assignments. Period and generator tuning retained.'
-    };
-    next.explore.notice = 'Extension adopted. Related targets now follow the extended mapping.';
-    validate(next);
-    state = next;
-    render();
-    return;
-  }
-  const t = jiSelection(s);
-  s.explore.m = [...t.m];
-  if (action === 'listen') {
-    state = s;
-    playPitches([0, t.m[0] * s.p + t.m[1] * s.g]);
-    return;
-  }
-  if (action === 'add') {
-    const list = (s.assignments || []).filter(x => x.label !== t.label);
-    if (list.length >= 64) throw Error('Use at most 64 assignments.');
-    s.assignments = [...list, t];
-    if (tuningConfig(s).jiAll) {
-      applyPanelTuning(idx, tuningConfig(s), s);
-      return;
-    }
-  }
-  if (action === 'pure' || action === 'pureall') {
-    applyPanelTuning(
-      idx,
-      {...tuningConfig(s), method: 'JI Target', jiAll: action === 'pureall'},
-      s
-    );
-    return;
-  }
-  state = s;
-  render();
-}
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) compositionWorkspace.pause();
 });

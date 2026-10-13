@@ -200,6 +200,32 @@ assert.ok(
   $$('summary').every(summary => summary.textContent !== 'Tuning options'),
   'the separate Tuning options menu is removed'
 );
+
+// The JI target explorer plays the chosen interval.
+await choose('[data-field="tuning"]', 'JI Target');
+const voices = page.audio.started.length;
+page.click('[data-explore="listen"]');
+await page.settle();
+assert.equal(page.audio.started.length - voices, 2, 'Hear interval plays both notes');
+
+// The custom mapping editor applies a mapping and keeps the tuning; an invalid one changes nothing.
+const before = await current();
+$('[data-custom="rows"]').value = '1 1 0\n0 1 4\n0 0 1';
+page.click('[data-action="mapping"]');
+await page.settle();
+assert.notEqual(page.toast(), 'Custom mapping applied; choose a tuning next');
+assert.deepEqual(await current(), before, 'an invalid mapping changes nothing');
+$('[data-custom="rows"]').value = '1 1 0\n0 1 4';
+page.click('[data-action="mapping"]');
+await page.settle();
+assert.equal(page.toast(), 'Custom mapping applied; choose a tuning next');
+const custom = await current();
+assert.deepEqual(
+  [custom.key, custom.name, custom.tuning, custom.rows, custom.g],
+  ['custom', 'Custom temperament', 'Manual', before.rows, before.g]
+);
 assert.deepEqual(page.errors, []);
-console.log('Actual dropdown, tuning-option and Optimize period controls apply immediately.');
+console.log(
+  'Actual dropdown, tuning-option, Optimize period, JI explorer and custom mapping controls apply immediately.'
+);
 await page.close();
