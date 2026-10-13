@@ -16,9 +16,11 @@ interval/JI, chord, and HexBoard-layout application.
   `chord-worker.mjs`, minified CSS, and `sw.js` with its shell list and a
   content-hash version. Workers are created through `src/workers.mjs`, which sits
   beside the worker scripts in both layouts.
-- `src/app.mjs` is the main controller and owns navigation, primary temperament
-  state, shared JI controls, session import/export, matrix rendering, and workspace
-  integration.
+- `src/app.mjs` is the main controller. It owns navigation, the primary
+  temperament state and workspace integration, renders the workspace, and routes
+  events to the workspaces and to its parts in `src/app/`: shared JI settings,
+  the interval matrix, the diamond readout, the temperament and tuning panel, the
+  scale pane, focus coordination, session files and the HexBoard connection.
 - `npm run dev` serves `src/` through Vite for interaction QA; `npm run preview`
   serves the built `site/`.
 - Calculation modules are UI-independent where practical; `*-ui.mjs` modules own
@@ -759,11 +761,12 @@ Compatibility aliases and narrow session migrations are intentional.
 
 ## Current boundaries and architectural issues
 
-- `app.mjs` still contains matrix/target renderers and substantial session/event
-  orchestration. Extraction should precede any broad controller rewrite.
-- Several controller tests use source extraction and mocked DOM contexts. Core
-  calculations have strong regression coverage, but full browser, keyboard,
-  screen-reader, and acoustic acceptance remain manual.
+- `app.mjs` still wires every workspace, renders the workspace and places the
+  shared controls. Workspace modules read the temperament through a one-element
+  `getStates()` array.
+- Controller and page behavior is tested in jsdom (`tests/support/dom.mjs`); core
+  calculations have strong regression coverage. Layout, keyboard, screen-reader
+  and acoustic acceptance remain manual.
 - Manual/board analytical rules are fully migrated to shared services; older
   session and degree APIs remain intentional compatibility adapters.
 - The material collection can save, play, inspect, and place scales/chords.
@@ -784,7 +787,9 @@ forward/reverse round trips, doublings, saved shapes, jobs, the Shapes view) and
 structural retuning rejection, HexBoard geometry/flips/colors/player/export,
 period order/wrapping, audio lifecycle, presets and preset backups, legacy-session
 migration, workflow structure, and the static site build with service-worker
-offline behavior. Browser installability and offline loading are checked manually.
+offline behavior. Suites that check the running app boot it in jsdom through
+`tests/support/dom.mjs`, with a silent Web Audio stand-in that records started
+notes. Browser installability and offline loading are checked manually.
 
 ## Composition suite (MVP)
 
@@ -1010,7 +1015,7 @@ persisted and the board always starts disconnected.
 | Web MIDI port, enter/exit, changed-LED sending, unplug detection | `hexboard-device.mjs` |
 | Key routing, the LED picture, the 100 ms follow and 1.5 s refresh timers | `hexboard-sync.mjs` |
 | What the board should show (colours, outlines, labels, highlights) | `hexboard-view.mjs#boardPicture` over `hexboard-colors.mjs#keyAppearance`; drawn by `boardSvg`, sent by `deviceFrame` |
-| Wiring and header status | `app.mjs` |
+| Header controls, status, latency probe and brightness | `app/hexboard-connection.mjs` |
 
 Keys. Button index equals the layout's key index (`0..139`). On the Play view a board press goes
 straight to the board player (`pressKey`/`releaseKey`, no synthetic DOM event), so sound, selection,

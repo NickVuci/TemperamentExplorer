@@ -89,7 +89,8 @@ Primary commands:
 
 - `npm test` — all top-level `tests/*.mjs` suites.
 - `node tests/<suite>.mjs` — targeted suite.
-- `npm run build` — bundles and validates the browser entry and Worker.
+- `npm run build` — bundles the app and its two module workers into `site/`.
+- `npm run lint` and `npm run format:check` — ESLint and Prettier, as CI runs them.
 
 ## Existing systems and deprecation
 

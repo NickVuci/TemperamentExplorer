@@ -24,7 +24,11 @@ Settings → Export/Import saved presets moves them between browsers or devices.
 - `npm run dev` serves `src/` through Vite for interaction QA.
 - `npm test` runs every top-level `tests/*.mjs` suite in parallel; set
   `TEST_CONCURRENCY` to cap the number running at once. The static-site suite
-  rebuilds `site/`.
+  rebuilds `site/`. Suites that check the running app boot `src/app.mjs` in jsdom
+  through `tests/support/dom.mjs` and drive it as a user would.
+- `npm run lint` checks for undefined and unused names; `npm run format` applies
+  Prettier and `npm run format:check` verifies it. CI runs lint, the format check,
+  the tests and the build on every push and pull request.
 - `node scripts/benchmark.mjs [path/to/other/src]` runs identical local
   calculation workloads against current or previous sources, including older
   checkouts whose modules sit flat in `dist/`.
@@ -38,9 +42,9 @@ visits use the cache.
 
 ## Where things belong
 
-The root of `src/` holds the page, `app.mjs`, the worker entry points and
-`workers.mjs`, `style.css`, `sw.js` and the install metadata. Modules live in
-subsystem folders:
+The root of `src/` holds the page, the controller `app.mjs`, the worker entry
+points and `workers.mjs`, `style.css`, `sw.js` and the install metadata. Modules
+live in subsystem folders:
 
 | Folder | Contents |
 | --- | --- |
@@ -53,6 +57,7 @@ subsystem folders:
 | `composition/` | Composition model, transport, editor, practice game and fingering game |
 | `presets/` | Browser-local saved presets |
 | `ui/` | Shared UI helpers, audio, and the Discover workspaces |
+| `app/` | The controller's parts: shared JI settings, the interval matrix, the diamond readout, the temperament and tuning panel, the scale pane, focus coordination, session files and the HexBoard connection |
 
 | Concern | Modules |
 | --- | --- |
@@ -71,9 +76,15 @@ subsystem folders:
 | Rejecting retunes that would change the scale or key assignments | `core/retuning-guard.mjs` |
 | Web Audio context, scheduling, held voices and cleanup | `ui/audio.mjs` |
 | Pointer/keyboard/Shift-sustain interaction (no oscillator creation) | `hexboard/hexboard-player.mjs` |
-| Shared HTML escaping and select options | `ui/ui.mjs` |
+| Shared HTML escaping, select options and number formatting | `ui/ui.mjs` |
 | Workspace rendering/event adapters | `*-ui.mjs`, `diamond/tonality-diamond.mjs` |
-| App orchestration, navigation and session restoration | `app.mjs` |
+| App orchestration: workspace wiring, navigation, rendering and event routing | `app.mjs` |
+| Shared odd limit, prime filter and tolerance | `app/ji-settings.mjs` |
+| Interval matrix and its inspector; the diamond's interval and chord readout | `app/matrix-view.mjs`, `app/diamond-details.mjs` |
+| Header temperament and tuning panel; Discover's scale pane | `app/tuning-panel.mjs`, `app/scale-pane.mjs` |
+| The focused chord shared by the directory, diamond, matrix and Play | `app/focus-sync.mjs` |
+| Session files: writing, validating and reading older files | `app/session.mjs` |
+| Physical HexBoard connection, status and brightness | `app/hexboard-connection.mjs` |
 | Theme tokens, shared components and responsive refinements | `style.css` |
 | Browser-local saved presets, backups and revisions | `presets/`, `core/state.mjs` |
 | Offline shell and install metadata | `sw.js`, `manifest.webmanifest`, `icon*` |
