@@ -29,7 +29,8 @@ import {
   renderMatrix
 } from './app/matrix-view.mjs';
 import {fillDiamondDetails as showDiamondDetails} from './app/diamond-details.mjs';
-import {createJISettings} from './app/ji-settings.mjs';
+import {createJISettings, clampTolerance} from './app/ji-settings.mjs';
+import {sessionFile, readSession, MAX_SESSION_BYTES} from './app/session.mjs';
 import {createAudioEngine} from './ui/audio.mjs';
 import {createCompositionWorkspace} from './composition/composition-ui.mjs';
 import {createHexboardDevice} from './hexboard/hexboard-device.mjs';
@@ -37,13 +38,7 @@ import {createHexboardSync, clampBrightness} from './hexboard/hexboard-sync.mjs'
 import {createFingeringGame} from './composition/fingering-game.mjs';
 import {createFingeringGameUi} from './composition/fingering-game-ui.mjs';
 import {createKeyHarmoniesUi} from './hexboard/key-harmonies-ui.mjs';
-import {
-  sessionFormat,
-  compositionForSave,
-  isSessionFormat,
-  compositionFromSession
-} from './composition/composition-session.mjs';
-import {normalizeDiamondScope, renderDiamondTolerance} from './diamond/tonality-diamond.mjs';
+import {renderDiamondTolerance} from './diamond/tonality-diamond.mjs';
 import {createHexboardPlayer} from './hexboard/hexboard-player.mjs';
 import {createLiveChordRecognizer} from './chords/live-chord-recognition.mjs';
 import {createMaterialWorkspace} from './ui/material-ui.mjs';
@@ -473,10 +468,6 @@ function toast(t) {
   $('#toast').style.display = 'block';
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => ($('#toast').style.display = 'none'), 4500);
-}
-function clampTolerance(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : null;
 }
 function readTuning(panel) {
   const cfg = {...tuningConfig(state)};
@@ -1480,26 +1471,14 @@ $('#reset').onclick = () => {
   selected = null;
   render();
 };
-function restorePrimaryState(data) {
-  if (!Array.isArray(data.states) || ![1, 2].includes(data.states.length))
-    throw Error('Choose a Temperament Lab session file.');
-  const saved = data.states[0];
-  validate(saved);
-  return {
-    ...saved,
-    key: presets[saved.key] ? saved.key : 'custom',
-    tuning: typeof saved.tuning === 'string' ? saved.tuning : 'Manual'
-  };
-}
 $('#save').onclick = () =>
   download(
     'temperament-lab-session.json',
     JSON.stringify(
-      {
-        format: sessionFormat(compositionWorkspace.serialize()),
-        workflowVersion: 8,
+      sessionFile({
+        composition: compositionWorkspace.serialize(),
         harmonicCatalogue: harmonicWorkspace.serialize(),
-        states: [state],
+        state,
         material: materialWorkspace.serialize(),
         diamond: diamondWorkspace.serialize(),
         layoutScale: {n: getLayoutStates()[0].n, mode: getLayoutStates()[0].mode},
@@ -1525,9 +1504,8 @@ $('#save').onclick = () =>
           manualTolerance,
           tonic: audioSettings.tonic,
           wave: audioSettings.wave
-        },
-        ...compositionForSave(compositionWorkspace.serialize())
-      },
+        }
+      }),
       null,
       2
     ),
@@ -1538,88 +1516,49 @@ $('#file').onchange = async e => {
   try {
     const f = e.target.files[0];
     if (!f) return;
-    if (f.size > 8000000) throw Error('Session file is too large.');
-    const data = JSON.parse(await f.text());
-    if (!isSessionFormat(data.format)) throw Error('Choose a Temperament Lab session file.');
-    const composition = compositionFromSession(data);
-    harmonicWorkspace.restore(data.harmonicCatalogue); // Ignore the legacy A/B preference; discovery is now the only catalogue mode.
+    if (f.size > MAX_SESSION_BYTES) throw Error('Session file is too large.');
+    const session = readSession(JSON.parse(await f.text())),
+      {workspaces} = session;
+    harmonicWorkspace.restore(workspaces.harmonicCatalogue);
     manualChordInspector = false;
-    diamondWorkspace.restore(data.diamond);
-    chordWorkspace.restore(data.chords, validate);
-    commaWorkspace.restore(data.commaSearch);
-    hexWorkspace.restore(data.hexboard);
-    scaleFilter = ['all', '2', '3'].includes(data.settings?.scaleFilter)
-      ? data.settings.scaleFilter
-      : '2';
-    diamondScope = normalizeDiamondScope(data.settings?.diamondScope, data.workflowVersion);
-    state = restorePrimaryState(data);
-    const restorePrimeLimit =
-      Number(data.workflowVersion ?? 0) < 5 &&
-      (data.settings?.primeLimit === undefined || data.settings.primeLimit === '')
-        ? 'basis'
-        : data.settings?.primeLimit;
+    diamondWorkspace.restore(workspaces.diamond);
+    chordWorkspace.restore(workspaces.chords, validate);
+    commaWorkspace.restore(workspaces.commaSearch);
+    hexWorkspace.restore(workspaces.hexboard);
+    scaleFilter = session.scaleFilter;
+    diamondScope = session.diamondScope;
+    state = session.state;
     $('#primeLimit').value = 'basis';
-    manualTolerance =
-      Number(data.workflowVersion ?? 0) >= 7 &&
-      data.settings?.manualTolerance != null &&
-      Number.isFinite(Number(data.settings.manualTolerance))
-        ? clampTolerance(data.settings.manualTolerance)
-        : null;
-    if (data.settings)
-      for (const id of ['layout', 'labels', 'limit', 'primeLimit', 'targetfilter']) {
-        const el = $('#' + id),
-          v = id === 'primeLimit' ? restorePrimeLimit : data.settings[id];
-        if (
-          v !== undefined &&
-          (el.tagName !== 'SELECT' || [...el.options].some(o => o.value === String(v)))
-        )
-          el.value = v;
-      }
-    audioSettings = {
-      tonic: Math.max(40, Math.min(1000, Number(data.settings?.tonic) || 220)),
-      wave: ['triangle', 'sine', 'sawtooth', 'square'].includes(data.settings?.wave)
-        ? data.settings.wave
-        : 'triangle'
-    };
+    manualTolerance = session.manualTolerance;
+    for (const [id, value] of Object.entries(session.controls)) {
+      const el = $('#' + id);
+      if (
+        value !== undefined &&
+        (el.tagName !== 'SELECT' || [...el.options].some(o => o.value === String(value)))
+      )
+        el.value = value;
+    }
+    audioSettings = session.audio;
     lastViews.discover = 'unified';
     lastViews.play = 'hexboard';
     lastViews.create = 'composition';
-    unifiedCenter = normalizeUnifiedCenter(
-      data.settings?.unifiedCenter ?? (data.settings?.view === 'matrices' ? 'matrix' : null)
-    );
-    scaleView = normalizeScaleView(data.settings?.scaleView);
-    view = ['hexboard', 'composition'].includes(data.settings?.view)
-      ? data.settings.view
-      : 'unified';
-    materialWorkspace.restore(
-      data.material ??
-        (data.chords?.pins || []).map(pin => ({
-          kind: 'chord',
-          state: pin.state,
-          label: pin.name,
-          coords: pin.degrees.map(i => {
-            const n = scale(pin.state).notes[i];
-            return [
-              Math.round((n.c - n.k * pin.state.g) / pin.state.p) + (pin.octaves?.[i] || 0),
-              n.k
-            ];
-          })
-        }))
-    );
+    unifiedCenter = session.unifiedCenter;
+    scaleView = session.scaleView;
+    view = session.view;
+    materialWorkspace.restore(session.material);
     coverageSignature = scaleDefaultKey(state, coverageSettings(state));
     layoutState = null;
     getLayoutStates();
-    if (data.layoutScale) {
+    if (session.layoutScale)
       layoutState.state = validate({
         ...layoutState.state,
-        n: data.layoutScale.n,
-        mode: data.layoutScale.mode
+        n: session.layoutScale.n,
+        mode: session.layoutScale.mode
       });
-    }
-    if (data.hexboard?.configs) hexWorkspace.preserveCurrentLayout();
+    if (workspaces.hexboard?.configs) hexWorkspace.preserveCurrentLayout();
     selected = null;
     stop();
-    compositionWorkspace.restore(composition);
+    compositionWorkspace.restore(session.composition);
     render();
     toast('Session opened');
   } catch (err) {

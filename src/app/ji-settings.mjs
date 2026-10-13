@@ -7,6 +7,12 @@ import {maximumMappedTargetError} from '../core/ji-error-color.mjs';
 import {maximumDiamondError} from '../diamond/tonality-diamond.mjs';
 import {allTargets} from './matrix-view.mjs';
 
+/** A manual tolerance in cents, limited to 0–100; null for text that is not a number. */
+export function clampTolerance(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : null;
+}
+
 /**
  * deps: `$` (finds a shared control), `getState()`, `getDiamondScope()`, `getManualTolerance()`
  * (null when automatic) and `diamondLayout()`.

@@ -89,15 +89,31 @@ assert.equal(legacy.format, SESSION_V1);
 assert.equal('composition' in legacy, false);
 assert.equal(compositionFromSession(legacy), null);
 
-// In the app, the composition is validated before any other part of the session is restored, so
-// a bad file changes nothing (atomic load).
+// In the app, the composition and the temperament are validated before any other part of the
+// session is restored, so a bad file changes nothing (atomic load).
 const page = await bootApp(),
   {$} = page,
   current = () => $('[data-saved-preset="0"]').value,
   composeText = () => {
     page.section('create');
     return $('#create-view').textContent;
+  },
+  harmonics = () => {
+    page.section('discover');
+    return $('[data-diamond-harmonics]').value;
   };
+const diamond = {harmonics: '4:5:7', fold: false, interaction: 'select', selected: []},
+  defaultHarmonics = harmonics();
+assert.notEqual(defaultHarmonics, diamond.harmonics);
+await page.openSession({
+  format: SESSION_V1,
+  workflowVersion: 8,
+  states: [{...makeState('porcupine'), rows: [[1, 2]]}],
+  diamond
+});
+assert.notEqual(page.toast(), 'Session opened', 'the invalid temperament is reported');
+assert.equal(current(), 'builtin:meantone');
+assert.equal(harmonics(), defaultHarmonics, 'the diamond is not restored');
 await page.openSession({
   format: SESSION_V2,
   workflowVersion: 8,
