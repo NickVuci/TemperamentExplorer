@@ -3,11 +3,3 @@ package-lock.json
 *.md
 *.json
 
-# Read as text by tests; format once those tests assert behavior instead.
-src/app.mjs
-src/index.html
-src/style.css
-src/diamond/diamond-workspace.mjs
-src/diamond/tonality-diamond.mjs
-src/harmonic/harmonic-catalogue-ui.mjs
-src/hexboard/hexboard-ui.mjs
