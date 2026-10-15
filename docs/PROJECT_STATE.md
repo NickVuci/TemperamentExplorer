@@ -1060,10 +1060,11 @@ Limits. One board; port chosen by name only; no manual port picker; LED colours 
 
 ## Fingering practice
 
-A panel at the foot of Play's side panel turns the chord on the board into a short game: pick how many of
-its fingerings to practise (3, 5, 10 or all), press Start, and the first fingering lights up; play
-all its keys together and the next lights up, until the set is finished (time, wrong keys and skips are
-shown; Skip and Stop are available). The panel is hidden and any running game ends when the player leaves
+A panel at the foot of Play's side panel practises the chosen chord fingering at every matching bass
+position on the current layout. **All** is selected by default; shorter drills (3, 5 or 10) are available.
+**Practise these fingerings** resets the choice to All and scrolls to the panel. Press Start, play the
+lit keys together, then lift them to continue from the lowest bass to the highest. Time, wrong keys and
+skips are shown; Skip and Stop are available. The panel is hidden and any running game ends when the player leaves
 the Play view, changes the chord, changes the layout so that the game's fingerings move, or clears the
 highlight (Escape).
 
@@ -1071,17 +1072,21 @@ highlight (Escape).
 | --- | --- |
 | Rules: exact-set completion, lifting keys between fingerings, wrong keys, skip, restore | `fingering-game.mjs` |
 | Panel markup and events (polls every 250 ms, redraws only on visible change) | `fingering-game-ui.mjs` |
-| The chord's fingerings and lighting one | `hexboard-ui.mjs#fingerings` / `#showFingering` (a shape open in the Shapes view, else the harmonic selection or finder) |
+| Exhaustive translations with the same physical pattern and exact coordinate intervals | `hexboard-chords.mjs#fingeringInstances` |
+| Chosen source fingering, cached practice positions and board highlight | `hexboard-ui.mjs#practiceFingerings` / `#showPracticeFingering` / `#endPractice` |
 
 Lighting reuses the Play board's normal highlight, so the screen and a connected HexBoard both follow
 without any extra code. Lighting the next fingering is a highlight-only redraw (`refresh('highlight')`,
 `renderWorkspace({keepNotes:true})` in `app.mjs`): held keys keep sounding and stay marked, and the Now
 playing readout is redrawn. Held keys come from the board player's callback, so mouse and HexBoard play
 are treated the same. A fingering counts only when exactly its keys are held; extra keys block it, and
-keys held from the previous fingering must be lifted before the next one counts. The game plays the first
-fingerings in the order the Chords panel lists them. The game's chord is identified by its name and the
-keys of each of its fingerings; when either changes the game ends without moving the new chord's
-highlight, and otherwise stopping or finishing puts back the fingering lit before the game. Not covered:
+keys held from the previous fingering must be lifted before the next one counts. Each position preserves
+the selected hand shape, orientation, voiced intervals and inversion; rotations, reflections and
+same-looking patterns that play different intervals are excluded. Every eligible translation is included,
+independent of the gallery's root/register filters and search budget. Chord-selection mode does not edit
+the source chord during a drill. The game tracks the source certificate and target keys; when they change
+it ends without moving the new chord's highlight. Otherwise stopping or finishing restores the original
+fingering. Not covered:
 scoring or timing targets, a saved history, and fingering practice away from the Play view.
 
 ## Note → chords (Play)
@@ -1164,7 +1169,7 @@ rotations and reflections, or a shared JI reading).
 Choosing a fingering, card or reading lights its keys with chord-tone numbers beside the keys' own
 labels; one key can carry several. Previous/Next steps through the fingerings, Hear plays one, and Add to
 collection adds its exact coordinates with shape provenance. While a shape is open, Fingering practice
-drills its fingerings (Practise these fingerings scrolls to it). Escape clears only the highlight. A retune keeps results and
+drills the chosen fingering at every matching bass position. Escape clears only the highlight. A retune keeps results and
 recomputes sound from stored coordinates; a change to the mapping, scale, board structure, JI limits,
 targets or limits clears them.
 

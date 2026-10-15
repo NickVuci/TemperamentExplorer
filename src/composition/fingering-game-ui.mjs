@@ -4,7 +4,7 @@
 import {esc, option} from '../ui/ui.mjs';
 import {countOptions} from './fingering-game.mjs';
 
-const DEFAULT_COUNT = 5;
+const DEFAULT_COUNT = Infinity;
 
 export function createFingeringGameUi({
   game,
@@ -23,26 +23,26 @@ export function createFingeringGameUi({
     const head = '<h3>Fingering practice</h3>';
     const note = s.message ? `<p class="fingering-note" role="status">${esc(s.message)}</p>` : '';
     if (s.phase === 'playing') {
-      return `${head}<p><b>Fingering ${s.position + 1} of ${s.total}</b> · ${esc(s.label)} — play the lit keys together.</p>
-       <progress max="${s.total}" value="${s.position}" aria-label="Fingerings played"></progress>
+      return `${head}<p><b>Position ${s.position + 1} of ${s.total}</b> · ${esc(s.label)} — play the lit keys together.</p>
+       <progress max="${s.total}" value="${s.position}" aria-label="Positions played"></progress>
        <p class="viewnote">${s.armed ? 'Press all the lit keys at once; the next fingering lights up when you have them.' : 'Lift all your keys, then play the lit fingering.'}
         · Time <output data-fg-time>${clock(s.seconds)}</output> · Wrong keys ${s.mistakes}${s.skipped ? ` · Skipped ${s.skipped}` : ''}</p>${note}
        <div class="panelactions"><button data-fg="skip">Skip this one</button><button data-fg="stop">Stop</button></div>`;
     }
     if (s.phase === 'done') {
-      return `${head}<p role="status"><b>Done.</b> ${s.played} of ${s.total} fingerings of ${esc(s.label)} played in ${clock(s.seconds)}${s.mistakes ? ` · ${s.mistakes} wrong key${s.mistakes > 1 ? 's' : ''}` : ''}${s.skipped ? ` · ${s.skipped} skipped` : ''}.</p>
+      return `${head}<p role="status"><b>Done.</b> ${s.played} of ${s.total} positions of ${esc(s.label)} played in ${clock(s.seconds)}${s.mistakes ? ` · ${s.mistakes} wrong key${s.mistakes > 1 ? 's' : ''}` : ''}${s.skipped ? ` · ${s.skipped} skipped` : ''}.</p>
        <div class="panelactions"><button data-fg="again">Play again</button><button data-fg="close">Close</button></div>`;
     }
     if (!f)
-      return `${head}<p class="viewnote">Choose a chord and place it on the HexBoard, then play each of its fingerings here, one at a time.</p>${note}`;
+      return `${head}<p class="viewnote">Choose a chord fingering on the Play board, then practise it at every matching bass position.</p>${note}`;
     const options = countOptions(f.placements.length),
       chosen = options.includes(count)
         ? count
         : (options.filter(n => n <= count).at(-1) ?? options[0]);
-    return `${head}<p><b>${esc(f.label)}</b> · ${f.placements.length} fingerings on this layout.</p>
-     <div class="panelactions"><label>How many <select data-fg-count>${options.map((n, i) => option(n, i === options.length - 1 && options.length > 1 ? `All ${n}` : String(n), chosen)).join('')}</select></label>
+    return `${head}<p><b>${esc(f.label)}</b> · ${f.placements.length} matching positions on this layout.</p>
+     <div class="panelactions"><label>How many <select data-fg-count>${options.map((n, i) => option(n, i === options.length - 1 ? `All ${n}` : String(n), chosen)).join('')}</select></label>
      <button data-fg="start">Start</button></div>
-     <p class="viewnote">The first fingering lights up on the screen and on a connected HexBoard. Play it, and the next one lights.</p>${note}`;
+     <p class="viewnote">The same hand shape and chord intervals, transposed from the lowest bass to the highest. Play the lit keys, then lift them to continue.</p>${note}`;
   }
 
   function signature(s, f) {
@@ -102,7 +102,9 @@ export function createFingeringGameUi({
   host.addEventListener('change', event => {
     const select = event.target?.closest?.('[data-fg-count]');
     if (select) {
-      count = Number(select.value) || DEFAULT_COUNT;
+      const selected = Number(select.value);
+      count =
+        selected === getFingerings()?.placements.length ? DEFAULT_COUNT : selected || DEFAULT_COUNT;
     }
   });
 
@@ -111,6 +113,11 @@ export function createFingeringGameUi({
   return {
     update,
     tick,
+    useAll() {
+      if (game.active) game.stop();
+      count = DEFAULT_COUNT;
+      update(true);
+    },
     dispose() {
       timer.clear(timerId);
     }

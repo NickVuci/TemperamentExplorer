@@ -85,7 +85,7 @@ function setup({
 // No chord: a prompt, no Start button.
 {
   const t = setup({fingerings: null});
-  assert.match(t.host.innerHTML, /Choose a chord and place it on the HexBoard/);
+  assert.match(t.host.innerHTML, /Choose a chord fingering on the Play board/);
   assert.doesNotMatch(t.host.innerHTML, /data-fg="start"/);
 }
 
@@ -94,7 +94,7 @@ function setup({
   const t = setup();
   assert.match(t.host.innerHTML, /major &lt;triad&gt;/);
   assert.doesNotMatch(t.host.innerHTML, /<triad>/);
-  assert.match(t.host.innerHTML, /12 fingerings on this layout/);
+  assert.match(t.host.innerHTML, /12 matching positions on this layout/);
   const options = [...t.host.innerHTML.matchAll(/<option value="(\d+)"[^>]*>([^<]*)</g)].map(m => [
     m[1],
     m[2]
@@ -105,7 +105,7 @@ function setup({
     ['10', '10'],
     ['12', 'All 12']
   ]);
-  assert.match(t.host.innerHTML, /<option value="5" selected>/, 'five is the default');
+  assert.match(t.host.innerHTML, /<option value="12" selected>/, 'all positions is the default');
 }
 
 // Choosing a length, starting, playing through, finishing.
@@ -115,11 +115,11 @@ function setup({
   t.click('start');
   assert.equal(t.game.state().total, 3);
   assert.deepEqual(t.lit, [0], 'the first fingering is lit');
-  assert.match(t.host.innerHTML, /Fingering 1 of 3/);
+  assert.match(t.host.innerHTML, /Position 1 of 3/);
   assert.match(t.host.innerHTML, /data-fg="skip"/);
   assert.match(t.host.innerHTML, /<progress max="3" value="0"/);
   t.game.onHeld(new Set([10, 30, 50]));
-  assert.match(t.host.innerHTML, /Fingering 2 of 3/, 'the panel follows the game');
+  assert.match(t.host.innerHTML, /Position 2 of 3/, 'the panel follows the game');
   assert.match(t.host.innerHTML, /Lift all your keys/, 'it tells the player to lift the keys');
   t.game.onHeld(new Set());
   assert.match(t.host.innerHTML, /Press all the lit keys at once/);
@@ -128,13 +128,13 @@ function setup({
   assert.match(t.host.innerHTML, /not part of this fingering/);
   t.game.onHeld(new Set());
   t.click('skip');
-  assert.match(t.host.innerHTML, /Fingering 3 of 3/);
+  assert.match(t.host.innerHTML, /Position 3 of 3/);
   assert.match(t.host.innerHTML, /Skipped 1/);
   t.advance(75);
   t.game.onHeld(new Set([12, 32, 52]));
   assert.match(
     t.host.innerHTML,
-    /<b>Done\.<\/b> 2 of 3 fingerings of major &lt;triad&gt; played in 1:15 · 1 wrong key · 1 skipped/
+    /<b>Done\.<\/b> 2 of 3 positions of major &lt;triad&gt; played in 1:15 · 1 wrong key · 1 skipped/
   );
   assert.match(t.host.innerHTML, /data-fg="again"/);
   t.click('again');
@@ -160,9 +160,22 @@ function setup({
 // "All" plays every fingering.
 {
   const t = setup();
-  t.pick(12);
   t.click('start');
   assert.equal(t.game.state().total, 12);
+  t.pick(3);
+  t.ui.useAll();
+  assert.equal(t.game.active, false);
+  t.click('start');
+  assert.equal(t.game.state().total, 12, 'the shape practice action resets a shorter drill to All');
+  t.click('stop');
+  t.fingerings = {
+    label: 'larger chord',
+    index: 0,
+    placements: [...placements, {keys: [22, 42, 62]}]
+  };
+  t.tick();
+  t.click('start');
+  assert.equal(t.game.state().total, 13, 'All follows the current number of positions');
 }
 
 // The clock moves in place without rebuilding the panel.

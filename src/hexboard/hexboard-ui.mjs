@@ -16,7 +16,7 @@ import {palettes, validColor, mosLayers, keyColor} from './hexboard-colors.mjs';
 import {boardPicture, boardSvg, deviceFrame, fingeringMap, fmt, signed} from './hexboard-view.mjs';
 import {inspectCoordinateChord} from '../harmonic/harmonic-inspection.mjs';
 import {renderCoordinateAssessment} from '../harmonic/harmonic-inspection-ui.mjs';
-import {chordPlacements, chordsWithKey} from './hexboard-chords.mjs';
+import {chordPlacements, chordsWithKey, fingeringInstances} from './hexboard-chords.mjs';
 import {MAX_CHORD_TONES} from '../chords/chord-identity.mjs';
 import {scaleChoices, MAX_SCALE_SIZE, mapRatio} from '../core/engine.mjs';
 import {validateJILimits, DEFAULT_ODD_LIMIT} from '../core/ji-limit-engine.mjs';
@@ -102,6 +102,7 @@ export function createHexboardWorkspace({
   onBrowseHarmony = () => {},
   onFitHarmonicScale = () => {},
   onSearch = () => {},
+  onPractise = () => {},
   presetStore
 }) {
   // The finder holds one chord to place (selected keys, a Note → chords pick, or a chord from elsewhere).
@@ -121,6 +122,7 @@ export function createHexboardWorkspace({
     shapeHighlight = null,
     coverageKey = null,
     keepRestoredBase = false;
+  let practice = null;
   const refreshLayoutChooser = () => {
     const doc = globalThis.document,
       host = doc?.querySelector('.layout-recommendations');
@@ -183,10 +185,12 @@ export function createHexboardWorkspace({
     getDirectory: getShapeDirectory,
     classify: coordinates => matchPlayed(coordinates),
     onOpenHarmony: onFocusHarmony,
-    onPractise: () =>
+    onPractise: () => {
+      onPractise();
       globalThis.document
         ?.querySelector('#fingering-game')
-        ?.scrollIntoView({block: 'nearest', behavior: 'smooth'}),
+        ?.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+    },
     refresh: () => refresh('highlight'),
     notify,
     play,
@@ -418,6 +422,10 @@ export function createHexboardWorkspace({
   }
   function highlighted(s, cfg) {
     shapes.sync();
+    if (practice?.active) {
+      const current = practiceFingerings();
+      if (current?.placements[current.index]) return current.placements[current.index];
+    }
     if (shapeHighlight) return shapeHighlight;
     if (harmonicHighlight) return harmonicHighlight;
     const f = finderState(s, cfg);
@@ -567,7 +575,7 @@ export function createHexboardWorkspace({
     return boardPicture(s, cfg, b, {
       overlay: highlighted(s, cfg),
       scaleOn: scaleHighlight,
-      chord: cfg.chord
+      chord: practice?.active ? [] : cfg.chord
     });
   }
   function svg(s, cfg, b) {
@@ -610,7 +618,7 @@ export function createHexboardWorkspace({
       key = b.keys[Number(node.dataset.hexKey)];
     if (!key || key.command) return null;
     cfg.selected = key.index;
-    if (cfg.selectChord && key.enabled) {
+    if (cfg.selectChord && !practice?.active && key.enabled) {
       if (cfg.chord.includes(key.index)) cfg.chord = cfg.chord.filter(i => i !== key.index);
       else if (cfg.chord.length < MAX_CHORD_TONES) cfg.chord.push(key.index);
     }
@@ -1470,6 +1478,67 @@ export function createHexboardWorkspace({
     refresh('highlight');
     return true;
   }
+  // Practice is an exhaustive translation of the chosen fingering, independent of
+  // the gallery's root/register filters and search budget. Browsing keeps its own list.
+  function practiceFingerings() {
+    shapes.sync();
+    const source = fingerings(),
+      seed = source?.placements[Math.max(0, source.index)];
+    if (!seed) {
+      practice = null;
+      return null;
+    }
+    const s = state(),
+      cfg = config(),
+      board = boardFor(s, cfg),
+      overlay = source.source === 'shape' ? shapeHighlight : harmonicHighlight,
+      tones = seed.keys.map(key => overlay?.toneLabels?.[key] ?? []),
+      signature = JSON.stringify([source.source, source.label, seed.keys, tones]);
+    if (practice?.board === board && practice.signature === signature) return practice;
+    const placements = fingeringInstances(board, seed.keys).map(instance => ({
+        ...instance,
+        toneLabels: Object.fromEntries(instance.keys.map((key, i) => [key, tones[i]]))
+      })),
+      template = seed.keys.map(key => board.keys[key]),
+      id = JSON.stringify([
+        source.source,
+        source.label,
+        template.map(key => [
+          key.x - template[0].x,
+          key.y - template[0].y,
+          ...key.m.map((value, axis) => value - template[0].m[axis])
+        ]),
+        tones
+      ]);
+    practice = {
+      id,
+      signature,
+      board,
+      active: false,
+      source: source.source,
+      label: source.label,
+      placements,
+      index:
+        source.index < 0
+          ? -1
+          : placements.findIndex(p => p.keys.every((key, i) => key === seed.keys[i]))
+    };
+    return practice;
+  }
+  function showPracticeFingering(index) {
+    const current = practiceFingerings();
+    if (!current || !Number.isInteger(index) || index < -1 || index >= current.placements.length)
+      return false;
+    current.index = index;
+    current.active = index >= 0;
+    refresh('highlight');
+    return true;
+  }
+  function endPractice() {
+    if (!practice?.active) return;
+    practice.active = false;
+    refresh('highlight');
+  }
   // What a physical board should show: the same picture as the screen, as plain data.
   // Read-only; null when the current layout cannot be built.
   function deviceSnapshot() {
@@ -1489,6 +1558,9 @@ export function createHexboardWorkspace({
     deviceSnapshot,
     fingerings,
     showFingering,
+    practiceFingerings,
+    showPracticeFingering,
+    endPractice,
     harmoniesAt,
     showHarmony,
     hearKeys,
@@ -1516,6 +1588,7 @@ export function createHexboardWorkspace({
     },
     showScale,
     clearHighlight: () => {
+      practice = null;
       shapes.clear();
       shapeHighlight = null;
       harmonicPlay.clear();

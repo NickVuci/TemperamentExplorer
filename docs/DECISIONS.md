@@ -1148,3 +1148,20 @@ distinguish a voicing from a tuning coincidence. Storing scores or cents in save
 score is a compactness heuristic, not a hand model; finger assignments, ergonomic ratings, weighted
 target collections, layout optimization and comparison across temperaments are later work and should
 extend these records rather than replace them.
+
+## D-051 — Fingering practice translates one chosen shape and voicing across the full layout
+
+**Decision.** Practice targets are every enabled-key translation of the chosen physical fingering
+whose relative coordinates match in both mapping axes. `hexboard-chords.mjs#fingeringInstances`
+owns this finite scan; the HexBoard workspace owns its cached targets and transient highlight.
+The gallery and its selected reading remain the source. All positions is the default, ordered by
+sounding bass pitch, with shorter drills available.
+
+**Rationale.** Gallery results can be constrained to one root or stopped by a search budget.
+Identical geometry can also play different intervals across wrapped seams or custom mappings.
+Translating an existing voicing exactly provides every matching position without a second chord
+catalogue, cents-tolerance matching, different inversions or altered hand shapes.
+
+**Consequences.** Practice does not change the browsing selection or saved data. Its presses do not
+edit a selected chord, and completion restores the original highlight. Source or layout changes
+invalidate the drill. Both screen and physical LEDs use the existing board picture and player.

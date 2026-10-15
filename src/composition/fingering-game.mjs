@@ -26,7 +26,8 @@ export function createFingeringGame({
     position = 0,
     label = '',
     total = 0,
-    original = -1;
+    original = -1,
+    identity;
   let armed = false,
     busy = false,
     lastHeld = new Set(),
@@ -60,6 +61,7 @@ export function createFingeringGame({
   const unchanged = f =>
     !!f &&
     f.label === label &&
+    f.id === identity &&
     f.placements.length >= total &&
     queue.every(q => sameKeys(f.placements[q.index]?.keys, q.keys));
 
@@ -74,6 +76,7 @@ export function createFingeringGame({
     const n = Math.max(1, Math.min(count ?? f.placements.length, f.placements.length));
     queue = f.placements.slice(0, n).map((p, index) => ({index, keys: [...p.keys]}));
     label = f.label;
+    identity = f.id;
     total = n;
     position = 0;
     played = 0;

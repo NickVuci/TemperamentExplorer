@@ -6,7 +6,7 @@ import {
 } from '../harmonic/harmonic-inspection.mjs';
 import {MAX_CHORD_TONES} from '../chords/chord-identity.mjs';
 import {approximationSpan, noteCoordinate, sameCoordinate} from '../core/pitch.mjs';
-import {physicalDistance} from '../shapes/geometric-shapes.mjs';
+import {physicalDistance, geometricShapeForKeys} from '../shapes/geometric-shapes.mjs';
 export function hexDistance(a, b) {
   const x = (b.x - a.x + b.y - a.y) / 2,
     y = a.y - b.y;
@@ -20,6 +20,41 @@ export function chordCoordinates(s, degrees, octaves = {}) {
     const m = noteCoordinate(s, n);
     return [m[0] + (octaves[i] || 0), m[1]];
   });
+}
+
+/** Every translation of one hand shape that preserves its exact voiced intervals. */
+export function fingeringInstances(board, selectedKeys) {
+  const geometry = geometricShapeForKeys(board, selectedKeys),
+    index = createBoardPlacementIndex(board),
+    source = selectedKeys.map(key => index.byIndex.get(key));
+  if (source.some(key => !key.enabled || key.command))
+    throw Error('Choose a fingering on enabled note keys.');
+  const origin = source[0],
+    cells = new Map(index.keys.map(key => [[key.x, key.y].join(','), key])),
+    result = [];
+  for (const anchor of index.keys) {
+    const translated = source.map(key =>
+      cells.get([anchor.x + key.x - origin.x, anchor.y + key.y - origin.y].join(','))
+    );
+    if (translated.some(key => !key)) continue;
+    // A wrapped seam or custom mapping can change a chord without changing its geometry.
+    if (
+      !translated.every((key, i) =>
+        key.m.every((value, axis) => value - anchor.m[axis] === source[i].m[axis] - origin.m[axis])
+      )
+    )
+      continue;
+    const bass = translated.toSorted((a, b) => a.c - b.c || a.index - b.index)[0];
+    result.push({
+      keys: translated.map(key => key.index),
+      coords: translated.map(key => [...key.m]),
+      bassKey: bass.index,
+      bassCents: bass.c,
+      reach: geometry.metrics.reach,
+      span: geometry.metrics.span
+    });
+  }
+  return result.sort((a, b) => a.bassCents - b.bassCents || a.bassKey - b.bassKey);
 }
 
 /** One physical-key/coordinate index for fixed voicings and bounded shape searches. */

@@ -412,6 +412,7 @@ const hexWorkspace = createHexboardWorkspace({
     renderWorkspace();
   },
   onSearch: text => focusSync.searchPlayChord(text),
+  onPractise: () => fingeringUi?.useAll(),
   onFitHarmonicScale: fitPlayHarmony,
   onCollect: (s, coords, label, options) =>
     materialWorkspace.add('chord', s, coords, label, {exact: true, ...options}),
@@ -785,9 +786,12 @@ const compositionWorkspace = createCompositionWorkspace({
 // Fingering practice: play each fingering of the chord on the Play board, one at a time.
 let fingeringUi;
 const fingeringGame = createFingeringGame({
-  getFingerings: () => hexWorkspace.fingerings(),
-  showFingering: index => hexWorkspace.showFingering(index),
-  onChange: () => fingeringUi?.update()
+  getFingerings: () => hexWorkspace.practiceFingerings(),
+  showFingering: index => hexWorkspace.showPracticeFingering(index),
+  onChange: current => {
+    if (current.phase !== 'playing') hexWorkspace.endPractice();
+    fingeringUi?.update();
+  }
 });
 // Note → chords and Practice keep their own live panels; each Play redraw mounts them into its slots.
 const playPanels = {'note-chords': $('#key-harmonies'), practice: $('#fingering-game')};
@@ -800,7 +804,7 @@ function mountPlaySlots() {
 fingeringUi = createFingeringGameUi({
   game: fingeringGame,
   host: playPanels.practice,
-  getFingerings: () => hexWorkspace.fingerings(),
+  getFingerings: () => hexWorkspace.practiceFingerings(),
   isPlayView: () => view === 'hexboard'
 });
 // Note → chords: the chords on the key selected on the Play board (mouse click or a HexBoard press).
