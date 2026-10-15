@@ -7,6 +7,7 @@ import {
   encodeLeds,
   decodeKey,
   decodeEncoder,
+  hexToLed,
   BUTTON_COUNT
 } from './hexboard-protocol.mjs';
 
@@ -126,7 +127,8 @@ export function createHexboardDevice({
   function disconnect() {
     if ((state === 'connected' || state === 'connecting') && output) {
       try {
-        const blank = Array.from({length: BUTTON_COUNT}, (_, led) => ({led, h: 0, s: 0, v: 0}));
+        const off = hexToLed('#000000'),
+          blank = Array.from({length: BUTTON_COUNT}, (_, led) => ({led, ...off}));
         for (let i = 0; i < blank.length; i += chunk)
           output.send(encodeLeds(blank.slice(i, i + chunk)));
         output.send(encodeExit());

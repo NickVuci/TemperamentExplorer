@@ -928,7 +928,7 @@ intermission, with Pause repeat and Stop repeating. Wait repeat restarts at once
 The pass number is shown during runs and in results. In Timed, the speed trainer offers 5%
 more after a pass at 90% or better, capped at its target speed; it is disabled in Wait. A connected
 HexBoard shows the lit keys and flashes hits and misses: on a dark board every other key is off; over
-the layout the lit keys shine a level brighter than the rest; Off shows the layout alone and removes
+the layout the lit keys shine brightly over a dimmed background; Off shows the layout alone and removes
 suggested-key cues from the screen and device. Setup lights its previewed notes over the layout, and
 results show the layout. Calibration plays twelve clicks and stores
 the median lag of taps on the last eight; it is taken off every Timed press. Settings, that offset and
@@ -1029,13 +1029,24 @@ keys are silent. A board encoder press acts like Escape (stop and clear highligh
 
 Lights. The screen board and the LEDs share one rule (`keyAppearance`): every enabled key always shows its
 own layout colour and outline. A chord placement, selected chord keys or a scale highlight changes no colour
-and leaves the other keys as they were; only its keys shine a level brighter (on screen a brightness filter,
-`.is-lit`; on the board full brightness instead of half). A highlighted key's number shows its place in the
+and uses a brightness filter (`.is-lit`) on screen. On the physical board, highlighted keys use full
+output brightness and the other keys use 10%; without a highlight the layout uses 50%.
+A highlighted key's number shows its place in the
 chord, 1 being the root. Keys being played, by the board or the mouse, are white on the board.
-Disabled and command keys are dark. On screen only, a highlighted chord (`.has-chord`) also darkens every
-key outside it (`.is-marked`); the LEDs keep the other keys unchanged. While connected, Settings shows a
+Disabled and command keys are dark. On screen, a highlighted chord (`.has-chord`) also darkens every
+key outside it (`.is-marked`). While connected, Settings shows a
 HexBoard brightness slider (5–100%, remembered in the browser). The firmware has no brightness command,
-so `ledFrame` scales every LED value it sends.
+so `ledFrame` supplies an output brightness level for every colour it sends.
+
+Delegated colours. `hexboard-protocol.mjs#hexToLed` preserves the layout's HSV
+saturation, compensates output brightness for the firmware's gamma-2.6 curve and
+chooses the nearest seven-bit hue through its nonlinear perceptual hue mapping
+(`h * 360 / 127`). Generated colours, white and black use hue bytes `1..126` to
+avoid the zero-degree interpolation endpoint.
+Brightness levels apply to the resulting output; firmware global brightness and
+current limiting still apply. Screen colours, stored palettes and preset exports
+use their original RGB/HSV values. Quantization and the board's brightness budget
+limit the colour match, particularly at low brightness.
 
 Keeping the board current. After entering host mode the app waits 300 ms for the board to settle,
 then paints. LEDs travel in paced messages of at most 32 LEDs. While connected, the app is sampled every

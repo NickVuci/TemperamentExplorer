@@ -10,7 +10,8 @@ import {hexToLed, BUTTON_COUNT} from '../src/hexboard/hexboard-protocol.mjs';
 import {buildBoard} from '../src/hexboard/hexboard.mjs';
 import {makeState} from '../src/core/catalog.mjs';
 import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
-import {mosLayers, keyColor} from '../src/hexboard/hexboard-colors.mjs';
+import {mosLayers, keyColor, palettes} from '../src/hexboard/hexboard-colors.mjs';
+import {assertLedColour, firmwareRgb} from './support/hexboard-firmware.mjs';
 
 // ---------- frame builder ----------
 const key = (index, extra = {}) => ({
@@ -43,7 +44,7 @@ const keys = Array.from({length: BUTTON_COUNT}, (_, i) =>
 const snap = {keys};
 const frame = ledFrame(snap);
 assert.equal(frame.size, BUTTON_COUNT, 'every LED is described');
-assert.deepEqual(frame.get(0), {h: 0, s: 0, v: 0}, 'command keys stay dark');
+assert.deepEqual(frame.get(0), {h: 1, s: 0, v: 0}, 'command keys stay dark');
 assert.deepEqual(
   frame.get(5),
   hexToLed('#5686df', LEVEL.normal),
@@ -64,16 +65,16 @@ assert.deepEqual(
   hexToLed('#5686df', LEVEL.lit),
   'a highlighted key keeps its layout colour, at full brightness (not the screen highlight colour)'
 );
-assert.deepEqual(lit.get(6), frame.get(6), 'other keys are unchanged by a highlight');
-assert.deepEqual(lit.get(7), {h: 0, s: 0, v: 0}, 'a disabled key is dark');
+assert.deepEqual(lit.get(6), hexToLed('#5686df', LEVEL.dim), 'other keys dim during a highlight');
+assert.deepEqual(lit.get(7), {h: 1, s: 0, v: 0}, 'a disabled key is dark');
 assert.deepEqual(
   ledFrame(snap, new Set([5])).get(5),
-  {h: 0, s: 0, v: 127},
+  {h: 1, s: 0, v: 127},
   'a sounding key is white'
 );
 assert.ok(ledFrame(null).get(10).v === 0, 'no snapshot means a dark board');
 assert.ok(LEVEL.normal < LEVEL.lit);
-assert.deepEqual(Object.keys(LEVEL), ['normal', 'lit'], 'there is no receded level');
+assert.ok(LEVEL.dim < LEVEL.normal, 'background dimming is limited to active highlights');
 // Brightness scales every LED value, keeps hue and saturation, and is clamped.
 const half = ledFrame(
   {keys: keys.map(k => (k.index === 5 ? {...k, lit: true, marked: true} : k))},
@@ -87,15 +88,60 @@ assert.deepEqual(
 );
 assert.deepEqual(
   half.get(6),
-  hexToLed('#5686df', LEVEL.normal * 0.5),
-  'brightness scales an ordinary key'
+  hexToLed('#5686df', LEVEL.dim * 0.5),
+  'brightness scales the dimmed background'
 );
-assert.deepEqual(half.get(9), {h: 0, s: 0, v: 64}, 'brightness scales a sounding key');
-assert.deepEqual(half.get(0), {h: 0, s: 0, v: 0});
+assert.deepEqual(half.get(9), hexToLed('#ffffff', 0.5), 'brightness scales a sounding key');
+assert.deepEqual(half.get(0), {h: 1, s: 0, v: 0});
 assert.equal(clampBrightness(0), BRIGHTNESS.min);
 assert.equal(clampBrightness(3), 1);
 assert.equal(clampBrightness('x'), BRIGHTNESS.default);
 assert.deepEqual(ledFrame(snap, new Set(), 1), frame, 'full brightness is the original picture');
+
+// Check the rendered firmware colours too, including held white and low slider settings.
+for (const brightness of [0.05, 0.4, 1]) {
+  const picture = {
+    keys: [
+      key(0, {color: '#65bd9c', layoutColor: '#65bd9c'}),
+      key(1, {color: '#d879a0', layoutColor: '#d879a0', lit: true}),
+      key(2),
+      key(3, {enabled: false}),
+      key(4, {command: true})
+    ]
+  };
+  const leds = ledFrame(picture, new Set([2]), brightness);
+  assertLedColour(leds.get(0), '#65bd9c', LEVEL.dim * brightness);
+  assertLedColour(leds.get(1), '#d879a0', LEVEL.lit * brightness);
+  assertLedColour(leds.get(2), '#ffffff', brightness);
+  for (const index of [3, 4, 139]) assert.deepEqual(firmwareRgb(leds.get(index)), [0, 0, 0]);
+}
+
+// Contrast is measured after firmware gamma, not by comparing encoded value bytes.
+for (const colour of Object.values(palettes).flatMap(palette => palette.colors)) {
+  for (const brightness of [0.4, 1]) {
+    const picture = {
+        keys: [key(0, {layoutColor: colour}), key(1, {layoutColor: colour, lit: true})]
+      },
+      leds = ledFrame(picture, new Set(), brightness),
+      background = Math.max(...firmwareRgb(leds.get(0))),
+      highlight = Math.max(...firmwareRgb(leds.get(1)));
+    assert.ok(
+      highlight >= 5 * background,
+      `${colour}: highlight must strongly outshine its background`
+    );
+    assertLedColour(leds.get(0), colour, 0.1 * brightness);
+    assertLedColour(leds.get(1), colour, brightness);
+    picture.keys[1].lit = false;
+    const restored = ledFrame(picture, new Set(), brightness);
+    assertLedColour(restored.get(0), colour, 0.5 * brightness);
+    assert.deepEqual(restored.get(0), restored.get(1), 'clearing restores the ordinary layout');
+  }
+}
+// A disabled or command key cannot cause the rest of the layout to dim.
+for (const extra of [{enabled: false}, {command: true}]) {
+  const picture = {keys: [key(0), key(1, {...extra, lit: true})]};
+  assert.deepEqual(ledFrame(picture).get(0), frame.get(5));
+}
 
 // ---------- controller with fakes ----------
 function setup({withNode = true, hiddenNode = false} = {}) {
@@ -154,7 +200,7 @@ function setup({withNode = true, hiddenNode = false} = {}) {
   t.flush();
   assert.deepEqual(
     t.sentFrames.at(-1).get(65),
-    {h: 0, s: 0, v: 127},
+    {h: 1, s: 0, v: 127},
     'the pressed key lights white on the board'
   );
   assert.equal(t.sync.brightness, 1);
@@ -162,7 +208,7 @@ function setup({withNode = true, hiddenNode = false} = {}) {
   t.flush();
   assert.deepEqual(
     t.sentFrames.at(-1).get(65),
-    {h: 0, s: 0, v: 32},
+    hexToLed('#ffffff', 0.25),
     'changing brightness repaints the connected board'
   );
   assert.deepEqual(t.sentFrames.at(-1).get(66), hexToLed('#5686df', LEVEL.normal * 0.25));
@@ -186,7 +232,7 @@ function setup({withNode = true, hiddenNode = false} = {}) {
   t.flush();
   assert.notDeepEqual(
     t.sentFrames.at(-1).get(65),
-    {h: 0, s: 0, v: 127},
+    {h: 1, s: 0, v: 127},
     'the light returns to its colour'
   );
   t.sync.keyUp(65);
@@ -224,7 +270,7 @@ for (const opts of [{withNode: false}, {hiddenNode: true}]) {
   t.sync.setActive([{id: '7'}, {id: '8'}]);
   assert.deepEqual([...t.sync.held].sort(), [7, 8]);
   t.flush();
-  assert.deepEqual(t.sentFrames.at(-1).get(7), {h: 0, s: 0, v: 127});
+  assert.deepEqual(t.sentFrames.at(-1).get(7), {h: 1, s: 0, v: 127});
   t.sync.keyDown(9);
   assert.deepEqual(
     [...t.sync.held].sort((a, b) => a - b),
@@ -371,10 +417,10 @@ for (const opts of [{withNode: false}, {hiddenNode: true}]) {
   );
   assert.deepEqual(
     frameLit.get(others[0].index),
-    framePlain.get(others[0].index),
-    'other keys are unchanged'
+    hexToLed(others[0].layoutColor, LEVEL.dim),
+    'other keys keep their colour and dim'
   );
-  // A chord highlight lights its keys in their own colour and leaves the rest alone.
+  // A chord highlight lights its keys in their own colour over a dimmed background.
   ws.clearHighlight();
   ws.showChord(
     [
@@ -426,12 +472,12 @@ for (const opts of [{withNode: false}, {hiddenNode: true}]) {
     else
       assert.deepEqual(
         chordFrame.get(k.index),
-        plainFrame.get(k.index),
-        'other keys are exactly as before'
+        hexToLed(k.layoutColor, LEVEL.dim),
+        'other keys keep their colour and dim'
       );
   }
   assert.ok(withChord.keys.filter(k => k.lit).length >= 3);
-  // Only the screen darkens keys outside a highlighted chord: the board class drives CSS dimming.
+  // The screen also darkens keys outside a highlighted chord through CSS.
   const svg = html => html.match(/<svg class="hex-board[^"]*"/)[0];
   assert.match(
     svg(ws.render()),
@@ -459,8 +505,8 @@ for (const opts of [{withNode: false}, {hiddenNode: true}]) {
     else
       assert.deepEqual(
         scaleFrame.get(k.index),
-        plainFrame.get(k.index),
-        'other keys are exactly as before'
+        hexToLed(k.layoutColor, LEVEL.dim),
+        'other keys keep their colour and dim'
       );
   }
   assert.ok(withScale.keys.some(k => k.lit) && withScale.keys.some(k => k.enabled && !k.lit));

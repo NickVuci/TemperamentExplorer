@@ -182,7 +182,7 @@ const harness = (opts, device = {}) => {
     return r;
   });
   assert.equal(records.length, 140, 'all 140 LEDs are blanked');
-  assert.ok(records.every((r, i) => r.led === i && r.h === 0 && r.s === 0 && r.v === 0));
+  assert.ok(records.every((r, i) => r.led === i && r.h === 1 && r.s === 0 && r.v === 0));
   assert.deepEqual(m.sent.at(-1), [0xf0, 0x7d, 0x02, 0xf7], 'exit delegated mode');
   assert.equal(d.state, 'disconnected');
   assert.equal(m.portIn[0].onmidimessage, null, 'listeners are removed');

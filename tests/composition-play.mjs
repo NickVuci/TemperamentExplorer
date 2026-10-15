@@ -644,6 +644,16 @@ await test('Note hints light the HexBoard dark, over the layout or not at all', 
         others.every(i => frame.get(i).v === 0),
         'dark: every other key is off'
       );
+    else if (lights === 'layout')
+      assert.ok(
+        others.every(
+          i =>
+            frame.get(i).h === plain.get(i).h &&
+            frame.get(i).s === plain.get(i).s &&
+            frame.get(i).v < plain.get(i).v
+        ),
+        'layout: other keys retain their colours at lower brightness'
+      );
     else
       assert.ok(
         others.every(i => JSON.stringify(frame.get(i)) === JSON.stringify(plain.get(i))),

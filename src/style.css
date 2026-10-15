@@ -5342,6 +5342,10 @@ footer {
   html {
     scroll-padding-top: calc(var(--header-h, 0px) + 12px);
   }
+  /* Sticky header controls are already visible; focus must not scroll them below the header. */
+  html:has(.app-header :focus) {
+    scroll-padding-top: 0;
+  }
 }
 
 /* Discover harmony library: compact folders and chord rows. */

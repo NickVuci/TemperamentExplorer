@@ -177,13 +177,19 @@ export function fakeAudio() {
  * Boots src/app.mjs once in this process against a fresh page. Returns helpers that drive the
  * page the way a user would.
  */
-export async function bootApp({html = indexHtml(), url = 'http://localhost/'} = {}) {
+export async function bootApp({
+  html = indexHtml(),
+  url = 'http://localhost/',
+  requestMIDIAccess
+} = {}) {
   const errors = [],
     downloads = [],
     observers = new Set(),
     virtualConsole = new VirtualConsole();
   virtualConsole.on('jsdomError', error => errors.push(error));
   const {window} = new JSDOM(html, {url, pretendToBeVisual: true, virtualConsole});
+  if (requestMIDIAccess)
+    Object.defineProperty(window.navigator, 'requestMIDIAccess', {value: requestMIDIAccess});
   addMissingBrowserApis(window, downloads, observers);
   installPage(window);
   const audio = fakeAudio();

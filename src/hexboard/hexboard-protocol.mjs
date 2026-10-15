@@ -66,12 +66,51 @@ export function decodeEncoder(data) {
   return ENCODER[data[3]] ?? null;
 }
 
-/** '#rrggbb' scaled by `level` (0..1) onto the firmware's 0..127 hue/saturation/value. */
-export function hexToLed(hex, level = 1) {
-  const {hueTenthDegrees, saturation, value} = hexToHSV(hex);
+// Firmware compatibility: LedRender.cpp transforms perceptual hue before ColorHSV,
+// then applies Adafruit_NeoPixel's gamma 2.6. Compensate hue and output brightness;
+// keep the layout's saturation so the LEDs retain their normal colour contrast.
+// These knots belong only to the wire adapter, never to screen/preset colours.
+const HUE_IN = [0, 9, 18, 102, 117, 135, 142, 155, 203, 240, 252, 261, 306, 333, 360];
+const HUE_OUT = [
+  0, 3640, 5861, 10922, 12743, 16384, 21845, 27306, 32768, 38229, 43690, 49152, 54613, 58254, 65535
+];
+const GAMMA = 2.6;
+// DelegatedControl.cpp decodes h * 360 / 127. Both endpoints wrap to zero,
+// where the firmware interpolation reads before its table; use only 1..126.
+const LED_HUES = Array.from({length: 126}, (_, index) => {
+  const h = index + 1,
+    degrees = (h * 360) / 127;
+  let upper = 1;
+  while (degrees > HUE_IN[upper]) upper++;
+  const fraction = (degrees - HUE_IN[upper - 1]) / (HUE_IN[upper] - HUE_IN[upper - 1]);
   return {
-    h: Math.round((hueTenthDegrees / 3600) * 128) % 128,
+    h,
+    degrees:
+      (Math.trunc(HUE_OUT[upper - 1] + fraction * (HUE_OUT[upper] - HUE_OUT[upper - 1])) * 360) /
+      65536
+  };
+});
+function nearestLedHue(degrees) {
+  let nearest = 1,
+    distance = Infinity;
+  for (const candidate of LED_HUES) {
+    const delta = Math.abs(candidate.degrees - degrees),
+      error = Math.min(delta, 360 - delta);
+    if (error < distance) {
+      nearest = candidate.h;
+      distance = error;
+    }
+  }
+  return nearest;
+}
+
+/** Layout RGB at an output brightness `level` (0..1), compensated for firmware hue/gamma. */
+export function hexToLed(hex, level = 1) {
+  const {hueTenthDegrees, saturation, value} = hexToHSV(hex),
+    output = (Math.min(1, Math.max(0, level)) * value) / 255;
+  return {
+    h: saturation ? nearestLedHue(hueTenthDegrees / 10) : 1,
     s: Math.round((saturation * 127) / 255),
-    v: Math.round((Math.min(1, Math.max(0, level)) * value * 127) / 255)
+    v: Math.round(output ** (1 / GAMMA) * 127)
   };
 }

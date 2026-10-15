@@ -3,14 +3,13 @@
 //    path (pressKey), so sound, selection, chord picking and live chord recognition behave as
 //    for a mouse. Off the Play view it sounds the key directly.
 //  - Lights: every key shows the layout's colours; keys in a chord or scale highlight shine
-//    a level brighter; keys being played turn white. The firmware has no brightness command,
-//    so the app's brightness setting scales every LED value it sends.
+//    brightly over a dimmed layout; keys being played turn white. The firmware has no brightness command,
+//    so the app passes an output brightness level through the compensated colour conversion.
 import {hexToLed, BUTTON_COUNT} from './hexboard-protocol.mjs';
 
-// Brightness of a key's own layout colour: ordinary, and highlighted (one level brighter).
-export const LEVEL = {normal: 0.5, lit: 1};
-const OFF = {h: 0, s: 0, v: 0},
-  WHITE = {h: 0, s: 0, v: 127};
+// Output brightness: the ordinary layout, its background during a highlight, and lit keys.
+export const LEVEL = {normal: 0.5, dim: 0.1, lit: 1};
+const OFF = hexToLed('#000000');
 const PROBE_SAMPLES = 20;
 export const BRIGHTNESS = {min: 0.05, max: 1, default: 1};
 export const clampBrightness = value => {
@@ -24,7 +23,11 @@ export const clampBrightness = value => {
 export function ledFrame(snapshot, held = new Set(), brightness = BRIGHTNESS.default) {
   const frame = new Map(),
     scale = clampBrightness(brightness),
-    white = {...WHITE, v: Math.round(WHITE.v * scale)};
+    white = hexToLed('#ffffff', scale),
+    highlighted = snapshot?.keys.some(
+      key => key?.enabled && !key.command && (key.lit || key.marked)
+    ),
+    baseLevel = highlighted ? LEVEL.dim : LEVEL.normal;
   for (let led = 0; led < BUTTON_COUNT; led++) {
     const key = snapshot?.keys[led];
     if (!key || key.command || !key.enabled || !key.color) {
@@ -35,12 +38,12 @@ export function ledFrame(snapshot, held = new Set(), brightness = BRIGHTNESS.def
       frame.set(led, white);
       continue;
     }
-    // A highlight changes no colour and leaves other keys alone: highlighted keys are only brighter.
+    // Keep every layout colour, with strong brightness contrast while a highlight is active.
     frame.set(
       led,
       hexToLed(
         key.layoutColor ?? key.color,
-        (key.lit || key.marked ? LEVEL.lit : LEVEL.normal) * scale
+        (key.lit || key.marked ? LEVEL.lit : baseLevel) * scale
       )
     );
   }

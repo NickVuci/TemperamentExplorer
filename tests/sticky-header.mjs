@@ -15,6 +15,11 @@ assert.match(
   /^calc\(var\(--header-h/,
   'scroll targets clear the header'
 );
+assert.equal(
+  css.value('html:has(.app-header :focus)', 'scroll-padding-top', wide),
+  '0px',
+  'focusing a visible sticky-header control does not scroll it below the header'
+);
 assert.ok(
   css
     .find('.app-header')

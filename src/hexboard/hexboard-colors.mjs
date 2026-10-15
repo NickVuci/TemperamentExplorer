@@ -89,9 +89,9 @@ export function hexToHSV(hex) {
   };
 }
 // One highlight rule for every HexBoard picture (Play's board, Compose's miniature and the physical LEDs):
-// a highlight changes no colour and leaves every other key as it was; only the highlighted keys shine a
-// level brighter (on screen a brightness filter, on the board the next LED level). tone is the key's place
-// in a highlighted chord (0 is its root), -1 otherwise.
+// a highlight preserves layout colours and marks the keys that should shine brighter. The screen uses
+// a brightness filter; LED sync supplies stronger contrast over a dimmed background. tone is the key's
+// place in a highlighted chord (0 is its root), -1 otherwise.
 export function keyAppearance(k, i, {colors, overlay, scaleOn, chord = []}) {
   const layoutColor = k.conflict ? '#ad6262' : keyColor(k, colors),
     tone = overlay?.keys.indexOf(i) ?? -1;
