@@ -7,6 +7,7 @@
 import {PPQ, contentEndTick, barTicks} from './composition-project.mjs';
 import {resolveTone} from './composition-context.mjs';
 import {beatTicks, beatAccent} from './composition-grid.mjs';
+import {figurationClips, assertFigurationPlayable} from './composition-figuration.mjs';
 
 export const GROUP = 'transport';
 const LOOKAHEAD_SECONDS = 0.25;
@@ -45,9 +46,16 @@ export function expandProject(project, {ignoreMixer = false} = {}) {
   const soloed = project.tracks.some(t => t.solo),
     tracks = new Map(project.tracks.map(t => [t.id, t])),
     out = [];
-  for (const clip of project.clips) {
+  for (const clip of [...project.clips, ...figurationClips(project)]) {
     const track = tracks.get(clip.trackId);
     if (!ignoreMixer && (track.mute || (soloed && !track.solo))) continue;
+    if (
+      !ignoreMixer &&
+      track.kind === 'chords' &&
+      project.figuration?.attachments.length &&
+      !project.figuration.soundHarmony
+    )
+      continue;
     for (let r = 0; r < clip.repeat; r++) {
       const base = clip.startTick + r * clip.lengthTick;
       for (const e of clip.events)
@@ -89,6 +97,7 @@ export function clickOccurrences(project, end) {
 }
 
 export function createPlan(project, {click = false} = {}) {
+  assertFigurationPlayable(project);
   const end = contentEndTick(project),
     occurrences = click
       ? [...expandProject(project), ...clickOccurrences(project, end)].sort(byStart)
@@ -357,7 +366,12 @@ export function createTransport({
     if (mine !== token) return; // stopped, paused or seeked while the audio context was resuming
     preparing = false;
     project = getProject();
-    refreshPlan();
+    try {
+      refreshPlan();
+    } catch (error) {
+      emit('error', {error});
+      return;
+    }
     let p = position;
     if (!bounded() && (plan.loop.enabled ? p >= plan.loop.end : p >= plan.end))
       p = plan.loop.enabled ? plan.loop.start : 0;
@@ -489,6 +503,13 @@ export function createTransport({
   function invalidate() {
     if (state !== 'playing') {
       plan = null;
+      return;
+    }
+    try {
+      assertFigurationPlayable(getProject());
+    } catch (error) {
+      halt('stopped');
+      emit('error', {error});
       return;
     }
     const snap = audio.getClockSnapshot();

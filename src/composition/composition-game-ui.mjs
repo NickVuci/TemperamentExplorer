@@ -21,6 +21,7 @@ import {mosLayers, keyColor, textColor} from '../hexboard/hexboard-colors.mjs';
 import {compositionDeviceSnapshot} from './composition-board.mjs';
 import {pieceFingering} from './composition-game-route.mjs';
 import {signedInteger} from '../ui/ui.mjs';
+import {compileFiguration} from './composition-figuration.mjs';
 
 export const SPEEDS = [50, 75, 100];
 export const GUIDES = [
@@ -256,6 +257,8 @@ export function createGameController({
 
   // ---- what is played ----
   function section(p, s = settings) {
+    const errors = compileFiguration(p).errors;
+    if (errors.length) return {unavailable: errors[0].message};
     const end = contentEndTick(p),
       bar = barTicks(p.meter);
     if (s.section === 'loop')

@@ -411,10 +411,13 @@ export function createRollInput({document: doc, ctl}) {
 
   // ---- chord lane: move along the lane, or resize from the right edge ----
   function startChord(event, block) {
-    const e = ctl.clip('chords').events.find(x => x.id === block.dataset.event);
+    if (ctl.canEditChord?.() === false) return;
+    const clip = ctl.chordOwner?.(block.dataset.event) ?? ctl.clip('chords');
+    const e = clip.events.find(x => x.id === block.dataset.event);
     if (!e) return;
     drag = {
       kind: 'chord',
+      clipId: clip.id,
       node: block,
       id: event.pointerId,
       x: event.clientX,
@@ -453,7 +456,7 @@ export function createRollInput({document: doc, ctl}) {
     ctl.commit(d.resize ? 'Resize chord' : 'Move chord', pr =>
       updateEvent(
         pr,
-        pr.clips.find(c => c.trackId === pr.tracks.find(t => t.kind === 'chords').id).id,
+        d.clipId,
         d.event.id,
         d.resize ? {durationTick: d.duration} : {startTick: d.start}
       )
@@ -464,6 +467,7 @@ export function createRollInput({document: doc, ctl}) {
   function pointerDown(event) {
     if (event.button !== 0 || !ctl.project()) return;
     const t = event.target;
+    if (t?.closest?.('[data-generated]')) return;
     const ruler = t?.closest?.('[data-comp-ruler]');
     if (ruler) {
       startRuler(event, ruler);

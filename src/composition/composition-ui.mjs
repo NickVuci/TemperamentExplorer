@@ -35,6 +35,28 @@ import {
   editEvents,
   contentEndTick
 } from './composition-project.mjs';
+import {
+  applyFiguration,
+  removeFiguration,
+  setSoundHarmony,
+  newId,
+  editMelodyEvents,
+  setClipLength
+} from './composition-project.mjs';
+import {
+  compileFiguration,
+  orderedChord,
+  octaveVector,
+  patternNotes,
+  patternFromNotes,
+  generateTexturePattern,
+  ADAPTIVE_FIGURATION_FORMAT,
+  isGenerated,
+  FIGURATION_FORMAT,
+  validatePattern
+} from './composition-figuration.mjs';
+import {browserPresetStore} from '../presets/preset-store.mjs';
+import {renderFiguration} from './composition-figuration-view.mjs';
 import {createTransport} from './composition-transport.mjs';
 import {
   boardSnapshot,
@@ -60,6 +82,7 @@ import {
   snapTick,
   cellTicks,
   stepLine,
+  beatTicks,
   euclid,
   parseGroups,
   formatBeat
@@ -131,7 +154,8 @@ export function createCompositionWorkspace({
   // Told when a Play run's lit keys change, so a connected HexBoard can show them at once.
   onLights = () => {},
   raf = globalThis.requestAnimationFrame?.bind(globalThis),
-  timer
+  timer,
+  figurationStore = browserPresetStore
 }) {
   let history = null,
     message = '',
@@ -141,6 +165,24 @@ export function createCompositionWorkspace({
     suppressClick = false,
     clipboard = null,
     input = null;
+  let figureEditor = null,
+    savedFigures = [],
+    figureLibraryError = '',
+    figurePanelOpen = false;
+  const figureOptions = {
+    name: 'New figure',
+    contour: 'random',
+    lowOctave: 0,
+    highOctave: 0,
+    range: 'board',
+    parts: 3,
+    rests: 0,
+    velocity: 90,
+    scope: 'selected',
+    saved: '',
+    voice: 1,
+    octave: 0
+  };
   const ui = {
     selectedChord: null,
     addLength: 4,
@@ -177,6 +219,7 @@ export function createCompositionWorkspace({
   const BOARD_SHOW = ['chords', 'melody', 'both'];
   const showsTrack = kind => ui.boardShow === 'both' || kind === ui.boardShow;
   const project = () => history?.project ?? null;
+  const sourceProject = () => (figureEditor ? figureEditor.history.project : project());
   const canEdit = () => ui.mode === 'compose';
   const transport = createTransport({
     getProject: () => {
@@ -220,7 +263,7 @@ export function createCompositionWorkspace({
     notify,
     getSelectedSection: () => {
       const p = project(),
-        clip = p && clipOf(p, 'chords'),
+        clip = p && chordOwner(p, ui.selectedChord),
         e = clip?.events.find(e => e.id === ui.selectedChord);
       return e
         ? {from: clip.startTick + e.startTick, to: clip.startTick + e.startTick + e.durationTick}
@@ -235,10 +278,32 @@ export function createCompositionWorkspace({
 
   const trackOf = (p, kind) => p.tracks.find(t => t.kind === kind);
   const clipOf = (p, kind) => p.clips.find(c => c.trackId === trackOf(p, kind).id);
+  const chordOwner = (p, id) =>
+    p.clips.find(
+      c =>
+        p.tracks.find(t => t.id === c.trackId)?.kind === 'chords' && c.events.some(e => e.id === id)
+    );
+  function displayedChords(p) {
+    const clip = clipOf(p, 'chords');
+    if (!p.figuration) return clip;
+    return {
+      ...clip,
+      startTick: 0,
+      events: compileFiguration(p).harmonies.map(o => ({...o.event, startTick: o.start}))
+    };
+  }
   const centsOf = (p, e) => e.tones.map(t => resolveTone(p.context, t.coordinate).cents);
-  const melody = () => clipOf(project(), 'melody');
+  const melody = () => displayedMelody(project(), false);
+  function displayedMelody(p, includeGenerated = true) {
+    const clip = clipOf(p, 'melody');
+    const manual = p.clips
+      .filter(c => p.tracks.find(t => t.id === c.trackId)?.kind === 'melody')
+      .flatMap(c => c.events.map(e => ({...e, startTick: c.startTick + e.startTick})));
+    const generated = includeGenerated ? compileFiguration(p).events : [];
+    return {...clip, startTick: 0, events: [...manual, ...generated]};
+  }
   const selectedEvents = () =>
-    project() ? melody().events.filter(e => ui.selected.has(e.id)) : [];
+    project() ? displayedMelody(project()).events.filter(e => ui.selected.has(e.id)) : [];
   const grid = () => normalizeGrid(ui.grid);
 
   function timeline() {
@@ -285,7 +350,9 @@ export function createCompositionWorkspace({
   };
   const selectedChordEvent = () => {
     const p = project();
-    return p ? (clipOf(p, 'chords').events.find(e => e.id === ui.selectedChord) ?? null) : null;
+    return p
+      ? (chordOwner(p, ui.selectedChord)?.events.find(e => e.id === ui.selectedChord) ?? null)
+      : null;
   };
   // The selected chord's and notes' exact pitches, as the board shows them.
   function selectedPitches() {
@@ -370,7 +437,7 @@ export function createCompositionWorkspace({
       pick = ui.rootPick,
       h = rootHarmonies()?.find(x => x.index === index);
     if (!p || !pick || !h) return;
-    const clip = clipOf(p, 'chords'),
+    const clip = (pick.replace && chordOwner(p, pick.replace)) || clipOf(p, 'chords'),
       old = pick.replace ? find(clip, pick.replace) : null;
     const source = {kind: 'directory', label: h.chord, role: h.role, rootTone: h.rootTone};
     let newId = null;
@@ -385,8 +452,11 @@ export function createCompositionWorkspace({
         },
         allIds(pr)
       );
-      newId = ev.id;
-      return addEvent(old ? removeEvent(pr, clip.id, old.id) : pr, clip.id, ev);
+      const attached = old && pr.figuration?.attachments.some(a => a.chordEventId === old.id);
+      newId = attached ? old.id : ev.id;
+      return old
+        ? editEvents(pr, clip.id, {remove: attached ? [] : [old.id], put: [{...ev, id: newId}]})
+        : addEvent(pr, clip.id, ev);
     });
     if (!ok) return;
     ui.rootPick = null;
@@ -513,7 +583,7 @@ export function createCompositionWorkspace({
       .map((item, i) => ({item, i}))
       .filter(x => x.item.kind === 'chord');
     if (p) {
-      const present = new Set(clipOf(p, 'melody').events.map(e => e.id));
+      const present = new Set(displayedMelody(p).events.map(e => e.id));
       for (const id of ui.selected) if (!present.has(id)) ui.selected.delete(id);
     }
     return {
@@ -524,8 +594,23 @@ export function createCompositionWorkspace({
       appSummary: `${state.name} · ${state.n} notes (mode ${state.mode + 1}) · tonic ${getTonic()} Hz`,
       transportState: transport.state,
       position: tick,
-      chordClip: p ? clipOf(p, 'chords') : null,
-      melodyClip: p ? clipOf(p, 'melody') : null,
+      chordClip: p ? displayedChords(p) : null,
+      melodyClip: p ? displayedMelody(p) : null,
+      figuration: p
+        ? {
+            ...compileFiguration(p),
+            editor: !!figureEditor,
+            open: figurePanelOpen,
+            options: figureOptions,
+            saved: savedFigures,
+            libraryError: figureLibraryError,
+            reference: figureEditor?.chord ?? selectedChordEvent() ?? clipOf(p, 'chords').events[0],
+            hasOctave: !!octaveVector(p.context),
+            attachments: sourceProject().figuration?.attachments ?? [],
+            patterns: sourceProject().figuration?.patterns ?? [],
+            localPatternId: figureEditor?.localPatternId
+          }
+        : null,
       selectedChord: ui.selectedChord,
       selected: new Set(ui.selected),
       addLength: ui.addLength,
@@ -585,6 +670,8 @@ export function createCompositionWorkspace({
   function refresh() {
     const host = getHost?.();
     if (!host) return;
+    const figurePanel = host.querySelector('.figuration-panel');
+    if (figurePanel?.tagName === 'DETAILS') figurePanelOpen = figurePanel.open;
     input?.hideGhost();
     const active = doc.activeElement,
       sel =
@@ -626,6 +713,13 @@ export function createCompositionWorkspace({
     for (const node of doc.querySelectorAll?.('[data-vel-event]') ?? [])
       node.classList.toggle('is-selected', v.selected.has(node.dataset.velEvent));
     panel.outerHTML = renderSelectionPanel(v);
+    const figures = doc.querySelector?.('.figuration-panel');
+    if (figures) {
+      if (figures.tagName === 'DETAILS') v.figuration.open = figures.open;
+      const wrapper = doc.createElement('div');
+      wrapper.innerHTML = renderFiguration(v);
+      figures.replaceWith?.(wrapper.firstElementChild);
+    }
     const bar = doc.querySelector?.('.roll-toolbar');
     if (bar) bar.outerHTML = renderRollToolbar(v);
     const status = doc.querySelector?.('.roll-status');
@@ -647,6 +741,13 @@ export function createCompositionWorkspace({
     }
   }
   function select(ids, mode = 'replace') {
+    const generated =
+      project() && compileFiguration(project()).events.find(e => ids.includes(e.id));
+    if (generated) {
+      ui.selectedChord = generated.source.chordEventId;
+      message =
+        'Attached figure: choose its buttons, edit its pattern, or detach it to edit individual notes.';
+    }
     if (mode === 'replace') ui.selected = new Set(ids);
     else
       for (const id of ids) {
@@ -671,7 +772,14 @@ export function createCompositionWorkspace({
   function edit(label, command) {
     if (!canEdit()) return false;
     try {
-      history.execute(label, command);
+      history.execute(label, pr => {
+        const next = command(pr);
+        if (!figureEditor) return next;
+        const reference = clipOf(next, 'chords');
+        return updateEvent(next, reference.id, reference.events[0].id, {
+          durationTick: clipOf(next, 'melody').lengthTick
+        });
+      });
       changed();
       return true;
     } catch (error) {
@@ -682,13 +790,24 @@ export function createCompositionWorkspace({
   /** Commits a {remove, put} melody edit; the put notes become the selection unless `select` is false. */
   const commitNotes = (label, result, options) => commitEvents('melody', label, result, options);
   function commitEvents(kind, label, result, {select: pick = true} = {}) {
+    if (figureEditor && kind === 'chords') {
+      say('The reference chord stays fixed while drawing a figure.');
+      return false;
+    }
+    if (
+      result.put.some(isGenerated) ||
+      result.remove.some(id => compileFiguration(project()).events.some(e => e.id === id))
+    ) {
+      say('Detach the figure before editing its notes.');
+      return false;
+    }
     if (kind === 'chords')
       return edit(label, pr => editEvents(pr, clipOf(pr, 'chords').id, result));
     const before = ui.selected;
     if (pick) ui.selected = new Set(result.put.map(e => e.id));
     else if (result.remove.length)
       ui.selected = new Set([...ui.selected].filter(id => !result.remove.includes(id)));
-    if (edit(label, pr => editEvents(pr, clipOf(pr, 'melody').id, result))) return true;
+    if (edit(label, pr => editMelodyEvents(pr, result))) return true;
     ui.selected = before;
     refresh();
     return false;
@@ -1198,11 +1317,311 @@ export function createCompositionWorkspace({
     game.leave();
     ui.mode = 'compose';
   }
+  async function loadFigures() {
+    try {
+      savedFigures = await figurationStore.list('figuration');
+      figureLibraryError = '';
+    } catch (error) {
+      figureLibraryError = error.message;
+    }
+    refresh();
+  }
+  function figurePattern() {
+    if (!figureEditor) throw Error('Open a figure to draw or generate notes first.');
+    const p = project();
+    const result = patternFromNotes(
+      p.context,
+      figureEditor.chord,
+      {
+        name: figureOptions.name,
+        lengthTick: melody().lengthTick,
+        events: melody().events
+      },
+      {cells: boardModel().board?.keys ?? []}
+    );
+    if (p.figureDraftSeed !== undefined) result.seed = p.figureDraftSeed;
+    return result;
+  }
+  function closeFigure() {
+    if (!figureEditor) return;
+    transport.stop();
+    const previous = figureEditor;
+    history = previous.history;
+    figureEditor = null;
+    resetSelection();
+    ui.selectedChord = previous.selectedChord;
+    changed();
+  }
+  function openFigure(pattern = null, localPatternId = null, savedRecord = null) {
+    const p = sourceProject();
+    const selected = figureEditor?.selectedChord ?? ui.selectedChord;
+    const chord =
+      p.clips
+        .filter(c => p.tracks.find(t => t.id === c.trackId)?.kind === 'chords')
+        .flatMap(c => c.events)
+        .find(e => e.id === selected) ?? clipOf(p, 'chords').events[0];
+    if (!chord) throw Error('Add a reference chord before writing a figure.');
+    const draft = createProject({
+      name: 'Figure editor',
+      context: p.context,
+      layout: p.layout,
+      tempo: p.tempo,
+      meter: p.meter
+    });
+    draft.tracks[0].mute = true;
+    if (pattern?.seed !== undefined) draft.figureDraftSeed = pattern.seed;
+    const lengthTick = pattern?.lengthTick ?? barTicks(p.meter);
+    for (const c of draft.clips) c.lengthTick = lengthTick;
+    const reference = {...structuredClone(chord), startTick: 0, durationTick: lengthTick};
+    draft.clips[0].events = [reference];
+    if (pattern)
+      draft.clips[1].events = patternNotes(p.context, reference, pattern, 'draft', {
+        cells: compositionBoard(p).board?.keys ?? []
+      });
+    if (figureEditor) closeFigure();
+    transport.stop();
+    figureEditor = {
+      history,
+      chord: reference,
+      selectedChord: chord.id,
+      localPatternId,
+      savedRecord
+    };
+    history = createHistory(draft);
+    figureOptions.name = pattern?.name ?? 'New figure';
+    figureOptions.range = 'board';
+    figureOptions.parts = pattern?.events.some(e => e.voice !== undefined)
+      ? Math.max(1, ...pattern.events.map(e => (e.voice ?? 0) + 1))
+      : 3;
+    figureOptions.lowOctave = Math.min(
+      0,
+      ...(pattern?.events.flatMap(e => e.tones.map(t => t.octaves)) ?? [0])
+    );
+    figureOptions.highOctave = Math.max(
+      0,
+      ...(pattern?.events.flatMap(e => e.tones.map(t => t.octaves)) ?? [0])
+    );
+    resetSelection();
+    ui.selectedChord = chord.id;
+    ui.mode = 'compose';
+    changed();
+  }
+  function figureTargets(p) {
+    const targets = [],
+      trackId = trackOf(p, 'melody').id;
+    for (const c of p.clips.filter(c => p.tracks.find(t => t.id === c.trackId)?.kind === 'chords'))
+      for (const e of c.events) {
+        const selected = figureEditor?.selectedChord ?? ui.selectedChord;
+        const inLoop = Array.from(
+          {length: c.repeat},
+          (_, r) => c.startTick + r * c.lengthTick + e.startTick
+        ).some(t => t >= p.loop.startTick && t < (p.loop.endTick ?? contentEndTick(p)));
+        if (
+          figureOptions.scope === 'all' ||
+          (figureOptions.scope === 'selected' && e.id === selected) ||
+          (figureOptions.scope === 'loop' && inLoop)
+        )
+          targets.push({chordClipId: c.id, chordEventId: e.id, trackId});
+      }
+    if (!targets.length) throw Error('Choose at least one chord for the figure.');
+    return targets;
+  }
+  function generateFigure(reroll) {
+    if (!figureEditor) openFigure();
+    const p = project(),
+      lengthTick = melody().lengthTick,
+      boundaries = [];
+    for (let t = 0; t < lengthTick; t = stepLine(p.meter, grid(), t, 1)) {
+      boundaries.push(t);
+      if (boundaries.length > 2048) throw Error('Choose a shorter figure or a wider grid.');
+    }
+    if (
+      figureOptions.range === 'manual' &&
+      !octaveVector(p.context) &&
+      (figureOptions.lowOctave || figureOptions.highOctave)
+    )
+      throw Error('This overlay has no octave equivalence; choose written register (0).');
+    const seed =
+      reroll || p.figureDraftSeed === undefined
+        ? globalThis.crypto.getRandomValues(new Uint32Array(1))[0]
+        : p.figureDraftSeed;
+    const cells = boardModel().board?.keys ?? [];
+    const pattern = generateTexturePattern({
+      ...figureOptions,
+      context: p.context,
+      chord: figureEditor.chord,
+      cells,
+      beatTick: beatTicks(p.meter),
+      lengthTick,
+      boundaries,
+      voiceCount: orderedChord(p.context, figureEditor.chord).length,
+      rests: figureOptions.rests / 100,
+      seed
+    });
+    const notes = patternNotes(p.context, figureEditor.chord, pattern, `draft-${newId('run')}`, {
+      cells
+    });
+    edit('Generate figure', pr => {
+      const next = editEvents(pr, melody().id, {
+        remove: melody().events.map(e => e.id),
+        put: notes
+      });
+      next.figureDraftSeed = seed;
+      return next;
+    });
+  }
+  async function figureAction(action) {
+    if (action === 'figure-new') {
+      openFigure();
+      return;
+    }
+    if (action === 'figure-done') {
+      closeFigure();
+      return;
+    }
+    if (action === 'figure-generate' || action === 'figure-reroll') {
+      generateFigure(action === 'figure-reroll');
+      return;
+    }
+    if (action === 'figure-refresh') {
+      await loadFigures();
+      return;
+    }
+    if (action === 'figure-tone') {
+      if (!figureEditor) throw Error('Open a figure first.');
+      const p = project(),
+        selected = selectedEvents();
+      const note = {
+        id: newId('figure-note'),
+        startTick: Math.min(transport.position(), melody().lengthTick - 1),
+        durationTick: 1,
+        velocity: figureOptions.velocity,
+        tones: [{rank: figureOptions.voice, octaves: figureOptions.octave}]
+      };
+      const coordinate = patternNotes(p.context, figureEditor.chord, {
+        version: 1,
+        name: figureOptions.name,
+        lengthTick: melody().lengthTick,
+        events: [note]
+      })[0].tones[0].coordinate;
+      const references = [{rank: figureOptions.voice, octaves: figureOptions.octave}];
+      const put = selected.length
+        ? selected.map(e => ({
+            ...e,
+            tones: [{toneId: e.tones[0].toneId, coordinate}],
+            source: {references}
+          }))
+        : [
+            makeEvent(
+              {
+                ...note,
+                durationTick: Math.min(
+                  defaultLength(note.startTick),
+                  melody().lengthTick - note.startTick
+                ),
+                tones: [{coordinate}],
+                source: {references}
+              },
+              allIds(p)
+            )
+          ];
+      commitNotes('Set figure tones', {remove: [], put});
+      return;
+    }
+    if (action === 'figure-load') {
+      const record = savedFigures.find(p => p.id === figureOptions.saved);
+      if (!record) throw Error('Choose a saved figure.');
+      openFigure(record.state, null, record);
+      return;
+    }
+    if (action === 'figure-edit') {
+      const p = sourceProject(),
+        a = p.figuration?.attachments.find(a => a.chordEventId === ui.selectedChord);
+      if (!a) throw Error('Select a chord with an attached figure.');
+      openFigure(p.figuration.patterns.find(x => x.id === a.patternId).pattern, a.patternId);
+      return;
+    }
+    if (action === 'figure-remove' || action === 'figure-detach') {
+      const p = sourceProject(),
+        a = p.figuration?.attachments.find(a => a.chordEventId === ui.selectedChord);
+      if (a)
+        edit(action === 'figure-detach' ? 'Detach figure to notes' : 'Remove figure', pr =>
+          removeFiguration(pr, a.id, {detach: action === 'figure-detach'})
+        );
+      return;
+    }
+    if (action === 'figure-audition') {
+      figurePattern();
+      transport.stop();
+      await transport.play({untilTick: melody().lengthTick, graceMs: 0});
+      return;
+    }
+    if (action === 'figure-save' || action === 'figure-save-as') {
+      const editor = figureEditor,
+        pattern = figurePattern(),
+        old = action === 'figure-save' ? figureEditor.savedRecord : null;
+      const record = await figurationStore.save(
+        'figuration',
+        old?.id ?? globalThis.crypto.randomUUID(),
+        {name: pattern.name, state: pattern, revision: old?.revision ?? 0}
+      );
+      if (figureEditor === editor) figureEditor.savedRecord = record;
+      figureOptions.saved = record.id;
+      await loadFigures();
+      say(`Saved figure “${record.name}”.`);
+      return;
+    }
+    if (action === 'figure-delete') {
+      const record = savedFigures.find(p => p.id === figureOptions.saved);
+      if (!record) throw Error('Choose a saved figure.');
+      await figurationStore.remove('figuration', record.id, record.revision);
+      if (figureEditor?.savedRecord?.id === record.id) figureEditor.savedRecord = null;
+      figureOptions.saved = '';
+      await loadFigures();
+      return;
+    }
+    if (action === 'figure-export') {
+      download(
+        `${slug(figureOptions.name)}.figuration.json`,
+        JSON.stringify(
+          {
+            format: figurePattern().version === 2 ? ADAPTIVE_FIGURATION_FORMAT : FIGURATION_FORMAT,
+            pattern: figurePattern()
+          },
+          null,
+          2
+        ),
+        'application/json'
+      );
+      return;
+    }
+    if (action === 'figure-import') {
+      doc.querySelector('[data-comp-figure-file]')?.click();
+      return;
+    }
+    if (action === 'figure-apply' || action === 'figure-update') {
+      const pattern = figurePattern(),
+        p = sourceProject(),
+        targets = figureTargets(p);
+      const next = applyFiguration(p, pattern, targets, {
+        patternId: action === 'figure-update' ? figureEditor.localPatternId : null
+      });
+      const previous = figureEditor;
+      closeFigure();
+      history.execute('Apply figure', () => next);
+      ui.selectedChord = previous.selectedChord;
+      ui.boardShow = 'melody';
+      game.change('gamePart', {value: 'melody'});
+      changed();
+    }
+  }
   function open(text) {
     try {
       const next = parseProject(text);
+      if (figureEditor) closeFigure();
       transport.stop();
       history = createHistory(next);
+      if (next.figuration?.attachments.length) ui.boardShow = 'melody';
       resetSelection();
       resetInput();
       cache = null;
@@ -1216,6 +1635,7 @@ export function createCompositionWorkspace({
 
   function newProject() {
     try {
+      if (figureEditor) closeFigure();
       const state = getState(),
         context = captureContext(state, getTonic());
       transport.stop();
@@ -1240,8 +1660,12 @@ export function createCompositionWorkspace({
   const q = Number;
 
   function chordAction(action, el) {
+    if (figureEditor && !['chord-select', 'chord-hear'].includes(action)) {
+      say('Return to the composition to edit the reference harmony.');
+      return;
+    }
     const p = project(),
-      clip = clipOf(p, 'chords'),
+      clip = chordOwner(p, el.dataset.event) ?? clipOf(p, 'chords'),
       id = el.dataset.event,
       e = id ? find(clip, id) : null,
       end = e ? e.startTick + e.durationTick : 0;
@@ -1336,7 +1760,7 @@ export function createCompositionWorkspace({
 
   function melodyAction(action, el) {
     const p = project(),
-      clip = clipOf(p, 'melody');
+      clip = melody();
     if (action === 'note-select') {
       select([el.dataset.event], 'replace');
       return;
@@ -1528,6 +1952,10 @@ export function createCompositionWorkspace({
       return true;
     }
     try {
+      if (action.startsWith('figure-')) {
+        if (canEdit()) void figureAction(action).catch(error => say(error.message));
+        return true;
+      }
       switch (action) {
         case 'new':
           newProject();
@@ -1549,9 +1977,14 @@ export function createCompositionWorkspace({
       if (!canEdit() && !shared.includes(action) && !action.startsWith('game-')) return true;
       switch (action) {
         case 'save':
-          download(`${slug(p.name)}.composition.json`, serializeProject(p), 'application/json');
+          download(
+            `${slug(sourceProject().name)}.composition.json`,
+            serializeProject(sourceProject()),
+            'application/json'
+          );
           return true;
         case 'close':
+          if (figureEditor) closeFigure();
           transport.stop();
           history = null;
           resetSelection();
@@ -1573,6 +2006,10 @@ export function createCompositionWorkspace({
           return true;
         case 'mode-compose':
         case 'mode-game': {
+          if (figureEditor) {
+            say('Apply the figure or return to the composition before practicing.');
+            return true;
+          }
           const next = action.slice(5);
           if (next === ui.mode) {
             refresh();
@@ -1623,7 +2060,9 @@ export function createCompositionWorkspace({
           return true;
         }
         case 'root-block': {
-          const e = find(clipOf(project(), 'chords'), el.dataset.event);
+          const e = chordOwner(project(), el.dataset.event)?.events.find(
+            e => e.id === el.dataset.event
+          );
           if (!e || !canEdit()) return true;
           const root = chordRoot(project(), e);
           ui.selectedChord = e.id;
@@ -1866,7 +2305,7 @@ export function createCompositionWorkspace({
     ctl: {
       project,
       ui,
-      clip: kind => clipOf(project(), kind),
+      clip: kind => (kind === 'melody' ? melody() : clipOf(project(), kind)),
       commit: edit,
       commitNotes,
       select,
@@ -1876,6 +2315,8 @@ export function createCompositionWorkspace({
       rowName,
       audition,
       canEdit,
+      canEditChord: () => !figureEditor,
+      chordOwner: id => chordOwner(project(), id),
       seek: tick => {
         void transport.seek(tick).then(paint);
       },
@@ -1950,6 +2391,20 @@ export function createCompositionWorkspace({
   doc.addEventListener?.('wheel', input.wheel, {passive: false});
 
   function change(el) {
+    if (el.dataset?.compFigureFile !== undefined) {
+      const file = el.files?.[0];
+      if (file)
+        void (async () => {
+          if (file.size > LIMITS.bytesMax) throw Error('That figure file is too large.');
+          const data = JSON.parse(await file.text());
+          if (![FIGURATION_FORMAT, ADAPTIVE_FIGURATION_FORMAT].includes(data.format))
+            throw Error('Choose a Temperament Lab figuration file.');
+          validatePattern(data.pattern);
+          openFigure(data.pattern);
+        })().catch(error => say(error.message));
+      el.value = '';
+      return true;
+    }
     if (el.dataset?.compFile !== undefined) {
       const file = el.files?.[0];
       if (file) {
@@ -1971,7 +2426,41 @@ export function createCompositionWorkspace({
       if (out) out.textContent = euclidPreview();
     };
     try {
+      if (field.startsWith('figure')) {
+        const key = field.slice(6);
+        if (
+          key === 'name' ||
+          key === 'contour' ||
+          key === 'scope' ||
+          key === 'saved' ||
+          key === 'range'
+        )
+          figureOptions[key] = value;
+        else if (key === 'length' && figureEditor)
+          edit('Figure length', pr => {
+            const lengthTick = Math.round(Number(value) * PPQ),
+              reference = clipOf(pr, 'chords');
+            if (!Number.isSafeInteger(lengthTick) || lengthTick < 1 || lengthTick > PPQ * 128)
+              throw Error('Use a cycle between one tick and 128 quarter notes.');
+            let next = updateEvent(pr, reference.id, reference.events[0].id, {
+              durationTick: lengthTick
+            });
+            for (const c of next.clips) next = setClipLength(next, c.id, lengthTick);
+            return next;
+          });
+        else if (key === 'lowOctave' || key === 'highOctave' || key === 'octave')
+          figureOptions[key] = intIn(value, -8, 8, 0);
+        else if (key === 'voice') figureOptions.voice = intIn(value, 1, 8, 1);
+        else if (key === 'parts') figureOptions.parts = intIn(value, 1, 4, 3);
+        else if (key === 'rests') figureOptions.rests = intIn(value, 0, 100, 0);
+        else if (key === 'velocity') figureOptions.velocity = intIn(value, 1, 127, 90);
+        refresh();
+        return true;
+      }
       switch (field) {
+        case 'soundHarmony':
+          edit('Sound harmony', pr => setSoundHarmony(pr, el.checked));
+          return true;
         case 'collection':
           ui.collection = Number(value) || 0;
           return true;
@@ -2062,8 +2551,7 @@ export function createCompositionWorkspace({
         }
       }
       if (!p) return true;
-      const clip = clipOf(p, 'chords'),
-        mel = clipOf(p, 'melody');
+      const clip = chordOwner(p, el.dataset.event) ?? clipOf(p, 'chords');
       switch (field) {
         case 'bars':
           edit('Set project bars', pr => setProjectBars(pr, Number(value)));
@@ -2107,14 +2595,20 @@ export function createCompositionWorkspace({
           break;
         }
         case 'noteLength':
-          edit('Note length', pr =>
-            updateEvent(pr, mel.id, el.dataset.event, {durationTick: Math.round(Number(value))})
-          );
+          commitNotes('Note length', {
+            remove: [],
+            put: melody()
+              .events.filter(e => e.id === el.dataset.event)
+              .map(e => ({...e, durationTick: Math.round(Number(value))}))
+          });
           break;
         case 'noteVelocity':
-          edit('Note velocity', pr =>
-            updateEvent(pr, mel.id, el.dataset.event, {velocity: Math.round(Number(value))})
-          );
+          commitNotes('Note velocity', {
+            remove: [],
+            put: melody()
+              .events.filter(e => e.id === el.dataset.event)
+              .map(e => ({...e, velocity: Math.round(Number(value))}))
+          });
           break;
         case 'selLength': {
           const ticks = Math.round(Number(value));
@@ -2141,6 +2635,7 @@ export function createCompositionWorkspace({
     return true;
   }
 
+  void loadFigures();
   return {
     render,
     click,
@@ -2149,9 +2644,11 @@ export function createCompositionWorkspace({
     input: () => false,
     refresh,
     /** The open project for a whole-app session save, or null. */
-    serialize: () => project(),
+    serialize: sourceProject,
     /** Restores a saved project (validated atomically) or closes the current one with `null`. */
     restore(data) {
+      const restored = data ? parseProject(data) : null;
+      if (figureEditor) closeFigure();
       transport.stop();
       if (!data) {
         history = null;
@@ -2161,7 +2658,8 @@ export function createCompositionWorkspace({
         resetInput();
         return;
       }
-      history = createHistory(parseProject(data));
+      history = createHistory(restored);
+      if (project().figuration?.attachments.length) ui.boardShow = 'melody';
       cache = null;
       message = '';
       resetSelection();
@@ -2210,6 +2708,9 @@ export function createCompositionWorkspace({
     },
     // Test and integration hooks.
     getProject: project,
+    figureAction,
+    figurePattern,
+    loadFigures,
     transport,
     timeline,
     paint,

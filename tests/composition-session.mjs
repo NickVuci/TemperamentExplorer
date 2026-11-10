@@ -61,7 +61,7 @@ assert.throws(
   () =>
     compositionFromSession({
       format: SESSION_V2,
-      composition: {...project, format: 'temperament-lab-composition-v2'}
+      composition: {...project, format: 'temperament-lab-composition-v3'}
     }),
   /newer app/
 );

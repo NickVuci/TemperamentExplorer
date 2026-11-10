@@ -3,7 +3,10 @@
 // exact integer coordinate [period,generator]; ticks are 960 per quarter note.
 import {validateContext} from './composition-context.mjs';
 
+import {validateFiguration, compileFiguration, validatePattern} from './composition-figuration.mjs';
+
 export const COMPOSITION_FORMAT = 'temperament-lab-composition-v1';
+export const FIGURATED_COMPOSITION_FORMAT = 'temperament-lab-composition-v2';
 export const PPQ = 960;
 export const LIMITS = Object.freeze({
   tempoMin: 20,
@@ -188,7 +191,7 @@ function validateFingering(f) {
 /** Throws a descriptive Error naming the first problem; never mutates its input. */
 export function validateProject(p) {
   if (!p || typeof p !== 'object') fail('project', 'expected an object');
-  if (p.format !== COMPOSITION_FORMAT)
+  if (![COMPOSITION_FORMAT, FIGURATED_COMPOSITION_FORMAT].includes(p.format))
     fail('format', `expected "${COMPOSITION_FORMAT}", got ${JSON.stringify(p.format)}`);
   if (typeof p.id !== 'string' || !p.id) fail('id', 'expected a non-empty string');
   if (typeof p.name !== 'string' || p.name.length > LIMITS.nameMax)
@@ -278,6 +281,18 @@ export function validateProject(p) {
   if (!p.sound || !WAVES.includes(p.sound.wave))
     fail('sound.wave', `expected one of ${WAVES.join(', ')}`);
   if (p.fingering !== undefined) validateFingering(p.fingering);
+  if (p.figuration !== undefined) {
+    if (p.format !== FIGURATED_COMPOSITION_FORMAT)
+      fail('format', 'figuration requires composition v2');
+    validateFiguration(p);
+    const compiled = compileFiguration(p);
+    if (eventCount + compiled.events.length > LIMITS.eventsMax)
+      fail('events', 'compiled figuration exceeds the event limit');
+    for (const e of compiled.events) {
+      claim(e.id, 'figuration.event');
+      for (const t of e.tones) claim(t.toneId, 'figuration.tone');
+    }
+  }
   return p;
 }
 
@@ -303,7 +318,7 @@ export function parseProject(input) {
   }
   if (!data || typeof data !== 'object') fail('project', 'expected a JSON object');
   const version = /^temperament-lab-composition-v(\d+)$/.exec(String(data.format))?.[1];
-  if (version && Number(version) > 1)
+  if (version && Number(version) > 2)
     fail(
       'format',
       `version ${version} was written by a newer app; update Temperament Lab to open it`
@@ -321,6 +336,13 @@ export function parseProject(input) {
 function commit(project, mutate) {
   const next = structuredClone(project);
   mutate(next);
+  if (next.figuration) {
+    next.figuration.attachments = next.figuration.attachments.filter(a =>
+      next.clips.some(c => c.id === a.chordClipId && c.events.some(e => e.id === a.chordEventId))
+    );
+    const used = new Set(next.figuration.attachments.map(a => a.patternId));
+    next.figuration.patterns = next.figuration.patterns.filter(p => used.has(p.id));
+  }
   next.revision = project.revision + 1;
   return validateProject(next);
 }
@@ -401,6 +423,30 @@ export const editEvents = (project, clipId, {remove = [], put = []}) =>
     clip.events.sort((a, b) => a.startTick - b.startTick || a.id.localeCompare(b.id));
   });
 
+/** Absolute-time roll edits across ordinary melody clips, including detached figures. */
+export const editMelodyEvents = (project, {remove = [], put = []}) =>
+  commit(project, p => {
+    const clips = p.clips.filter(c => p.tracks.find(t => t.id === c.trackId)?.kind === 'melody');
+    const owner = id => clips.find(c => c.events.some(e => e.id === id));
+    for (const id of remove) if (!owner(id)) fail('event', 'detach generated notes before editing');
+    const destinations = new Map(put.map(e => [e.id, owner(e.id) ?? clips[0]]));
+    for (const c of clips)
+      c.events = c.events.filter(e => !remove.includes(e.id) && !destinations.has(e.id));
+    for (const event of put) {
+      const c = destinations.get(event.id),
+        e = structuredClone(event);
+      if (e.source?.kind === 'figuration') fail('event', 'detach generated notes before editing');
+      e.startTick -= c.startTick;
+      if (e.startTick < 0)
+        fail('event', 'move the clip earlier before moving its note before the clip');
+      e.tones = e.tones.map(t => ({...t, coordinate: canonicalCoordinate(t.coordinate)}));
+      growClip(p, c, e.startTick + e.durationTick);
+      c.events.push(e);
+    }
+    for (const c of clips)
+      c.events.sort((a, b) => a.startTick - b.startTick || a.id.localeCompare(b.id));
+  });
+
 /** Copies an event (new ids) to start at `startTick`. */
 export const duplicateEvent = (project, clipId, eventId, startTick) =>
   commit(project, p => {
@@ -419,7 +465,77 @@ export const duplicateEvent = (project, clipId, eventId, startTick) =>
     );
     growClip(p, clip, copy.startTick + copy.durationTick);
     clip.events.push(copy);
+    const attachment = p.figuration?.attachments.find(
+      a => a.chordClipId === clipId && a.chordEventId === eventId
+    );
+    if (attachment)
+      p.figuration.attachments.push({...attachment, id: newId('figure'), chordEventId: copy.id});
     clip.events.sort((a, b) => a.startTick - b.startTick || a.id.localeCompare(b.id));
+  });
+
+/** Copy a portable pattern into the piece and attach it to the requested source chords. */
+export const applyFiguration = (project, pattern, targets, {patternId = null} = {}) =>
+  commit(project, p => {
+    validatePattern(pattern);
+    if (!targets.length) fail('figuration', 'choose at least one chord');
+    p.format = FIGURATED_COMPOSITION_FORMAT;
+    p.figuration ??= {patterns: [], attachments: [], soundHarmony: false};
+    const id = patternId ?? newId('pattern');
+    p.figuration.patterns = [
+      ...p.figuration.patterns.filter(x => x.id !== id),
+      {id, pattern: structuredClone(pattern)}
+    ];
+    for (const {chordClipId, chordEventId, trackId} of targets) {
+      const old = p.figuration.attachments.find(
+        a => a.chordClipId === chordClipId && a.chordEventId === chordEventId
+      );
+      p.figuration.attachments = p.figuration.attachments.filter(a => a !== old);
+      p.figuration.attachments.push({
+        id: old?.id ?? newId('attachment'),
+        patternId: id,
+        chordClipId,
+        chordEventId,
+        trackId
+      });
+    }
+    const affected = new Set(
+      p.figuration.attachments.filter(a => a.patternId === id).map(a => a.id)
+    );
+    const errors = compileFiguration(p).errors.filter(e => affected.has(e.attachmentId));
+    if (errors.length) throw Error(errors[0].message);
+  });
+
+export const removeFiguration = (project, attachmentId, {detach = false} = {}) =>
+  commit(project, p => {
+    const attachment = p.figuration?.attachments.find(a => a.id === attachmentId);
+    if (!attachment) fail('figuration', 'select an attached figure');
+    if (detach) {
+      const compiled = compileFiguration(project);
+      if (compiled.errors.some(e => e.attachmentId === attachmentId))
+        fail('figuration', 'resolve this figure’s errors before detaching');
+      const events = compiled.events
+        .filter(e => e.source.attachmentId === attachmentId)
+        .map(e => makeEvent(e, allIds(p)));
+      p.clips.push({
+        id: newId('clip'),
+        trackId: attachment.trackId,
+        startTick: 0,
+        lengthTick: Math.max(1, ...events.map(e => e.startTick + e.durationTick)),
+        repeat: 1,
+        events: events.map(({source, ...e}) => e)
+      });
+    }
+    p.figuration.attachments = p.figuration.attachments.filter(a => a.id !== attachmentId);
+  });
+
+export const setSoundHarmony = (project, enabled) =>
+  commit(project, p => {
+    if (p.figuration) p.figuration.soundHarmony = !!enabled;
+  });
+
+export const setClipLength = (project, clipId, lengthTick) =>
+  commit(project, p => {
+    clipOf(p, clipId).lengthTick = lengthTick;
   });
 
 /** Shifts every event starting at or after `atTick` later by `lengthTick` (an inserted rest). */

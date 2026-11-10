@@ -1,6 +1,10 @@
 import {presetSnapshot} from './preset-data.mjs';
 import {layoutPresetSnapshot, mappingKey} from '../hexboard/layout-preset-data.mjs';
 import {shapePresetSnapshot, MAX_SAVED_SHAPES} from '../shapes/shape-preset-data.mjs';
+import {
+  figurationPresetSnapshot,
+  FIGURATION_LIMITS
+} from '../composition/composition-figuration.mjs';
 // Saved temperaments, layouts, chord shapes and each mapping's default layout live in this
 // browser's storage under one key. Every change is a single write, and optimistic
 // revisions still reject edits made from a stale view in another tab.
@@ -8,6 +12,12 @@ export const PRESET_STORAGE_KEY = 'temperament-lab-presets';
 export const PRESET_BACKUP_FORMAT = 'temperament-lab-presets-v1';
 const MAX_DEFAULTS = 256;
 const kinds = {
+  figuration: {
+    list: 'figurations',
+    snapshot: figurationPresetSnapshot,
+    changed: 'This figure changed in another session. Refresh the list before saving.',
+    removed: 'This figure changed or was removed. Refresh the list before deleting.'
+  },
   temperament: {
     list: 'temperaments',
     snapshot: presetSnapshot,
@@ -57,6 +67,7 @@ export function createPresetStore({storage, now = () => new Date().toISOString()
         temperaments: [],
         layouts: [],
         shapes: [],
+        figurations: [],
         layoutDefaults: {defaults: {}, revision: 0}
       };
     try {
@@ -70,6 +81,19 @@ export function createPresetStore({storage, now = () => new Date().toISOString()
       )
         throw 0;
       if (data.shapes === undefined) data.shapes = [];
+      if (data.figurations === undefined) data.figurations = [];
+      if (
+        !Array.isArray(data.figurations) ||
+        data.figurations.length > FIGURATION_LIMITS.patterns ||
+        data.figurations.some(
+          p =>
+            !uuid.test(p?.id) ||
+            !Number.isSafeInteger(p.revision) ||
+            p.revision < 1 ||
+            !figurationPresetSnapshot(p.name, p.state)
+        )
+      )
+        throw 0;
       if (
         !Array.isArray(data.shapes) ||
         data.shapes.length > MAX_SAVED_SHAPES ||
@@ -108,6 +132,8 @@ export function createPresetStore({storage, now = () => new Date().toISOString()
     const k = kinds[kind],
       list = data[k.list],
       old = list.find(p => p.id === id);
+    if (kind === 'figuration' && !old && list.length >= FIGURATION_LIMITS.patterns)
+      throw Error('The saved figure library is full. Delete a figure first.');
     if (kind === 'shape' && !old && list.length >= MAX_SAVED_SHAPES)
       throw Error(`Save at most ${MAX_SAVED_SHAPES} shapes. Delete an older shape first.`);
     const snapshot = k.snapshot(input.name, input.state);
@@ -185,6 +211,7 @@ export function createPresetStore({storage, now = () => new Date().toISOString()
         temperaments: data.temperaments.sort(byName),
         layouts: data.layouts.sort(byName),
         ...(data.shapes.length ? {shapes: data.shapes.sort(byName)} : {}),
+        ...(data.figurations.length ? {figurations: data.figurations.sort(byName)} : {}),
         layoutDefaults: liveDefaults(data)
       };
     },
@@ -201,6 +228,8 @@ export function createPresetStore({storage, now = () => new Date().toISOString()
         throw Error('Choose a Temperament Lab presets file.');
       if (input.shapes !== undefined && !Array.isArray(input.shapes))
         throw Error('Invalid saved-shape backup section.');
+      if (input.figurations !== undefined && !Array.isArray(input.figurations))
+        throw Error('Invalid saved-figuration backup section.');
       const incoming = {
         temperament: [
           ...(Array.isArray(input.temperaments) ? input.temperaments : []),
@@ -210,17 +239,19 @@ export function createPresetStore({storage, now = () => new Date().toISOString()
           ...(Array.isArray(input.layouts) ? input.layouts : []),
           ...legacy.filter(isLayoutRecord)
         ],
-        shape: input.shapes ?? []
+        shape: input.shapes ?? [],
+        figuration: input.figurations ?? []
       };
       const data = read(),
         result = {
           temperaments: 0,
           layouts: 0,
           ...(input.shapes !== undefined ? {shapes: 0} : {}),
+          ...(input.figurations !== undefined ? {figurations: 0} : {}),
           defaults: 0,
           skipped: 0
         };
-      for (const kind of ['temperament', 'layout', 'shape'])
+      for (const kind of ['temperament', 'layout', 'shape', 'figuration'])
         for (const p of incoming[kind]) {
           try {
             if (!uuid.test(p?.id)) throw 0;

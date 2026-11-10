@@ -716,7 +716,7 @@ temperaments), with documented generators reduced by whole periods;
 `tests/catalog.mjs` cross-checks computed CWE tunings against published values.
 Saved snapshots are browser-local records with
 optimistic revisions (D-049). Settings → Export saved presets writes a
-`temperament-lab-presets-v1` backup of temperaments, layouts, chord shapes and default layouts;
+`temperament-lab-presets-v1` backup of temperaments, layouts, chord shapes, figuration patterns and default layouts;
 Import saved presets validates each record, replaces records with the same id and
 skips invalid ones. It also reads responses saved from the retired site preset API. Session files remain
 `temperament-lab-v1` and preserve the primary temperament, views, linked JI
@@ -796,6 +796,23 @@ notes. Browser installability and offline loading are checked manually.
 The composition workspace has two views: **Compose** and **Play**. Compose shows a piano roll
 (bar ruler, chord lane, melody rows, velocity lane, root lane) above two responsive panels: the saved
 HexBoard and the selection. Play owns guided learning and timed runs.
+
+Figuration patterns are portable low-to-high chord-voice references with integer-tick rhythm,
+velocity and mapped-octave shifts. Compose's Figuration editor reuses the piano roll; seeded
+random generation is explicit. Generation defaults to the saved HexBoard's full playable chord-tone
+range and three voices: an accented beat-length bass, a moving middle and faster treble. Voice count
+is 1–4; manual octave limits remain available. Adaptive v2 patterns store normalized register
+positions, resolved per harmony against exact enabled-key octave copies; fixed-octave v1 patterns
+retain their pitches. The written bass's lowest available copy anchors the texture. Project-local
+pattern copies attach to chord events and follow
+voicing, timing and clip repetitions. `composition-figuration.mjs` owns validation, ordering,
+reference conversion and the cached derived melody events. Transport expansion, cues, the roll,
+fingering, practice and device lights consume that output. Source melody stays separate;
+detachment creates ordinary editable events. Harmonic ambiguity and incompatible references block
+playback/practice; manual melody overlap is a warning. The chord lane is silent by default for a
+prelude, with Sound harmony enabling accompaniment. Saved figures extend the browser preset library
+and its backups. Compositions containing figuration use format v2; v1 remains readable and session
+envelopes are unchanged. See [Figuration preludes](FIGURATION.md) for the workflow.
 
 Piano roll. Notes are placed on a time grid (`composition-grid.mjs`): a base division from 1/1 to 1/64,
 straight, dotted, triplet (3:2), quintuplet (5:4), septuplet (7:4) or any custom n:m tuplet, with
@@ -991,16 +1008,16 @@ builds its chart from the same timeline.
 Sessions. A whole-app save with an open composition is `temperament-lab-v2` with a
 `composition` field; saves without one remain `temperament-lab-v1`. The loader
 accepts both and validates the composition as a candidate before restoring any other
-session part. Standalone files use `temperament-lab-composition-v1`; a composition's chosen buttons are
+session part. Standalone files use `temperament-lab-composition-v1`, or v2 when they contain figuration;
+a composition's chosen buttons are
 its optional `fingering` map (exact coordinate → button on the saved layout).
 
-Known limits. One chord track and one melody track with one clip each (the schema
-allows more); same-key presses from two sources share one voice; one meter for the
+Known limits. The editor offers one chord lane and one melody lane, with no clip-arrangement
+controls; figuration follows chord clips and repetitions, and detached melody clips remain editable.
+Same-key presses from two sources share one voice; one meter for the
 whole project (no meter changes); recording and step entry add to the existing melody
 and chord clips (no separate takes); no arrangement, mixing, conversion, account storage
-or export; game scores and calibration stay in the browser. Browser behaviour was exercised in headless Chrome only
-(see the plan log); listening, Edge/Safari, screen readers, physical HexBoard and DAW
-use are unverified.
+or audio/MIDI export; game scores and calibration stay in the browser.
 
 ## Physical HexBoard connection
 

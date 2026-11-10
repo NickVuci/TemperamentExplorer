@@ -1174,12 +1174,13 @@ $('#presets-file').onchange = async e => {
   }
   e.target.value = '';
 };
-function importSummary({temperaments, layouts, shapes, defaults, skipped}) {
+function importSummary({temperaments, layouts, shapes, figurations, defaults, skipped}) {
   const count = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`,
     parts = [
       count(temperaments, 'temperament'),
       count(layouts, 'layout'),
       ...(shapes !== undefined ? [count(shapes, 'chord shape')] : []),
+      ...(figurations !== undefined ? [count(figurations, 'figuration pattern')] : []),
       ...(defaults ? [count(defaults, 'default layout')] : [])
     ];
   return `Imported ${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}.${skipped ? ` Skipped ${count(skipped, 'unreadable record')}.` : ''}`;

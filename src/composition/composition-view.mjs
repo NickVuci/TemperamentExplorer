@@ -7,6 +7,8 @@ import {mosLayers, keyColor} from '../hexboard/hexboard-colors.mjs';
 import {renderGame} from './composition-game-view.mjs';
 import {equivalencePolicy, quotientCoordinate} from '../harmonic/harmonic-equivalence.mjs';
 import {rootedChordName} from '../harmonic/harmonic-bass.mjs';
+import {renderFiguration} from './composition-figuration-view.mjs';
+import {orderedChord, octaveVector, playableChordTones} from './composition-figuration.mjs';
 import {
   DIVISIONS,
   FEELS,
@@ -329,8 +331,9 @@ function transportBar(v) {
 
 // ---- piano roll ----
 
-const degreeText = row => (row.degree === null ? '×' : `${row.degree}`);
-const degreeMarkup = row => `${degreeText(row)}${registerSup(row.register)}`;
+const degreeText = row => row.figureLabel ?? (row.degree === null ? '×' : `${row.degree}`);
+const degreeMarkup = row =>
+  `${esc(degreeText(row))}${row.figureLabel ? '' : registerSup(row.register)}`;
 const pathOf = (ticks, y0, y1) => ticks.map(t => `M${t} ${y0}V${y1}`).join('');
 /**
  * Grid lines for the rows as one stretched SVG (x in ticks): banding for every other beat group,
@@ -484,12 +487,56 @@ function rollModel(v) {
     grid: normalizeGrid(v.grid),
     events,
     selected,
-    rows: rollRows(p, v.board, reg[2], events),
+    rows: v.figuration?.editor ? figureRows(v, events) : rollRows(p, v.board, reg[2], events),
     count: events.filter(e => selected.has(e.id)).length,
     chords: v.chordClip.events.filter(
       e => e.startTick < w.end && e.startTick + e.durationTick > w.start
     )
   };
+}
+function figureRows(v, events) {
+  const voices = orderedChord(v.project.context, v.figuration.reference),
+    vector = octaveVector(v.project.context),
+    rows = new Map();
+  const low = vector
+    ? Math.min(v.figuration.options.lowOctave, v.figuration.options.highOctave)
+    : 0;
+  const high = vector
+    ? Math.max(v.figuration.options.lowOctave, v.figuration.options.highOctave)
+    : 0;
+  const candidates =
+    v.figuration.options.range === 'board'
+      ? playableChordTones(v.project.context, v.figuration.reference, v.board?.keys ?? [])
+      : [];
+  if (v.figuration.options.range !== 'board')
+    for (let octaves = low; octaves <= high; octaves++)
+      voices.forEach((m, i) =>
+        candidates.push({
+          rank: i + 1,
+          octaves,
+          coordinate: m.map((n, a) => n + octaves * (vector?.[a] ?? 0))
+        })
+      );
+  candidates.forEach(({coordinate, rank, octaves}) => {
+    const key = coordinate.join(',');
+    const label = `${rank}${octaves ? ` (${octaves > 0 ? '+' : ''}${octaves} oct)` : ''}`;
+    if (rows.has(key)) rows.get(key).figureLabel += ` / ${label}`;
+    else
+      rows.set(key, {
+        coordinate,
+        ...resolveTone(v.project.context, coordinate),
+        degree: degreeOf(v.project.context, coordinate)?.degree ?? null,
+        register: 0,
+        figureLabel: label
+      });
+  });
+  for (const row of rollRows(v.project, null, [0], events))
+    if (
+      events.some(e => e.tones.some(t => t.coordinate.join(',') === row.coordinate.join(','))) &&
+      !rows.has(row.coordinate.join(','))
+    )
+      rows.set(row.coordinate.join(','), row);
+  return [...rows.values()].sort((a, b) => b.cents - a.cents);
 }
 /** The roll toolbar alone, for updating it in place when the selection changes. */
 export function renderRollToolbar(v) {
@@ -529,8 +576,13 @@ function timelineSection(v) {
       const lo = Math.max(w.start, e.startTick),
         hi = Math.min(w.end, e.startTick + e.durationTick),
         label = chordName(p, e, i),
-        bass = chordBass(p, e);
-      return `<button class="chord-block" data-comp="chord-select" data-event="${esc(e.id)}" data-start="${e.startTick}" data-end="${e.startTick + e.durationTick}" style="left:${pct(lo)}%;width:${(100 * (hi - lo)) / w.span}%" aria-pressed="${v.selectedChord === e.id}" title="${esc(label)}${bass ? ` · bass ${esc(bass.text)}` : ''} · ${quarter(e.durationTick)} beats · drag to move, drag the right edge to resize" aria-label="${esc(label)}${bass ? `, bass degree ${esc(bass.text)}` : ''}, ${esc(formatPosition(p, e.startTick))}, ${quarter(e.durationTick)} beats"><b class="chord-block-type">${esc(label)}</b><small>${bass ? `<span class="chord-block-bass">bass ${rootMarkup(bass)}</span> · ` : ''}${quarter(e.durationTick)} beats</small><span class="chord-block-grip" data-comp-resize="" aria-hidden="true"></span></button>`;
+        bass = chordBass(p, e),
+        attachment = v.figuration?.attachments.find(a => a.chordEventId === e.id),
+        figure =
+          attachment &&
+          v.figuration.patterns.find(x => x.id === attachment.patternId)?.pattern.name,
+        figureError = v.figuration?.errors.some(x => x.chordEventId === e.id);
+      return `<button class="chord-block${figure ? ' has-figuration' : ''}${figureError ? ' is-figuration-error' : ''}" data-comp="chord-select" data-event="${esc(e.id)}" data-start="${e.startTick}" data-end="${e.startTick + e.durationTick}" style="left:${pct(lo)}%;width:${(100 * (hi - lo)) / w.span}%" aria-pressed="${v.selectedChord === e.id}" title="${esc(label)}${bass ? ` · bass ${esc(bass.text)}` : ''} · ${quarter(e.durationTick)} beats · drag to move, drag the right edge to resize" aria-label="${esc(label)}${bass ? `, bass degree ${esc(bass.text)}` : ''}, ${esc(formatPosition(p, e.startTick))}, ${quarter(e.durationTick)} beats"><b class="chord-block-type">${esc(label)}</b>${figure ? `<small class="chord-block-figure">${esc(figure)}${figureError ? ' (needs attention)' : ''}</small>` : ''}<small>${bass ? `<span class="chord-block-bass">bass ${rootMarkup(bass)}</span> · ` : ''}${quarter(e.durationTick)} beats</small><span class="chord-block-grip" data-comp-resize="" aria-hidden="true"></span></button>`;
     })
     .join('');
   const body = rows
@@ -562,13 +614,13 @@ function timelineSection(v) {
             hi = Math.min(w.end, e.startTick + e.durationTick),
             on = selected.has(e.id),
             len = lengthName(e.durationTick);
-          return `<button class="roll-note${on ? ' is-selected' : ''}" data-comp="note-select" data-event="${esc(e.id)}" data-start="${e.startTick}" data-end="${e.startTick + e.durationTick}" data-a="${a}" data-b="${b}" style="left:${pct(lo)}%;width:${(100 * (hi - lo)) / w.span}%;--vel:${(e.velocity / 127).toFixed(3)}" aria-pressed="${on}" aria-label="Degree ${label}, ${esc(formatPosition(p, e.startTick))}, ${esc(len)}, velocity ${e.velocity}" title="Degree ${label} · ${esc(formatBeat(p.meter, e.startTick))} · ${esc(len)} · velocity ${e.velocity}"><span class="roll-note-edge" data-comp-resize="start" aria-hidden="true"></span><span class="roll-note-label" aria-hidden="true">${label}</span><span class="roll-note-grip" data-comp-resize="" aria-hidden="true">▏</span></button>`;
+          return `<button class="roll-note${e.source?.kind === 'figuration' ? ' is-generated' : ''}${on ? ' is-selected' : ''}" data-comp="note-select"${e.source?.kind === 'figuration' ? ' data-generated="true"' : ''} data-event="${esc(e.id)}" data-start="${e.startTick}" data-end="${e.startTick + e.durationTick}" ${e.source?.voice !== undefined ? `data-figure-voice="${e.source.voice}"` : ''} data-a="${a}" data-b="${b}" style="left:${pct(lo)}%;width:${(100 * (hi - lo)) / w.span}%;--vel:${(e.velocity / 127).toFixed(3)}" aria-pressed="${on}" aria-label="Degree ${label}, ${esc(formatPosition(p, e.startTick))}, ${esc(len)}, velocity ${e.velocity}" title="Degree ${label} · ${esc(formatBeat(p.meter, e.startTick))} · ${esc(len)} · velocity ${e.velocity}"><span class="roll-note-edge" data-comp-resize="start" aria-hidden="true"></span><span class="roll-note-label" aria-hidden="true">${label}</span><span class="roll-note-grip" data-comp-resize="" aria-hidden="true">▏</span></button>`;
         })
         .join('')}</div></div>`;
     })
     .join('');
   return `<section class="composition-timeline is-tool-${v.tool === 'select' ? 'select' : 'draw'}" aria-label="Chord and melody sequencer">${rollToolbar(v, grid, reg, w.bars, count)}
- <div class="roll-scroll"><div class="roll-canvas" data-comp-roll data-start="${w.start}" data-span="${w.span}" style="--bar-width:${100 / w.bars}%;--row-h:${rowHeight}px;width:${width}px"><div class="roll-ruler"><span>Bar</span><div class="roll-ruler-track" data-comp-ruler title="Click to move the playhead · drag to set the loop">${loop}${rulerSvg(p, w, zoom)}${head}</div></div><div class="roll-chord-lane"><b>Chords</b><div>${chordBlocks || '<span class="roll-empty">Add a collected chord below</span>'}</div></div><div class="roll-rows" data-comp-rows>${body}${gridSvg(p, grid, w, zoom)}</div>${v.velocityLane ? velocityLane(events, pct, selected) : ''}${rootLane(v, w, chords, pct)}<div class="roll-playhead" data-comp-playhead aria-hidden="true"><i></i></div></div></div>
+ <div class="roll-scroll"><div class="roll-canvas" data-comp-roll data-start="${w.start}" data-span="${w.span}" style="--bar-width:${100 / w.bars}%;--row-h:${rowHeight}px;width:${width}px"><div class="roll-ruler"><span>Bar</span><div class="roll-ruler-track" data-comp-ruler title="Click to move the playhead · drag to set the loop">${loop}${rulerSvg(p, w, zoom)}${head}</div></div><div class="roll-chord-lane"><b>Chords</b><div>${chordBlocks || '<span class="roll-empty">Add a collected chord below</span>'}</div></div><div class="roll-rows" data-comp-rows>${body}${gridSvg(p, grid, w, zoom)}</div>${v.velocityLane ? velocityLane(events, pct, selected) : ''}${v.figuration?.editor ? '' : rootLane(v, w, chords, pct)}<div class="roll-playhead" data-comp-playhead aria-hidden="true"><i></i></div></div></div>
  ${rootPicker(v)}
  ${renderRollStatus(v, m)}</section>`;
 }
@@ -585,7 +637,7 @@ function noteList(v) {
       const t = e.tones[0],
         d = degreeOf(p.context, t.coordinate),
         r = resolveTone(p.context, t.coordinate);
-      return `<tr><td>${esc(formatPosition(p, e.startTick))}</td><td>${d ? d.degree : '<em>outside scale</em>'}</td><td>${r.cents.toFixed(1)}</td><td><input type="number" data-comp-field="noteLength" data-event="${esc(e.id)}" min="1" value="${e.durationTick}"></td><td><input type="number" data-comp-field="noteVelocity" data-event="${esc(e.id)}" min="1" max="127" value="${e.velocity}"></td><td>${btn('note-delete', 'Delete', false, `data-event="${esc(e.id)}"`)}</td></tr>`;
+      return `<tr><td>${esc(formatPosition(p, e.startTick))}</td><td>${d ? d.degree : '<em>outside scale</em>'}</td><td>${r.cents.toFixed(1)}</td><td><input type="number" data-comp-field="noteLength" data-event="${esc(e.id)}" min="1" value="${e.durationTick}" ${e.source?.kind === 'figuration' ? 'disabled' : ''}></td><td><input type="number" data-comp-field="noteVelocity" data-event="${esc(e.id)}" min="1" max="127" value="${e.velocity}" ${e.source?.kind === 'figuration' ? 'disabled' : ''}></td><td>${btn('note-delete', 'Delete', e.source?.kind === 'figuration', `data-event="${esc(e.id)}"`)}</td></tr>`;
     })
     .join('')}</tbody></table></div></details>`;
 }
@@ -618,9 +670,11 @@ export function renderSelectionPanel(v) {
   const notes = v.melodyClip.events.filter(e => v.selected?.has(e.id));
   const add = `<details class="composition-add" ${events.length ? '' : 'open'}><summary>Add a collected chord</summary><div class="chord-add"><label>Chord <select data-comp-field="collection">${v.collection.length ? v.collection.map((it, i) => `<option value="${i}" ${v.collectionIndex === i ? 'selected' : ''} ${it.compatible ? '' : 'disabled'}>${esc(it.label)}${it.compatible ? '' : ' (other tuning)'}</option>`).join('') : '<option>Collect chords in Discover to add them here</option>'}</select></label><label>Length <select data-comp-field="addLength">${[1, 2, 4, 8].map(n => option(n, `${n} quarter notes`, v.addLength)).join('')}</select></label>${btn('chord-add', 'Add to end', !v.collection.some(i => i.compatible))}${btn('chord-add-focus', v.focused ? `Add focused chord ${esc(v.focused.label)}` : 'Add focused chord', !v.focused?.compatible)}</div></details>`;
   const selBass = sel ? chordBass(p, sel) : null;
-  const chord = sel
-    ? `<h4>${esc(chordName(p, sel, idx))}${selBass ? ` <small class="chord-bass-note">bass ${rootMarkup(selBass)}</small>` : ''}</h4>${chordButtonsMarkup(v)}<div class="chord-editor">${btn('chord-hear', 'Hear chord', false, `data-event="${esc(sel.id)}"`)}${btn('chord-invert', 'Raise lowest note', false, `data-event="${esc(sel.id)}"`)}<label>Length <input type="number" data-comp-field="chordLength" data-event="${esc(sel.id)}" min="0.25" step="0.25" value="${quarter(sel.durationTick)}"> beats</label></div><details><summary>Arrange chord</summary><div class="chord-editor">${btn('chord-earlier', 'Move earlier', idx === 0, `data-event="${esc(sel.id)}"`)}${btn('chord-later', 'Move later', idx === events.length - 1, `data-event="${esc(sel.id)}"`)}${btn('chord-duplicate', 'Duplicate after', false, `data-event="${esc(sel.id)}"`)}${btn('chord-rest', 'Rest after (1 quarter)', false, `data-event="${esc(sel.id)}"`)}${btn('chord-delete', 'Delete', false, `data-event="${esc(sel.id)}"`)}</div></details>`
-    : '<p class="viewnote">Select a chord in the timeline to see its buttons.</p>';
+  const chord = v.figuration?.editor
+    ? '<p>The numbered tones follow the reference chord from lowest to highest. Return to the composition to change its harmony.</p>'
+    : sel
+      ? `<h4>${esc(chordName(p, sel, idx))}${selBass ? ` <small class="chord-bass-note">bass ${rootMarkup(selBass)}</small>` : ''}</h4>${chordButtonsMarkup(v)}<div class="chord-editor">${btn('chord-hear', 'Hear chord', false, `data-event="${esc(sel.id)}"`)}${btn('chord-invert', 'Raise lowest note', false, `data-event="${esc(sel.id)}"`)}<label>Length <input type="number" data-comp-field="chordLength" data-event="${esc(sel.id)}" min="0.25" step="0.25" value="${quarter(sel.durationTick)}"> beats</label></div><details><summary>Arrange chord</summary><div class="chord-editor">${btn('chord-earlier', 'Move earlier', idx === 0, `data-event="${esc(sel.id)}"`)}${btn('chord-later', 'Move later', idx === events.length - 1, `data-event="${esc(sel.id)}"`)}${btn('chord-duplicate', 'Duplicate after', false, `data-event="${esc(sel.id)}"`)}${btn('chord-rest', 'Rest after (1 quarter)', false, `data-event="${esc(sel.id)}"`)}${btn('chord-delete', 'Delete', false, `data-event="${esc(sel.id)}"`)}</div></details>`
+      : '<p class="viewnote">Select a chord in the timeline to see its buttons.</p>';
   let selectedNote = '';
   if (notes.length === 1) {
     const note = notes[0],
@@ -628,6 +682,8 @@ export function renderSelectionPanel(v) {
       d = degreeOf(p.context, tone.coordinate),
       id = esc(note.id);
     selectedNote = `<div class="comp-note-inspector"><h4>Selected note</h4><p class="comp-note-where">${d ? `Degree ${d.degree}${registerSup(d.register)}` : 'Outside the scale'} · ${resolveTone(p.context, tone.coordinate).cents.toFixed(1)}¢ · starts ${esc(formatBeat(p.meter, note.startTick))} · ${esc(lengthName(note.durationTick))}</p><label>Length <select data-comp-field="noteLength" data-event="${id}">${lengthOptions(note.durationTick)}</select></label><label>Velocity <input type="number" data-comp-field="noteVelocity" data-event="${id}" min="1" max="127" value="${note.velocity}"></label>${btn('note-hear', 'Hear', false, `data-event="${id}"`)}${btn('note-delete', 'Delete note', false, `data-event="${id}"`)}</div>`;
+    if (note.source?.kind === 'figuration')
+      selectedNote = `<div class="comp-note-inspector"><h4>Attached figure note</h4><p>Choose its button below, edit the attached pattern, or detach the figure to edit individual notes.</p>${btn('figure-edit', 'Edit attached figure')}${btn('figure-detach', 'Detach to notes')}</div>`;
   } else if (notes.length > 1) {
     const same = k => (notes.every(e => e[k] === notes[0][k]) ? notes[0][k] : null),
       length = same('durationTick'),
@@ -640,7 +696,7 @@ export function renderSelectionPanel(v) {
     v.chooseButtons && v.selectionChosen
       ? `<p class="comp-buttons-auto">${v.selectionChosen} selected pitch${v.selectionChosen === 1 ? ' uses a chosen button' : 'es use chosen buttons'}. ${btn('buttons-auto', 'Use automatic buttons')}</p>`
       : '';
-  return `<section class="comp-panel comp-selection"><h3>Selected chord</h3>${chord}${selectedNote}${automatic}${add}</section>`;
+  return `<section class="comp-panel comp-selection"><h3>Selected chord</h3>${chord}${selectedNote}${automatic}${v.figuration?.editor ? '' : add}</section>`;
 }
 export function renderComposition(v) {
   const p = v.project;
@@ -648,7 +704,7 @@ export function renderComposition(v) {
     return `${transportBar(v)}${projectBar(v)}${renderGame(v.game, {project: p, board: v.board})}${v.message ? `<p class="composition-message" role="status">${esc(v.message)}</p>` : ''}<input type="file" data-comp-file accept=".json,application/json" hidden>`;
   return `${p ? transportBar(v) : '<h2>Compose and play</h2>'}${projectBar(v)}${
     p
-      ? `${timelineSection(v)}<div class="composition-lower"><section class="comp-panel comp-board-panel"><div class="comp-panel-heading"><h3>HexBoard</h3><div class="tabs comp-board-show" role="group" aria-label="Show on the board">${[
+      ? `${renderFiguration(v)}${timelineSection(v)}<div class="composition-lower"><section class="comp-panel comp-board-panel"><div class="comp-panel-heading"><h3>HexBoard</h3><div class="tabs comp-board-show" role="group" aria-label="Show on the board">${[
           ['chords', 'Chords'],
           ['melody', 'Melody'],
           ['both', 'Both']

@@ -333,7 +333,7 @@ assert.throws(() => validateProject(many), /more than 16384 events/);
 assert.throws(() => parseProject('{not json'), /not valid JSON/);
 assert.throws(() => parseProject('null'), /expected a JSON object/);
 assert.throws(
-  () => parseProject({...structuredClone(built), format: 'temperament-lab-composition-v2'}),
+  () => parseProject({...structuredClone(built), format: 'temperament-lab-composition-v3'}),
   /newer app/
 );
 assert.throws(() => parseProject({...structuredClone(built), format: 'something-else'}), /format/);

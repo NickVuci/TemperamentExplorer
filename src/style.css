@@ -8627,3 +8627,57 @@ footer {
     gap: 6px;
   }
 }
+
+/* Reusable figuration editor. */
+.figuration-panel {
+  margin-block: 12px;
+}
+.figuration-panel > summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.figuration-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-block: 10px;
+}
+.figuration-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.figuration-controls input[type='number'] {
+  width: 5em;
+}
+.figuration-error {
+  color: var(--danger, #f98b8b);
+}
+.roll-note.is-generated {
+  border-style: dashed;
+  opacity: 0.8;
+  cursor: default;
+}
+.roll-note.is-generated .roll-note-edge,
+.roll-note.is-generated .roll-note-grip {
+  display: none;
+}
+
+.chord-block.is-figuration-error {
+  border-color: var(--danger, #f98b8b);
+}
+.chord-block-figure {
+  font-style: italic;
+}
+.figuration-panel.is-editing ~ .composition-timeline .roll-velocity-lane {
+  bottom: 0;
+}
+.roll-note[data-figure-voice='0'] {
+  border-color: var(--b);
+  background: #94702e;
+}
+.roll-note[data-figure-voice='1'] {
+  border-color: var(--mint);
+  background: #356c65;
+}

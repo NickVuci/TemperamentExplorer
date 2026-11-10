@@ -7,13 +7,16 @@ Ready-to-open [sample compositions](examples/compositions/README.md) cover 12 ED
 Meantone, Porcupine, Magic and Pajara, with contrasting layouts and rhythms for
 testing the Compose piano roll and Play mode.
 
+[Figuration preludes](docs/FIGURATION.md) use reusable drawn or generated patterns
+over the chord lane, with saved figures and HexBoard practice.
+
 ## Source and build
 
 Source lives in `src/`. The build writes a static site to `site/`.
 
 The app runs entirely in the browser and needs no server code. Any static file
 host (GitHub Pages, Netlify, Cloudflare Pages) can serve `site/`, including from
-a subpath. Saved temperaments, layouts and chord shapes live in each browser's local storage;
+a subpath. Saved temperaments, layouts, chord shapes and figuration patterns live in each browser's local storage;
 Settings → Export/Import saved presets moves them between browsers or devices.
 
 - `npm run build` writes `site/`, which holds only the app shell: the page, the
