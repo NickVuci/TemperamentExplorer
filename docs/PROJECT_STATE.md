@@ -10,14 +10,18 @@ interval/JI, chord, and HexBoard-layout application.
 
 - The application is a client-only browser ES-module interface deployed as a
   static site (D-049). It has no server code or server-side storage.
-- Top-level `dist/*` files are authored source. `scripts/build.mjs` writes the
-  static site to `site/`: authored files, minified bundles of `app.mjs`,
-  `comma-worker.mjs` and `chord-v2-worker.mjs`, minified CSS, and `sw.js` with its
-  shell list and a content-hash version.
-- `dist/app.mjs` is the main controller and owns navigation, primary temperament
-  state, shared JI controls, session import/export, matrix rendering, and workspace
-  integration.
-- `npm run dev` serves `dist/` through Vite for interaction QA; `npm run preview`
+- Source lives in `src/`, with modules grouped into subsystem folders (see the
+  README). `scripts/build.mjs` writes the static site to `site/`: the page,
+  manifest and icons, minified bundles of `app.mjs`, `comma-worker.mjs` and
+  `chord-worker.mjs`, minified CSS, and `sw.js` with its shell list and a
+  content-hash version. Workers are created through `src/workers.mjs`, which sits
+  beside the worker scripts in both layouts.
+- `src/app.mjs` is the main controller. It owns navigation, the primary
+  temperament state and workspace integration, renders the workspace, and routes
+  events to the workspaces and to its parts in `src/app/`: shared JI settings,
+  the interval matrix, the diamond readout, the temperament and tuning panel, the
+  scale pane, focus coordination, session files and the HexBoard connection.
+- `npm run dev` serves `src/` through Vite for interaction QA; `npm run preview`
   serves the built `site/`.
 - Calculation modules are UI-independent where practical; `*-ui.mjs` modules own
   rendering and event adapters.
@@ -199,13 +203,11 @@ rooted-shape enumerator, and labels a shape `ji` when some JI chord maps onto it
 predicate as a coherent JI lift, verified shape-by-shape against `assessET` in
 `tests/harmonic-chord-space.mjs`. If the JI enumeration reaches its node bound,
 unmatched shapes are `unknown`, never ET; tempered-enumeration bounds make the list
-incomplete without changing any listed status. `chordDyads` gives each member pair's
-tempered class and every JI interval mapped to it. `assessET` remains the per-shape
+incomplete without changing any listed status. `assessET` remains the per-shape
 proof used by the manual note inspector.
 
 `harmonic-catalogue.mjs` now joins interval, curated/line/subset JI, chord-space JI/ET,
-mapping-extension and approximation producers through `queryCatalogue`,
-`getHarmonicEntry` and `resolveSelection`. Exact JI labels remain separate rows
+mapping-extension and approximation producers through `queryCatalogue`. Exact JI labels remain separate rows
 within shared shape/family groups. Custom lookup precedes browse caps. The temperament-independent
 part of JI rows (family, labels, dyadic status and chord-space orientation) is cached
 per target set and subgroup basis, so a temperament change that keeps both only
@@ -227,7 +229,7 @@ equivalence and producer bounds enter the context; scale/mode/layout do not.
 `harmonic-cooperative.mjs` drives the same generator algorithms synchronously
 for compatibility or asynchronously for jobs. Graph traversal, CSP states/
 compatibility checks and chord-approximation combinations yield every 256 work
-items. `chord-v2-worker.mjs` runs these jobs.
+items. `chord-worker.mjs` runs these jobs.
 
 The application currently supports prime-basis rank-2 mappings. Arbitrary composite
 or fractional basis elements and higher-rank scale enumeration are not supported.
@@ -383,13 +385,12 @@ Shift pedal and keyboard activation without replacing the SVG; voice lifecycle
 remains in `audio.mjs`. Cell fills indicate selection and playback without geometry
 changes. Layout and selection are included in session files and old sessions use
 the default layout. Changes to tuning, scale, source or filters invalidate selections.
-Transfers retain sounding integer coordinates. A retains its distinct-degree
-scale-fit handoff. B Chords accepts 2–8 source cell voices, including repeated
-or coincident coordinates, without changing the Discover scale. Larger B
-selections can be collected as scales. `diamond-harmonic-selection.mjs` records
+Transfers retain sounding integer coordinates. Map to HexBoard keeps its
+distinct-degree scale-fit handoff. Open in Chords accepts 2–8 source cell voices,
+including repeated or coincident coordinates, without changing the Discover scale.
+Larger selections can be added to the collection as scales. `diamond-harmonic-selection.mjs` records
 exact cell IDs, ratios, source coordinates and whether the sound is canonical
-or an alternative approximation. Reverse links require exact sounded ratios
-and coordinates; an unavailable current display is reported explicitly.
+or an alternative approximation.
 No-fit and unavailable-note states remain explicit; handoff does not imply a
 physical fingering exists.
 A Just intonation / Temperament switch above the diamond (saved with it) plays cells at
@@ -548,10 +549,10 @@ The canonical pipeline is:
 
 `exact JI identity → temperament projection → finite-scale occurrence → voicing → HexBoard placement`
 
-- `chord-identity-v2.mjs` parses exact 2–8-tone rational chords. Identity is an
+- `chord-identity.mjs` parses exact 2–8-tone rational chords. Identity is an
   unordered proportional set; original spelling/order and repeated members are
   metadata. Identity is not reduced by octave or temperament period.
-- `chord-projection-v2.mjs` maps members and reports basis, tuning-quality,
+- `chord-projection.mjs` maps members and reports basis, tuning-quality,
   cardinality/collision, and generator-span results independently.
 - `live-chord-recognition.mjs` maps the HexBoard player's held/sustained notes to
   complete chord-catalogue shapes using the full `[period, generator]` offsets
@@ -563,21 +564,20 @@ The canonical pipeline is:
   triad-subset label. B mapping matches remain eligible above tolerance; the
   canonical spelling error is disclosed separately. The readout does not select
   a harmony or claim acoustic purity. A keeps register-sensitive tolerance gating.
-- `chord-occurrence-v2.mjs` finds exact occurrences in the selected scale and mode.
+- `chord-occurrence.mjs` finds exact occurrences in the selected scale and mode.
   Occurrence uses mapped coordinates, never cent tolerance or board availability.
   `searchShapeOccurrences` is the shared JI/coordinate-only engine. It searches
   period-repeated membership and retains every source member, octave residue,
   degree and explicit period lift. Shape/scale context owns occurrence IDs;
   `tonicAnchored` and the tonic subset are separate from anywhere-in-scale counts.
-  `searchOccurrences` preserves legacy JI IDs/order/counts as a compatibility
-  adapter. `analyzeShape` supplies shape analysis without requiring a ratio root.
-- `chord-discovery-v2.mjs` searches a bounded catalogue of curated chords, harmonic
-  segments, and reciprocals, with shared odd/prime-limit filters and worker-backed
-  progress/cancellation.
+  `searchOccurrences` preserves legacy JI IDs/order/counts; the app searches
+  shapes, and tests and the profiler use it, with `realizeChord`, as the JI-input path.
+- `chord-discovery.mjs` supplies the curated candidate chords for live recognition
+  and the pairwise odd/prime-limit check.
 - Otonal and exact reciprocal utonal forms are displayed as one family while
   retaining distinct exact identities. Compact utonal spelling uses forms such as
   `1/6:5:4`.
-- `chord-realization-v2.mjs` applies root, inversion, harmonic-spelling (default),
+- `chord-realization.mjs` applies root, inversion, harmonic-spelling (default),
   compact/open spacing, ordering, period shifts, and register bounds, then finds
   alternate physical fingerings without changing occurrence truth.
   `realizeShape` and the `realizeChord` adapter use `chord-voicings.mjs#shapeVoicings`.
@@ -596,7 +596,7 @@ selection sent from Discover and explicit occurrence/fingering choices. The live
 readout follows held and Shift-latched voices; label interpretation never changes playback
 or persistent selection.
 
-In B mode the live readout reads held keys (screen or HexBoard) against the harmony directory
+The live readout reads held keys (screen or HexBoard) against the harmony directory
 (`played-chord.mjs#matchPlayedChord`, via the harmony workspace's `matchPlayed`). Keys reduce to
 pitch classes through the mapping, so register, doublings and spacing never change the match; the
 lowest key sets the bass. A listed chord shows its directory name, form badge and the rotation
@@ -716,7 +716,7 @@ temperaments), with documented generators reduced by whole periods;
 `tests/catalog.mjs` cross-checks computed CWE tunings against published values.
 Saved snapshots are browser-local records with
 optimistic revisions (D-049). Settings → Export saved presets writes a
-`temperament-lab-presets-v1` backup of temperaments, layouts, chord shapes and default layouts;
+`temperament-lab-presets-v1` backup of temperaments, layouts, chord shapes, figuration patterns and default layouts;
 Import saved presets validates each record, replaces records with the same id and
 skips invalid ones. It also reads responses saved from the retired site preset API. Session files remain
 `temperament-lab-v1` and preserve the primary temperament, views, linked JI
@@ -756,22 +756,22 @@ Compatibility aliases and narrow session migrations are intentional.
 - Chord-space classification replaced streamed per-shape ET discovery
   (`discoverDyadicHarmony`) and the manual, bounded ET search in the directory.
 - The Cloudflare Worker and its D1 preset API were replaced by the static site and
-  `preset-store.mjs` (D-049). `server/`, `db/`, `drizzle/`, `drizzle.config.ts`,
-  `.openai/` and the drizzle dev dependencies are no longer built or used.
+  `preset-store.mjs` (D-049) and removed. `.openai/hosting.json` remains as hosting
+  configuration.
 
 ## Current boundaries and architectural issues
 
-- `app.mjs` still contains matrix/target renderers and substantial session/event
-  orchestration. Extraction should precede any broad controller rewrite.
-- Several controller tests use source extraction and mocked DOM contexts. Core
-  calculations have strong regression coverage, but full browser, keyboard,
-  screen-reader, and acoustic acceptance remain manual.
+- `app.mjs` still wires every workspace, renders the workspace and places the
+  shared controls. Workspace modules read the temperament through a one-element
+  `getStates()` array.
+- Controller and page behavior is tested in jsdom (`tests/support/dom.mjs`); core
+  calculations have strong regression coverage. Layout, keyboard, screen-reader
+  and acoustic acceptance remain manual.
 - Manual/board analytical rules are fully migrated to shared services; older
   session and degree APIs remain intentional compatibility adapters.
-- `chord-discovery-v2.mjs#discoverChords` has no app consumer since D-039; only its
-  tests and `scripts/profile-chord-v2.mjs` use it.
-- The material collection can save, play, inspect, and place scales/chords. A chord
-  progression and melody/phrase composition sequencer is not implemented.
+- The material collection can save, play, inspect, and place scales/chords.
+  Composition (progressions, melodies, playback and practice) lives in the
+  composition workspace described below.
 - Product limits include 256 scale notes, bounded chord discovery, 2–8-tone exact
   chord input, 20,000 retained physical placements, and 133 playable HexBoard
   buttons. Chord-shape searches also stop at 1,000,000 search nodes, 20,000
@@ -787,13 +787,32 @@ forward/reverse round trips, doublings, saved shapes, jobs, the Shapes view) and
 structural retuning rejection, HexBoard geometry/flips/colors/player/export,
 period order/wrapping, audio lifecycle, presets and preset backups, legacy-session
 migration, workflow structure, and the static site build with service-worker
-offline behavior. Browser installability and offline loading are checked manually.
+offline behavior. Suites that check the running app boot it in jsdom through
+`tests/support/dom.mjs`, with a silent Web Audio stand-in that records started
+notes. Browser installability and offline loading are checked manually.
 
 ## Composition suite (MVP)
 
 The composition workspace has two views: **Compose** and **Play**. Compose shows a piano roll
 (bar ruler, chord lane, melody rows, velocity lane, root lane) above two responsive panels: the saved
 HexBoard and the selection. Play owns guided learning and timed runs.
+
+Figuration patterns are portable low-to-high chord-voice references with integer-tick rhythm,
+velocity and mapped-octave shifts. Compose's Figuration editor reuses the piano roll; seeded
+random generation is explicit. Generation defaults to the saved HexBoard's full playable chord-tone
+range and three voices: an accented beat-length bass, a moving middle and faster treble. Voice count
+is 1–4; manual octave limits remain available. Adaptive v2 patterns store normalized register
+positions, resolved per harmony against exact enabled-key octave copies; fixed-octave v1 patterns
+retain their pitches. The written bass's lowest available copy anchors the texture. Project-local
+pattern copies attach to chord events and follow
+voicing, timing and clip repetitions. `composition-figuration.mjs` owns validation, ordering,
+reference conversion and the cached derived melody events. Transport expansion, cues, the roll,
+fingering, practice and device lights consume that output. Source melody stays separate;
+detachment creates ordinary editable events. Harmonic ambiguity and incompatible references block
+playback/practice; manual melody overlap is a warning. The chord lane is silent by default for a
+prelude, with Sound harmony enabling accompaniment. Saved figures extend the browser preset library
+and its backups. Compositions containing figuration use format v2; v1 remains readable and session
+envelopes are unchanged. See [Figuration preludes](FIGURATION.md) for the workflow.
 
 Piano roll. Notes are placed on a time grid (`composition-grid.mjs`): a base division from 1/1 to 1/64,
 straight, dotted, triplet (3:2), quintuplet (5:4), septuplet (7:4) or any custom n:m tuplet, with
@@ -926,7 +945,7 @@ intermission, with Pause repeat and Stop repeating. Wait repeat restarts at once
 The pass number is shown during runs and in results. In Timed, the speed trainer offers 5%
 more after a pass at 90% or better, capped at its target speed; it is disabled in Wait. A connected
 HexBoard shows the lit keys and flashes hits and misses: on a dark board every other key is off; over
-the layout the lit keys shine a level brighter than the rest; Off shows the layout alone and removes
+the layout the lit keys shine brightly over a dimmed background; Off shows the layout alone and removes
 suggested-key cues from the screen and device. Setup lights its previewed notes over the layout, and
 results show the layout. Calibration plays twelve clicks and stores
 the median lag of taps on the last eight; it is taken off every Timed press. Settings, that offset and
@@ -989,16 +1008,16 @@ builds its chart from the same timeline.
 Sessions. A whole-app save with an open composition is `temperament-lab-v2` with a
 `composition` field; saves without one remain `temperament-lab-v1`. The loader
 accepts both and validates the composition as a candidate before restoring any other
-session part. Standalone files use `temperament-lab-composition-v1`; a composition's chosen buttons are
+session part. Standalone files use `temperament-lab-composition-v1`, or v2 when they contain figuration;
+a composition's chosen buttons are
 its optional `fingering` map (exact coordinate → button on the saved layout).
 
-Known limits. One chord track and one melody track with one clip each (the schema
-allows more); same-key presses from two sources share one voice; one meter for the
+Known limits. The editor offers one chord lane and one melody lane, with no clip-arrangement
+controls; figuration follows chord clips and repetitions, and detached melody clips remain editable.
+Same-key presses from two sources share one voice; one meter for the
 whole project (no meter changes); recording and step entry add to the existing melody
 and chord clips (no separate takes); no arrangement, mixing, conversion, account storage
-or export; game scores and calibration stay in the browser. Browser behaviour was exercised in headless Chrome only
-(see the plan log); listening, Edge/Safari, screen readers, physical HexBoard and DAW
-use are unverified.
+or audio/MIDI export; game scores and calibration stay in the browser.
 
 ## Physical HexBoard connection
 
@@ -1013,7 +1032,7 @@ persisted and the board always starts disconnected.
 | Web MIDI port, enter/exit, changed-LED sending, unplug detection | `hexboard-device.mjs` |
 | Key routing, the LED picture, the 100 ms follow and 1.5 s refresh timers | `hexboard-sync.mjs` |
 | What the board should show (colours, outlines, labels, highlights) | `hexboard-view.mjs#boardPicture` over `hexboard-colors.mjs#keyAppearance`; drawn by `boardSvg`, sent by `deviceFrame` |
-| Wiring and header status | `app.mjs` |
+| Header controls, status, latency probe and brightness | `app/hexboard-connection.mjs` |
 
 Keys. Button index equals the layout's key index (`0..139`). On the Play view a board press goes
 straight to the board player (`pressKey`/`releaseKey`, no synthetic DOM event), so sound, selection,
@@ -1027,13 +1046,24 @@ keys are silent. A board encoder press acts like Escape (stop and clear highligh
 
 Lights. The screen board and the LEDs share one rule (`keyAppearance`): every enabled key always shows its
 own layout colour and outline. A chord placement, selected chord keys or a scale highlight changes no colour
-and leaves the other keys as they were; only its keys shine a level brighter (on screen a brightness filter,
-`.is-lit`; on the board full brightness instead of half). A highlighted key's number shows its place in the
+and uses a brightness filter (`.is-lit`) on screen. On the physical board, highlighted keys use full
+output brightness and the other keys use 10%; without a highlight the layout uses 50%.
+A highlighted key's number shows its place in the
 chord, 1 being the root. Keys being played, by the board or the mouse, are white on the board.
-Disabled and command keys are dark. On screen only, a highlighted chord (`.has-chord`) also darkens every
-key outside it (`.is-marked`); the LEDs keep the other keys unchanged. While connected, Settings shows a
+Disabled and command keys are dark. On screen, a highlighted chord (`.has-chord`) also darkens every
+key outside it (`.is-marked`). While connected, Settings shows a
 HexBoard brightness slider (5–100%, remembered in the browser). The firmware has no brightness command,
-so `ledFrame` scales every LED value it sends.
+so `ledFrame` supplies an output brightness level for every colour it sends.
+
+Delegated colours. `hexboard-protocol.mjs#hexToLed` preserves the layout's HSV
+saturation, compensates output brightness for the firmware's gamma-2.6 curve and
+chooses the nearest seven-bit hue through its nonlinear perceptual hue mapping
+(`h * 360 / 127`). Generated colours, white and black use hue bytes `1..126` to
+avoid the zero-degree interpolation endpoint.
+Brightness levels apply to the resulting output; firmware global brightness and
+current limiting still apply. Screen colours, stored palettes and preset exports
+use their original RGB/HSV values. Quantization and the board's brightness budget
+limit the colour match, particularly at low brightness.
 
 Keeping the board current. After entering host mode the app waits 300 ms for the board to settle,
 then paints. LEDs travel in paced messages of at most 32 LEDs. While connected, the app is sampled every
@@ -1047,10 +1077,11 @@ Limits. One board; port chosen by name only; no manual port picker; LED colours 
 
 ## Fingering practice
 
-A panel at the foot of Play's side panel turns the chord on the board into a short game: pick how many of
-its fingerings to practise (3, 5, 10 or all), press Start, and the first fingering lights up; play
-all its keys together and the next lights up, until the set is finished (time, wrong keys and skips are
-shown; Skip and Stop are available). The panel is hidden and any running game ends when the player leaves
+A panel at the foot of Play's side panel practises the chosen chord fingering at every matching bass
+position on the current layout. **All** is selected by default; shorter drills (3, 5 or 10) are available.
+**Practise these fingerings** resets the choice to All and scrolls to the panel. Press Start, play the
+lit keys together, then lift them to continue from the lowest bass to the highest. Time, wrong keys and
+skips are shown; Skip and Stop are available. The panel is hidden and any running game ends when the player leaves
 the Play view, changes the chord, changes the layout so that the game's fingerings move, or clears the
 highlight (Escape).
 
@@ -1058,17 +1089,21 @@ highlight (Escape).
 | --- | --- |
 | Rules: exact-set completion, lifting keys between fingerings, wrong keys, skip, restore | `fingering-game.mjs` |
 | Panel markup and events (polls every 250 ms, redraws only on visible change) | `fingering-game-ui.mjs` |
-| The chord's fingerings and lighting one | `hexboard-ui.mjs#fingerings` / `#showFingering` (a shape open in the Shapes view, else the harmonic selection or finder) |
+| Exhaustive translations with the same physical pattern and exact coordinate intervals | `hexboard-chords.mjs#fingeringInstances` |
+| Chosen source fingering, cached practice positions and board highlight | `hexboard-ui.mjs#practiceFingerings` / `#showPracticeFingering` / `#endPractice` |
 
 Lighting reuses the Play board's normal highlight, so the screen and a connected HexBoard both follow
 without any extra code. Lighting the next fingering is a highlight-only redraw (`refresh('highlight')`,
 `renderWorkspace({keepNotes:true})` in `app.mjs`): held keys keep sounding and stay marked, and the Now
 playing readout is redrawn. Held keys come from the board player's callback, so mouse and HexBoard play
 are treated the same. A fingering counts only when exactly its keys are held; extra keys block it, and
-keys held from the previous fingering must be lifted before the next one counts. The game plays the first
-fingerings in the order the Chords panel lists them. The game's chord is identified by its name and the
-keys of each of its fingerings; when either changes the game ends without moving the new chord's
-highlight, and otherwise stopping or finishing puts back the fingering lit before the game. Not covered:
+keys held from the previous fingering must be lifted before the next one counts. Each position preserves
+the selected hand shape, orientation, voiced intervals and inversion; rotations, reflections and
+same-looking patterns that play different intervals are excluded. Every eligible translation is included,
+independent of the gallery's root/register filters and search budget. Chord-selection mode does not edit
+the source chord during a drill. The game tracks the source certificate and target keys; when they change
+it ends without moving the new chord's highlight. Otherwise stopping or finishing restores the original
+fingering. Not covered:
 scoring or timing targets, a saved history, and fingering practice away from the Play view.
 
 ## Note → chords (Play)
@@ -1110,7 +1145,7 @@ focused in Discover (it replaces the shown one), and the same chords again after
 reopening the open shape when it still fits. Cancel stops this, and clearing the chords does not pick one
 again.
 
-Four records stay separate: the exact JI source (`chord-identity-v2`), its mapped coordinates, the
+Four records stay separate: the exact JI source (`chord-identity`), its mapped coordinates, the
 geometric shape, and a reading that links each source member to a key. A geometric shape is a set of
 axial cells (`q = (x − y)/2, r = y`) with translation removed; its ID keeps orientation, so rotations and
 reflections are different shapes (`shapeOrientations` lists the twelve as their own IDs for optional
@@ -1151,7 +1186,7 @@ rotations and reflections, or a shared JI reading).
 Choosing a fingering, card or reading lights its keys with chord-tone numbers beside the keys' own
 labels; one key can carry several. Previous/Next steps through the fingerings, Hear plays one, and Add to
 collection adds its exact coordinates with shape provenance. While a shape is open, Fingering practice
-drills its fingerings (Practise these fingerings scrolls to it). Escape clears only the highlight. A retune keeps results and
+drills the chosen fingering at every matching bass position. Escape clears only the highlight. A retune keeps results and
 recomputes sound from stored coordinates; a change to the mapping, scale, board structure, JI limits,
 targets or limits clears them.
 
@@ -1161,7 +1196,7 @@ targets or limits clears them.
 | Board placement index and cooperative key assignment (shared with `chordPlacements`) | `hexboard-chords.mjs` |
 | Forward search, reverse identification, reference lifts, doublings | `chord-shapes.mjs` |
 | Bounded JI source universe for searches | `shape-targets.mjs` |
-| Worker/fallback jobs, structural cache keys, retune presentation | `shape-jobs.mjs` (via `chord-v2-worker.mjs`) |
+| Worker/fallback jobs, structural cache keys, retune presentation | `shape-jobs.mjs` (via `chord-worker.mjs`) |
 | Saved-shape certificates | `shape-preset-data.mjs`, stored by `preset-store.mjs` |
 | Shapes view, reading groups, highlights, saving, session settings | `shape-explorer-ui.mjs` |
 

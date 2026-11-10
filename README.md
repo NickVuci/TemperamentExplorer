@@ -7,62 +7,93 @@ Ready-to-open [sample compositions](examples/compositions/README.md) cover 12 ED
 Meantone, Porcupine, Magic and Pajara, with contrasting layouts and rhythms for
 testing the Compose piano roll and Play mode.
 
+[Figuration preludes](docs/FIGURATION.md) use reusable drawn or generated patterns
+over the chord lane, with saved figures and HexBoard practice.
+
 ## Source and build
 
-**The top-level files in `dist/` are authored source, not disposable output.**
-Do not clean that directory. The build writes a static site to `site/`.
+Source lives in `src/`. The build writes a static site to `site/`.
 
 The app runs entirely in the browser and needs no server code. Any static file
 host (GitHub Pages, Netlify, Cloudflare Pages) can serve `site/`, including from
-a subpath. Saved temperaments, layouts and chord shapes live in each browser's local storage;
+a subpath. Saved temperaments, layouts, chord shapes and figuration patterns live in each browser's local storage;
 Settings → Export/Import saved presets moves them between browsers or devices.
 
-- `npm run build` writes `site/`: the authored files, the page and both module
-  workers as minified bundles, minified CSS, and the service worker stamped with
-  a hash of the app shell. Authored modules and CSS are not overwritten.
+- `npm run build` writes `site/`, which holds only the app shell: the page, the
+  app and both module workers as minified bundles, minified CSS, the manifest and
+  icons, and the service worker stamped with a hash of the shell.
 - `npm run preview` serves `site/` locally for checking offline and install
   behavior; service workers need `localhost` or HTTPS.
-- `npm run dev` serves `dist/` through Vite for interaction QA.
-- `npm test` runs every top-level `tests/*.mjs` suite; the static-site suite
-  rebuilds `site/`.
-- `node scripts/benchmark.mjs [path/to/previous/dist]` runs identical local
-  calculation workloads against current or previous sources.
+- `npm run dev` serves `src/` through Vite for interaction QA.
+- `npm test` runs every top-level `tests/*.mjs` suite in parallel; set
+  `TEST_CONCURRENCY` to cap the number running at once. The static-site suite
+  rebuilds `site/`. Suites that check the running app boot `src/app.mjs` in jsdom
+  through `tests/support/dom.mjs` and drive it as a user would.
+- `npm run lint` checks for undefined and unused names; `npm run format` applies
+  Prettier and `npm run format:check` verifies it. CI runs lint, the format check,
+  the tests and the build on every push and pull request.
+- `node scripts/benchmark.mjs [path/to/other/src]` runs identical local
+  calculation workloads against current or previous sources, including older
+  checkouts whose modules sit flat in `dist/`.
 
 The browser receives one bundled ES module instead of fetching its dependency
-tree. Individual module URLs remain available for direct module consumers.
+tree. Workers are created through `src/workers.mjs`, which sits beside the worker
+scripts so their URLs resolve in development and in the built site.
 `manifest.webmanifest` makes the app installable. `sw.js` precaches the shell
 and prefers the network, so online visits run the deployed files and offline
 visits use the cache.
 
 ## Where things belong
 
+The root of `src/` holds the page, the controller `app.mjs`, the worker entry
+points and `workers.mjs`, `style.css`, `sw.js` and the install metadata. Modules
+live in subsystem folders:
+
+| Folder | Contents |
+| --- | --- |
+| `core/` | Temperament, tuning, scale, matrix and JI calculations |
+| `chords/` | Exact chord identity, projection, occurrences, realization, voicings and live recognition |
+| `harmonic/` | Harmony directory and catalogue, intervals, ET/JI interpretation, and their workspaces |
+| `shapes/` | Physical chord shapes and the Shapes view |
+| `diamond/` | Tonality diamond and its workspace |
+| `hexboard/` | Board geometry, layouts, colors, playing and device sync |
+| `composition/` | Composition model, transport, editor, practice game and fingering game |
+| `presets/` | Browser-local saved presets |
+| `ui/` | Shared UI helpers, audio, and the Discover workspaces |
+| `app/` | The controller's parts: shared JI settings, the interval matrix, the diamond readout, the temperament and tuning panel, the scale pane, focus coordination, session files and the HexBoard connection |
+
 | Concern | Modules |
 | --- | --- |
-| Pitch/coordinate conventions, period references | `pitch.mjs` |
-| Exact rational arithmetic | `rational.mjs` |
-| Bounded memoization and immutable cached values | `cache.mjs` |
-| Built-in temperament definitions and published tuning data | `catalog.mjs` |
-| Generated scales, odd-limit targets, interval classification | `engine.mjs` |
-| Comma kernels, EDO targets, fitting and tuning-method orchestration | `tuning.mjs`, `weil-tuning.mjs`, `tuning-methods.mjs` |
-| Finite diamond approximation compatibility views | `approximation-compat.mjs` |
-| JI assignment validation and mapping extensions | `assignments.mjs` |
-| Matrix spans, modes and pagination | `matrix.mjs` |
-| Chord inspection and scale discovery | `harmonic-inspection.mjs`, `chord-*v2.mjs` |
-| Board geometry, export, chord placement and layer colors | `hexboard*.mjs` calculation modules |
-| Physical chord shapes: geometry, forward/reverse search, sources, jobs, saved shapes | `geometric-shapes.mjs`, `chord-shapes.mjs`, `shape-*.mjs` |
-| Rejecting retunes that would change the scale or key assignments | `retuning-guard.mjs` |
-| Web Audio context, scheduling, held voices and cleanup | `audio.mjs` |
-| Pointer/keyboard/Shift-sustain interaction (no oscillator creation) | `hexboard-player.mjs` |
-| Shared HTML escaping and select options | `ui.mjs` |
-| Workspace rendering/event adapters | `*-ui.mjs`, `tonality-diamond.mjs` |
-| App orchestration, navigation and session restoration | `app.mjs` |
+| Pitch/coordinate conventions, period references | `core/pitch.mjs` |
+| Exact rational arithmetic | `core/rational.mjs` |
+| Bounded memoization and immutable cached values | `core/cache.mjs` |
+| Built-in temperament definitions and published tuning data | `core/catalog.mjs` |
+| Generated scales, odd-limit targets, interval classification | `core/engine.mjs` |
+| Comma kernels, EDO targets, fitting and tuning-method orchestration | `core/tuning.mjs`, `core/weil-tuning.mjs`, `core/tuning-methods.mjs` |
+| Finite diamond approximation compatibility views | `core/approximation-compat.mjs` |
+| JI assignment validation and mapping extensions | `core/assignments.mjs` |
+| Matrix spans, modes and pagination | `core/matrix.mjs` |
+| Chord inspection and scale discovery | `harmonic/harmonic-inspection.mjs`, `chords/` |
+| Board geometry, export, chord placement and layer colors | `hexboard/hexboard*.mjs` calculation modules |
+| Physical chord shapes: geometry, forward/reverse search, sources, jobs, saved shapes | `shapes/` |
+| Rejecting retunes that would change the scale or key assignments | `core/retuning-guard.mjs` |
+| Web Audio context, scheduling, held voices and cleanup | `ui/audio.mjs` |
+| Pointer/keyboard/Shift-sustain interaction (no oscillator creation) | `hexboard/hexboard-player.mjs` |
+| Shared HTML escaping, select options and number formatting | `ui/ui.mjs` |
+| Workspace rendering/event adapters | `*-ui.mjs`, `diamond/tonality-diamond.mjs` |
+| App orchestration: workspace wiring, navigation, rendering and event routing | `app.mjs` |
+| Shared odd limit, prime filter and tolerance | `app/ji-settings.mjs` |
+| Interval matrix and its inspector; the diamond's interval and chord readout | `app/matrix-view.mjs`, `app/diamond-details.mjs` |
+| Header temperament and tuning panel; Discover's scale pane | `app/tuning-panel.mjs`, `app/scale-pane.mjs` |
+| The focused chord shared by the directory, diamond, matrix and Play | `app/focus-sync.mjs` |
+| Session files: writing, validating and reading older files | `app/session.mjs` |
+| Physical HexBoard connection, status and brightness | `app/hexboard-connection.mjs` |
 | Theme tokens, shared components and responsive refinements | `style.css` |
-| Browser-local saved presets, backups and revisions | `preset-store.mjs`, `preset-data.mjs`, `state.mjs` |
+| Browser-local saved presets, backups and revisions | `presets/`, `core/state.mjs` |
 | Offline shell and install metadata | `sw.js`, `manifest.webmanifest`, `icon*` |
 
-`engine.mjs` retains its previous public exports by re-exporting the moved
-helpers and catalog. Likewise, `matrix.mjs`, `hexboard.mjs` and
-`assignments.mjs` preserve their existing shared-helper exports.
+Import each name from the module that owns it; modules do not re-export other
+modules' names.
 
 ## Calculation rules
 

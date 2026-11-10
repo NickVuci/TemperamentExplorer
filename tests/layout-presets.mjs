@@ -1,48 +1,332 @@
-import {createPresetId} from '../dist/preset-data.mjs';
+import {createPresetId} from '../src/presets/preset-data.mjs';
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {createHexboardWorkspace} from '../dist/hexboard-ui.mjs';
-import {layoutPresetSnapshot,layoutPresetForState,mappingKey} from '../dist/layout-preset-data.mjs';
-import {createLayoutPresets} from '../dist/layout-presets.mjs';
-import {createPresetStore} from '../dist/preset-store.mjs';
-const memory=()=>{const values=new Map();return {getItem:k=>values.has(k)?values.get(k):null,setItem:(k,v)=>values.set(k,String(v))};};
-const presetStore=createPresetStore({storage:memory()});
-const s={...makeState('meantone'),n:12,mode:0};let notifyResolve;
-const ui=createHexboardWorkspace({presetStore,getStates:()=>[s],play:()=>{},refresh:()=>{},notify:t=>notifyResolve?.(t),download:()=>{},getHz:()=>220});
-const cfg=ui.serialize().configs[0];Object.assign(cfg,{palette:'ember',layerGrowth:'lower',layerColors:{7:'#123456',12:'#abcdef'},keyColors:{65:'#112233'},degreeColors:{0:'#445566'}});const snapshot=layoutPresetSnapshot('First layout',{context:s,config:cfg});
-assert.equal(snapshot.config.palette,'ember');assert.equal(snapshot.config.layerGrowth,'lower');assert.deepEqual(snapshot.config.layerColors,{7:'#123456',12:'#abcdef'});assert.deepEqual(snapshot.config.keyColors,{65:'#112233'});assert.deepEqual(snapshot.config.degreeColors,{0:'#445566'});
-assert.throws(()=>layoutPresetSnapshot('',{context:s,config:cfg}),/name/);
-assert.throws(()=>layoutPresetSnapshot('bad',{context:s,config:{...cfg,center:20}}));
-assert.throws(()=>layoutPresetSnapshot('bad',{context:s,config:{...cfg,style:'manual',ap:2,ag:0,bp:0,bg:1}}));
-assert.throws(()=>layoutPresetSnapshot('bad',{context:s,config:{...cfg,keyColors:{20:'#112233'}}}),/colors/);
-assert.match(layoutPresetForState(snapshot,makeState('hanson')).error,/Use/);
-assert.equal(layoutPresetForState(snapshot,{...s,g:s.g+.01}).state.g,s.g+.01,'Preset load preserves current tuning');
-const store=createLayoutPresets({store:presetStore,refresh:()=>{},notify:()=>{}});await store.init();assert.equal(store.catalog().status,'ready');
-const first=await store.save('First layout',s,cfg);assert.ok(first.id);assert.equal(first.revision,1);
-const otherState={...makeState('hanson'),n:12,mode:0},otherUi=createHexboardWorkspace({presetStore,getStates:()=>[otherState],play:()=>{},refresh:()=>{},notify:()=>{},download:()=>{},getHz:()=>220}),foreign=await store.save('Hanson layout',otherState,otherUi.serialize().configs[0]);assert.ok(foreign.id);
-const stale=createLayoutPresets({store:presetStore,refresh:()=>{},notify:()=>{}});await stale.init();
-const renamed=await store.save('Renamed layout',s,cfg,first.id);assert.equal(renamed.revision,2);assert.equal(renamed.name,'Renamed layout');
-assert.equal(await stale.save('stale overwrite',s,cfg,first.id),null);assert.match(stale.catalog().error,/changed/);
-const reloaded=createLayoutPresets({store:presetStore,refresh:()=>{},notify:()=>{}});await reloaded.init();assert.equal(reloaded.catalog().items.find(p=>p.id===first.id).name,'Renamed layout');assert.deepEqual(reloaded.catalog().items.find(p=>p.id===first.id).state.config,cfgToPreset(cfg));
-assert.equal((await presetStore.list('temperament')).length,0,'Layout records are isolated from temperament presets');
-await assert.rejects(presetStore.remove('temperament',first.id,2),/changed or was removed/,'Wrong preset namespace cannot delete a layout');
+import {makeState} from '../src/core/catalog.mjs';
+import {createHexboardWorkspace} from '../src/hexboard/hexboard-ui.mjs';
+import {
+  layoutPresetSnapshot,
+  layoutPresetForState,
+  mappingKey
+} from '../src/hexboard/layout-preset-data.mjs';
+import {createLayoutPresets} from '../src/hexboard/layout-presets.mjs';
+import {createPresetStore} from '../src/presets/preset-store.mjs';
+const memory = () => {
+  const values = new Map();
+  return {
+    getItem: k => (values.has(k) ? values.get(k) : null),
+    setItem: (k, v) => values.set(k, String(v))
+  };
+};
+const presetStore = createPresetStore({storage: memory()});
+const s = {...makeState('meantone'), n: 12, mode: 0};
+let notifyResolve;
+const ui = createHexboardWorkspace({
+  presetStore,
+  getStates: () => [s],
+  play: () => {},
+  refresh: () => {},
+  notify: t => notifyResolve?.(t),
+  download: () => {},
+  getHz: () => 220
+});
+const cfg = ui.serialize().configs[0];
+Object.assign(cfg, {
+  palette: 'ember',
+  layerGrowth: 'lower',
+  layerColors: {7: '#123456', 12: '#abcdef'},
+  keyColors: {65: '#112233'},
+  degreeColors: {0: '#445566'}
+});
+const snapshot = layoutPresetSnapshot('First layout', {context: s, config: cfg});
+assert.equal(snapshot.config.palette, 'ember');
+assert.equal(snapshot.config.layerGrowth, 'lower');
+assert.deepEqual(snapshot.config.layerColors, {7: '#123456', 12: '#abcdef'});
+assert.deepEqual(snapshot.config.keyColors, {65: '#112233'});
+assert.deepEqual(snapshot.config.degreeColors, {0: '#445566'});
+assert.throws(() => layoutPresetSnapshot('', {context: s, config: cfg}), /name/);
+assert.throws(() => layoutPresetSnapshot('bad', {context: s, config: {...cfg, center: 20}}));
+assert.throws(() =>
+  layoutPresetSnapshot('bad', {
+    context: s,
+    config: {...cfg, style: 'manual', ap: 2, ag: 0, bp: 0, bg: 1}
+  })
+);
+assert.throws(
+  () => layoutPresetSnapshot('bad', {context: s, config: {...cfg, keyColors: {20: '#112233'}}}),
+  /colors/
+);
+assert.match(layoutPresetForState(snapshot, makeState('hanson')).error, /Use/);
+assert.equal(
+  layoutPresetForState(snapshot, {...s, g: s.g + 0.01}).state.g,
+  s.g + 0.01,
+  'Preset load preserves current tuning'
+);
+const store = createLayoutPresets({store: presetStore, refresh: () => {}, notify: () => {}});
+await store.init();
+assert.equal(store.catalog().status, 'ready');
+const first = await store.save('First layout', s, cfg);
+assert.ok(first.id);
+assert.equal(first.revision, 1);
+const otherState = {...makeState('hanson'), n: 12, mode: 0},
+  otherUi = createHexboardWorkspace({
+    presetStore,
+    getStates: () => [otherState],
+    play: () => {},
+    refresh: () => {},
+    notify: () => {},
+    download: () => {},
+    getHz: () => 220
+  }),
+  foreign = await store.save('Hanson layout', otherState, otherUi.serialize().configs[0]);
+assert.ok(foreign.id);
+const stale = createLayoutPresets({store: presetStore, refresh: () => {}, notify: () => {}});
+await stale.init();
+const renamed = await store.save('Renamed layout', s, cfg, first.id);
+assert.equal(renamed.revision, 2);
+assert.equal(renamed.name, 'Renamed layout');
+assert.equal(await stale.save('stale overwrite', s, cfg, first.id), null);
+assert.match(stale.catalog().error, /changed/);
+const reloaded = createLayoutPresets({store: presetStore, refresh: () => {}, notify: () => {}});
+await reloaded.init();
+assert.equal(reloaded.catalog().items.find(p => p.id === first.id).name, 'Renamed layout');
+assert.deepEqual(
+  reloaded.catalog().items.find(p => p.id === first.id).state.config,
+  cfgToPreset(cfg)
+);
+assert.equal(
+  (await presetStore.list('temperament')).length,
+  0,
+  'Layout records are isolated from temperament presets'
+);
+await assert.rejects(
+  presetStore.remove('temperament', first.id, 2),
+  /changed or was removed/,
+  'Wrong preset namespace cannot delete a layout'
+);
 // Real HexBoard dropdown load, set a default, then apply it in a fresh workspace.
-await ui.initLayouts();let html=ui.render();assert.ok(html.indexOf('label="Saved layouts"')<html.indexOf('label="Built-in layouts"'),'saved layouts come before the built-in one');assert.match(html,/Meantone · Recommended[^<]*<.option><option[^>]*>Meantone · Bosanquet[^<]*<.option><option[^>]*>Meantone · Wicki-Hayden/);assert.doesNotMatch(html,/Search recommended layouts|Ranked recommendations|layout-search/,'there is no layout search');assert.match(html,/Renamed layout · 12 notes/);assert.doesNotMatch(html,/Hanson layout/,'Other-temperament layouts are hidden from this dropdown.');
-const hansonUi=createHexboardWorkspace({presetStore,getStates:()=>[otherState],play:()=>{},refresh:()=>{},notify:()=>{},download:()=>{},getHz:()=>220});await hansonUi.initLayouts();const hansonHtml=hansonUi.render();assert.match(hansonHtml,/Hanson layout · 12 notes/);assert.doesNotMatch(hansonHtml,/Renamed layout/,'Meantone layouts are hidden from the Hanson dropdown.');hansonUi.change({dataset:{hexCustomColor:'key'},value:'#abcdef'});hansonUi.change({dataset:{hexColorScope:''},value:'degree'});hansonUi.change({dataset:{hexCustomColor:'degree'},value:'#fedcba'});hansonUi.change({dataset:{layoutChoice:''},value:'saved:'+foreign.id});assert.deepEqual(hansonUi.serialize().configs[0].keyColors,{},'Loading a saved layout uses its own per-button colors.');assert.deepEqual(hansonUi.serialize().configs[0].degreeColors,{},'Loading a saved layout uses its own per-degree colors.');
-s.n=7;ui.change({dataset:{layoutChoice:''},value:'saved:'+first.id});assert.equal(s.n,12);assert.equal(ui.serialize().configs[0].savedLayoutId,first.id);const loadedConfig=ui.serialize().configs[0];assert.equal(loadedConfig.palette,'ember');assert.equal(loadedConfig.layerGrowth,'lower');assert.deepEqual(loadedConfig.layerColors,{7:'#123456',12:'#abcdef'});assert.deepEqual(loadedConfig.keyColors,{65:'#112233'});assert.deepEqual(loadedConfig.degreeColors,{0:'#445566'});ui.change({dataset:{hexField:'rotation'},type:'select-one',value:'1'});assert.match(ui.render(),/data-hex-action="layout-default"[^>]*>Save changes & make default/);
-const markedDefault=new Promise(resolve=>notifyResolve=resolve);ui.click({closest:()=>({dataset:{hexAction:'layout-default'}})});assert.match(await markedDefault,/default layout/);const defaultSettings=await presetStore.layoutDefaults();assert.equal(defaultSettings.defaults[mappingKey(s)],first.id);const savedDefault=(await presetStore.list('layout')).find(p=>p.id===first.id);assert.equal(savedDefault.state.config.rotation,1,'Setting the current edited layout as default saves its changes.');assert.match(ui.render(),/Renamed layout · Default · 12 notes/);
-await assert.rejects(presetStore.setLayoutDefault(mappingKey(makeState('hanson')),first.id,defaultSettings.revision),/does not belong/,'A layout cannot be made default for another temperament.');
-assert.equal(await stale.setDefault(first.id,s),false);assert.match(stale.catalog().error,/changed/,'Concurrent default changes use revision protection.');
-const s2={...makeState('meantone'),n:7,mode:0},defaultUi=createHexboardWorkspace({presetStore,getStates:()=>[s2],play:()=>{},refresh:()=>{},notify:()=>{},download:()=>{},getHz:()=>220});await defaultUi.initLayouts();assert.equal(s2.n,12);assert.equal(defaultUi.serialize().configs[0].savedLayoutId,first.id);assert.equal(defaultUi.serialize().configs[0].rotation,1);assert.deepEqual(defaultUi.serialize().configs[0].keyColors,{});defaultUi.change({dataset:{hexCustomColor:'key'},value:'#abcdef'});defaultUi.change({dataset:{hexColorScope:''},value:'degree'});defaultUi.change({dataset:{hexCustomColor:'degree'},value:'#fedcba'});Object.assign(s2,{...makeState('hanson'),n:7,mode:0});defaultUi.render();assert.equal(defaultUi.serialize().configs[0].savedLayoutId,'builtin:hanson','A different temperament without a saved default uses its built-in layout, not the meantone default.');assert.equal(s2.n,15);assert.deepEqual(defaultUi.serialize().configs[0].keyColors,{});assert.deepEqual(defaultUi.serialize().configs[0].degreeColors,{});Object.assign(s2,{...makeState('meantone'),n:7,mode:0});defaultUi.render();assert.equal(s2.n,12,'Returning to meantone reapplies its default.');assert.deepEqual(defaultUi.serialize().configs[0].keyColors,{},'Uncommitted button colors do not return with another temperament.');
-const hansonDefaults=createLayoutPresets({store:presetStore,refresh:()=>{},notify:()=>{}});await hansonDefaults.init();assert.equal(await hansonDefaults.setDefault(foreign.id,otherState),true);
-const eagerState={...makeState('meantone'),n:7,mode:0},eagerUi=createHexboardWorkspace({presetStore,getStates:()=>[eagerState],play:()=>{},refresh:()=>{},notify:()=>{},download:()=>{},getHz:()=>220});await eagerUi.initLayouts();assert.equal(eagerState.n,12);Object.assign(eagerState,{...makeState('hanson'),n:7,mode:0});assert.equal(eagerUi.prepareForTemperament(),true,'A selected temperament applies its saved default before the board is rendered.');assert.equal(eagerState.n,12);assert.equal(eagerUi.serialize().configs[0].savedLayoutId,foreign.id);const restoredLayout=eagerUi.serialize();eagerUi.restore(restoredLayout);eagerUi.preserveCurrentLayout();assert.equal(eagerUi.prepareForTemperament(),false,'A restored session keeps its saved layout.');assert.equal(eagerUi.serialize().configs[0].savedLayoutId,foreign.id);
-let finishFetch;const fetchGate=new Promise(resolve=>finishFetch=resolve),delayedStore={...presetStore,list:async kind=>{await fetchGate;return presetStore.list(kind);},layoutDefaults:async()=>{await fetchGate;return presetStore.layoutDefaults();}},racingState={...makeState('meantone'),n:7,mode:0},racingUi=createHexboardWorkspace({presetStore:delayedStore,getStates:()=>[racingState],play:()=>{},refresh:()=>{},notify:()=>{},download:()=>{},getHz:()=>220}),loading=racingUi.initLayouts();Object.assign(racingState,{...makeState('hanson'),n:7,mode:0});finishFetch();await loading;assert.equal(racingState.n,12,'A temperament selected while defaults preload is pending is ready before opening Play.');assert.equal(racingUi.serialize().configs[0].savedLayoutId,foreign.id);
-ui.input({dataset:{layoutName:''},value:'My renamed board'});
-const saved=new Promise(resolve=>notifyResolve=resolve);ui.click({closest:()=>({dataset:{hexAction:'layout-save'}})});assert.match(await saved,/Saved layout/);
-await reloaded.init();assert.equal(reloaded.catalog().items.find(p=>p.id===first.id).name,'My renamed board');
-const session=ui.serialize();ui.restore(session);assert.equal(ui.serialize().configs[0].savedLayoutId,first.id);
-await reloaded.remove(first.id);await reloaded.remove(foreign.id);await store.init();assert.equal(store.catalog().items.length,0);assert.equal(store.catalog().defaults[mappingKey(s)],undefined,'Deleting a default layout clears its temperament default.');assert.equal(store.catalog().defaults[mappingKey(otherState)],undefined,'Deleting another temperament default clears only that mapping.');
-console.log('Named layout presets: validation, persistence, temperament filtering, eager default application, async preload race, session restore and scale restoration passed.');
-function cfgToPreset(config){return layoutPresetSnapshot('x',{context:s,config}).config;}
+await ui.initLayouts();
+let html = ui.render();
+assert.ok(
+  html.indexOf('label="Saved layouts"') < html.indexOf('label="Built-in layouts"'),
+  'saved layouts come before the built-in one'
+);
+assert.match(
+  html,
+  /Meantone · Recommended[^<]*<.option><option[^>]*>Meantone · Bosanquet[^<]*<.option><option[^>]*>Meantone · Wicki-Hayden/
+);
+assert.doesNotMatch(
+  html,
+  /Search recommended layouts|Ranked recommendations|layout-search/,
+  'there is no layout search'
+);
+assert.match(html, /Renamed layout · 12 notes/);
+assert.doesNotMatch(
+  html,
+  /Hanson layout/,
+  'Other-temperament layouts are hidden from this dropdown.'
+);
+const hansonUi = createHexboardWorkspace({
+  presetStore,
+  getStates: () => [otherState],
+  play: () => {},
+  refresh: () => {},
+  notify: () => {},
+  download: () => {},
+  getHz: () => 220
+});
+await hansonUi.initLayouts();
+const hansonHtml = hansonUi.render();
+assert.match(hansonHtml, /Hanson layout · 12 notes/);
+assert.doesNotMatch(
+  hansonHtml,
+  /Renamed layout/,
+  'Meantone layouts are hidden from the Hanson dropdown.'
+);
+hansonUi.change({dataset: {hexCustomColor: 'key'}, value: '#abcdef'});
+hansonUi.change({dataset: {hexColorScope: ''}, value: 'degree'});
+hansonUi.change({dataset: {hexCustomColor: 'degree'}, value: '#fedcba'});
+hansonUi.change({dataset: {layoutChoice: ''}, value: 'saved:' + foreign.id});
+assert.deepEqual(
+  hansonUi.serialize().configs[0].keyColors,
+  {},
+  'Loading a saved layout uses its own per-button colors.'
+);
+assert.deepEqual(
+  hansonUi.serialize().configs[0].degreeColors,
+  {},
+  'Loading a saved layout uses its own per-degree colors.'
+);
+s.n = 7;
+ui.change({dataset: {layoutChoice: ''}, value: 'saved:' + first.id});
+assert.equal(s.n, 12);
+assert.equal(ui.serialize().configs[0].savedLayoutId, first.id);
+const loadedConfig = ui.serialize().configs[0];
+assert.equal(loadedConfig.palette, 'ember');
+assert.equal(loadedConfig.layerGrowth, 'lower');
+assert.deepEqual(loadedConfig.layerColors, {7: '#123456', 12: '#abcdef'});
+assert.deepEqual(loadedConfig.keyColors, {65: '#112233'});
+assert.deepEqual(loadedConfig.degreeColors, {0: '#445566'});
+ui.change({dataset: {hexField: 'rotation'}, type: 'select-one', value: '1'});
+assert.match(ui.render(), /data-hex-action="layout-default"[^>]*>Save changes & make default/);
+const markedDefault = new Promise(resolve => (notifyResolve = resolve));
+ui.click({closest: () => ({dataset: {hexAction: 'layout-default'}})});
+assert.match(await markedDefault, /default layout/);
+const defaultSettings = await presetStore.layoutDefaults();
+assert.equal(defaultSettings.defaults[mappingKey(s)], first.id);
+const savedDefault = (await presetStore.list('layout')).find(p => p.id === first.id);
+assert.equal(
+  savedDefault.state.config.rotation,
+  1,
+  'Setting the current edited layout as default saves its changes.'
+);
+assert.match(ui.render(), /Renamed layout · Default · 12 notes/);
+await assert.rejects(
+  presetStore.setLayoutDefault(mappingKey(makeState('hanson')), first.id, defaultSettings.revision),
+  /does not belong/,
+  'A layout cannot be made default for another temperament.'
+);
+assert.equal(await stale.setDefault(first.id, s), false);
+assert.match(
+  stale.catalog().error,
+  /changed/,
+  'Concurrent default changes use revision protection.'
+);
+const s2 = {...makeState('meantone'), n: 7, mode: 0},
+  defaultUi = createHexboardWorkspace({
+    presetStore,
+    getStates: () => [s2],
+    play: () => {},
+    refresh: () => {},
+    notify: () => {},
+    download: () => {},
+    getHz: () => 220
+  });
+await defaultUi.initLayouts();
+assert.equal(s2.n, 12);
+assert.equal(defaultUi.serialize().configs[0].savedLayoutId, first.id);
+assert.equal(defaultUi.serialize().configs[0].rotation, 1);
+assert.deepEqual(defaultUi.serialize().configs[0].keyColors, {});
+defaultUi.change({dataset: {hexCustomColor: 'key'}, value: '#abcdef'});
+defaultUi.change({dataset: {hexColorScope: ''}, value: 'degree'});
+defaultUi.change({dataset: {hexCustomColor: 'degree'}, value: '#fedcba'});
+Object.assign(s2, {...makeState('hanson'), n: 7, mode: 0});
+defaultUi.render();
+assert.equal(
+  defaultUi.serialize().configs[0].savedLayoutId,
+  'builtin:hanson',
+  'A different temperament without a saved default uses its built-in layout, not the meantone default.'
+);
+assert.equal(s2.n, 15);
+assert.deepEqual(defaultUi.serialize().configs[0].keyColors, {});
+assert.deepEqual(defaultUi.serialize().configs[0].degreeColors, {});
+Object.assign(s2, {...makeState('meantone'), n: 7, mode: 0});
+defaultUi.render();
+assert.equal(s2.n, 12, 'Returning to meantone reapplies its default.');
+assert.deepEqual(
+  defaultUi.serialize().configs[0].keyColors,
+  {},
+  'Uncommitted button colors do not return with another temperament.'
+);
+const hansonDefaults = createLayoutPresets({
+  store: presetStore,
+  refresh: () => {},
+  notify: () => {}
+});
+await hansonDefaults.init();
+assert.equal(await hansonDefaults.setDefault(foreign.id, otherState), true);
+const eagerState = {...makeState('meantone'), n: 7, mode: 0},
+  eagerUi = createHexboardWorkspace({
+    presetStore,
+    getStates: () => [eagerState],
+    play: () => {},
+    refresh: () => {},
+    notify: () => {},
+    download: () => {},
+    getHz: () => 220
+  });
+await eagerUi.initLayouts();
+assert.equal(eagerState.n, 12);
+Object.assign(eagerState, {...makeState('hanson'), n: 7, mode: 0});
+assert.equal(
+  eagerUi.prepareForTemperament(),
+  true,
+  'A selected temperament applies its saved default before the board is rendered.'
+);
+assert.equal(eagerState.n, 12);
+assert.equal(eagerUi.serialize().configs[0].savedLayoutId, foreign.id);
+const restoredLayout = eagerUi.serialize();
+eagerUi.restore(restoredLayout);
+eagerUi.preserveCurrentLayout();
+assert.equal(eagerUi.prepareForTemperament(), false, 'A restored session keeps its saved layout.');
+assert.equal(eagerUi.serialize().configs[0].savedLayoutId, foreign.id);
+let finishFetch;
+const fetchGate = new Promise(resolve => (finishFetch = resolve)),
+  delayedStore = {
+    ...presetStore,
+    list: async kind => {
+      await fetchGate;
+      return presetStore.list(kind);
+    },
+    layoutDefaults: async () => {
+      await fetchGate;
+      return presetStore.layoutDefaults();
+    }
+  },
+  racingState = {...makeState('meantone'), n: 7, mode: 0},
+  racingUi = createHexboardWorkspace({
+    presetStore: delayedStore,
+    getStates: () => [racingState],
+    play: () => {},
+    refresh: () => {},
+    notify: () => {},
+    download: () => {},
+    getHz: () => 220
+  }),
+  loading = racingUi.initLayouts();
+Object.assign(racingState, {...makeState('hanson'), n: 7, mode: 0});
+finishFetch();
+await loading;
+assert.equal(
+  racingState.n,
+  12,
+  'A temperament selected while defaults preload is pending is ready before opening Play.'
+);
+assert.equal(racingUi.serialize().configs[0].savedLayoutId, foreign.id);
+ui.input({dataset: {layoutName: ''}, value: 'My renamed board'});
+const saved = new Promise(resolve => (notifyResolve = resolve));
+ui.click({closest: () => ({dataset: {hexAction: 'layout-save'}})});
+assert.match(await saved, /Saved layout/);
+await reloaded.init();
+assert.equal(reloaded.catalog().items.find(p => p.id === first.id).name, 'My renamed board');
+const session = ui.serialize();
+ui.restore(session);
+assert.equal(ui.serialize().configs[0].savedLayoutId, first.id);
+await reloaded.remove(first.id);
+await reloaded.remove(foreign.id);
+await store.init();
+assert.equal(store.catalog().items.length, 0);
+assert.equal(
+  store.catalog().defaults[mappingKey(s)],
+  undefined,
+  'Deleting a default layout clears its temperament default.'
+);
+assert.equal(
+  store.catalog().defaults[mappingKey(otherState)],
+  undefined,
+  'Deleting another temperament default clears only that mapping.'
+);
+console.log(
+  'Named layout presets: validation, persistence, temperament filtering, eager default application, async preload race, session restore and scale restoration passed.'
+);
+function cfgToPreset(config) {
+  return layoutPresetSnapshot('x', {context: s, config}).config;
+}
 
-assert.equal(createPresetId({getRandomValues:bytes=>{bytes.fill(0);return bytes;}}),'00000000-0000-4000-8000-000000000000');
+assert.equal(
+  createPresetId({
+    getRandomValues: bytes => {
+      bytes.fill(0);
+      return bytes;
+    }
+  }),
+  '00000000-0000-4000-8000-000000000000'
+);

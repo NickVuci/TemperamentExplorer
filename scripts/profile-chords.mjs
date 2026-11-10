@@ -1,0 +1,64 @@
+import {performance} from 'node:perf_hooks';
+import {cpus} from 'node:os';
+import {makeState} from '../src/core/catalog.mjs';
+import {chordIdentity} from '../src/chords/chord-identity.mjs';
+import {projectChord} from '../src/chords/chord-projection.mjs';
+import {searchOccurrences} from '../src/chords/chord-occurrence.mjs';
+import {analyzeChord} from '../tests/support/chord-analysis.mjs';
+import {chordCandidates} from '../src/chords/chord-discovery.mjs';
+import {realizeChord, placeRealization} from '../src/chords/chord-realization.mjs';
+import {buildBoard} from '../src/hexboard/hexboard.mjs';
+const s = makeState('magic11'),
+  text = '4:5:6:7:9:11',
+  identity = chordIdentity(text),
+  projection = projectChord(s, identity);
+const report = {
+  runtime: process.version,
+  cpu: cpus()[0]?.model,
+  candidateCount: chordCandidates().length,
+  provisionalBudgetMs: 200,
+  measurements: []
+};
+async function measure(name, fn, runs = 20) {
+  const times = [];
+  for (let i = 0; i < runs; i++) {
+    const t = performance.now();
+    await fn();
+    times.push(performance.now() - t);
+  }
+  times.sort((a, b) => a - b);
+  report.measurements.push({
+    name,
+    runs,
+    medianMs: +times[Math.floor(times.length / 2)].toFixed(3),
+    worstMs: +times.at(-1).toFixed(3)
+  });
+}
+await measure('identity six members', () => chordIdentity(text));
+await measure('identity bounded large semiprimes', () =>
+  chordIdentity('999983/999979:999961/999959:999953/999931')
+);
+await measure('projection six members', () => projectChord(s, identity));
+for (const n of [19, 64, 256])
+  await measure(`occurrence six members n=${n}`, () =>
+    searchOccurrences({...s, n, mode: 0}, projection)
+  );
+const miracle = makeState('miracle11'),
+  a = analyzeChord(miracle, text),
+  o = a.occurrences.completeOccurrences.find(o => o.root === 14),
+  v = realizeChord(miracle, a, o, {style: 'original'}),
+  b = buildBoard(miracle, {
+    base: 7,
+    style: 'bosanquet',
+    center: 65,
+    offset: 0,
+    rotation: 0,
+    register: 0,
+    outside: false,
+    periodWrapping: true
+  });
+await measure('voicing six members', () => realizeChord(miracle, a, o, {style: 'original'}));
+await measure('wrapped placement six members / 133 buttons', () => placeRealization(miracle, v, b));
+report.notes =
+  'Node managed execution environment, not a browser performance guarantee. Includes first cold sample. Exact occurrence data remains separate from layout.';
+console.log(JSON.stringify(report, null, 2));

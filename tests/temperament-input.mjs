@@ -1,21 +1,43 @@
 import assert from 'node:assert/strict';
-import {createPresetWorkspace} from '../dist/preset-ui.mjs';
-import {temperamentFromInput} from '../dist/temperament-input.mjs';
-import {makeState} from '../dist/engine.mjs';
-import {commaFromVector} from '../dist/comma-search.mjs';
-const original=makeState('meantone');
-assert.equal(temperamentFromInput('2.3.5','81/80',original).tuning,'Computed CWE');
-const big=commaFromVector([2,3,5],[-40,40,-10]);
-assert.equal(temperamentFromInput('2.3.5',big.label,original).rows[1][2],4);
-assert.throws(()=>temperamentFromInput('2.3.5','64/63',original),/outside/);
-assert.throws(()=>temperamentFromInput('2.3.5.7','81/80',original),/rank/);
-assert.ok(temperamentFromInput('3.5.7','245/243',original).p>1200);
-let states=[original],requests=[];
-const ui=createPresetWorkspace({getStates:()=>states,apply:(i,s)=>states[i]=s,refresh:()=>{},notify:()=>{},request:async (url,options)=>{requests.push({url,options});return Response.json({presets:[]});}});
-await ui.init();assert.match(ui.render(0),/Built-in temperaments/);assert.doesNotMatch(ui.render(0),/class="saved-presets"/);
-ui.change({dataset:{savedPreset:'0'},value:'new'});assert.equal(states[0],original);assert.match(ui.render(0),/data-temp-editor="0" open/);
-ui.receiveCommas(0,[2,3,5],[{label:'128/125'}]);assert.equal(states[0],original);assert.match(ui.render(0),/value="128\/125"/);
-ui.input({dataset:{presetName:'0'},value:'My thirds'});ui.click({dataset:{userPreset:'generate',s:'0'}});
-assert.equal(states[0].name,'My thirds');assert.ok(Math.abs(states[0].p-400)<1e-6);assert.equal(states[0].savedPresetId,undefined);
-ui.change({dataset:{savedPreset:'0'},value:'builtin:dreamtone'});assert.equal(states[0].name,makeState('dreamtone').name);
-console.log('Unified selector, staged search commas, named generation, large exact ratios, inherited tuning and built-in loading passed.');
+import {createPresetWorkspace} from '../src/presets/preset-ui.mjs';
+import {temperamentFromInput} from '../src/core/temperament-input.mjs';
+import {makeState} from '../src/core/catalog.mjs';
+import {commaFromVector} from '../src/core/comma-search.mjs';
+const original = makeState('meantone');
+assert.equal(temperamentFromInput('2.3.5', '81/80', original).tuning, 'Computed CWE');
+const big = commaFromVector([2, 3, 5], [-40, 40, -10]);
+assert.equal(temperamentFromInput('2.3.5', big.label, original).rows[1][2], 4);
+assert.throws(() => temperamentFromInput('2.3.5', '64/63', original), /outside/);
+assert.throws(() => temperamentFromInput('2.3.5.7', '81/80', original), /rank/);
+assert.ok(temperamentFromInput('3.5.7', '245/243', original).p > 1200);
+let states = [original],
+  requests = [];
+const ui = createPresetWorkspace({
+  getStates: () => states,
+  apply: (i, s) => (states[i] = s),
+  refresh: () => {},
+  notify: () => {},
+  request: async (url, options) => {
+    requests.push({url, options});
+    return Response.json({presets: []});
+  }
+});
+await ui.init();
+assert.match(ui.render(0), /Built-in temperaments/);
+assert.doesNotMatch(ui.render(0), /class="saved-presets"/);
+ui.change({dataset: {savedPreset: '0'}, value: 'new'});
+assert.equal(states[0], original);
+assert.match(ui.render(0), /data-temp-editor="0" open/);
+ui.receiveCommas(0, [2, 3, 5], [{label: '128/125'}]);
+assert.equal(states[0], original);
+assert.match(ui.render(0), /value="128\/125"/);
+ui.input({dataset: {presetName: '0'}, value: 'My thirds'});
+ui.click({dataset: {userPreset: 'generate', s: '0'}});
+assert.equal(states[0].name, 'My thirds');
+assert.ok(Math.abs(states[0].p - 400) < 1e-6);
+assert.equal(states[0].savedPresetId, undefined);
+ui.change({dataset: {savedPreset: '0'}, value: 'builtin:dreamtone'});
+assert.equal(states[0].name, makeState('dreamtone').name);
+console.log(
+  'Unified selector, staged search commas, named generation, large exact ratios, inherited tuning and built-in loading passed.'
+);

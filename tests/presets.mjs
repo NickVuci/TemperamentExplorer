@@ -1,41 +1,139 @@
 import assert from 'node:assert/strict';
-import {makeState} from '../dist/engine.mjs';
-import {fromCommas} from '../dist/tuning.mjs';
-import {presetSnapshot} from '../dist/preset-data.mjs';
-import {createPresetWorkspace} from '../dist/preset-ui.mjs';
-import {createPresetStore} from '../dist/preset-store.mjs';
-const memory=()=>{const values=new Map();return {getItem:k=>values.has(k)?values.get(k):null,setItem:(k,v)=>values.set(k,String(v))};};
-const storage=memory(),store=createPresetStore({storage});
-const s={...makeState('meantone'),n:112,mode:27,tuning:'Manual',g:696.6},id=crypto.randomUUID();
-const put=(revision,state=s,name='My meantone')=>store.save('temperament',id,{name,state:presetSnapshot(name,state),revision});
-assert.deepEqual(await store.list('temperament'),[]);
-assert.equal((await put(0)).revision,1);
-let list=await store.list('temperament');assert.equal(list.length,1);assert.equal(list[0].state.g,696.6);assert.equal(list[0].state.mode,27);
-await assert.rejects(put(0),/changed/);assert.equal((await put(1,s,'Renamed')).revision,2);await assert.rejects(put(1),/changed/);
-await assert.rejects(store.save('temperament',id,{name:'Bad',state:{...s,g:0},revision:2}),/generator/);
-await assert.rejects(store.save('temperament','not-an-id',{name:'Bad',state:s,revision:0}),/id/);
-list=await store.list('temperament');assert.equal(list[0].name,'Renamed');assert.equal(list[0].revision,2);
-const nonoctave=fromCommas('128/125');assert.equal(presetSnapshot('Third octave',nonoctave).p,nonoctave.p);
+import {makeState} from '../src/core/catalog.mjs';
+import {fromCommas} from '../src/core/tuning.mjs';
+import {presetSnapshot} from '../src/presets/preset-data.mjs';
+import {createPresetWorkspace} from '../src/presets/preset-ui.mjs';
+import {createPresetStore} from '../src/presets/preset-store.mjs';
+const memory = () => {
+  const values = new Map();
+  return {
+    getItem: k => (values.has(k) ? values.get(k) : null),
+    setItem: (k, v) => values.set(k, String(v))
+  };
+};
+const storage = memory(),
+  store = createPresetStore({storage});
+const s = {...makeState('meantone'), n: 112, mode: 27, tuning: 'Manual', g: 696.6},
+  id = crypto.randomUUID();
+const put = (revision, state = s, name = 'My meantone') =>
+  store.save('temperament', id, {name, state: presetSnapshot(name, state), revision});
+assert.deepEqual(await store.list('temperament'), []);
+assert.equal((await put(0)).revision, 1);
+let list = await store.list('temperament');
+assert.equal(list.length, 1);
+assert.equal(list[0].state.g, 696.6);
+assert.equal(list[0].state.mode, 27);
+await assert.rejects(put(0), /changed/);
+assert.equal((await put(1, s, 'Renamed')).revision, 2);
+await assert.rejects(put(1), /changed/);
+await assert.rejects(
+  store.save('temperament', id, {name: 'Bad', state: {...s, g: 0}, revision: 2}),
+  /generator/
+);
+await assert.rejects(
+  store.save('temperament', 'not-an-id', {name: 'Bad', state: s, revision: 0}),
+  /id/
+);
+list = await store.list('temperament');
+assert.equal(list[0].name, 'Renamed');
+assert.equal(list[0].revision, 2);
+const nonoctave = fromCommas('128/125');
+assert.equal(presetSnapshot('Third octave', nonoctave).p, nonoctave.p);
 // A fresh UI instance lists saved presets; clicks exercise actual persistence.
-let states=[makeState('meantone')],savedResolve;let saved=new Promise(r=>savedResolve=r);
-const ui=createPresetWorkspace({getStates:()=>states,apply:(i,s)=>states[i]=s,refresh:()=>{},notify:t=>{if(t.startsWith('Saved '))savedResolve();},store});
-await ui.init();const editor=ui.render(0);assert.match(editor,/class="temperament-editor-fields"><label>Name/);assert.match(editor,/data-preset-basis="0"/);assert.match(editor,/class="temperament-editor-commas">Commas/);ui.input({dataset:{presetName:'0'},value:'Browser workflow'});ui.click({dataset:{userPreset:'save',s:'0'}});await saved;
-assert.equal(states[0].name,'Browser workflow');const savedId=states[0].savedPresetId;assert.ok(savedId);
-saved=new Promise(r=>savedResolve=r);states[0].g=696.55;ui.click({dataset:{userPreset:'save',s:'0'}});await saved;
-const fresh=createPresetWorkspace({getStates:()=>states,apply:(i,s)=>states[i]=s,refresh:()=>{},notify:()=>{},store:createPresetStore({storage})});await fresh.init();states[0]=makeState('dreamtone');fresh.change({dataset:{savedPreset:'0'},value:savedId});assert.equal(states[0].g,696.55);assert.equal(states[0].name,'Browser workflow');
-const record=(await createPresetStore({storage}).list('temperament')).find(p=>p.id===savedId);assert.equal(record.revision,2,'Another tab reads the same browser storage.');
-const blocked=createPresetStore({storage:{getItem(){throw Error('SecurityError');},setItem(){throw Error('SecurityError');}}});await assert.rejects(blocked.list('temperament'),/blocked/);
-const unavailable=createPresetWorkspace({getStates:()=>states,apply:()=>{},refresh:()=>{},notify:()=>{},store:blocked});await unavailable.init();assert.equal(unavailable.catalog().status,'error');assert.match(unavailable.catalog().error,/blocked/);
-console.log('Browser preset storage, stale-write protection, save/update/reload, blocked storage, non-octave values passed.');
+let states = [makeState('meantone')],
+  savedResolve;
+let saved = new Promise(r => (savedResolve = r));
+const ui = createPresetWorkspace({
+  getStates: () => states,
+  apply: (i, s) => (states[i] = s),
+  refresh: () => {},
+  notify: t => {
+    if (t.startsWith('Saved ')) savedResolve();
+  },
+  store
+});
+await ui.init();
+const editor = ui.render(0);
+assert.match(editor, /class="temperament-editor-fields"><label>Name/);
+assert.match(editor, /data-preset-basis="0"/);
+assert.match(editor, /class="temperament-editor-commas">Commas/);
+ui.input({dataset: {presetName: '0'}, value: 'Browser workflow'});
+ui.click({dataset: {userPreset: 'save', s: '0'}});
+await saved;
+assert.equal(states[0].name, 'Browser workflow');
+const savedId = states[0].savedPresetId;
+assert.ok(savedId);
+saved = new Promise(r => (savedResolve = r));
+states[0].g = 696.55;
+ui.click({dataset: {userPreset: 'save', s: '0'}});
+await saved;
+const fresh = createPresetWorkspace({
+  getStates: () => states,
+  apply: (i, s) => (states[i] = s),
+  refresh: () => {},
+  notify: () => {},
+  store: createPresetStore({storage})
+});
+await fresh.init();
+states[0] = makeState('dreamtone');
+fresh.change({dataset: {savedPreset: '0'}, value: savedId});
+assert.equal(states[0].g, 696.55);
+assert.equal(states[0].name, 'Browser workflow');
+const record = (await createPresetStore({storage}).list('temperament')).find(p => p.id === savedId);
+assert.equal(record.revision, 2, 'Another tab reads the same browser storage.');
+const blocked = createPresetStore({
+  storage: {
+    getItem() {
+      throw Error('SecurityError');
+    },
+    setItem() {
+      throw Error('SecurityError');
+    }
+  }
+});
+await assert.rejects(blocked.list('temperament'), /blocked/);
+const unavailable = createPresetWorkspace({
+  getStates: () => states,
+  apply: () => {},
+  refresh: () => {},
+  notify: () => {},
+  store: blocked
+});
+await unavailable.init();
+assert.equal(unavailable.catalog().status, 'error');
+assert.match(unavailable.catalog().error, /blocked/);
+console.log(
+  'Browser preset storage, stale-write protection, save/update/reload, blocked storage, non-octave values passed.'
+);
 // Deletion keeps revision checks.
-await assert.rejects(store.remove('temperament',id,1),/changed or was removed/);
-assert.equal(await store.remove('temperament',id,2),true);
-assert.equal((await store.list('temperament')).some(p=>p.id===id),false);
+await assert.rejects(store.remove('temperament', id, 1), /changed or was removed/);
+assert.equal(await store.remove('temperament', id, 2), true);
+assert.equal(
+  (await store.list('temperament')).some(p => p.id === id),
+  false
+);
 console.log('Preset deletion checks the revision.');
-let deletedResolve;const deleted=new Promise(r=>deletedResolve=r);
-const deleting=createPresetWorkspace({getStates:()=>states,apply:(i,s)=>states[i]=s,refresh:()=>{},notify:t=>{if(t.startsWith('Deleted '))deletedResolve();},store});
-await deleting.init();deleting.change({dataset:{savedPreset:'0'},value:'saved:'+savedId});
-deleting.click({dataset:{userPreset:'delete',s:'0'}});assert.match(deleting.render(0),/confirm-delete/);
-deleting.click({dataset:{userPreset:'confirm-delete',s:'0'}});await deleted;
-assert.equal(states[0].savedPresetId,undefined);assert.equal(states[0].g,696.55);assert.equal(deleting.catalog().items.some(p=>p.id===savedId),false);
+let deletedResolve;
+const deleted = new Promise(r => (deletedResolve = r));
+const deleting = createPresetWorkspace({
+  getStates: () => states,
+  apply: (i, s) => (states[i] = s),
+  refresh: () => {},
+  notify: t => {
+    if (t.startsWith('Deleted ')) deletedResolve();
+  },
+  store
+});
+await deleting.init();
+deleting.change({dataset: {savedPreset: '0'}, value: 'saved:' + savedId});
+deleting.click({dataset: {userPreset: 'delete', s: '0'}});
+assert.match(deleting.render(0), /confirm-delete/);
+deleting.click({dataset: {userPreset: 'confirm-delete', s: '0'}});
+await deleted;
+assert.equal(states[0].savedPresetId, undefined);
+assert.equal(states[0].g, 696.55);
+assert.equal(
+  deleting.catalog().items.some(p => p.id === savedId),
+  false
+);
 console.log('Dropdown deletion removes the saved preset and keeps the current tuning available.');

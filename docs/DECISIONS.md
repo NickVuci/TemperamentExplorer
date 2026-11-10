@@ -360,7 +360,7 @@ modulus alone is insufficient. The lift certificate reconstructs every input
 coordinate without floating-point pitch calculations.
 
 **Consequences.** `harmonic-equivalence.mjs` owns these new quotients. The
-existing `chord-projection-v2.mjs#periodClass` is a compatibility path until
+existing `chord-projection.mjs#periodClass` is a compatibility path until
 its consumers migrate; exact live recognition keeps its current full-coordinate
 semantics. Non-octave mappings without 2 still support exact and period classes.
 
@@ -721,7 +721,8 @@ tuning, fingerings, session identity or historical corpus is regenerated.
 
 ## D-032 — Composition projects, scoped transport and a scoring-free cue seam
 
-**Decision.** Compositions are a separate pure data model (`temperament-lab-composition-v1`)
+**Decision.** Compositions are a separate pure data model (`temperament-lab-composition-v1`,
+or v2 for pieces with figuration under D-052)
 that stores exact `[period,generator]` coordinates once and freezes its own musical
 context. Playback is a transport over integer ticks that schedules voices into named
 groups of the one shared audio engine. A cue timeline and a practice-target export
@@ -1148,3 +1149,51 @@ distinguish a voicing from a tuning coincidence. Storing scores or cents in save
 score is a compactness heuristic, not a hand model; finger assignments, ergonomic ratings, weighted
 target collections, layout optimization and comparison across temperaments are later work and should
 extend these records rather than replace them.
+
+## D-051 — Fingering practice translates one chosen shape and voicing across the full layout
+
+**Decision.** Practice targets are every enabled-key translation of the chosen physical fingering
+whose relative coordinates match in both mapping axes. `hexboard-chords.mjs#fingeringInstances`
+owns this finite scan; the HexBoard workspace owns its cached targets and transient highlight.
+The gallery and its selected reading remain the source. All positions is the default, ordered by
+sounding bass pitch, with shorter drills available.
+
+**Rationale.** Gallery results can be constrained to one root or stopped by a search budget.
+Identical geometry can also play different intervals across wrapped seams or custom mappings.
+Translating an existing voicing exactly provides every matching position without a second chord
+catalogue, cents-tolerance matching, different inversions or altered hand shapes.
+
+**Consequences.** Practice does not change the browsing selection or saved data. Its presses do not
+edit a selected chord, and completion restores the original highlight. Source or layout changes
+invalidate the drill. Both screen and physical LEDs use the existing board picture and player.
+
+## D-052 — Figuration patterns reference voiced chord tones and share the composition timeline
+
+**Decision.** A portable figure stores note rhythm, velocity and one-based chord-tone rank plus a
+signed octave displacement, or an adaptive position within the layout's playable harmonic range.
+Chord voices are distinct exact coordinates, ordered by sounding pitch;
+the written voicing, including inversion, determines rank. Octave displacement follows the existing
+overlay's mapped-octave policy, never an assumed period. Without octave equivalence, only written
+pitches are supported. Pattern definitions and chord-event attachments are saved project data;
+generated exact-coordinate melody events are a cached derived view owned by
+`composition-figuration.mjs`. Every playback, rendering and practice consumer uses that view.
+
+Automatic generation enumerates exact enabled-key octave copies on the saved layout. It defaults
+to a beat-length accented bass and independently moving middle and treble lines. The bass retains
+rank 1 through inversions and takes its lowest playable copy; upper voices stay above it. Adaptive
+v2 pattern references store a normalized register position rather than physical keys or absolute
+pitches, and compilation fits them again for every harmony. Fixed-octave references remain v1.
+
+**Rationale.** Figures should transfer between harmonies without storing absolute pitches or physical
+keys. Voicing order follows what the user draws against the overlay. Root-relative chord members or
+physical offsets would give a different meaning. A second playback generator could disagree with
+practice or LED cues; derived events extend the existing transport and cue timeline instead.
+Fixed octave limits cannot automatically use different harmonies' available ranges. Relative register
+positions preserve the texture while exact-coordinate enumeration prevents pitch-class or period
+approximations from introducing unreachable notes.
+
+**Consequences.** Library figures are copied into compositions, so library edits do not propagate.
+Attached notes must be detached before ordinary note edits, while their button choices remain
+available. Patterns restart at each chord and repeat without stretching; overlapping harmonies and
+missing references are explicit errors. Composition v2 protects this source data from older loaders;
+non-figuration compositions retain v1. Timed and Wait remain the only composition practice engines.
