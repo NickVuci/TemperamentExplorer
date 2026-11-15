@@ -1197,3 +1197,31 @@ Attached notes must be detached before ordinary note edits, while their button c
 available. Patterns restart at each chord and repeat without stretching; overlapping harmonies and
 missing references are explicit errors. Composition v2 protects this source data from older loaders;
 non-figuration compositions retain v1. Timed and Wait remain the only composition practice engines.
+
+## D-053 — Shapes are rated by a resting-hand model, graded against the natural hand
+
+**Decision.** `hand-model.mjs` assigns one hand's fingers to a key pattern by least strain: each
+fingertip has a rest spot in millimetres, the whole hand may slide freely and turn within wrist
+limits, fingers 2 to 5 keep their sideways order, and strain is the stiffness-weighted squared
+distance of the fingers from their rest spots plus turn and finger-use costs. A position's reported
+strain is its raw strain minus the least raw strain found for the same number of keys when the
+resting hand is laid on the key lattice (the natural hand). Grades A to D are bands of that
+difference. The left hand is the right hand's mirror image. A finger may press two touching keys
+only when the user allows it, at a fixed added strain. The model works on axial cells and the
+board's quarter turns, so it shares the geometry of `geometric-shapes.mjs` and knows nothing of
+tuning, chords or absolute board position. The Shapes view orders its cards by this strain by
+default and keeps the compactness order as an option.
+
+**Rationale.** The geometry score cannot tell an easy shape from an awkward one of the same span,
+or the two hands apart. A fixed strain scale left five-key shapes with almost no grade-A position,
+because using all five fingers carries a built-in cost, and it broke down when hand size or key
+spacing changed. Counting from the natural hand guarantees a comfortable position for every key
+count under any setting. Rating in the view, from the pattern alone, leaves the search, its worker
+jobs, saved shapes and occurrence truth untouched.
+
+**Consequences.** Ratings are suggestions from estimated parameters, not measurements; the view
+says so. Patterns of six or more keys are counted from the five-key natural hand. A pattern has one
+rating wherever it lies on the board, so board edges and reach from a previous chord are ignored.
+Session records gain an optional `hand` object and older sessions load with the defaults. A second
+ergonomic scorer must not be added elsewhere: other views that need comfort should call this
+module.

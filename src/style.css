@@ -8681,3 +8681,36 @@ footer {
   border-color: var(--mint);
   background: #356c65;
 }
+
+/* Hand-model comfort in the Shapes view. */
+.shape-card-comfort {
+  font-family: var(--font-mono);
+}
+.comfort {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 0 4px;
+  border-radius: 4px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: #11151c;
+}
+.comfort-a {
+  background: var(--mint);
+}
+.comfort-b {
+  background: var(--a);
+}
+.comfort-c {
+  background: var(--b);
+}
+.comfort-d {
+  background: #e58a78;
+}
+.hand-fingers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 6px 0;
+}

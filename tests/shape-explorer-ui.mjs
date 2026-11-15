@@ -110,6 +110,69 @@ assert.doesNotMatch(
   /exact-source-voicing|reference-voicing|added-doubling/,
   'match kinds are shown as words'
 );
+
+// Hand model: shapes come easiest first for the chosen hand, cards carry fingers and a grade, and
+// the settings re-rate what was found without searching again.
+{
+  const byId = new Map(model.result.shapes.map(shape => [shape.id, shape])),
+    strains = () => explorer.model().shown.map(id => explorer.model().rating(byId.get(id)).strain);
+  assert.equal(model.order, 'comfort');
+  assert.deepEqual(
+    strains(),
+    [...strains()].sort((a, b) => a - b)
+  );
+  assert.match(html, /shape-card-comfort">RH \d( \d)* · <b class="comfort comfort-[abcd]">[ABCD]</);
+  assert.match(html, /Easiest fingering first/);
+  const searched = explorer.model().result;
+  explorer.change(field('hand', 'L'));
+  assert.equal(explorer.model().result, searched, 'the hand does not search again');
+  assert.match(explorer.render(), /shape-card-comfort">LH /);
+  assert.deepEqual(
+    strains(),
+    [...strains()].sort((a, b) => a - b)
+  );
+  explorer.change(field('order', 'geometry'));
+  assert.deepEqual(
+    explorer.model().shown,
+    model.result.shapes.map(shape => shape.id)
+  );
+  assert.match(explorer.render(), /compactness heuristic/);
+  explorer.change(field('comfort', 'A'));
+  assert.ok(
+    explorer.model().shown.every(id => explorer.model().rating(byId.get(id)).grade === 'A')
+  );
+  explorer.change(field('comfort', 'all'));
+  explorer.change(field('keyNumbers', 'fingers'));
+  assert.match(explorer.render(), /left-hand fingers/);
+  explorer.change(field('handDouble', '', {checked: true}));
+  assert.equal(explorer.model().handModel.double, true);
+  explorer.change(field('handScale', '5'));
+  assert.match(explorer.model().error, /60 to 150/);
+  explorer.change(field('handScale', '110'));
+  assert.equal(explorer.model().handModel.scale, 110);
+  assert.equal(explorer.model().error, '');
+  const kept = explorer.serialize().hand;
+  assert.deepEqual(
+    [kept.side, kept.order, kept.comfort, kept.keyNumbers, kept.model.scale, kept.model.double],
+    ['L', 'geometry', 'all', 'fingers', 110, true]
+  );
+  const again = createShapeExplorer({...options});
+  again.restore(JSON.parse(JSON.stringify(explorer.serialize())));
+  assert.equal(again.model().hand, 'L');
+  assert.equal(again.model().handModel.scale, 110);
+  again.restore({version: 1, inputs: []});
+  assert.equal(again.model().hand, 'R');
+  assert.equal(again.model().order, 'comfort');
+  explorer.click(node({shapeAction: 'hand-reset'}));
+  for (const [name, value] of [
+    ['hand', 'R'],
+    ['order', 'comfort'],
+    ['keyNumbers', 'tones']
+  ])
+    explorer.change(field(name, value));
+  assert.equal(explorer.model().handModel.scale, 100);
+  assert.equal(explorer.model().handModel.double, false);
+}
 assert.match(html, /1\/6:5:4|10:12:15/);
 assert.match(html, /4:5:6/);
 
