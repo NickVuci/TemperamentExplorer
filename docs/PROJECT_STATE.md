@@ -1164,8 +1164,11 @@ filters apply to forward search. Results stop at the first limit and say which; 
 bounds, and an empty result never proves absence or essential temperament. Results are a gallery of
 shape cards, 24 per page. The search ranks them by geometry score
 `100 / (1 + span + mean pair distance)` in neighbouring-key spacings, a compactness heuristic. The view
-then orders them by the hand model's strain, easiest first (D-053), unless Order is set to Most compact
-first. Each card draws its
+then orders them by inversion (the default): root position first, then the 1st inversion, the 2nd and so
+on, each group easiest first by the hand model's strain (D-053). Inversion is the card's reading's
+`possibleInversions[0]`, the lowest tone in the exact JI order (`harmonic-bass.mjs#inversionName`), and
+each card names it ("1st inversion of 4:5:6"). Order can instead be Easiest fingering first or Most
+compact first. Each card draws its
 pattern at one fixed key size (`hexboard-view.mjs#fingeringPattern`), turned like the board, with
 chord-tone numbers and the root outlined, so compact and spread shapes are told apart at a glance.
 Choosing a card opens the shape on the row below it (choosing it again closes it): its readings and

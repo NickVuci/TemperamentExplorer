@@ -21,6 +21,7 @@ import {sourceShapeVoicing} from '../harmonic/harmonic-selection.mjs';
 import {validateHarmonicSelection} from '../harmonic/harmonic-types.mjs';
 import {esc, option} from '../ui/ui.mjs';
 
+const compare = (a, b) => (a === b ? 0 : a < b ? -1 : 1);
 const clone = value => JSON.parse(JSON.stringify(value));
 const short = value => (Number.isFinite(value) ? value.toFixed(2) : '—');
 const action = (name, label, attrs = '') =>
@@ -39,13 +40,15 @@ const REASONS = {
 };
 const MENU_CHORDS = 9;
 // Hand-model comfort: which grades to show, and what each grade means.
-const COMFORT_FILTERS = [
-  ['all', 'All grades'],
-  ['A', 'A only'],
-  ['B', 'A and B'],
-  ['C', 'A to C']
-];
-const GRADE_RANK = {A: 0, B: 1, C: 2, D: 3};
+const ORDERS = ['inversion', 'comfort', 'geometry'];
+const normalizeOrder = value => (ORDERS.includes(value) ? value : 'inversion');
+const GRADES = ['A', 'B', 'C', 'D'];
+// Sessions saved when comfort was a single dropdown stored the cut-off instead of the grades.
+const LEGACY_COMFORT = {all: GRADES, A: ['A'], B: ['A', 'B'], C: ['A', 'B', 'C']};
+const comfortGrades = value => {
+  const grades = Array.isArray(value) ? GRADES.filter(grade => value.includes(grade)) : [];
+  return grades.length ? grades : (LEGACY_COMFORT[value] ?? [...GRADES]);
+};
 const GRADE_WORDS = {A: 'easy', B: 'fair', C: 'a stretch', D: 'awkward'};
 const HAND_FIELDS = {
   handScale: ['scale', 60, 150],
@@ -213,9 +216,9 @@ export function createShapeExplorer({
     savedStatus = 'idle',
     savedError = '',
     saving = false,
-    order = 'comfort',
+    order = 'inversion',
     handSide = 'R',
-    comfort = 'all',
+    comfort = [...GRADES],
     keyNumbers = 'tones',
     handModel = handModelDefaults(),
     rater = null,
@@ -670,15 +673,25 @@ export function createShapeExplorer({
           shape.associations.some(a => reference.chordIds.has(a.chordId))
         );
     }
-    if (comfort !== 'all')
-      shapes = shapes.filter(
-        shape => GRADE_RANK[rating(shape.placements[0])?.grade] <= GRADE_RANK[comfort]
-      );
+    // With every grade on nothing is filtered, so shapes this hand cannot cover stay listed.
+    if (comfort.length < GRADES.length)
+      shapes = shapes.filter(shape => comfort.includes(rating(shape.placements[0])?.grade));
     // Easiest for the chosen hand first; shapes one hand cannot cover go last. The sort is stable,
-    // so equal strains keep the search's compactness order.
-    if (order === 'comfort') {
-      const strain = shape => rating(shape.placements[0])?.strain ?? Infinity;
-      shapes = [...shapes].sort((a, b) => strain(a) - strain(b));
+    // so equal strains keep the search's compactness order. By inversion, root position comes
+    // first, then the 1st inversion and so on, each group easiest first; a shape with no reading
+    // goes last.
+    if (order !== 'geometry') {
+      const strain = new Map(),
+        bass = new Map();
+      for (const shape of shapes) {
+        strain.set(shape, rating(shape.placements[0])?.strain ?? Infinity);
+        bass.set(shape, shapeInversion(shape) ?? Infinity);
+      }
+      shapes = [...shapes].sort(
+        (a, b) =>
+          (order === 'inversion' ? compare(bass.get(a), bass.get(b)) : 0) ||
+          compare(strain.get(a), strain.get(b))
+      );
     }
     return shapes;
   }
@@ -749,6 +762,10 @@ export function createShapeExplorer({
   // A fingering's own reading: its first grouped reading (the family's spelling where present).
   const placementReading = placement =>
     groupReadings(placement?.associations)[0]?.preferred ?? null;
+  // Which tone of its chord is lowest, by the exact JI order (tuning never renumbers it): 0 is root
+  // position, 1 the 1st inversion, and so on.
+  const shapeInversion = shape =>
+    placementReading(shape?.placements?.[0])?.possibleInversions?.[0] ?? null;
   // Every pattern is drawn at one key size, so compact and spread shapes look different at a glance.
   function pattern(placement, reading, radius = 13) {
     if (!placement) return '';
@@ -764,6 +781,12 @@ export function createShapeExplorer({
       label: `${placement.keys.length}-key pattern${rated ? `, ${handName().toLowerCase()}-hand fingers ${rated.fingers.join(' ')}` : ''}`
     });
   }
+  const inversionLine = (shape, reading) => {
+    const k = shapeInversion(shape);
+    return k == null
+      ? ''
+      : `${inversionName(k)}${reading?.label ? ` of ${esc(reading.label)}` : ''}`;
+  };
   const readingName = reading =>
     esc(rootedChordName(reading?.rootDegree, reading?.label ?? 'Chord shape'));
   const readingFacts = reading =>
@@ -909,8 +932,8 @@ export function createShapeExplorer({
     ${
       result.shapes.length
         ? `<div class="shape-fields"><label class="checklabel"><input type="checkbox" data-shape-field="savedOnly" ${savedOnly ? 'checked' : ''}>Saved shapes only</label><label>Show<select data-shape-field="related">${GEOMETRY_FILTERS.map(([value, label]) => option(value, label, related)).join('')}</select>${related !== 'all' ? `<small>${reference ? `Compared with ${reference.kind === 'keys' ? 'the selected keys' : 'the chosen shape'}` : 'Choose a shape or identify keys to compare'}</small>` : ''}</label>
-     <label>Order<select data-shape-field="order">${option('comfort', 'Easiest fingering first', order)}${option('geometry', 'Most compact first', order)}</select></label><label>Hand<select data-shape-field="hand">${option('R', 'Right hand', handSide)}${option('L', 'Left hand', handSide)}</select></label>
-     <label>Comfort<select data-shape-field="comfort">${COMFORT_FILTERS.map(([value, label]) => option(value, label, comfort)).join('')}</select></label><label>Key numbers<select data-shape-field="keyNumbers">${option('tones', 'Chord tones', keyNumbers)}${option('fingers', 'Fingers', keyNumbers)}</select></label></div>
+     <label>Order<select data-shape-field="order">${option('inversion', 'Root position first, then inversions', order)}${option('comfort', 'Easiest fingering first', order)}${option('geometry', 'Most compact first', order)}</select></label><label>Hand<select data-shape-field="hand">${option('R', 'Right hand', handSide)}${option('L', 'Left hand', handSide)}</select></label>
+     <div class="comfort-filter" role="group" aria-label="Comfort grades to show"><span>Comfort</span><div>${GRADES.map(grade => action('comfort', grade, `class="comfort comfort-${grade.toLowerCase()}" data-grade="${grade}" aria-pressed="${comfort.includes(grade)}" title="${grade}: ${GRADE_WORDS[grade]}"`)).join('')}</div></div><label>Key numbers<select data-shape-field="keyNumbers">${option('tones', 'Chord tones', keyNumbers)}${option('fingers', 'Fingers', keyNumbers)}</select></label></div>
     <details class="hand-model-options"><summary>Hand model</summary><div class="shape-fields">
      <label>Hand size<input type="number" min="60" max="150" step="1" data-shape-field="handScale" value="${handModel.scale}"><small>Percent of a typical adult hand</small></label>
      <label>Key spacing<input type="number" min="10" max="40" step="0.5" data-shape-field="handSpacing" value="${handModel.spacing}"><small>Millimetres between key centres; the HexBoard’s is 20</small></label>
@@ -930,12 +953,12 @@ export function createShapeExplorer({
             )
           ],
           chosen = shape.id === selectedId;
-        const card = `<button class="shape-card" data-shape-action="select" data-id="${esc(shape.id)}" aria-pressed="${chosen}" aria-expanded="${chosen}"><span class="shape-card-pattern">${pattern(p, reading)}</span><span>${esc(labels.slice(0, 3).join(' · ') || 'Mapped shape')}${labels.length > 3 ? ` +${labels.length - 3} readings` : ''}</span><small>${shape.cells.length} keys · span ${short(shape.metrics.span)} · ${plural(shape.placements.length, 'fingering')}${isSaved(shape) ? ' · saved' : ''}${identity?.selected?.id === shape.id ? ' · selected keys' : ''}</small><small class="shape-card-comfort">${comfortLine(p)}</small></button>`;
+        const card = `<button class="shape-card" data-shape-action="select" data-id="${esc(shape.id)}" aria-pressed="${chosen}" aria-expanded="${chosen}"><span class="shape-card-pattern">${pattern(p, reading)}</span><span>${esc(labels.slice(0, 3).join(' · ') || 'Mapped shape')}${labels.length > 3 ? ` +${labels.length - 3} readings` : ''}</span><small class="shape-card-inversion">${inversionLine(shape, reading)}</small><small>${shape.cells.length} keys · span ${short(shape.metrics.span)} · ${plural(shape.placements.length, 'fingering')}${isSaved(shape) ? ' · saved' : ''}${identity?.selected?.id === shape.id ? ' · selected keys' : ''}</small><small class="shape-card-comfort">${comfortLine(p)}</small></button>`;
         return chosen ? card + details() : card;
       })
       .join('')}</div>
     ${!shapes.length ? '<p>No shapes found within these filters and search limits.</p>' : ''}${pages > 1 ? `<div class="panelactions">${action('page-prev', 'Previous page', page ? '' : 'disabled')}<span>${page + 1} / ${pages}</span>${action('page-next', 'Next page', page + 1 < pages ? '' : 'disabled')}</div>` : ''}
-    <p class="dim">${order === 'comfort' ? `Shapes are ordered by the hand model’s strain for the ${handName().toLowerCase()} hand, easiest first; patterns one hand cannot cover come last.` : 'Shapes are ordered by geometry score = 100 ÷ (1 + span + mean pair distance), a compactness heuristic.'} Comfort grades (A easy to D awkward) and finger numbers (1 thumb to 5 little finger) are the model’s suggestions, not tested on an instrument. Numbers on keys are ${keyNumbers === 'fingers' ? 'fingers' : 'chord tones'}.</p>
+    <p class="dim">${order === 'inversion' ? `Shapes are ordered by inversion: root position first, then the 1st inversion, 2nd and so on, each group easiest first by the hand model’s strain for the ${handName().toLowerCase()} hand. The inversion names the chord tone lowest in pitch, in the chord’s exact JI order.` : order === 'comfort' ? `Shapes are ordered by the hand model’s strain for the ${handName().toLowerCase()} hand, easiest first; patterns one hand cannot cover come last.` : 'Shapes are ordered by geometry score = 100 ÷ (1 + span + mean pair distance), a compactness heuristic.'} Comfort grades (A easy to D awkward) and finger numbers (1 thumb to 5 little finger) are the model’s suggestions, not tested on an instrument. Numbers on keys are ${keyNumbers === 'fingers' ? 'fingers' : 'chord tones'}.</p>
     <details><summary>Target availability (${targetRows.length})</summary><p>Mapping, the source voicing’s scale occurrence, and a fingering on this board are separate facts. Moved voicings may fit even when the source voicing does not.</p><ul>${targetRows
       .slice(0, 100)
       .map(
@@ -1112,6 +1135,18 @@ export function createShapeExplorer({
         return true;
       }
       if (act === 'clear-identity') clearIdentity();
+      if (act === 'comfort') {
+        const grade = el.dataset.grade;
+        if (!GRADES.includes(grade)) return true;
+        const next = comfort.includes(grade)
+          ? comfort.filter(g => g !== grade)
+          : GRADES.filter(g => g === grade || comfort.includes(g));
+        if (!next.length) throw Error('Keep at least one comfort grade.');
+        comfort = next;
+        error = '';
+        page = 0;
+        revealSelected();
+      }
       if (act === 'hand-reset') {
         handModel = handModelDefaults();
         page = 0;
@@ -1182,13 +1217,11 @@ export function createShapeExplorer({
       }
       // Hand-model settings re-rate and re-order the shapes already found; nothing is searched again.
       if (
-        ['order', 'hand', 'comfort', 'keyNumbers', 'handDouble', 'handFinger'].includes(field) ||
+        ['order', 'hand', 'keyNumbers', 'handDouble', 'handFinger'].includes(field) ||
         HAND_FIELDS[field]
       ) {
-        if (field === 'order') order = el.value === 'geometry' ? 'geometry' : 'comfort';
+        if (field === 'order') order = normalizeOrder(el.value);
         else if (field === 'hand') handSide = el.value === 'L' ? 'L' : 'R';
-        else if (field === 'comfort')
-          comfort = COMFORT_FILTERS.some(([value]) => value === el.value) ? el.value : 'all';
         else if (field === 'keyNumbers') keyNumbers = el.value === 'fingers' ? 'fingers' : 'tones';
         else if (field === 'handDouble')
           handModel = normalizeHandModel({...handModel, double: !!el.checked});
@@ -1281,7 +1314,7 @@ export function createShapeExplorer({
       universe,
       order,
       hand: handSide,
-      comfort,
+      comfort: [...comfort],
       keyNumbers,
       handModel: normalizeHandModel(handModel),
       shown: filteredShapes().map(shape => shape.id),
@@ -1298,7 +1331,13 @@ export function createShapeExplorer({
       selectedId,
       savedOnly,
       related,
-      hand: {side: handSide, order, comfort, keyNumbers, model: normalizeHandModel(handModel)}
+      hand: {
+        side: handSide,
+        order,
+        comfort: [...comfort],
+        keyNumbers,
+        model: normalizeHandModel(handModel)
+      }
     }),
     restore(value) {
       jobs.cancel();
@@ -1317,9 +1356,9 @@ export function createShapeExplorer({
       universe = 'selected';
       savedOnly = false;
       related = 'all';
-      order = 'comfort';
+      order = 'inversion';
       handSide = 'R';
-      comfort = 'all';
+      comfort = [...GRADES];
       keyNumbers = 'tones';
       handModel = handModelDefaults();
       page = 0;
@@ -1358,10 +1397,8 @@ export function createShapeExplorer({
       // Sessions saved before the hand model have no `hand`; they keep the defaults.
       if (value.hand && typeof value.hand === 'object') {
         handSide = value.hand.side === 'L' ? 'L' : 'R';
-        order = value.hand.order === 'geometry' ? 'geometry' : 'comfort';
-        comfort = COMFORT_FILTERS.some(([v]) => v === value.hand.comfort)
-          ? value.hand.comfort
-          : 'all';
+        order = normalizeOrder(value.hand.order);
+        comfort = comfortGrades(value.hand.comfort);
         keyNumbers = value.hand.keyNumbers === 'fingers' ? 'fingers' : 'tones';
         handModel = normalizeHandModel(value.hand.model);
       }

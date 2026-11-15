@@ -1209,8 +1209,8 @@ resting hand is laid on the key lattice (the natural hand). Grades A to D are ba
 difference. The left hand is the right hand's mirror image. A finger may press two touching keys
 only when the user allows it, at a fixed added strain. The model works on axial cells and the
 board's quarter turns, so it shares the geometry of `geometric-shapes.mjs` and knows nothing of
-tuning, chords or absolute board position. The Shapes view orders its cards by this strain by
-default and keeps the compactness order as an option.
+tuning, chords or absolute board position. The Shapes view orders its cards by inversion, then by
+this strain, by default, and keeps strain-only and compactness orders as options.
 
 **Rationale.** The geometry score cannot tell an easy shape from an awkward one of the same span,
 or the two hands apart. A fixed strain scale left five-key shapes with almost no grade-A position,
