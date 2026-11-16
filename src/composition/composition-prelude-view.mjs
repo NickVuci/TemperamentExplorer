@@ -1,14 +1,12 @@
 // Markup of the Prelude panel: harmony plan, figure and practice ladder. No state of its own.
 import {esc, option} from '../ui/ui.mjs';
 import {
-  PRELUDE_PLANS,
+  PRELUDE_TEMPLATES,
   PRELUDE_FIGURES,
   PRELUDE_DIVISIONS,
   PRELUDE_SUSTAINS,
   PRELUDE_DISSONANCES,
   PRELUDE_HANDS,
-  PRELUDE_DIRECTIONS,
-  PRELUDE_FUNCTIONS,
   figureSequence
 } from './composition-prelude.mjs';
 
@@ -126,23 +124,31 @@ function contour(slots) {
 const DECORATIONS = {suspension: 'suspension', passing: 'passing tone'};
 const plural = (count, one, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
 
+const ORDINALS = [
+  'Root position',
+  '1st inversion',
+  '2nd inversion',
+  '3rd inversion',
+  '4th inversion'
+];
+
+/** How a harmony sits on its bass, in words. */
+function inversionName(slot) {
+  const at = (slot.stands ?? []).indexOf(slot.bass);
+  if (at >= 0) return ORDINALS[at] ?? 'Inversion';
+  return slot.bass === slot.chord.root ? ORDINALS[0] : `Over ${slot.bass}`;
+}
+
+/** One harmony of the arrangement: its chord, how it sits, and any non-chord tone. */
 function slotCard(slot, index, selected) {
   const root = slot.chord.root,
-    name = `${root === null || root === undefined ? '' : `${root} - `}${slot.chord.label}`,
-    bass =
-      slot.bass === null || slot.bass === undefined
-        ? 'bass outside scale'
-        : slot.bass === root
-          ? 'root in bass'
-          : `bass ${slot.bass}`;
-  const more = slot.alternatives.length > 1;
-  // Two lines that are always there, so every card keeps its height: the non-chord tone, the hands.
-  const decoration = slot.decoration ? DECORATIONS[slot.decoration.kind] : '',
-    grade = slot.hand ? (slot.hand.grade ? `hands ${slot.hand.grade}` : 'wide reach') : '';
+    name = `${root === null || root === undefined ? '' : `${root} · `}${slot.chord.label}`,
+    sits = inversionName(slot),
+    decoration = slot.decoration ? DECORATIONS[slot.decoration.kind] : '';
   const hands = slot.hand
-    ? `. Left hand ${slot.hand.left ?? 'cannot cover it'}, right hand ${slot.hand.right ?? 'cannot cover it'}`
+    ? `. Hands: left ${slot.hand.left ?? 'cannot cover it'}, right ${slot.hand.right ?? 'cannot cover it'}`
     : '';
-  return `<li class="prelude-slot is-${slot.fn}${selected ? ' is-selected' : ''}"><button data-comp="prelude-slot" data-index="${index}" aria-pressed="${selected}" title="Hear harmony ${index + 1}: ${esc(name)}, ${bass}${hands}"><span class="prelude-slot-fn">${PRELUDE_FUNCTIONS[slot.fn]}</span><b>${esc(name)}</b><small>${bass}${slot.pedal ? ' · held' : ''}${slot.move ? ` · by ${esc(slot.move)}` : ''}</small><small class="prelude-slot-more">${decoration || '&nbsp;'}</small><small class="prelude-slot-hands">${grade || '&nbsp;'}</small></button>${more ? `<button class="prelude-slot-alt" data-comp="prelude-alt" data-index="${index}" title="Another chord on this bass (${slot.choice + 1} of ${slot.alternatives.length})" aria-label="Another chord for harmony ${index + 1}">${slot.choice + 1}/${slot.alternatives.length}</button>` : ''}</li>`;
+  return `<li class="prelude-slot is-${slot.fn}${selected ? ' is-selected' : ''}"><button data-comp="prelude-slot" data-index="${index}" aria-pressed="${selected}" title="${esc(name)}, ${esc(sits.toLowerCase())}${hands}"><b>${esc(name)}</b><small>${esc(sits)}</small><small class="prelude-slot-more">${decoration || '&nbsp;'}</small></button></li>`;
 }
 
 export function renderPrelude(v) {
@@ -161,12 +167,8 @@ export function renderPrelude(v) {
         : draft.plan.source === 'mixed'
           ? 'directory chords, with scale triads where it lists none'
           : m.directoryNote;
-  const pump = draft?.plan.pump,
-    pumpNote = pump
-      ? ` · pumps ${esc(pump.ratio)} (${pump.cents.toFixed(2)}¢): roots move by ${esc(pump.moves.join(', '))}`
-      : '';
-  const suspensions = slots.filter(s => s.decoration?.kind === 'suspension').length,
-    passing = slots.filter(s => s.decoration?.kind === 'passing').length;
+  const suspensions = slots.filter(x => x.decoration?.kind === 'suspension').length,
+    passing = slots.filter(x => x.decoration?.kind === 'passing').length;
   const decorationNote =
     o.dissonance === 'none' || !draft
       ? ''
@@ -175,122 +177,127 @@ export function renderPrelude(v) {
           ...(o.dissonance === 'all' ? [plural(passing, 'passing tone')] : [])
         ].join(
           ', '
-        )}.${draft.timing.repeats === 2 ? '' : ' They need the figure twice per harmony; only a last suspension can sound.'}`;
-  const status = m.error
-    ? `<span class="prelude-error" role="alert">${esc(m.error)}</span>`
-    : draft
-      ? `${slots.length} harmonies · ${draft.lengthTick / (draft.timing.harmony / o.bars)} bars${draft.plan.directional === null ? '' : ` · home ${draft.plan.home}, leading harmony on ${draft.plan.directional}`}${pumpNote} · ${esc(sourceNote)}`
-      : '';
-  const directionSelect = ['octave', 'cycle', 'pump'].includes(o.plan)
-    ? select(
-        'direction',
-        o.plan === 'octave' ? 'Bass' : 'Roots',
-        o.plan === 'pump'
-          ? [
-              ['down', 'As found'],
-              ['up', 'Reversed']
-            ]
-          : PRELUDE_DIRECTIONS,
-        o.direction
-      )
-    : '';
-  const stepSelect =
-    o.plan === 'cycle'
-      ? select(
-          'step',
-          'Root step',
-          [[0, 'Auto'], ...Array.from({length: n - 1}, (_, i) => [i + 1, i + 1])],
-          o.step
-        )
-      : '';
+        )}.${draft.timing.repeats === 2 ? '' : ' They need the figure twice per harmony.'}`;
+  const empty = !o.custom.length && o.plan === 'custom';
+  const status =
+    m.error && !empty
+      ? `<span class="prelude-error" role="alert">${esc(m.error)}</span>`
+      : draft
+        ? `${plural(slots.length, 'harmony', 'harmonies')} · ${draft.lengthTick / (draft.timing.harmony / o.bars)} bars · ${esc(sourceNote)}`
+        : '';
+  const edit = (kind, label, value = '', disabled = false, action = 'edit') =>
+    `<button data-comp="prelude-${action}" data-kind="${kind}" data-value="${value}" ${disabled ? 'disabled' : ''}>${label}</button>`;
+  const keep = (id, summary, body) =>
+    `<details class="prelude-more" data-keep="${id}" ${m.more?.has(id) ? 'open' : ''}><summary>${summary}</summary>${body}</details>`;
+  // The arrangement: sections in order, each a run of harmonies. A plan-made prelude shows as one.
+  const names = o.plan === 'custom' ? o.sections : ['Prelude'];
+  const sectionOf = slot => (o.plan === 'custom' ? (slot.section ?? 0) : 0);
+  const strip = names
+    .map((name, at) => {
+      const on = m.selectedSection === at,
+        cards = slots
+          .map((slot, i) => (sectionOf(slot) === at ? slotCard(slot, i, m.selectedSlot === i) : ''))
+          .join('');
+      const tools = on
+        ? `<span class="arr-tools">${edit('move', '←', -1, at === 0, 'section-edit')}${edit('move', '→', 1, at === names.length - 1, 'section-edit')}${edit('copy', 'Repeat', '', false, 'section-edit')}${edit('remove', 'Remove', '', false, 'section-edit')}</span>`
+        : '';
+      return `<section class="arr-section${on ? ' is-selected' : ''}"><header><button class="arr-name" data-comp="prelude-section" data-index="${at}" aria-pressed="${on}" title="Select and hear this section">${esc(name)}</button>${tools}</header><ol class="prelude-slots">${cards}</ol></section>`;
+    })
+    .join('');
+  const palette = `<div class="arr-add"><span class="prelude-label">${empty ? 'Start with a section' : m.selectedSection === null ? 'Add a section' : 'Add after the selected section'}</span><div class="arr-templates">${PRELUDE_TEMPLATES.map(
+    t =>
+      `<button data-comp="prelude-template" data-value="${t.id}" title="${esc(t.note)}">${esc(t.name)}</button>`
+  ).join('')}</div></div>`;
   const picked = m.selectedSlot === null ? null : (slots[m.selectedSlot] ?? null);
-  const degrees = Array.from({length: n}, (_, i) => [i, i]);
-  const edit = (kind, label, value = '', disabled = false) =>
-    `<button data-comp="prelude-edit" data-kind="${kind}" data-value="${value}" ${disabled ? 'disabled' : ''}>${label}</button>`;
-  // Always present, so the cards above never move: a hint until a harmony is selected.
-  const editor = `<div class="prelude-editor">${
-    picked && picked.chord.root !== null && picked.chord.root !== undefined
-      ? `<b>Harmony ${m.selectedSlot + 1}</b><div class="prelude-controls">${select('edit-root', 'Root', degrees, picked.chord.root)}${select(
-          'edit-chord',
-          'Chord',
-          (m.chordsByRoot[picked.chord.root] ?? []).map((label, i) => [i, label]),
-          picked.choice
-        )}${select('edit-bass', 'Bass', degrees, picked.bass ?? picked.chord.root)}${select(
-          'edit-fn',
-          'Role',
-          Object.entries(PRELUDE_FUNCTIONS),
-          picked.fn
-        )}</div><div class="prelude-edit-actions">${edit('move', 'Earlier', -1, m.selectedSlot === 0)}${edit('move', 'Later', 1, m.selectedSlot === slots.length - 1)}${edit('add', 'Add after')}${edit('remove', 'Remove', '', slots.length < 2)}</div>${o.plan === 'custom' ? '' : '<small>Editing turns this plan into a Custom one.</small>'}`
-      : '<small>Select a harmony to change its root, chord, bass or role, or to add, move and remove harmonies.</small>'
-  }</div>`;
-  const pumpSelect =
-    o.plan === 'pump' && draft?.plan.pumps.length > 1
-      ? select(
-          'pump',
-          'Comma',
-          draft.plan.pumps.map((x, i) => [i, `${x.ratio} · ${x.moves} moves`]),
-          Math.min(o.pump, draft.plan.pumps.length - 1)
-        )
-      : '';
-  const harmony = `<li class="prelude-step is-harmony"><h4><span class="prelude-num">1</span>Harmony</h4><div class="prelude-plans" role="group" aria-label="Harmonic plan">${PRELUDE_PLANS.map(
-    p => button('plan', p.name, {pressed: o.plan === p.id, extra: `data-value="${p.id}"`})
-  ).join(
-    ''
-  )}</div><p class="prelude-note">${esc(PRELUDE_PLANS.find(p => p.id === o.plan).note)}</p><div class="prelude-controls">${select(
-    'home',
-    'Home degree',
-    Array.from({length: n}, (_, i) => [i, i]),
-    o.home
-  )}${select(
-    'voices',
-    'Voices',
-    [
-      [3, 3],
-      [4, 4],
-      [5, 5]
-    ],
-    o.voices
-  )}${select('hand', 'Voicing', PRELUDE_HANDS, o.hand)}${pumpSelect}${directionSelect}${stepSelect}</div>${contour(slots)}<ol class="prelude-slots">${slots.map((s, i) => slotCard(s, i, m.selectedSlot === i)).join('')}</ol>${editor}<p class="prelude-status" role="status">${status}</p></li>`;
+  const rootChoices = (m.chordsByRoot ?? []).map((list, i) => [i, `${i} · ${list[0] ?? ''}`]);
+  const editor = picked
+    ? `<div class="prelude-editor"><div class="prelude-controls">${select('edit-root', 'Harmony', rootChoices, picked.chord.root)}${
+        (m.chordsByRoot[picked.chord.root] ?? []).length > 1
+          ? select(
+              'edit-chord',
+              'Colour',
+              m.chordsByRoot[picked.chord.root].map((label, i) => [i, label]),
+              picked.choice
+            )
+          : ''
+      }${select(
+        'edit-bass',
+        'Inversion',
+        (picked.stands ?? [])
+          .map((degree, i) => [degree, ORDINALS[i] ?? `Inversion ${i}`])
+          .filter(x => x[0] !== null),
+        picked.bass
+      )}${select(
+        'edit-lift',
+        'Voicing',
+        [
+          [-1, 'Lower'],
+          [0, 'As led'],
+          [1, 'Higher']
+        ],
+        picked.lift ?? 0
+      )}</div><div class="prelude-edit-actions">${edit('move', '← Swap', -1, m.selectedSlot === 0)}${edit('move', 'Swap →', 1, m.selectedSlot === slots.length - 1)}${edit('add', 'Repeat')}${edit('lead', 'Add a lead-in')}${edit('remove', 'Remove', '', slots.length < 2)}</div></div>`
+    : '';
+  const settings = keep(
+    'harmony',
+    'Settings',
+    `<div class="prelude-controls">${select(
+      'home',
+      'Home degree',
+      Array.from({length: n}, (_, i) => [i, i]),
+      o.home
+    )}${select(
+      'voices',
+      'Voices',
+      [
+        [3, 3],
+        [4, 4],
+        [5, 5]
+      ],
+      o.voices
+    )}${select('hand', 'Hands', PRELUDE_HANDS, o.hand)}</div>`
+  );
+  const harmony = `<li class="prelude-step is-harmony"><h4><span class="prelude-num">1</span>Harmony</h4>${
+    empty
+      ? '<p class="prelude-note">Build the harmony from sections. Pick one to begin; add more to make a whole piece. Every section and chord can be changed afterwards.</p>'
+      : `${contour(slots)}<div class="arr">${strip}</div>`
+  }${editor}${palette}<p class="prelude-status" role="status">${status}</p>${settings}</li>`;
   const steps = draft?.timing.steps ?? 8;
   const figure = `<li class="prelude-step is-figure"><h4><span class="prelude-num">2</span>Figure</h4><div class="prelude-figures" role="group" aria-label="Figure">${PRELUDE_FIGURES.map(
     f =>
       `<button data-comp="prelude-figure" data-value="${f.id}" aria-pressed="${o.figure === f.id}" title="${esc(f.note)}">${figureDiagram(f.id, o.voices, Math.min(steps, 16))}<span>${esc(f.name)}</span></button>`
   ).join(
     ''
-  )}</div><p class="prelude-note">${esc(PRELUDE_FIGURES.find(f => f.id === o.figure).note)} Rows are voices, the bass lowest; columns are attacks.</p><div class="prelude-controls">${select('division', 'Notes', PRELUDE_DIVISIONS, o.division)}${select(
-    'bars',
-    'Harmony',
-    [
-      [0.5, '½ bar'],
-      [1, '1 bar'],
-      [2, '2 bars']
-    ],
-    o.bars
-  )}${select(
-    'repeats',
-    'Per harmony',
-    [
-      [1, 'Once'],
-      [2, 'Twice']
-    ],
-    o.repeats
-  )}${select('sustain', 'Touch', PRELUDE_SUSTAINS, o.sustain)}${select(
-    'variety',
-    'Development',
-    [
-      ['strict', 'One figure'],
-      ['developing', 'Develops with the form']
-    ],
-    o.variety
-  )}${select('dissonance', 'Dissonance', PRELUDE_DISSONANCES, o.dissonance)}</div><div class="prelude-actions">${button('hear', 'Hear the harmonies', {disabled: !draft})}${button('write', m.written ? 'Write again' : 'Write the prelude', {disabled: !draft, cls: 'primary'})}${button('listen', 'Listen', {disabled: !m.written})}</div><p class="prelude-status" role="status">${
-    m.written
-      ? m.stale
-        ? 'The settings have changed since the prelude was written. Write again to hear them.'
-        : 'Written. The chord lane holds the voiced harmonies; the figure follows them.'
-      : m.melodyNotes
-        ? `Writing replaces the chord lane. Your ${m.melodyNotes} melody notes stay.`
-        : 'Writing fills the chord lane and attaches the figure. One step to undo.'
-  }${esc(decorationNote)}</p></li>`;
+  )}</div><div class="prelude-actions">${button('hear', 'Hear the harmonies', {disabled: !draft})}${button('listen', 'Listen', {disabled: !m.written, cls: 'primary'})}</div><p class="prelude-status" role="status">${esc(decorationNote.trim())}</p>${keep(
+    'figure',
+    'Settings',
+    `<div class="prelude-controls">${select('division', 'Notes', PRELUDE_DIVISIONS, o.division)}${select(
+      'bars',
+      'Harmony',
+      [
+        [0.5, '½ bar'],
+        [1, '1 bar'],
+        [2, '2 bars']
+      ],
+      o.bars
+    )}${select(
+      'repeats',
+      'Per harmony',
+      [
+        [1, 'Once'],
+        [2, 'Twice']
+      ],
+      o.repeats
+    )}${select('sustain', 'Touch', PRELUDE_SUSTAINS, o.sustain)}${select(
+      'variety',
+      'Development',
+      [
+        ['strict', 'One figure'],
+        ['developing', 'Develops with the form']
+      ],
+      o.variety
+    )}${select('dissonance', 'Dissonance', PRELUDE_DISSONANCES, o.dissonance)}</div>`
+  )}</li>`;
   const done = id => !!m.practice?.[id];
   const upNext =
     m.written && !m.stale ? practiceRungs(m.sections).find(r => !done(r.id))?.id : null;
@@ -312,8 +319,8 @@ export function renderPrelude(v) {
       })
       .join('');
     const all = (m.sections ?? []).length > 0 && m.sections.every((_, i) => done(`sections:${i}`));
-    return `<li class="prelude-stage-sections${all ? ' is-done' : ''}"><div><b>${esc(s.name)}</b><small>${esc(s.note)}</small><div class="prelude-section-buttons">${parts || '<small>Write the prelude to see its sections.</small>'}</div></div><span class="prelude-done" aria-label="${all ? 'Completed' : 'Not yet completed'}">${all ? '✓' : ''}</span></li>`;
+    return `<li class="prelude-stage-sections${all ? ' is-done' : ''}"><div><b>${esc(s.name)}</b><small>${esc(s.note)}</small><div class="prelude-section-buttons">${parts || '<small>Add a section to see its parts.</small>'}</div></div><span class="prelude-done" aria-label="${all ? 'Completed' : 'Not yet completed'}">${all ? '✓' : ''}</span></li>`;
   };
   const practice = `<li class="prelude-step is-practice"><h4><span class="prelude-num">3</span>Practice on the HexBoard</h4><p class="prelude-note">From the bare harmonies to the finished piece. Each stage lights the keys to press; a connected HexBoard lights with it.</p><ol class="prelude-ladder">${PRACTICE_STAGES.map(stageButton).join('')}</ol></li>`;
-  return `<details class="comp-panel prelude-panel" ${m.open ? 'open' : ''}><summary>Prelude${m.written ? ` · ${slots.length || m.count} harmonies written` : ''}</summary><p class="prelude-lede">Choose a harmonic plan, give it a figure, then learn it stage by stage. The harmonies are voice-led first; the figure only spreads them through time.</p><ol class="prelude-steps">${harmony}${figure}${practice}</ol></details>`;
+  return `<details class="comp-panel prelude-panel" ${m.open ? 'open' : ''}><summary>Prelude${m.written ? ` · ${plural(slots.length || m.count, 'harmony', 'harmonies')}` : ''}</summary><ol class="prelude-steps">${harmony}${figure}${practice}</ol></details>`;
 }

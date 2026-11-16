@@ -47,6 +47,7 @@ import {
 import {
   composePrelude,
   customFromPlan,
+  templateSection,
   preludeMaterial,
   normalizePreludeOptions,
   writtenPreludeOptions,
@@ -189,6 +190,8 @@ export function createCompositionWorkspace({
     open: true,
     options: normalizePreludeOptions({}),
     selectedSlot: null,
+    selectedSection: null,
+    more: new Set(),
     stage: null,
     cache: null,
     hands: null,
@@ -728,7 +731,14 @@ export function createCompositionWorkspace({
     const figurePanel = host.querySelector('.figuration-panel');
     if (figurePanel?.tagName === 'DETAILS') figurePanelOpen = figurePanel.open;
     const preludePanel = host.querySelector('.prelude-panel');
-    if (preludePanel) prelude.open = preludePanel.open;
+    if (preludePanel) {
+      prelude.open = preludePanel.open;
+      prelude.more = new Set(
+        [...preludePanel.querySelectorAll('details[data-keep]')]
+          .filter(d => d.open)
+          .map(d => d.dataset.keep)
+      );
+    }
     input?.hideGhost();
     const active = doc.activeElement,
       sel =
@@ -1365,9 +1375,12 @@ export function createCompositionWorkspace({
   // A newly opened piece shows the options its prelude was written with.
   function resetPrelude() {
     const p = project();
+    // A piece with no prelude yet starts as an empty arrangement, ready for its first section.
     prelude.options =
-      (p && writtenPreludeOptions(p)) ?? normalizePreludeOptions({}, p?.context.scale.n);
+      (p && writtenPreludeOptions(p)) ??
+      normalizePreludeOptions({plan: 'custom'}, p?.context.scale.n);
     prelude.selectedSlot = null;
+    prelude.selectedSection = null;
     if (['bass', 'top'].includes(prelude.stage)) game.configure({voice: 'all'});
     prelude.stage = null;
     prelude.cache = null;
@@ -1506,6 +1519,8 @@ export function createCompositionWorkspace({
       draft,
       error: error ? error.charAt(0).toUpperCase() + error.slice(1) : '',
       selectedSlot: prelude.selectedSlot,
+      selectedSection: prelude.selectedSection,
+      more: prelude.more,
       chordsByRoot: material?.byRoot.map(list => list.map(c => c.label)) ?? [],
       written: written.length > 0,
       count: new Set(written.map(x => x.e.source.slot ?? x.e.id)).size,
@@ -1520,30 +1535,120 @@ export function createCompositionWorkspace({
           : 'scale triads; load the composition’s setup into the app to use the chord directory'
     };
   }
-  /** Turns the plan on show into a custom list, once, so that a harmony can be edited. */
+  /** After undo or redo the arrangement shows what the composition now holds. */
+  function followWrittenPrelude() {
+    const p = project(),
+      saved = p && writtenPreludeOptions(p);
+    prelude.options =
+      saved ??
+      normalizePreludeOptions({...prelude.options, custom: [], sections: []}, p?.context.scale.n);
+    prelude.selectedSlot = null;
+    prelude.selectedSection = null;
+    prelude.cache = null;
+  }
+  /** Turns a prelude laid out by a plan into an arrangement of sections, once. */
   function customPlan() {
     const p = project();
-    if (prelude.options.plan === 'custom' && prelude.options.custom.length) return true;
+    if (prelude.options.plan === 'custom') return true;
     const {draft, material} = preludeDraft(p);
     if (!draft || !material) return false;
     prelude.options = normalizePreludeOptions(
-      {
-        ...prelude.options,
-        plan: 'custom',
-        custom: customFromPlan(draft.plan, material),
-        choices: {}
-      },
+      {...prelude.options, plan: 'custom', ...customFromPlan(draft.plan, material), choices: {}},
       p.context.scale.n
     );
     return true;
   }
-  /** Edits the selected harmony of the custom plan: its root, chord, bass or role, or its place. */
-  function editHarmony(kind, value) {
+  /** Stores an edited arrangement (empty sections dropped), rewrites the prelude and redraws. */
+  function setArrangement(custom, sections, sound = null) {
     const p = project(),
-      index = prelude.selectedSlot;
+      used = [...new Set(custom.map(x => x.s))].sort((a, b) => a - b);
+    const selected = used.indexOf(prelude.selectedSection);
+    prelude.options = normalizePreludeOptions(
+      {
+        ...prelude.options,
+        plan: 'custom',
+        custom: custom.map(x => ({...x, s: used.indexOf(x.s)})),
+        sections: used.map(i => sections[i] ?? 'Section'),
+        choices: {}
+      },
+      p.context.scale.n
+    );
+    prelude.selectedSection = selected < 0 ? null : selected;
+    if (prelude.selectedSlot !== null && !prelude.options.custom[prelude.selectedSlot])
+      prelude.selectedSlot = null;
+    liveWrite();
+    const slots = preludeDraft(p).draft?.slots ?? [];
+    if (sound === 'section' && prelude.selectedSection !== null) {
+      const cents = slots.filter(x => x.section === prelude.selectedSection).map(x => x.cents);
+      if (cents.length) audio.previewChords?.(cents, 0.6);
+    } else if (sound === 'chord' && slots[prelude.selectedSlot])
+      audio.previewChord?.(slots[prelude.selectedSlot].cents);
+    refresh();
+  }
+  /** Keeps the composition in step with the arrangement: every change is written at once, one undo each. */
+  function liveWrite() {
+    const p = project(),
+      {draft} = preludeDraft(p);
+    if (!draft) return false;
+    transport.stop();
+    if (!edit('Prelude', pr => writePrelude(pr, draft))) return false;
+    ui.boardShow = 'melody';
+    ui.selectedChord = null;
+    return true;
+  }
+  /** Adds a template as a new section, after the selected one or at the end. */
+  function addSection(id) {
+    const p = project();
+    if (!customPlan()) return;
+    const {material} = preludeDraft(p);
+    let made;
+    try {
+      made = templateSection(p, material, id, prelude.options);
+    } catch (error) {
+      return say(error.message.replace(/^Prelude: /, ''));
+    }
+    const o = prelude.options,
+      at = prelude.selectedSection === null ? o.sections.length : prelude.selectedSection + 1,
+      sections = [...o.sections.slice(0, at), made.name, ...o.sections.slice(at)],
+      custom = o.custom.map(x => ({...x, s: x.s >= at ? x.s + 1 : x.s})),
+      index = custom.filter(x => x.s < at).length;
+    custom.splice(index, 0, ...made.items.map(x => ({...x, s: at})));
+    prelude.selectedSection = at;
+    prelude.selectedSlot = null;
+    setArrangement(custom, sections, 'section');
+  }
+  /** Moves, copies or removes the selected section. */
+  function editSection(kind, value) {
+    const at = prelude.selectedSection,
+      o = prelude.options;
+    if (at === null || !customPlan()) return;
+    const groups = o.sections.map((name, i) => ({name, items: o.custom.filter(x => x.s === i)}));
+    if (kind === 'move') {
+      const to = at + Number(value);
+      if (to < 0 || to >= groups.length) return;
+      groups.splice(to, 0, groups.splice(at, 1)[0]);
+      prelude.selectedSection = to;
+    } else if (kind === 'copy') {
+      groups.splice(at + 1, 0, {name: groups[at].name, items: groups[at].items.map(x => ({...x}))});
+      prelude.selectedSection = at + 1;
+    } else if (kind === 'remove') {
+      groups.splice(at, 1);
+      prelude.selectedSection = null;
+    }
+    prelude.selectedSlot = null;
+    setArrangement(
+      groups.flatMap((g, i) => g.items.map(x => ({...x, s: i}))),
+      groups.map(g => g.name),
+      kind === 'remove' ? null : 'section'
+    );
+  }
+  /** Edits the selected harmony: what it is, how it sits, where it comes, or what leads into it. */
+  function editHarmony(kind, value) {
+    const index = prelude.selectedSlot;
     if (index === null || !customPlan()) return say('Select a harmony first.');
     const custom = prelude.options.custom.map(x => ({...x})),
-      item = custom[index];
+      item = custom[index],
+      n = project().context.scale.n;
     if (!item) return;
     const number = Number(value);
     if (kind === 'root') {
@@ -1552,39 +1657,43 @@ export function createCompositionWorkspace({
       item.chord = 0;
     } else if (kind === 'chord') item.chord = number;
     else if (kind === 'bass') item.bass = number;
+    else if (kind === 'lift') item.lift = number;
     else if (kind === 'fn') item.fn = value;
     else if (kind === 'add') {
       custom.splice(index + 1, 0, {...item});
       prelude.selectedSlot = index + 1;
+    } else if (kind === 'lead') {
+      // Its own leading harmony: the chord that stands to it as the leading degree stands to home.
+      const plan = preludeDraft(project()).draft?.plan,
+        step = plan && plan.directional !== null ? plan.directional - plan.home : 0,
+        root = (((item.root + step) % n) + n) % n;
+      custom.splice(index, 0, {...item, fn: 'approach', root, bass: root, chord: 0, lift: 0});
+      prelude.selectedSlot = index + 1;
     } else if (kind === 'remove') {
-      if (custom.length < 2) return say('A prelude needs at least one harmony.');
       custom.splice(index, 1);
-      prelude.selectedSlot = Math.min(index, custom.length - 1);
+      prelude.selectedSlot = null;
     } else if (kind === 'move') {
+      // Two neighbours trade places; each place keeps its section.
       const to = index + number;
       if (to < 0 || to >= custom.length) return;
-      custom.splice(to, 0, custom.splice(index, 1)[0]);
+      [custom[index], custom[to]] = [
+        {...custom[to], s: custom[index].s},
+        {...custom[index], s: custom[to].s}
+      ];
       prelude.selectedSlot = to;
     }
-    prelude.options = normalizePreludeOptions({...prelude.options, custom}, p.context.scale.n);
-    const slot = preludeDraft(p).draft?.slots[prelude.selectedSlot];
-    if (slot && kind !== 'remove') audio.previewChord?.(slot.cents);
-    refresh();
+    setArrangement(custom, prelude.options.sections, kind === 'remove' ? null : 'chord');
   }
   function setPreludeOption(name, value) {
     if (name.startsWith('edit-')) return editHarmony(name.slice(5), value);
-    // Custom keeps its list; chosen with none yet, it takes the plan on show.
-    if (name === 'plan' && value === 'custom') {
-      if (!prelude.options.custom.length) customPlan();
-      else prelude.options = {...prelude.options, plan: 'custom', choices: {}};
-      return refresh();
-    }
     const next = {...prelude.options, [name]: value};
     // A different plan, home, pump or voice count lays out different slots; earlier picks no longer apply.
     if (['plan', 'home', 'voices', 'pump'].includes(name)) next.choices = {};
     if (name === 'plan' || name === 'home') next.pump = 0;
     prelude.options = normalizePreludeOptions(next, project().context.scale.n);
     if (['plan', 'home', 'pump'].includes(name)) prelude.selectedSlot = null;
+    // The arrangement is always live: a changed figure or setting is heard at once.
+    if (prelude.options.plan === 'custom' && prelude.options.custom.length) liveWrite();
     refresh();
   }
   const slotCents = slot => slot.cents;
@@ -1596,6 +1705,18 @@ export function createCompositionWorkspace({
       index = Number(el.dataset.index);
     if (action === 'plan' || action === 'figure') return setPreludeOption(action, el.dataset.value);
     if (action === 'edit') return editHarmony(el.dataset.kind, el.dataset.value);
+    if (action === 'template') return addSection(el.dataset.value);
+    if (action === 'section-edit') return editSection(el.dataset.kind, el.dataset.value);
+    if (action === 'section') {
+      const index = Number(el.dataset.index);
+      prelude.selectedSection = prelude.selectedSection === index ? null : index;
+      prelude.selectedSlot = null;
+      const cents = (preludeDraft(p).draft?.slots ?? [])
+        .filter(x => x.section === index)
+        .map(x => x.cents);
+      if (cents.length && prelude.selectedSection !== null) audio.previewChords?.(cents, 0.6);
+      return refresh();
+    }
     if (action === 'set') return setPreludeOption(el.dataset.field, el.dataset.value);
     if (!draft) return say(error || 'Choose a plan first.');
     if (action === 'slot' || action === 'alt') {
@@ -1613,7 +1734,8 @@ export function createCompositionWorkspace({
         prelude.options = normalizePreludeOptions({...prelude.options, choices}, p.context.scale.n);
         slot = preludeDraft(p).draft?.slots[index] ?? slot;
       }
-      prelude.selectedSlot = index;
+      prelude.selectedSlot = prelude.selectedSlot === index && action === 'slot' ? null : index;
+      if (slot.section !== undefined) prelude.selectedSection = slot.section;
       // Once written, picking a harmony also selects its chord, so the board shows its buttons.
       const written = action === 'slot' ? writtenHarmony(p, index) : null;
       if (written) {
@@ -2404,10 +2526,12 @@ export function createCompositionWorkspace({
           return true;
         case 'undo':
           history.undo();
+          followWrittenPrelude();
           changed();
           return true;
         case 'redo':
           history.redo();
+          followWrittenPrelude();
           changed();
           return true;
         case 'load-context':

@@ -1301,3 +1301,23 @@ shapes); Practice describes the game. Renaming only labels avoids a session-form
 `docs/HEXBOARD_WORKSPACE_PLAN.md` still plans to fold the Board tab into Compose; this rename does
 not change that plan.
 
+## D-057 — The prelude's harmony is an arrangement of template sections, written live
+
+**Decision.** The Prelude panel no longer offers whole-piece plans to choose between. Its harmony
+is an arrangement: `options.custom` items each carry a section index `s` and a register `lift`,
+and `options.sections` names the sections. Sections are added from templates
+(`PRELUDE_TEMPLATES`, laid out by `templateSection`, which runs the existing planner and takes
+the part it needs). Every edit to the arrangement, figure or settings rewrites the prelude at once
+through `writePrelude` as one undoable step; there is no Write button. Undo and redo reload the
+panel's options from the written prelude. The whole-piece plans remain in the engine (templates
+and tests use them), and a prelude written from one is converted to sections on first edit.
+
+**Rationale.** Picking one fixed plan and then adjusting settings did not let the player shape a
+piece: there was no way to combine a pump with a cadence, repeat a part or reorder. Sections that
+can be added, moved, repeated and edited chord by chord give that, with far fewer controls on
+screen. Live writing removes the stale state between the panel and the composition.
+
+**Consequences.** Each change adds a history entry. A template uses the home degree and scale at
+the moment it is added; changing the home degree later does not re-lay existing sections. Practice
+sections follow the arrangement's sections (`source.section`).
+

@@ -17,6 +17,8 @@ import {
   PRELUDE_FIGURES,
   composePrelude,
   customFromPlan,
+  PRELUDE_TEMPLATES,
+  templateSection,
   figureSequence,
   normalizePreludeOptions,
   preludeMaterial,
@@ -503,8 +505,15 @@ assert.deepEqual(reversed.plan.pump.moves, ['3/2', '3/2', '3/2', '6/5']);
 assert.deepEqual(roots(reversed).slice(0, 5), [0, 4, 1, 5, 0]);
 // Any plan becomes a custom list that lays out the same harmonies, and each can then be changed.
 const stock = preludeMaterial(meantone.context),
-  custom = customFromPlan(made.plan, stock);
+  arrangement = customFromPlan(made.plan, stock),
+  custom = arrangement.custom;
 assert.equal(custom.length, 18);
+// The plan's formal parts become the arrangement's sections.
+assert.deepEqual(arrangement.sections, ['Opening', 'Motion', 'Cadence', 'Close']);
+assert.deepEqual(
+  arrangement.sections.map((_, i) => custom.filter(x => x.s === i).length),
+  [4, 6, 4, 4]
+);
 const frozen = composePrelude(meantone, {plan: 'custom', custom}, {cells});
 assert.deepEqual(
   frozen.slots.map(s => [s.fn, s.bass, s.chord.set]),
@@ -515,7 +524,7 @@ assert.deepEqual(
   made.slots.map(s => s.tones)
 );
 const edited = custom.map(x => ({...x}));
-edited[5] = {fn: 'cadence', root: 2, chord: 0, bass: 4};
+edited[5] = {fn: 'cadence', root: 2, chord: 0, bass: 4, s: 1, lift: 0};
 edited.splice(6, 1);
 const changed = composePrelude(meantone, {plan: 'custom', custom: edited}, {cells});
 assert.equal(changed.slots.length, 17);
@@ -526,5 +535,80 @@ assert.deepEqual(
 assert.equal(compileFiguration(writePrelude(meantone, changed)).errors.length, 0);
 assert.deepEqual(writtenPreludeOptions(writePrelude(meantone, changed)).custom, edited);
 assert.throws(() => composePrelude(meantone, {plan: 'custom'}, {cells}), /no harmonies yet/);
+
+// --- Arrangements: sections laid out from templates, combined in any order into a piece.
+const sectionRoots = id =>
+  templateSection(meantone, stock, id, {}).items.map(x => [x.root, x.bass]);
+assert.deepEqual(sectionRoots('cadence'), [
+  [3, 3],
+  [4, 4],
+  [0, 0]
+]);
+assert.deepEqual(sectionRoots('half'), [
+  [3, 3],
+  [4, 4]
+]);
+assert.deepEqual(sectionRoots('plagal'), [
+  [3, 3],
+  [0, 0]
+]);
+assert.deepEqual(
+  sectionRoots('open').map(x => x[1]),
+  [0, 0, 0, 0]
+);
+assert.deepEqual(
+  sectionRoots('fall').map(x => x[1]),
+  [6, 5, 4, 3, 2, 1]
+);
+assert.deepEqual(
+  sectionRoots('rise').map(x => x[1]),
+  [1, 2, 3, 4, 5, 6]
+);
+assert.equal(templateSection(meantone, stock, 'pump', {}).name, 'Pump 81/80');
+assert.deepEqual(
+  sectionRoots('pump').map(x => x[0]),
+  [5, 1, 4, 0]
+);
+for (const t of PRELUDE_TEMPLATES)
+  assert.ok(templateSection(meantone, stock, t.id, {}).items.length >= 1, t.id);
+const build = ids => {
+  const parts = ids.map(id => templateSection(meantone, stock, id, {}));
+  return {
+    plan: 'custom',
+    sections: parts.map(x => x.name),
+    custom: parts.flatMap((x, i) => x.items.map(item => ({...item, s: i})))
+  };
+};
+const song = composePrelude(meantone, build(['open', 'pump', 'fall', 'cadence']), {cells});
+assert.equal(song.slots.length, 4 + 4 + 6 + 3);
+assert.deepEqual(
+  song.slots.map(x => x.section),
+  [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3]
+);
+assert.deepEqual(song.slots[0].stands, [0, 2, 4], 'the degrees its inversions stand on');
+assert.equal(compileFiguration(writePrelude(meantone, song)).errors.length, 0);
+assert.deepEqual(writtenPreludeOptions(writePrelude(meantone, song)).sections, [
+  'Opening',
+  'Pump 81/80',
+  'Falling bass',
+  'Cadence'
+]);
+assert.deepEqual(
+  preludeSections(writePrelude(meantone, song)).map(x => [x.group, x.count]),
+  [
+    ['Opening', 4],
+    ['Pump 81/80', 4],
+    ['Falling bass', 6],
+    ['Cadence', 3]
+  ],
+  'practice follows the arrangement’s sections'
+);
+// A harmony can be asked to sit higher or lower without changing what it is.
+const lifted = build(['open', 'cadence']);
+lifted.custom[5].lift = 1;
+const high = composePrelude(meantone, lifted, {cells}),
+  level = composePrelude(meantone, build(['open', 'cadence']), {cells});
+assert.equal(high.slots[5].chord.set, level.slots[5].chord.set);
+assert.ok(high.slots[5].cents.at(-1) > level.slots[5].cents.at(-1));
 
 console.log('composition-prelude: ok');

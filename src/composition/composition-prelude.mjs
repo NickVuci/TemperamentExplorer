@@ -93,6 +93,7 @@ export const PRELUDE_DEFAULTS = Object.freeze({
   direction: 'down',
   step: 0,
   custom: [],
+  sections: [],
   choices: {}
 });
 
@@ -159,9 +160,15 @@ export function normalizePreludeOptions(input = {}, scaleSize = 7) {
         fn: PRELUDE_FUNCTIONS[x?.fn] ? x.fn : 'motion',
         root,
         chord: number(x?.chord, 0, 47, 0),
-        bass: number(x?.bass, 0, Math.max(0, scaleSize - 1), root)
+        bass: number(x?.bass, 0, Math.max(0, scaleSize - 1), root),
+        // The section of the arrangement it belongs to, and its register: lower, as led, higher.
+        s: number(x?.s, 0, 31, 0),
+        lift: number(x?.lift, -1, 1, 0)
       };
     }),
+    sections: (Array.isArray(input.sections) ? input.sections : [])
+      .slice(0, 32)
+      .map(name => String(name ?? '').slice(0, 32)),
     choices
   };
 }
@@ -684,6 +691,12 @@ export function planPrelude(project, material, options) {
     fixed(fn, home, directional, true);
     fixed(fn, home, home);
   };
+  // The scale degree a chord class lies on (its inversions are named by these), or null.
+  const degreeAt = m => {
+    const key = tools.space.key(m);
+    for (let d = 0; d < n; d++) if (tools.space.key(homeOf(context, d)) === key) return d;
+    return null;
+  };
   if (o.plan === 'custom') {
     if (!o.custom.length)
       fail('the custom plan has no harmonies yet; choose another plan and edit it.');
@@ -691,6 +704,11 @@ export function planPrelude(project, material, options) {
       const chords = onRoot(item.root),
         chord = chords[Math.min(item.chord, chords.length - 1)];
       add(item.fn, item.bass, chord, chords, classIn(chord, item.bass) < 0);
+      Object.assign(slots.at(-1), {
+        lift: item.lift,
+        section: item.s,
+        stands: chord.classes.map(degreeAt)
+      });
     }
   } else if (o.plan === 'frame') {
     frame(false);
@@ -991,9 +1009,12 @@ export function voicePrelude(project, plan, cells = [], {hands = null} = {}) {
     const progress = plan.slots.length > 1 ? index / (plan.slots.length - 1) : 0,
       peak = o.climax / 100,
       arch = progress <= peak ? progress / peak : 1 - (progress - peak) / (1 - peak);
+    // A harmony asked to sit higher or lower moves its upper voices by about a third of an octave.
+    const nudge = ((slot.lift ?? 0) - (index ? (plan.slots[index - 1].lift ?? 0) : 0)) * 400;
     const ideal = i =>
-      previous ? previous.upper[i].cents : bass.cents + 700 + (i * 900) / Math.max(1, upper - 1);
-    const target = previous ? firstTop + lift * arch : null;
+      (previous ? previous.upper[i].cents : bass.cents + 700 + (i * 900) / Math.max(1, upper - 1)) +
+      nudge;
+    const target = previous ? firstTop + lift * arch + (slot.lift ?? 0) * 400 : null;
     // The nearest few candidates of each voice keep the search small and the motion close.
     const perVoice = Array.from({length: upper}, (_, i) =>
       [...above]
@@ -1302,6 +1323,7 @@ export function composePrelude(project, options, {material, cells = [], hands = 
         ),
         fn: slot.fn,
         role: PRELUDE_FUNCTIONS[slot.fn],
+        ...(slot.section === undefined ? {} : {section: slot.section}),
         ...(d ? {decoration: d.kind, voice: d.voice} : {}),
         ...(harmonies.length ? {} : {prelude: o})
       }
@@ -1343,11 +1365,21 @@ export function composePrelude(project, options, {material, cells = [], hands = 
   };
 }
 
-/** A laid-out plan as a custom list (`options.custom`), so that each harmony can then be edited. */
+const SECTION_OF = {frame: 'Opening', motion: 'Motion', pedal: 'Cadence', close: 'Close'};
+
+/**
+ * A laid-out plan as an arrangement: `{custom, sections}` for the options, each harmony an editable
+ * item and each run of one formal function a named section.
+ */
 export function customFromPlan(plan, material) {
-  return plan.slots.map(slot => {
+  const sections = [];
+  let last = null;
+  const custom = plan.slots.map(slot => {
     const root = slot.chord.root ?? slot.bass ?? 0,
-      list = material.byRoot[root] ?? [];
+      list = material.byRoot[root] ?? [],
+      group = slot.fn === 'approach' || slot.fn === 'cadence' ? 'pedal' : slot.fn;
+    if (group !== last) sections.push(SECTION_OF[group] ?? 'Section');
+    last = group;
     return {
       fn: slot.fn,
       root,
@@ -1355,9 +1387,66 @@ export function customFromPlan(plan, material) {
         0,
         list.findIndex(c => c.set === slot.chord.set)
       ),
-      bass: slot.bass ?? root
+      bass: slot.bass ?? root,
+      s: sections.length - 1,
+      lift: 0
     };
   });
+  return {custom, sections};
+}
+
+/** The sections an arrangement is built from: procedural templates, each laid out for this scale. */
+export const PRELUDE_TEMPLATES = Object.freeze([
+  {
+    id: 'open',
+    name: 'Opening',
+    note: 'Home, a neighbour and the leading harmony over a held bass.'
+  },
+  {
+    id: 'fall',
+    name: 'Falling bass',
+    note: 'The bass walks down the scale, harmonised step by step.'
+  },
+  {id: 'rise', name: 'Rising bass', note: 'The bass walks up the scale.'},
+  {id: 'sequence', name: 'Sequence', note: 'Roots move by one interval until they come home.'},
+  {id: 'pump', name: 'Comma pump', note: 'Roots circle a comma this temperament tempers out.'},
+  {id: 'pedal', name: 'Pedal point', note: 'Harmonies change over the held leading degree.'},
+  {id: 'half', name: 'Half cadence', note: 'Stops on the leading harmony.'},
+  {id: 'cadence', name: 'Cadence', note: 'Approach, leading harmony, home.'},
+  {id: 'plagal', name: 'Plagal close', note: 'The neighbour harmony falls home.'},
+  {id: 'home', name: 'Home chord', note: 'One harmony on the home degree.'}
+]);
+
+/** One template laid out as a section: `{name, items}`, the items as in `options.custom`. */
+export function templateSection(project, material, id, options) {
+  const o = normalizePreludeOptions(options, project.context.scale.n),
+    lay = (plan, extra = {}) => planPrelude(project, material, {...o, ...extra, plan, choices: {}}),
+    template = PRELUDE_TEMPLATES.find(t => t.id === id);
+  if (!template) fail('unknown section.');
+  let slots,
+    name = template.name;
+  const by = (plan, fns, extra) => lay(plan, extra).slots.filter(s => fns.includes(s.fn));
+  if (id === 'open') slots = by('octave', ['frame']);
+  else if (id === 'fall') slots = by('octave', ['motion'], {direction: 'down'});
+  else if (id === 'rise') slots = by('octave', ['motion'], {direction: 'up'});
+  else if (id === 'pedal') slots = by('octave', ['approach', 'pedal', 'cadence']);
+  else if (id === 'sequence') slots = lay('cycle').slots.slice(1);
+  else if (id === 'pump') {
+    const plan = lay('pump');
+    slots = plan.slots.slice(1, 1 + plan.pump.roots.length);
+    name = `Pump ${plan.pump.ratio}`;
+  } else {
+    const frame = lay('frame').slots;
+    slots =
+      id === 'cadence'
+        ? frame.slice(4, 7)
+        : id === 'half'
+          ? frame.slice(4, 6)
+          : id === 'plagal'
+            ? [{...frame[4], fn: 'cadence'}, frame[6]]
+            : [frame[0]];
+  }
+  return {name, items: customFromPlan({slots}, material).custom.map(x => ({...x, s: 0}))};
 }
 
 /** The options a written prelude was made with, read back from its first harmony; null otherwise. */
@@ -1378,19 +1467,31 @@ export function preludeSections(project) {
       if (e.source?.kind === 'prelude')
         events.push({
           fn: e.source.fn,
+          section: e.source.section,
           start: c.startTick + e.startTick,
           end: c.startTick + e.startTick + e.durationTick
         });
   }
   events.sort((a, b) => a.start - b.start);
   const sections = [];
+  // An arrangement's own sections, by name; otherwise runs of one formal function.
+  const names = writtenPreludeOptions(project)?.sections ?? [];
   for (const e of events) {
     const last = sections.at(-1),
-      group = e.fn === 'approach' || e.fn === 'cadence' ? 'pedal' : e.fn;
-    if (last && last.group === group) {
+      arranged = e.section !== undefined,
+      key = arranged ? `s${e.section}` : e.fn === 'approach' || e.fn === 'cadence' ? 'pedal' : e.fn;
+    if (last && last.key === key) {
       last.end = e.end;
       last.count++;
-    } else sections.push({group, fn: e.fn, start: e.start, end: e.end, count: 1});
+    } else
+      sections.push({
+        key,
+        group: arranged ? (names[e.section] ?? 'Section') : key,
+        fn: e.fn,
+        start: e.start,
+        end: e.end,
+        count: 1
+      });
   }
-  return sections;
+  return sections.map(({key, ...rest}) => rest);
 }

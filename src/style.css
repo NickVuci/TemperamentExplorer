@@ -9520,3 +9520,88 @@ main {
 .composition-start section {
   padding: 18px 20px;
 }
+
+/* The arrangement: sections side by side, wrapping like lines of music; each a run of chords. */
+.arr {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 18px;
+  margin-top: 12px;
+}
+.arr-section {
+  min-width: 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--line);
+}
+.arr-section.is-selected {
+  border-left-color: var(--b);
+}
+.arr-section > header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+}
+.arr-name {
+  padding: 2px 6px;
+  border: 0;
+  background: none;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--muted);
+}
+.arr-section.is-selected .arr-name {
+  color: var(--b);
+  background: none;
+}
+.arr-tools {
+  display: inline-flex;
+  gap: 4px;
+}
+.arr-tools button {
+  min-height: 28px;
+  padding: 2px 9px;
+  font-size: 12px;
+}
+.arr-section .prelude-slots,
+.prelude-step.is-harmony .arr-section .prelude-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.arr-section .prelude-slot {
+  width: 124px;
+}
+.prelude-slot > button:first-child {
+  min-height: 78px;
+}
+.prelude-slot.is-selected > button:first-child {
+  border-color: var(--b);
+}
+.arr-add {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+.arr-templates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.arr-templates button {
+  padding: 7px 12px;
+  font-size: 13px;
+  border-style: dashed;
+}
+.prelude-more {
+  margin-top: 8px;
+}
+.prelude-more > summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--muted);
+}
+.prelude-editor {
+  margin-top: 14px;
+}

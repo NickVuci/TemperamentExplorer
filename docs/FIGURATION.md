@@ -2,31 +2,25 @@
 
 ## Compose a prelude
 
-**Create → Compose** opens with the **Prelude** panel. It works in three steps.
+**Compose** opens with the **Prelude** panel. It works in three steps, and everything you do is
+written into the composition at once (one Undo per change), so there is nothing to apply.
 
-1. **Harmony.** Choose a plan: **Tonic frame**, **Bass octave**, **Sequence**, **Comma pump** or
-   **My chords** (your own chord lane). Set the home degree and the number of voices. Each card is
-   one harmony, with its place in the form, its chord and its bass. Press a card to hear it. Where
-   a bass can carry other chords, the counter on the card steps through them. The line chart shows
-   the bass and the top voice across the piece.
-2. **Figure.** Choose the order in which the voices sound, the note value, how long each harmony
-   lasts and how the notes are held. **Hear the harmonies** plays the plan as block chords.
-   **Write the prelude** fills the chord lane and attaches the figure; Undo takes it back in one
-   step. Melody notes you have written stay.
-3. **Practice on the HexBoard.** Seven stages, each opening Play with its settings chosen: the
-   harmonies as held chords, the bass line alone, the top voice alone, the figure on one harmony,
-   each section, the whole prelude at your own pace, then in time from 60% speed. A completed
-   stage is marked, and the results screen offers the next one.
+1. **Harmony.** Build an arrangement from sections. Press a section under **Add a section**:
+   Opening, Falling bass, Rising bass, Sequence, Comma pump, Pedal point, Half cadence, Cadence,
+   Plagal close or Home chord. Each is laid out for your scale and tuning. Add more to make a
+   whole piece.
+   - Press a section's name to select and hear it. Then move it with the arrows, **Repeat** it or
+     **Remove** it. A new section goes after the selected one.
+   - Press a chord to hear it and edit it in place: **Harmony** (which chord), **Colour** (other
+     chords on the same root), **Inversion**, **Voicing** (lower, as led, higher), **Swap** with a
+     neighbour, **Repeat**, **Add a lead-in** (its own leading harmony before it) or **Remove**.
+2. **Figure.** Choose the order in which the voices sound. **Hear the harmonies** plays the block
+   chords; **Listen** plays the prelude. Note value, harmony length, touch, development and
+   dissonance are under **Settings**.
+3. **Practice on the HexBoard.** The harmonies as held chords, the bass line, the top voice, one
+   harmony, each of your sections, the whole prelude, then in time. A completed stage is marked.
 
-### Choosing direction and editing harmonies
-
-**Bass octave**, **Sequence** and **Comma pump** have a direction setting: the bass or the roots
-can fall or rise, and a pump can be taken the other way round. **Sequence** also lets you choose
-how many scale degrees the root moves by.
-
-Select any harmony card to edit it below the cards: its **Root**, **Chord**, **Bass** and **Role**,
-with **Earlier**, **Later**, **Add after** and **Remove** to reshape the plan. The first edit turns
-the plan into a **Custom** one, which keeps your list while you try other plans.
+Home degree, the number of voices and hand comfort are under the Harmony step's **Settings**.
 
 ### Comma pump
 

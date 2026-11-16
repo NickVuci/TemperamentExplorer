@@ -815,7 +815,10 @@ prelude, with Sound harmony enabling accompaniment. Saved figures extend the bro
 and its backups. Compositions containing figuration use format v2; v1 remains readable and session
 envelopes are unchanged. See [Figuration preludes](FIGURATION.md) for the workflow.
 
-Prelude (D-054, D-055). Compose opens with a Prelude panel of three steps. Harmony: a plan (tonic
+Prelude (D-054, D-055, D-057). Since D-057 the Harmony step is an arrangement of template sections
+(add, move, repeat, remove; chords edited in place for harmony, colour, inversion, register, order
+and lead-ins) written live to the composition; the whole-piece plans described next remain in the
+engine and feed the templates. Compose opens with a Prelude panel of three steps. Harmony: a plan (tonic
 frame; bass octave, which is opening frame, a bass scale falling an octave, a pedal on the leading
 degree and a closing frame; a sequence of roots moving by one scale interval; a comma pump; or the
 chord lane as it stands), a home degree and three to five voices. A comma pump moves the root by
