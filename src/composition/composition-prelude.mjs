@@ -51,22 +51,22 @@ export const PRELUDE_FIGURES = Object.freeze([
 ]);
 export const PRELUDE_DIVISIONS = Object.freeze([
   [8, 'Eighths'],
-  [12, 'Eighth triplets'],
+  [12, 'Triplets'],
   [16, 'Sixteenths']
 ]);
 export const PRELUDE_SUSTAINS = Object.freeze([
   ['bass', 'Bass held'],
-  ['all', 'Every note held'],
+  ['all', 'All held'],
   ['none', 'Detached']
 ]);
 export const PRELUDE_DISSONANCES = Object.freeze([
   ['none', 'None'],
   ['suspensions', 'Suspensions'],
-  ['all', 'Suspensions and passing tones']
+  ['all', 'Suspensions + passing']
 ]);
 export const PRELUDE_HANDS = Object.freeze([
-  ['comfort', 'Comfortable hand shapes'],
-  ['any', 'Closest voice leading']
+  ['comfort', 'Comfortable hands'],
+  ['any', 'Closest motion']
 ]);
 export const PRELUDE_FUNCTIONS = Object.freeze({
   frame: 'Frame',

@@ -47,10 +47,10 @@ is left plain. A decorated harmony appears as two chords in the chord lane.
 
 ### Hand shapes
 
-With **Comfortable hand shapes**, the hand model from the shape explorer (your hand size and
+With **Comfortable hands**, the hand model from the shape explorer (your hand size and
 finger settings) rates how each voicing lies under the hands: the right hand takes the top three
 voices, the left the rest. Voicings that strain the hand are avoided where the voice leading
-allows, and each card shows the grade, A to D. **Closest voice leading** ignores the hands.
+allows, and each card shows the grade, A to D. **Closest motion** ignores the hands.
 
 ### One voice at a time
 

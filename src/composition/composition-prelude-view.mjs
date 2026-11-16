@@ -51,8 +51,20 @@ export function practiceRungs(sections = []) {
 
 const button = (action, label, {disabled = false, pressed = null, extra = '', cls = ''} = {}) =>
   `<button data-comp="prelude-${action}" ${cls ? `class="${cls}"` : ''} ${disabled ? 'disabled' : ''} ${pressed === null ? '' : `aria-pressed="${pressed}"`} ${extra}>${label}</button>`;
-const select = (field, label, choices, value) =>
-  `<label>${label} <select data-comp-field="prelude${field}">${choices.map(([k, n]) => option(k, n, value)).join('')}</select></label>`;
+// One setting: its label on the left and its choices as a row of buttons, the chosen one pressed.
+// Only a list too long to scan (a large scale's degrees) falls back to a menu.
+const select = (field, label, choices, value) => {
+  const control =
+    choices.length > 24
+      ? `<select data-comp-field="prelude${field}" aria-label="${esc(label)}">${choices.map(([k, n]) => option(k, n, value)).join('')}</select>`
+      : `<div class="prelude-seg" role="group" aria-label="${esc(label)}">${choices
+          .map(
+            ([k, n]) =>
+              `<button data-comp="prelude-set" data-field="${field}" data-value="${esc(String(k))}" aria-pressed="${String(k) === String(value)}">${esc(String(n))}</button>`
+          )
+          .join('')}</div>`;
+  return `<div class="prelude-field"><span class="prelude-label">${esc(label)}</span>${control}</div>`;
+};
 
 /** Which voice sounds on each attack: voices as rows (top voice first), attacks as columns. */
 function figureDiagram(figure, voices, steps) {
@@ -186,14 +198,8 @@ export function renderPrelude(v) {
     o.plan === 'cycle'
       ? select(
           'step',
-          'Root moves by',
-          [
-            [0, 'the leading interval'],
-            ...Array.from({length: n - 1}, (_, i) => [
-              i + 1,
-              `${i + 1} scale degree${i ? 's' : ''}`
-            ])
-          ],
+          'Root step',
+          [[0, 'Auto'], ...Array.from({length: n - 1}, (_, i) => [i + 1, i + 1])],
           o.step
         )
       : '';
@@ -222,10 +228,7 @@ export function renderPrelude(v) {
       ? select(
           'pump',
           'Comma',
-          draft.plan.pumps.map((x, i) => [
-            i,
-            `${x.ratio} · ${x.cents.toFixed(2)}¢ · ${x.moves} moves`
-          ]),
+          draft.plan.pumps.map((x, i) => [i, `${x.ratio} · ${x.moves} moves`]),
           Math.min(o.pump, draft.plan.pumps.length - 1)
         )
       : '';
@@ -256,30 +259,30 @@ export function renderPrelude(v) {
     ''
   )}</div><p class="prelude-note">${esc(PRELUDE_FIGURES.find(f => f.id === o.figure).note)} Rows are voices, the bass lowest; columns are attacks.</p><div class="prelude-controls">${select('division', 'Notes', PRELUDE_DIVISIONS, o.division)}${select(
     'bars',
-    'Each harmony lasts',
+    'Harmony',
     [
-      [0.5, 'half a bar'],
-      [1, 'one bar'],
-      [2, 'two bars']
+      [0.5, '½ bar'],
+      [1, '1 bar'],
+      [2, '2 bars']
     ],
     o.bars
   )}${select(
     'repeats',
-    'Figure',
+    'Per harmony',
     [
-      [1, 'once per harmony'],
-      [2, 'twice per harmony']
+      [1, 'Once'],
+      [2, 'Twice']
     ],
     o.repeats
   )}${select('sustain', 'Touch', PRELUDE_SUSTAINS, o.sustain)}${select(
     'variety',
     'Development',
     [
-      ['strict', 'One figure throughout'],
-      ['developing', 'Figure develops with the form']
+      ['strict', 'One figure'],
+      ['developing', 'Develops with the form']
     ],
     o.variety
-  )}${select('dissonance', 'Non-chord tones', PRELUDE_DISSONANCES, o.dissonance)}</div><div class="prelude-actions">${button('hear', 'Hear the harmonies', {disabled: !draft})}${button('write', m.written ? 'Write again' : 'Write the prelude', {disabled: !draft, cls: 'primary'})}${button('listen', 'Listen', {disabled: !m.written})}</div><p class="prelude-status" role="status">${
+  )}${select('dissonance', 'Dissonance', PRELUDE_DISSONANCES, o.dissonance)}</div><div class="prelude-actions">${button('hear', 'Hear the harmonies', {disabled: !draft})}${button('write', m.written ? 'Write again' : 'Write the prelude', {disabled: !draft, cls: 'primary'})}${button('listen', 'Listen', {disabled: !m.written})}</div><p class="prelude-status" role="status">${
     m.written
       ? m.stale
         ? 'The settings have changed since the prelude was written. Write again to hear them.'

@@ -1595,6 +1595,7 @@ export function createCompositionWorkspace({
       index = Number(el.dataset.index);
     if (action === 'plan' || action === 'figure') return setPreludeOption(action, el.dataset.value);
     if (action === 'edit') return editHarmony(el.dataset.kind, el.dataset.value);
+    if (action === 'set') return setPreludeOption(el.dataset.field, el.dataset.value);
     if (!draft) return say(error || 'Choose a plan first.');
     if (action === 'slot' || action === 'alt') {
       let slot = draft.slots[index];

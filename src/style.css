@@ -8980,17 +8980,35 @@ footer {
   gap: 8px;
 }
 .prelude-controls {
-  gap: 8px 14px;
+  display: grid;
+  gap: 8px;
   margin-top: 12px;
 }
-.prelude-controls label {
-  display: inline-flex;
+/* A setting: label in a fixed left column, choices as joined buttons on the right. */
+.prelude-field {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
   align-items: center;
-  gap: 6px;
-  font-size: 14px;
+  gap: 10px;
+}
+.prelude-label {
+  font-size: 13px;
   color: var(--muted);
 }
-.prelude-controls select {
+.prelude-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.prelude-seg button {
+  min-width: 34px;
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 13px;
+  line-height: 1.2;
+}
+.prelude-field select {
+  justify-self: start;
   padding: 6px 8px;
   color: var(--text);
 }
@@ -9321,4 +9339,8 @@ body:has(.game.is-running) .app-header {
 .prelude-edit-actions button {
   padding: 6px 10px;
   font-size: 13px;
+}
+
+.prelude-editor > b {
+  font-size: 14px;
 }
