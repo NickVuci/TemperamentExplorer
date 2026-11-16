@@ -7,6 +7,7 @@ import {
   PRELUDE_SUSTAINS,
   PRELUDE_DISSONANCES,
   PRELUDE_HANDS,
+  PRELUDE_DIRECTIONS,
   PRELUDE_FUNCTIONS,
   figureSequence
 } from './composition-prelude.mjs';
@@ -168,6 +169,54 @@ export function renderPrelude(v) {
     : draft
       ? `${slots.length} harmonies · ${draft.lengthTick / (draft.timing.harmony / o.bars)} bars${draft.plan.directional === null ? '' : ` · home ${draft.plan.home}, leading harmony on ${draft.plan.directional}`}${pumpNote} · ${esc(sourceNote)}`
       : '';
+  const directionSelect = ['octave', 'cycle', 'pump'].includes(o.plan)
+    ? select(
+        'direction',
+        o.plan === 'octave' ? 'Bass' : 'Roots',
+        o.plan === 'pump'
+          ? [
+              ['down', 'As found'],
+              ['up', 'Reversed']
+            ]
+          : PRELUDE_DIRECTIONS,
+        o.direction
+      )
+    : '';
+  const stepSelect =
+    o.plan === 'cycle'
+      ? select(
+          'step',
+          'Root moves by',
+          [
+            [0, 'the leading interval'],
+            ...Array.from({length: n - 1}, (_, i) => [
+              i + 1,
+              `${i + 1} scale degree${i ? 's' : ''}`
+            ])
+          ],
+          o.step
+        )
+      : '';
+  const picked = m.selectedSlot === null ? null : (slots[m.selectedSlot] ?? null);
+  const degrees = Array.from({length: n}, (_, i) => [i, i]);
+  const edit = (kind, label, value = '', disabled = false) =>
+    `<button data-comp="prelude-edit" data-kind="${kind}" data-value="${value}" ${disabled ? 'disabled' : ''}>${label}</button>`;
+  // Always present, so the cards above never move: a hint until a harmony is selected.
+  const editor = `<div class="prelude-editor">${
+    picked && picked.chord.root !== null && picked.chord.root !== undefined
+      ? `<b>Harmony ${m.selectedSlot + 1}</b><div class="prelude-controls">${select('edit-root', 'Root', degrees, picked.chord.root)}${select(
+          'edit-chord',
+          'Chord',
+          (m.chordsByRoot[picked.chord.root] ?? []).map((label, i) => [i, label]),
+          picked.choice
+        )}${select('edit-bass', 'Bass', degrees, picked.bass ?? picked.chord.root)}${select(
+          'edit-fn',
+          'Role',
+          Object.entries(PRELUDE_FUNCTIONS),
+          picked.fn
+        )}</div><div class="prelude-edit-actions">${edit('move', 'Earlier', -1, m.selectedSlot === 0)}${edit('move', 'Later', 1, m.selectedSlot === slots.length - 1)}${edit('add', 'Add after')}${edit('remove', 'Remove', '', slots.length < 2)}</div>${o.plan === 'custom' ? '' : '<small>Editing turns this plan into a Custom one.</small>'}`
+      : '<small>Select a harmony to change its root, chord, bass or role, or to add, move and remove harmonies.</small>'
+  }</div>`;
   const pumpSelect =
     o.plan === 'pump' && draft?.plan.pumps.length > 1
       ? select(
@@ -198,7 +247,7 @@ export function renderPrelude(v) {
       [5, 5]
     ],
     o.voices
-  )}${select('hand', 'Voicing', PRELUDE_HANDS, o.hand)}${pumpSelect}</div>${contour(slots)}<ol class="prelude-slots">${slots.map((s, i) => slotCard(s, i, m.selectedSlot === i)).join('')}</ol><p class="prelude-status" role="status">${status}</p></li>`;
+  )}${select('hand', 'Voicing', PRELUDE_HANDS, o.hand)}${pumpSelect}${directionSelect}${stepSelect}</div>${contour(slots)}<ol class="prelude-slots">${slots.map((s, i) => slotCard(s, i, m.selectedSlot === i)).join('')}</ol>${editor}<p class="prelude-status" role="status">${status}</p></li>`;
   const steps = draft?.timing.steps ?? 8;
   const figure = `<li class="prelude-step"><h4><span class="prelude-num">2</span>Figure</h4><div class="prelude-figures" role="group" aria-label="Figure">${PRELUDE_FIGURES.map(
     f =>

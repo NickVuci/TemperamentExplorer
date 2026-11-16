@@ -46,6 +46,7 @@ import {
 } from './composition-project.mjs';
 import {
   composePrelude,
+  customFromPlan,
   preludeMaterial,
   normalizePreludeOptions,
   writtenPreludeOptions,
@@ -1476,19 +1477,26 @@ export function createCompositionWorkspace({
     let value;
     try {
       value = {
+        material,
         draft: composePrelude(p, prelude.options, {material, cells, hands: hands?.value ?? null}),
         error: '',
         pending,
         matches
       };
     } catch (error) {
-      value = {draft: null, error: error.message.replace(/^Prelude: /, ''), pending, matches};
+      value = {
+        material,
+        draft: null,
+        error: error.message.replace(/^Prelude: /, ''),
+        pending,
+        matches
+      };
     }
     prelude.cache = {key, value};
     return value;
   }
   function preludeModel(p) {
-    const {draft, error, pending, matches} = preludeDraft(p),
+    const {draft, error, pending, matches, material} = preludeDraft(p),
       written = preludeEvents(p),
       saved = written.length ? writtenPreludeOptions(p) : null;
     return {
@@ -1497,6 +1505,7 @@ export function createCompositionWorkspace({
       draft,
       error: error ? error.charAt(0).toUpperCase() + error.slice(1) : '',
       selectedSlot: prelude.selectedSlot,
+      chordsByRoot: material?.byRoot.map(list => list.map(c => c.label)) ?? [],
       written: written.length > 0,
       count: new Set(written.map(x => x.e.source.slot ?? x.e.id)).size,
       stale: !!saved && JSON.stringify(saved) !== JSON.stringify(prelude.options),
@@ -1510,7 +1519,65 @@ export function createCompositionWorkspace({
           : 'scale triads; load the composition’s setup into the app to use the chord directory'
     };
   }
+  /** Turns the plan on show into a custom list, once, so that a harmony can be edited. */
+  function customPlan() {
+    const p = project();
+    if (prelude.options.plan === 'custom' && prelude.options.custom.length) return true;
+    const {draft, material} = preludeDraft(p);
+    if (!draft || !material) return false;
+    prelude.options = normalizePreludeOptions(
+      {
+        ...prelude.options,
+        plan: 'custom',
+        custom: customFromPlan(draft.plan, material),
+        choices: {}
+      },
+      p.context.scale.n
+    );
+    return true;
+  }
+  /** Edits the selected harmony of the custom plan: its root, chord, bass or role, or its place. */
+  function editHarmony(kind, value) {
+    const p = project(),
+      index = prelude.selectedSlot;
+    if (index === null || !customPlan()) return say('Select a harmony first.');
+    const custom = prelude.options.custom.map(x => ({...x})),
+      item = custom[index];
+    if (!item) return;
+    const number = Number(value);
+    if (kind === 'root') {
+      if (item.bass === item.root) item.bass = number;
+      item.root = number;
+      item.chord = 0;
+    } else if (kind === 'chord') item.chord = number;
+    else if (kind === 'bass') item.bass = number;
+    else if (kind === 'fn') item.fn = value;
+    else if (kind === 'add') {
+      custom.splice(index + 1, 0, {...item});
+      prelude.selectedSlot = index + 1;
+    } else if (kind === 'remove') {
+      if (custom.length < 2) return say('A prelude needs at least one harmony.');
+      custom.splice(index, 1);
+      prelude.selectedSlot = Math.min(index, custom.length - 1);
+    } else if (kind === 'move') {
+      const to = index + number;
+      if (to < 0 || to >= custom.length) return;
+      custom.splice(to, 0, custom.splice(index, 1)[0]);
+      prelude.selectedSlot = to;
+    }
+    prelude.options = normalizePreludeOptions({...prelude.options, custom}, p.context.scale.n);
+    const slot = preludeDraft(p).draft?.slots[prelude.selectedSlot];
+    if (slot && kind !== 'remove') audio.previewChord?.(slot.cents);
+    refresh();
+  }
   function setPreludeOption(name, value) {
+    if (name.startsWith('edit-')) return editHarmony(name.slice(5), value);
+    // Custom keeps its list; chosen with none yet, it takes the plan on show.
+    if (name === 'plan' && value === 'custom') {
+      if (!prelude.options.custom.length) customPlan();
+      else prelude.options = {...prelude.options, plan: 'custom', choices: {}};
+      return refresh();
+    }
     const next = {...prelude.options, [name]: value};
     // A different plan, home, pump or voice count lays out different slots; earlier picks no longer apply.
     if (['plan', 'home', 'voices', 'pump'].includes(name)) next.choices = {};
@@ -1527,10 +1594,15 @@ export function createCompositionWorkspace({
     const {draft, error} = preludeDraft(p),
       index = Number(el.dataset.index);
     if (action === 'plan' || action === 'figure') return setPreludeOption(action, el.dataset.value);
+    if (action === 'edit') return editHarmony(el.dataset.kind, el.dataset.value);
     if (!draft) return say(error || 'Choose a plan first.');
     if (action === 'slot' || action === 'alt') {
       let slot = draft.slots[index];
       if (!slot) return;
+      if (action === 'alt' && prelude.options.plan === 'custom') {
+        prelude.selectedSlot = index;
+        return editHarmony('chord', (slot.choice + 1) % slot.alternatives.length);
+      }
       if (action === 'alt') {
         const choices = {...prelude.options.choices},
           next = (slot.choice + 1) % slot.alternatives.length;

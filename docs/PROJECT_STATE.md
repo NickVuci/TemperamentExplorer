@@ -822,7 +822,10 @@ just consonances whose just sum is a comma the mapping tempers out, so the last 
 the shortest pump that keeps every root in the scale is the default, others are offered, and a
 short one is walked twice. With Comfortable hand shapes (the default) the player's hand model
 (`hand-model.mjs`, from the shape explorer) weighs each voicing by the strain of its two hand
-shapes, the right hand taking the top three voices. Each harmony is a card naming its formal
+shapes, the right hand taking the top three voices. The bass octave, sequence and pump take a direction, and the sequence a root interval
+in scale degrees. Selecting a card opens an editor for its root, chord, bass and role and for
+adding, moving and removing harmonies; the first edit freezes the plan into a Custom plan
+(`options.custom`, via `customFromPlan`). Each harmony is a card naming its formal
 function, chord, bass, non-chord tone and hand grade; pressing it sounds its voicing, and its
 counter steps through the other chords that hold that bass. A contour shows the bass line and top
 voice. Figure: five voice-order figures, note

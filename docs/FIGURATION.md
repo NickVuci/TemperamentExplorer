@@ -18,6 +18,16 @@
    each section, the whole prelude at your own pace, then in time from 60% speed. A completed
    stage is marked, and the results screen offers the next one.
 
+### Choosing direction and editing harmonies
+
+**Bass octave**, **Sequence** and **Comma pump** have a direction setting: the bass or the roots
+can fall or rise, and a pump can be taken the other way round. **Sequence** also lets you choose
+how many scale degrees the root moves by.
+
+Select any harmony card to edit it below the cards: its **Root**, **Chord**, **Bass** and **Role**,
+with **Earlier**, **Later**, **Add after** and **Remove** to reshape the plan. The first edit turns
+the plan into a **Custom** one, which keeps your list while you try other plans.
+
 ### Comma pump
 
 A comma pump moves the root by pure intervals (3/2, 5/4, 6/5, 7/4 and their kin) that, in just

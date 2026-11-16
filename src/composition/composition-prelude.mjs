@@ -31,7 +31,16 @@ export const PRELUDE_PLANS = Object.freeze([
     name: 'Comma pump',
     note: 'Roots move by pure intervals around a comma this temperament tempers out, and arrive home.'
   },
-  {id: 'own', name: 'My chords', note: 'The chord lane as it stands, voiced again and figured.'}
+  {id: 'own', name: 'My chords', note: 'The chord lane as it stands, voiced again and figured.'},
+  {
+    id: 'custom',
+    name: 'Custom',
+    note: 'Your own list of harmonies. Select one to choose its root, chord, bass and role, or to add, move and remove harmonies.'
+  }
+]);
+export const PRELUDE_DIRECTIONS = Object.freeze([
+  ['down', 'Falling'],
+  ['up', 'Rising']
 ]);
 export const PRELUDE_FIGURES = Object.freeze([
   {id: 'rise', name: 'Rise and echo', note: 'Up through every voice, then the upper voices again.'},
@@ -81,6 +90,9 @@ export const PRELUDE_DEFAULTS = Object.freeze({
   dissonance: 'none',
   hand: 'comfort',
   pump: 0,
+  direction: 'down',
+  step: 0,
+  custom: [],
   choices: {}
 });
 
@@ -138,6 +150,18 @@ export function normalizePreludeOptions(input = {}, scaleSize = 7) {
       d.hand
     ),
     pump: number(input.pump, 0, 7, d.pump),
+    direction: pick(['down', 'up'], input.direction, d.direction),
+    // Scale degrees the root moves by in a sequence; 0 lets the plan choose.
+    step: number(input.step, 0, Math.max(0, scaleSize - 1), d.step),
+    custom: (Array.isArray(input.custom) ? input.custom : []).slice(0, 64).map(x => {
+      const root = number(x?.root, 0, Math.max(0, scaleSize - 1), 0);
+      return {
+        fn: PRELUDE_FUNCTIONS[x?.fn] ? x.fn : 'motion',
+        root,
+        chord: number(x?.chord, 0, 47, 0),
+        bass: number(x?.bass, 0, Math.max(0, scaleSize - 1), root)
+      };
+    }),
     choices
   };
 }
@@ -660,7 +684,15 @@ export function planPrelude(project, material, options) {
     fixed(fn, home, directional, true);
     fixed(fn, home, home);
   };
-  if (o.plan === 'frame') {
+  if (o.plan === 'custom') {
+    if (!o.custom.length)
+      fail('the custom plan has no harmonies yet; choose another plan and edit it.');
+    for (const item of o.custom) {
+      const chords = onRoot(item.root),
+        chord = chords[Math.min(item.chord, chords.length - 1)];
+      add(item.fn, item.bass, chord, chords, classIn(chord, item.bass) < 0);
+    }
+  } else if (o.plan === 'frame') {
     frame(false);
     fixed('approach', neighbour, neighbour);
     fixed('cadence', directional, directional);
@@ -669,10 +701,10 @@ export function planPrelude(project, material, options) {
     frame(false);
     // A long scale takes every other degree, so the descent stays within about a dozen harmonies.
     const stride = n > 12 ? 2 : 1;
-    for (let i = n - stride; i >= 1; i -= stride) {
-      const bass = (home + i) % n;
-      free('motion', bass, bass === directional);
-    }
+    const walk = [];
+    for (let i = n - stride; i >= 1; i -= stride) walk.push((home + i) % n);
+    if (o.direction === 'up') walk.reverse();
+    for (const bass of walk) free('motion', bass, bass === directional);
     fixed('approach', neighbour, neighbour);
     fixed('pedal', directional, directional);
     fixed('pedal', directional, home, true);
@@ -685,6 +717,18 @@ export function planPrelude(project, material, options) {
       fail(
         'no comma pump of this temperament stays inside this scale; choose a larger scale, another home degree or another plan.'
       );
+    // Taken the other way round, every move is its octave complement.
+    if (o.direction === 'up') {
+      const inverse = ratio => {
+        const [a, b] = ratio.split('/').map(Number);
+        return a % 2 ? `${2 * b}/${a}` : `${b}/${a / 2}`;
+      };
+      pump = {
+        ...pump,
+        roots: [...pump.roots.slice(0, -1).reverse(), pump.roots.at(-1)],
+        moves: [...pump.moves].reverse().map(inverse)
+      };
+    }
     // A short pump is walked twice, so the ear meets the arrival before the close confirms it.
     const rounds = pump.roots.length < 5 ? 2 : 1;
     fixed('frame', home, home);
@@ -697,7 +741,8 @@ export function planPrelude(project, material, options) {
       });
   } else {
     // Roots fall by the directional interval, so the leading harmony arrives just before home.
-    const stepDown = (((directional - home) % n) + n) % n || 1;
+    const stepDown =
+      (o.step || (((directional - home) % n) + n) % n || 1) * (o.direction === 'up' ? -1 : 1);
     fixed('frame', home, home);
     let root = home;
     for (let i = 0; i < n + 1; i++) {
@@ -1296,6 +1341,23 @@ export function composePrelude(project, options, {material, cells = [], hands = 
     lengthTick: Math.ceil(tick / bar) * bar,
     options: o
   };
+}
+
+/** A laid-out plan as a custom list (`options.custom`), so that each harmony can then be edited. */
+export function customFromPlan(plan, material) {
+  return plan.slots.map(slot => {
+    const root = slot.chord.root ?? slot.bass ?? 0,
+      list = material.byRoot[root] ?? [];
+    return {
+      fn: slot.fn,
+      root,
+      chord: Math.max(
+        0,
+        list.findIndex(c => c.set === slot.chord.set)
+      ),
+      bass: slot.bass ?? root
+    };
+  });
 }
 
 /** The options a written prelude was made with, read back from its first harmony; null otherwise. */

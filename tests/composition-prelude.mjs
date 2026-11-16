@@ -16,6 +16,7 @@ import {
   PRELUDE_PLANS,
   PRELUDE_FIGURES,
   composePrelude,
+  customFromPlan,
   figureSequence,
   normalizePreludeOptions,
   preludeMaterial,
@@ -239,7 +240,7 @@ assert.throws(
 // Every sample tuning, divided octaves included, takes every plan and voice count without errors.
 for (const file of readdirSync(dir).filter(f => f.endsWith('.json'))) {
   const p = open(file);
-  for (const plan of PRELUDE_PLANS.map(x => x.id))
+  for (const plan of PRELUDE_PLANS.map(x => x.id).filter(x => x !== 'custom'))
     for (const voices of [3, 4])
       for (const figure of ['rise', 'weave']) {
         const c = composePrelude(
@@ -474,5 +475,56 @@ for (const t of topLine) assert.deepEqual(t.coordinate, chordAt(t.tick).tones.at
 // The block harmonies can be taken one voice at a time as well.
 assert.equal(buildChart(written, {part: 'chords', voice: 'bass'}).targets.length, 18);
 assert.equal(buildChart(written, {part: 'chords'}).targets.length, 18 * 4);
+
+// --- Direction and custom plans: the player chooses which way things move, and every harmony.
+const motionBass = c => c.slots.filter(s => s.fn === 'motion').map(s => s.bass);
+assert.deepEqual(
+  motionBass(composePrelude(meantone, {direction: 'up'}, {cells})),
+  [1, 2, 3, 4, 5, 6],
+  'the bass octave can rise'
+);
+const roots = c => c.slots.map(s => s.chord.root);
+assert.deepEqual(
+  roots(composePrelude(meantone, {plan: 'cycle'}, {cells})),
+  [0, 3, 6, 2, 5, 1, 4, 0]
+);
+assert.deepEqual(
+  roots(composePrelude(meantone, {plan: 'cycle', direction: 'up'}, {cells})),
+  [0, 4, 1, 5, 2, 6, 3, 4, 0],
+  'rising roots, with the leading harmony added before the close'
+);
+assert.deepEqual(
+  roots(composePrelude(meantone, {plan: 'cycle', step: 2}, {cells})),
+  [0, 5, 3, 1, 6, 4, 2, 4, 0],
+  'roots falling by thirds'
+);
+const reversed = composePrelude(meantone, {plan: 'pump', direction: 'up'}, {cells});
+assert.deepEqual(reversed.plan.pump.moves, ['3/2', '3/2', '3/2', '6/5']);
+assert.deepEqual(roots(reversed).slice(0, 5), [0, 4, 1, 5, 0]);
+// Any plan becomes a custom list that lays out the same harmonies, and each can then be changed.
+const stock = preludeMaterial(meantone.context),
+  custom = customFromPlan(made.plan, stock);
+assert.equal(custom.length, 18);
+const frozen = composePrelude(meantone, {plan: 'custom', custom}, {cells});
+assert.deepEqual(
+  frozen.slots.map(s => [s.fn, s.bass, s.chord.set]),
+  made.slots.map(s => [s.fn, s.bass, s.chord.set])
+);
+assert.deepEqual(
+  frozen.slots.map(s => s.tones),
+  made.slots.map(s => s.tones)
+);
+const edited = custom.map(x => ({...x}));
+edited[5] = {fn: 'cadence', root: 2, chord: 0, bass: 4};
+edited.splice(6, 1);
+const changed = composePrelude(meantone, {plan: 'custom', custom: edited}, {cells});
+assert.equal(changed.slots.length, 17);
+assert.deepEqual(
+  [changed.slots[5].fn, changed.slots[5].chord.root, changed.slots[5].bass],
+  ['cadence', 2, 4]
+);
+assert.equal(compileFiguration(writePrelude(meantone, changed)).errors.length, 0);
+assert.deepEqual(writtenPreludeOptions(writePrelude(meantone, changed)).custom, edited);
+assert.throws(() => composePrelude(meantone, {plan: 'custom'}, {cells}), /no harmonies yet/);
 
 console.log('composition-prelude: ok');

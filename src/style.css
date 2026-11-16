@@ -9292,3 +9292,33 @@ body:has(.game.is-running) .app-header {
 .prelude-panel .prelude-status {
   min-height: 4.5em;
 }
+
+/* The editor of the selected harmony; its space is kept whether or not one is selected. */
+.prelude-editor {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-height: 150px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 14px;
+}
+.prelude-editor .prelude-controls {
+  margin-top: 0;
+}
+.prelude-editor small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.prelude-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.prelude-edit-actions button {
+  padding: 6px 10px;
+  font-size: 13px;
+}
