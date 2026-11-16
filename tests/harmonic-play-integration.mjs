@@ -63,7 +63,7 @@ state = {...state, n: 2};
 ui.sync();
 assert.equal(ui.model().realization.withinScale, false);
 assert.deepEqual(ui.model().realization.coords, coords);
-assert.match(ui.render(), /Fit Play scale/);
+assert.match(ui.render(), /Fit Board scale/);
 click('fit');
 assert.deepEqual(fit, coords);
 assert.equal(state.n, 2);

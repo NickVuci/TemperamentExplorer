@@ -69,7 +69,7 @@ export function createFingeringGame({
   function start({count} = {}) {
     const f = getFingerings();
     if (!f || !f.placements.length) {
-      message = 'Select a chord on the Play board first.';
+      message = 'Select a chord on the Board first.';
       emit();
       return false;
     }

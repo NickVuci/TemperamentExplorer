@@ -27,7 +27,7 @@ import {compileFiguration} from './composition-figuration.mjs';
 export const SPEEDS = [50, 75, 100];
 export const GUIDES = [
   ['off', 'Muted'],
-  ['quiet', 'Quiet guide'],
+  ['quiet', 'Quiet'],
   ['full', 'Full']
 ];
 export const LEADS = [
@@ -44,9 +44,9 @@ export const SECTIONS = [
 // Note hints during a run: the keys to play lit on an otherwise dark HexBoard, lit over the layout,
 // or none at all (the layout only, on the HexBoard and the screen).
 export const LIGHTS = [
-  ['dark', 'Keys to play lit, rest dark'],
-  ['layout', 'Keys to play lit over the layout'],
-  ['off', 'Off: layout only (hard)']
+  ['dark', 'Lit, rest dark'],
+  ['layout', 'Lit over layout'],
+  ['off', 'None (hard)']
 ];
 // Notes reach the highway's hit line this many pixels from its left edge; Timed repeat waits this long.
 export const HIT_X = 96,
@@ -1159,6 +1159,9 @@ export function createGameController({
     switch (action) {
       case 'game-start':
         start();
+        return;
+      case 'game-set':
+        change(el.dataset.field, {value: el.dataset.value});
         return;
       case 'game-again':
         again();

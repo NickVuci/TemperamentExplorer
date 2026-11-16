@@ -1,6 +1,7 @@
 # Sample compositions
 
-Six original eight-bar pieces for the Compose piano roll and its Play mode. Each
+Six original eight-bar pieces for the Compose piano roll and its Practice mode. Compose also offers them on its
+start screen. Each
 `.composition.json` is a standalone `temperament-lab-composition-v1` file containing
 melody, chords, tempo, meter, tuning, scale and a playable HexBoard layout.
 
@@ -9,7 +10,7 @@ melody, chords, tempo, meter, tuning, scale and a playable HexBoard layout.
 1. Choose the app's **Compose** tab, then **Open composition…**. With a song already
    open, use its **Project → Open…** menu.
 2. Select one of the JSON files below. Use **Fit** to see the whole piece.
-3. Play the song in Compose, or switch to **Play** within the composition workspace
+3. Play the song in Compose, or switch to **Practice** within the composition workspace
    for **Timed** or **Wait**. Choose Melody, Chords or Both; every note has a key for
    exact-pitch and degree matching.
 

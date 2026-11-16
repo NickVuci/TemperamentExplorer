@@ -5,7 +5,7 @@ HexBoard play and layout creation.
 
 Ready-to-open [sample compositions](examples/compositions/README.md) cover 12 EDO,
 Meantone, Porcupine, Magic and Pajara, with contrasting layouts and rhythms for
-testing the Compose piano roll and Play mode.
+testing the Compose piano roll and Practice mode.
 
 [Figuration preludes](docs/FIGURATION.md) use reusable drawn or generated patterns
 over the chord lane, with saved figures and HexBoard practice.

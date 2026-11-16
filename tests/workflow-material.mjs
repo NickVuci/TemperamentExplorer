@@ -147,7 +147,7 @@ assert.ok(
 );
 assert.equal($('header [data-field="n"]'), null, 'the header has no scale control');
 assert.doesNotMatch(document.body.textContent, /Select an interval cell to inspect it/);
-assert.ok(document.body.textContent.includes('Use scale in Play'));
+assert.ok(document.body.textContent.includes('Use scale on the Board'));
 assert.doesNotMatch(document.body.textContent, /Use scale in Create/);
 
 // The app has no global keyboard note map.

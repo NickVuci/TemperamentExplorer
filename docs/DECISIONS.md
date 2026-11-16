@@ -1286,3 +1286,18 @@ anticipations and chromatic approaches are not generated. A plan's degrees still
 so in a divided octave only the pump plan leaves the home period. `source.slot` identifies a
 harmony's events; code that maps plan slots to chord events must use it rather than position.
 
+## D-056 — "Play" names an action, not a place
+
+**Decision.** The top-level HexBoard workspace is labelled **Board** and the composition game is
+labelled **Practice**. "Play" is kept only for actions (the transport button, "Play scale", "Play
+chord"). Internal names (`data-section="play"`, `#play-view`, `mode: 'game'`, `playState`) are
+unchanged, so sessions, stored settings and tests that address them keep working.
+
+**Rationale.** The app had a Play tab, a Play mode inside Compose and a Play transport button, all
+on one screen. Board describes what the tab holds (the HexBoard layout, its scale and chord
+shapes); Practice describes the game. Renaming only labels avoids a session-format migration.
+
+**Consequences.** User-facing text says "the Board scale", "the Board layout", "Send to Board".
+`docs/HEXBOARD_WORKSPACE_PLAN.md` still plans to fold the Board tab into Compose; this rename does
+not change that plan.
+

@@ -98,7 +98,7 @@ rejects(
     playState: {...meantone, n: 19},
     layoutConfig: layout
   },
-  'Play'
+  'Board'
 );
 const two = {...makeState('meantone'), n: 2, mode: 0, g: 550},
   twoLayout = {

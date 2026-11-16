@@ -181,7 +181,7 @@ for (const [index, color] of unpressed)
   if (index !== playedKey) assert.deepEqual(pressed.get(index), color);
 ws.releaseKey(playedKey);
 assert.deepEqual(ledFrame(ws.deviceSnapshot()), unpressed);
-assert.match(host.innerHTML, /<option value="off" selected>/);
+assert.match(host.innerHTML, /data-field="gameLights" data-value="off" aria-pressed="true"/);
 assert.equal(
   store.get('temperament-lab-game-settings').lights,
   'off',

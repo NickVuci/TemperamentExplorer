@@ -9394,3 +9394,82 @@ body:has(.game.is-running) .app-header {
 .prelude-step .prelude-status {
   min-height: 1.5em;
 }
+
+/* Practice settings: each a label above a row of joined choice buttons. */
+.game .game-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.game .game-field > span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.game-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.game-seg button {
+  min-height: 32px;
+  padding: 5px 11px;
+  font-size: 13px;
+}
+.game-seg button[aria-pressed='true'] {
+  border-color: var(--a);
+  background: #26304a;
+  color: #fff;
+}
+
+/* Compose's start screen: start new on the left, the samples on the right. */
+.composition-start {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 18px;
+  max-width: none;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.composition-start section {
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.composition-start h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+.composition-start-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 6px;
+}
+.composition-samples {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+.composition-samples button {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  min-height: 58px;
+  padding: 10px 12px;
+  text-align: left;
+}
+.composition-samples small {
+  color: var(--muted);
+  font-size: 12px;
+}
+@media (max-width: 800px) {
+  .composition-start {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

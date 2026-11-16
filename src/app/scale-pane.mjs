@@ -115,7 +115,7 @@ export function createScalePane(deps) {
       bass = deps.harmonic.bass();
     return `<section class="scale-details" data-scale-view="${scaleView}">
 ${renderScaleView({s, a, idx, view: scaleView, bassDegree: bass?.scale === 'discover' ? bass.degree : -1, ...degreeReadings(s, a)})}
-<div class="panelactions"><button data-action="scale" data-s="${idx}">▶ Play scale</button><button data-hex-open="${idx}" class="primary">Use scale in Play</button><button data-scale-action="collect">Add scale to collection</button><button data-scale-action="place">Highlight on current layout</button><button data-action="export" data-s="${idx}">Export .scl</button></div>
+<div class="panelactions"><button data-action="scale" data-s="${idx}">▶ Play scale</button><button data-hex-open="${idx}" class="primary">Use scale on the Board</button><button data-scale-action="collect">Add scale to collection</button><button data-scale-action="place">Highlight on current layout</button><button data-action="export" data-s="${idx}">Export .scl</button></div>
 ${a.collision ? '<p class="notice">This tuning collapses notes. Choose a smaller size.</p>' : ''}
 </section>`;
   }

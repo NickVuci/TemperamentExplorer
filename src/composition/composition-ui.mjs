@@ -53,6 +53,7 @@ import {
   preludeSections
 } from './composition-prelude.mjs';
 import {practiceRungs} from './composition-prelude-view.mjs';
+import {sampleText} from './composition-samples.mjs';
 import {createHandRater, handModelDefaults} from '../shapes/hand-model.mjs';
 import {
   compileFiguration,
@@ -2367,6 +2368,9 @@ export function createCompositionWorkspace({
           return true;
         case 'open':
           doc.querySelector('[data-comp-file]')?.click();
+          return true;
+        case 'sample':
+          sampleText(Number(el.dataset.value)).then(open, error => say(error.message));
           return true;
       }
       const p = project();

@@ -34,7 +34,8 @@ interval/JI, chord, and HexBoard-layout application.
 
 ## Main user workflow
 
-The top-level tabs are **Discover**, **Play**, and **Create**.
+The top-level tabs are **Discover**, **Board** (labelled Play before D-056; the code still calls it
+`play`), and **Compose** (`create`).
 
 Temperament and Tuning controls sit in the app header on every tab; their advanced
 options (comma search and direct mapping input; tuning-method settings and Optimize
@@ -793,7 +794,7 @@ notes. Browser installability and offline loading are checked manually.
 
 ## Composition suite (MVP)
 
-The composition workspace has two views: **Compose** and **Play**. Compose shows a piano roll
+The composition workspace has two views: **Compose** and **Practice** (the game; `mode: game`). Compose shows a piano roll
 (bar ruler, chord lane, melody rows, velocity lane, root lane) above two responsive panels: the saved
 HexBoard and the selection. Play owns guided learning and timed runs.
 

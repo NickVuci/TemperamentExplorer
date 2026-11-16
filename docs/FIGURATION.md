@@ -125,7 +125,7 @@ chord tones and unsupported octave shifts must be corrected before playback or
 practice.
 
 The chord lane is a silent template by default. Enable **Sound harmony** to hear
-sustained chords underneath. Open **Play** to practice the melody with the normal
+sustained chords underneath. Open **Practice** to practise the melody with the normal
 Timed or Wait settings and the composition's saved HexBoard layout. Notes without
 playable buttons are reported before starting. You can select attached notes and
 choose their buttons without detaching them.

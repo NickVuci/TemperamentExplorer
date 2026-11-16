@@ -62,9 +62,9 @@ export function preflightRetuning({
     reject('Temperament mapping');
   preserveScale(currentState, state, 'Discover');
   if (!same([playState.basis, playState.rows], [currentState.basis, currentState.rows]))
-    reject('Play mapping is not current');
+    reject('Board mapping is not current');
   const nextPlay = validateState({...structuredClone(state), n: playState.n, mode: playState.mode});
-  preserveScale(playState, nextPlay, 'Play');
+  preserveScale(playState, nextPlay, 'Board');
   if (!layoutConfig) reject('No current layout');
   const config = structuredClone(layoutConfig);
   requireExistingLayout(nextPlay, config);
