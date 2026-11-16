@@ -110,6 +110,192 @@ assert.doesNotMatch(
   /exact-source-voicing|reference-voicing|added-doubling/,
   'match kinds are shown as words'
 );
+
+// Inversions: every card names which chord tone is lowest, and the gallery lists root position, then
+// the 1st inversion, then the 2nd, each group easiest first.
+{
+  const wide = createShapeExplorer({...options});
+  await wide.init();
+  wide.input({dataset: {shapeDraft: ''}, value: '4:5:6'});
+  wide.click(node({shapeAction: 'add'}));
+  wide.change(field('span', '6'));
+  await wide.search();
+  const m = wide.model(),
+    byId = new Map(m.result.shapes.map(shape => [shape.id, shape])),
+    inversion = id => byId.get(id).associations[0].possibleInversions[0],
+    shown = () => wide.model().shown,
+    strain = id => wide.model().rating(byId.get(id)).strain;
+  assert.deepEqual(
+    [...new Set(shown().map(inversion))],
+    [0, 1, 2],
+    'root position, then 1st, then 2nd inversion'
+  );
+  assert.deepEqual(
+    shown().map(inversion),
+    shown()
+      .map(inversion)
+      .sort((a, b) => a - b)
+  );
+  for (const k of [0, 1, 2]) {
+    const strains = shown()
+      .filter(id => inversion(id) === k)
+      .map(strain);
+    assert.deepEqual(
+      strains,
+      [...strains].sort((a, b) => a - b),
+      'easiest first in an inversion'
+    );
+  }
+  const cards = wide.render();
+  assert.match(cards, /shape-card-inversion">root position of 4:5:6</);
+  assert.match(cards, /shape-card-inversion">1st inversion of 4:5:6</);
+  wide.change(field('order', 'comfort'));
+  assert.notDeepEqual(
+    shown().map(inversion),
+    shown()
+      .map(inversion)
+      .sort((a, b) => a - b)
+  );
+  const strains = shown().map(strain);
+  assert.deepEqual(
+    strains,
+    [...strains].sort((a, b) => a - b)
+  );
+}
+
+// Hand model: shapes come easiest first for the chosen hand, cards carry fingers and a grade, and
+// the settings re-rate what was found without searching again.
+{
+  const byId = new Map(model.result.shapes.map(shape => [shape.id, shape])),
+    strains = () => explorer.model().shown.map(id => explorer.model().rating(byId.get(id)).strain);
+  assert.equal(model.order, 'inversion');
+  explorer.change(field('order', 'comfort'));
+  assert.deepEqual(
+    strains(),
+    [...strains()].sort((a, b) => a - b)
+  );
+  assert.match(html, /shape-card-comfort">RH \d( \d)* · <b class="comfort comfort-[abcd]">[ABCD]</);
+  assert.match(html, /Easiest fingering first/);
+  const searched = explorer.model().result;
+  explorer.click(node({shapeAction: 'hand-side', side: 'L'}));
+  assert.match(explorer.render(), /data-side="L" aria-pressed="true"/);
+  assert.match(explorer.render(), /data-side="R" aria-pressed="false"/);
+  explorer.click(node({shapeAction: 'hand-side', side: 'X'}));
+  assert.equal(explorer.model().hand, 'L', 'only the two hands can be chosen');
+  assert.equal(explorer.model().result, searched, 'the hand does not search again');
+  assert.match(explorer.render(), /shape-card-comfort">LH /);
+  assert.deepEqual(
+    strains(),
+    [...strains()].sort((a, b) => a - b)
+  );
+  explorer.change(field('order', 'geometry'));
+  assert.deepEqual(
+    explorer.model().shown,
+    model.result.shapes.map(shape => shape.id)
+  );
+  assert.match(explorer.render(), /compactness heuristic/);
+  const grade = g => explorer.click(node({shapeAction: 'comfort', grade: g}));
+  assert.match(explorer.render(), /data-grade="A" aria-pressed="true"/);
+  for (const g of ['B', 'C', 'D']) grade(g);
+  assert.deepEqual(explorer.model().comfort, ['A']);
+  assert.match(explorer.render(), /data-grade="B" aria-pressed="false"/);
+  assert.ok(
+    explorer.model().shown.every(id => explorer.model().rating(byId.get(id)).grade === 'A')
+  );
+  grade('A');
+  assert.match(explorer.model().error, /at least one comfort grade/);
+  assert.deepEqual(explorer.model().comfort, ['A']);
+  grade('C');
+  assert.deepEqual(explorer.model().comfort, ['A', 'C']);
+  assert.ok(
+    explorer
+      .model()
+      .shown.every(id => ['A', 'C'].includes(explorer.model().rating(byId.get(id)).grade))
+  );
+  for (const g of ['B', 'D']) grade(g);
+  assert.deepEqual(explorer.model().comfort, ['A', 'B', 'C', 'D']);
+  explorer.change(field('keyNumbers', 'fingers'));
+  assert.match(explorer.render(), /left-hand fingers/);
+  explorer.change(field('handDouble', '', {checked: true}));
+  assert.equal(explorer.model().handModel.double, true);
+  explorer.change(field('handScale', '5'));
+  assert.match(explorer.model().error, /60 to 150/);
+  explorer.change(field('handScale', '110'));
+  assert.equal(explorer.model().handModel.scale, 110);
+  assert.equal(explorer.model().error, '');
+  // The panel's other controls: wrist and gap sliders, grade bands and per-finger numbers.
+  const panel = explorer.render();
+  assert.match(panel, /class="hand-diagram-svg"/);
+  assert.equal((panel.match(/class="hand-tip"/g) ?? []).length, 5);
+  explorer.change(field('handScale', '110'));
+  const finger = index => explorer.click(node({shapeAction: 'hand-finger', index: String(index)}));
+  assert.match(panel, /data-index="4"[^>]*aria-pressed="true"/);
+  finger(4);
+  assert.equal(explorer.model().handModel.fingers[4].on, false);
+  assert.equal((explorer.render().match(/class="hand-tip"/g) ?? []).length, 4);
+  for (const i of [0, 1, 2]) finger(i);
+  finger(3);
+  assert.match(explorer.model().error, /at least one finger/);
+  assert.equal(explorer.model().handModel.fingers[3].on, true);
+  for (const i of [0, 1, 2, 4]) finger(i);
+  assert.ok(explorer.model().handModel.fingers.every(f => f.on));
+  const slide = (name, value) => ({...field(name, value), type: 'range'});
+  assert.equal(explorer.input({...slide('handRest', '20'), parentElement: null}), true);
+  assert.equal(explorer.model().handModel.rest, 20, 'a dragged slider moves the model at once');
+  explorer.change(slide('handRest', '20'));
+  explorer.change(slide('handInward', '60'));
+  explorer.change(slide('handOutward', '25'));
+  explorer.change(slide('handGap', '6'));
+  assert.deepEqual(
+    ['rest', 'inward', 'outward', 'gap'].map(key => explorer.model().handModel[key]),
+    [20, 60, 25, 6]
+  );
+  const band = (index, value) => ({
+    ...field('handGrade', value),
+    dataset: {shapeField: 'handGrade', index}
+  });
+  explorer.change(band('1', '20'));
+  assert.match(explorer.model().error, /A below B below C/);
+  assert.deepEqual(explorer.model().handModel.grades, [30, 90, 170]);
+  explorer.change(band('1', '100'));
+  assert.deepEqual(explorer.model().handModel.grades, [30, 100, 170]);
+  const own = (index, key, value) => ({
+    ...field('handFingerValue', value),
+    dataset: {shapeField: 'handFingerValue', index, key}
+  });
+  explorer.change(own('3', 'use', '30'));
+  assert.equal(explorer.model().handModel.fingers[3].use, 30);
+  explorer.change(own('3', 'along', '9'));
+  assert.match(explorer.model().error, /0\.05 to 5/);
+  assert.equal(explorer.model().handModel.fingers[3].along, 0.45);
+  explorer.click(node({shapeAction: 'hand-reset'}));
+  assert.equal(explorer.model().handModel.rest, 10);
+  explorer.change(field('handScale', '110'));
+  explorer.change(field('handDouble', '', {checked: true}));
+  const kept = explorer.serialize().hand;
+  assert.deepEqual(
+    [kept.side, kept.order, kept.comfort, kept.keyNumbers, kept.model.scale, kept.model.double],
+    ['L', 'geometry', ['A', 'B', 'C', 'D'], 'fingers', 110, true]
+  );
+  const again = createShapeExplorer({...options});
+  again.restore(JSON.parse(JSON.stringify(explorer.serialize())));
+  assert.equal(again.model().hand, 'L');
+  assert.equal(again.model().handModel.scale, 110);
+  again.restore({version: 1, inputs: [], hand: {comfort: 'B'}});
+  assert.deepEqual(again.model().comfort, ['A', 'B'], 'dropdown-era sessions keep their cut-off');
+  again.restore({version: 1, inputs: []});
+  assert.equal(again.model().hand, 'R');
+  assert.equal(again.model().order, 'inversion');
+  explorer.click(node({shapeAction: 'hand-reset'}));
+  explorer.click(node({shapeAction: 'hand-side', side: 'R'}));
+  for (const [name, value] of [
+    ['order', 'inversion'],
+    ['keyNumbers', 'tones']
+  ])
+    explorer.change(field(name, value));
+  assert.equal(explorer.model().handModel.scale, 100);
+  assert.equal(explorer.model().handModel.double, false);
+}
 assert.match(html, /1\/6:5:4|10:12:15/);
 assert.match(html, /4:5:6/);
 

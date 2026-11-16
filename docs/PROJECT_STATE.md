@@ -1162,8 +1162,13 @@ enabled keys, a span of 6 key spacings (0 = whole board), all registers, 250,000
 (at most 1,000,000) and 20,000 fingerings. Optional root degree, root button, register and Play-scale
 filters apply to forward search. Results stop at the first limit and say which; counts are then lower
 bounds, and an empty result never proves absence or essential temperament. Results are a gallery of
-shape cards, 24 per page, ranked by geometry score `100 / (1 + span + mean pair distance)` in
-neighbouring-key spacings, a compactness heuristic rather than a playability model. Each card draws its
+shape cards, 24 per page. The search ranks them by geometry score
+`100 / (1 + span + mean pair distance)` in neighbouring-key spacings, a compactness heuristic. The view
+then orders them by inversion (the default): root position first, then the 1st inversion, the 2nd and so
+on, each group easiest first by the hand model's strain (D-053). Inversion is the card's reading's
+`possibleInversions[0]`, the lowest tone in the exact JI order (`harmonic-bass.mjs#inversionName`), and
+each card names it ("1st inversion of 4:5:6"). Order can instead be Easiest fingering first or Most
+compact first. Each card draws its
 pattern at one fixed key size (`hexboard-view.mjs#fingeringPattern`), turned like the board, with
 chord-tone numbers and the root outlined, so compact and spread shapes are told apart at a glance.
 Choosing a card opens the shape on the row below it (choosing it again closes it): its readings and
@@ -1193,6 +1198,8 @@ targets or limits clears them.
 | Concern | Owner |
 | --- | --- |
 | Axial cells, translation IDs, orientations, distances, geometry score, board structure key | `geometric-shapes.mjs` |
+| One-hand fingering, strain, comfort grades, natural-hand baselines, two-key presses | `hand-model.mjs` |
+| Hand-model dropdown: markup, control validation, hand picture | `hand-model-ui.mjs` |
 | Board placement index and cooperative key assignment (shared with `chordPlacements`) | `hexboard-chords.mjs` |
 | Forward search, reverse identification, reference lifts, doublings | `chord-shapes.mjs` |
 | Bounded JI source universe for searches | `shape-targets.mjs` |
@@ -1206,7 +1213,21 @@ the current board for the saved chord without loading its temperament or layout.
 preset backups as an optional `shapes` list; older backups import unchanged. Sessions keep the Shapes
 view's targets, limits, filters and chosen shape, not results.
 
-Not implemented: finger assignments and hands, ergonomic ratings, weighted target collections, layout
+Hand model (D-053). `hand-model.mjs` gives every key pattern a one-hand fingering (fingers 1 thumb to
+5 little), a strain and a comfort grade A to D. It is pure geometry: axial cells, the board's quarter
+turns (`handBasis`), a hand (the left is the mirror image) and a model of a resting hand in millimetres.
+Strain is counted from the most natural position the hand has for the same number of keys, found by
+laying the resting fingertips on the key lattice, so every key count has a grade-A position at any hand
+size or key spacing. Optionally one finger presses two touching keys. Patterns with more keys than the
+fingers in use can cover are not rated. The Shapes view owns the settings (hand, order, comfort filter,
+key numbers as chord tones or fingers) and its "Hand model" dropdown (`hand-model-ui.mjs`: a picture of
+the resting fingertips, hand size, key spacing, resting turn, wrist limits, finger gap,
+two-key presses and cost, fingers in use, grade bands and every per-finger number), saves them in its
+session record as an optional `hand` object, and re-rates found shapes without searching again. Ratings are per pattern, so all of a shape's fingerings share one. The model's numbers are
+estimates and are not validated on an instrument.
+
+Not implemented: two-hand fingerings, fingering across a chord change, ergonomic ratings outside the
+Shapes view (Chord → places, Note → chords, composition routes), weighted target collections, layout
 ranking by chords, and comparison across temperaments. Without a Worker, the JI chord-space enumeration
 runs as one synchronous stage, as it does for the harmony directory; at extreme limits (odd limit 45 in
 an 11-limit temperament) it blocks for about two seconds.
