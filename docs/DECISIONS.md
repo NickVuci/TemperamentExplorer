@@ -1225,3 +1225,32 @@ rating wherever it lies on the board, so board edges and reach from a previous c
 Session records gain an optional `hand` object and older sessions load with the defaults. A second
 ergonomic scorer must not be added elsewhere: other views that need comfort should call this
 module.
+
+## D-054 — Preludes are composed structure-first and stored as voiced chords with attached figures
+
+**Decision.** The Prelude panel composes a figuration prelude in three pure stages
+(`composition-prelude.mjs`): a harmonic plan (formal function, bass degree and chord for each
+harmony), voice leading (a fixed number of sounding voices per harmony, fitted to the saved
+layout's enabled keys), and a figure (the order in which voice slots sound). `writePrelude` stores
+the result with no new format: each harmony is an ordinary chord event whose tones are its voiced
+structural pitches, and its figure is a version 1 figuration pattern whose ranks are voice slots.
+The plan, its function labels and the options are kept in the chord events' free-form `source`
+(`kind: 'prelude'`). Practice stages are presets of the existing Play settings.
+
+**Rationale.** Thoroughbass pedagogy (Niedt, C. P. E. Bach's plan of tonic frame, bass octave,
+dominant pedal and closing frame, and Lester's reading of Bach's pattern preludes) treats the
+broken surface as a projection of voice-led harmony. The earlier generator chose chord tones at
+random per figure, so nothing connected one harmony to the next. Because `orderedChord` already
+ranks a chord's written pitches low to high, a voiced chord plus rank references gives voice-slot
+figuration through the existing compile, transport, cue, fingering and Play paths, and the block
+chords are the reduction a player practises first.
+
+**Consequences.** Harmony comes from the chord directory's root-position chords while the app
+matches the composition, and otherwise from the scale's most concordant three-note chords; the
+concordance measure (9-odd-limit fit) only ranks candidates and is not an interval classification.
+The leading and neighbour degrees are chosen by voice-leading pull toward the home chord, with the
+degrees nearest 3/2 and 4/3 preferred when the scale has them. Non-chord tones, suspensions and
+changes of register within a figure are not generated; a hand-drawn figure can still be attached
+to any harmony. The random texture generator remains in the figure editor for single figures. Do
+not add a second prelude or progression format: extend the plan or the figure sequences.
+

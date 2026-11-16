@@ -190,6 +190,8 @@ export function createGameController({
   releaseHeld = () => {},
   // Told when a run's lit keys change, so a connected HexBoard can show them at once.
   onLights = () => {},
+  // Told when a pass ends with its results: {summary, settings, section}.
+  onResult = () => {},
   raf = globalThis.requestAnimationFrame?.bind(globalThis),
   cancel = globalThis.cancelAnimationFrame?.bind(globalThis),
   storage = browserStorage(),
@@ -650,6 +652,7 @@ export function createGameController({
     phase = 'results';
     waitingTick = null;
     cleanAudio();
+    onResult({summary, settings: {...s}, section: {...run.section}});
     refresh();
     if (s.repeat) {
       if (s.mode === 'learn') again(true);
@@ -1336,6 +1339,17 @@ export function createGameController({
     finishCalibration,
     leave,
     fingering: () => fingering(),
+    /** Sets several setup choices at once (a practice stage's preset); ignored during a run. */
+    configure(patch) {
+      if (phase === 'running') return false;
+      if (phase !== 'setup') leave();
+      settings = normalizeSettings({...settings, ...patch});
+      previewTick = null;
+      rings.clear();
+      message = '';
+      save();
+      return true;
+    },
     /** After the host rebuilds the page: carry on drawing. */
     resume() {
       if (phase === 'running') loop();

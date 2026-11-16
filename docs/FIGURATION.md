@@ -1,5 +1,33 @@
 # Figuration preludes
 
+## Compose a prelude
+
+**Create → Compose** opens with the **Prelude** panel. It works in three steps.
+
+1. **Harmony.** Choose a plan: **Tonic frame**, **Bass octave**, **Sequence** or **My chords**
+   (your own chord lane). Set the home degree and the number of voices. Each card is one harmony,
+   with its place in the form, its chord and its bass. Press a card to hear it. Where a bass can
+   carry other chords, the counter on the card steps through them. The line chart shows the bass
+   and the top voice across the piece.
+2. **Figure.** Choose the order in which the voices sound, the note value, how long each harmony
+   lasts and how the notes are held. **Hear the harmonies** plays the plan as block chords.
+   **Write the prelude** fills the chord lane and attaches the figure; Undo takes it back in one
+   step. Melody notes you have written stay.
+3. **Practice on the HexBoard.** Five stages, each opening Play with its settings chosen: the
+   harmonies as held chords, the figure on one harmony, each section, the whole prelude at your
+   own pace, then in time from 60% speed. A completed stage is marked.
+
+The harmonies are voice-led before any figure is applied: the bass follows the plan, the upper
+voices move as little as they can and stay on keys of the saved layout, and the top voice rises
+toward a high point about two-thirds through. The figure only spreads those voices through time.
+Chords come from the chord directory while the app is set to the composition's tuning and scale;
+otherwise the plan uses the scale's most concordant three-note chords and says so.
+
+To change one harmony's figure by hand, select its chord and use **Edit attached figure** below.
+
+## Draw a figure by hand
+
+
 In **Create → Compose**, arrange your harmonies in the chord lane. Select a chord,
 open **Figuration**, and choose **New figure**. The roll becomes a pattern editor
 whose numbered rows follow that reference chord from lowest to highest pitch.

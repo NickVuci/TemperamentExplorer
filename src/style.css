@@ -8916,3 +8916,363 @@ footer {
   vertical-align: middle;
   accent-color: var(--mint);
 }
+
+/* Prelude panel: harmonic plan, figure and practice ladder. */
+.prelude-panel {
+  margin-block: 12px;
+}
+.prelude-panel > summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 17px;
+}
+.prelude-lede,
+.prelude-note {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 8px 0 0;
+  max-width: 68ch;
+}
+.prelude-note {
+  min-height: 3em;
+}
+.prelude-steps {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.prelude-step {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--inset-bg);
+}
+.prelude-step h4 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+.prelude-num {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--b);
+  border-radius: 50%;
+  color: var(--b);
+  font: 500 13px var(--font-mono);
+}
+.prelude-plans,
+.prelude-figures,
+.prelude-actions,
+.prelude-controls,
+.prelude-section-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.prelude-controls {
+  gap: 8px 14px;
+  margin-top: 12px;
+}
+.prelude-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.prelude-controls select {
+  padding: 6px 8px;
+  color: var(--text);
+}
+.prelude-panel button[aria-pressed='true'] {
+  border-color: var(--a);
+  background: #26304a;
+  color: #fff;
+}
+.prelude-contour {
+  display: block;
+  width: 100%;
+  height: 84px;
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--board-bg);
+}
+.prelude-contour rect {
+  fill: transparent;
+}
+.prelude-contour rect.is-motion {
+  fill: rgb(130 156 255 / 7%);
+}
+.prelude-contour rect.is-pedal {
+  fill: rgb(131 206 190 / 8%);
+}
+.prelude-contour polyline {
+  fill: none;
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+}
+.prelude-contour-top {
+  stroke: var(--a);
+  stroke-dasharray: 4 3;
+}
+polyline.prelude-contour-bass {
+  stroke: var(--b);
+}
+circle.prelude-contour-bass {
+  fill: var(--b);
+}
+.prelude-slots {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 6px;
+}
+.prelude-slot {
+  position: relative;
+  min-width: 0;
+}
+.prelude-slot > button:first-child {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  min-height: 74px;
+  padding: 8px 8px 8px 10px;
+  text-align: left;
+  border-top: 3px solid var(--line);
+  align-content: start;
+}
+.prelude-slot.is-frame > button:first-child,
+.prelude-slot.is-close > button:first-child {
+  border-top-color: var(--b);
+}
+.prelude-slot.is-motion > button:first-child {
+  border-top-color: var(--a);
+}
+.prelude-slot.is-pedal > button:first-child,
+.prelude-slot.is-approach > button:first-child,
+.prelude-slot.is-cadence > button:first-child {
+  border-top-color: var(--mint);
+}
+.prelude-slot-fn {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.prelude-slot b {
+  font: 500 13px var(--font-mono);
+  overflow-wrap: anywhere;
+}
+.prelude-slot small {
+  font-size: 12px;
+  color: var(--muted);
+}
+.prelude-slot-alt {
+  position: absolute;
+  top: 7px;
+  right: 5px;
+  padding: 1px 5px;
+  font: 11px var(--font-mono);
+  color: var(--muted);
+}
+.prelude-status {
+  min-height: 3em;
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.prelude-error {
+  color: var(--danger, #f98b8b);
+}
+.prelude-figures button {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+.prelude-figure-diagram line {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.prelude-figure-diagram circle {
+  fill: var(--a);
+}
+.prelude-figure-diagram circle.is-bass {
+  fill: var(--b);
+}
+.prelude-actions {
+  margin-top: 14px;
+}
+.prelude-ladder {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  counter-reset: rung;
+}
+.prelude-ladder > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 8px;
+}
+.prelude-ladder > li > button,
+.prelude-ladder > li > div {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 9px 12px;
+  text-align: left;
+}
+.prelude-ladder > li > div {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.prelude-ladder small {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+  font-weight: 400;
+}
+.prelude-section-buttons {
+  margin-top: 6px;
+}
+.prelude-section-buttons button {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+.prelude-done {
+  font-size: 16px;
+  text-align: center;
+}
+/* An earned mark: completed rungs are drawn in gold foil. */
+.prelude-ladder .is-done .prelude-done,
+.prelude-section-buttons button.is-done {
+  background: linear-gradient(120deg, #b98a2e, #f6e3a1 45%, #e9c46a 60%, #a8792a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.prelude-section-buttons button.is-done {
+  border-color: var(--b);
+}
+@media (max-width: 1100px) {
+  .prelude-steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A run fills the screen: the score bar on top, the highway and the HexBoard sharing the rest, so
+   nothing needs scrolling while both hands are on the keys. */
+.game.is-running {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0;
+  padding: 10px max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left));
+  background: var(--bg);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+.game.is-running .game-hud {
+  margin-bottom: 0;
+}
+.game.is-running .game-stage {
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
+}
+.game.is-running .game-highway,
+.game.is-running .game-board-wrap {
+  min-height: 0;
+}
+.game.is-running .game-road {
+  min-height: 0;
+  height: auto;
+}
+.game.is-running .game-board-wrap {
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  place-items: center;
+  padding: 8px;
+}
+/* Many lanes on a short screen grow thinner before any is cut off. */
+.game.is-running .game-lanes,
+.game.is-running .game-window {
+  --lane-h: clamp(11px, calc(100cqh / var(--lanes)), 84px);
+}
+.game.is-running .game-lanes span,
+.game.is-running .game-note b {
+  font-size: clamp(9px, calc(var(--lane-h) - 6px), 14px);
+  line-height: 1;
+}
+.game.is-running .composition-board.hex-board {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}
+.game-stats .game-stage-name dd {
+  font: 600 16px/1.6 var(--font-ui);
+  white-space: nowrap;
+}
+@media (max-width: 1000px) {
+  .game.is-running {
+    gap: 8px;
+    padding-top: 8px;
+  }
+  .game.is-running .game-stage {
+    grid-template-rows: minmax(110px, 0.8fr) minmax(0, 1.2fr);
+    gap: 8px;
+  }
+  .game.is-running .game-hud {
+    gap: 6px 12px;
+    padding: 8px 10px 0;
+  }
+  .game.is-running .game-stats {
+    gap: 14px;
+  }
+  .game.is-running .game-stats dd {
+    font-size: 17px;
+  }
+  .game.is-running .game-stats .game-stage-name dd {
+    font-size: 14px;
+  }
+  .game.is-running .game-controls button {
+    min-height: 32px;
+    padding: 4px 10px;
+    font-size: 13px;
+  }
+}
+/* The rung to take next. */
+.prelude-ladder button.is-next {
+  border-color: var(--b);
+  box-shadow: inset 3px 0 var(--b);
+}
+/* The app header steps aside for a run; it returns with the results. */
+body:has(.game.is-running) .app-header {
+  visibility: hidden;
+}
+.game.is-running .game-note {
+  --note-h: min(max(calc(var(--lane-h) - 12px), calc(var(--lane-h) * 0.72)), 56px);
+}

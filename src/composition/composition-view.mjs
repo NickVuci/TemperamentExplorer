@@ -8,6 +8,7 @@ import {renderGame} from './composition-game-view.mjs';
 import {equivalencePolicy, quotientCoordinate} from '../harmonic/harmonic-equivalence.mjs';
 import {rootedChordName} from '../harmonic/harmonic-bass.mjs';
 import {renderFiguration} from './composition-figuration-view.mjs';
+import {renderPrelude} from './composition-prelude-view.mjs';
 import {orderedChord, octaveVector, playableChordTones} from './composition-figuration.mjs';
 import {
   DIVISIONS,
@@ -296,7 +297,7 @@ function projectBar(v) {
   const p = v.project,
     locked = v.mode === 'game' ? 'disabled' : '';
   if (!p)
-    return `<div class="composition-start"><p>Build a chord progression, write a melody and see how to play it on your HexBoard.</p>${btn('new', 'New composition from the current Play setup')}${btn('open', 'Open composition…')}<p class="viewnote">Current setup: ${esc(v.appSummary)}</p></div>`;
+    return `<div class="composition-start"><p>Compose a figuration prelude from a harmonic plan, or build a progression and melody by hand, then learn it on your HexBoard.</p>${btn('new', 'New composition from the current Play setup')}${btn('open', 'Open composition…')}<p class="viewnote">Current setup: ${esc(v.appSummary)}</p></div>`;
   return `<details class="composition-project-menu"><summary>${esc(p.name)} · Project</summary><div class="composition-bar"><label class="composition-name"><span>Name</span><input data-comp-field="name" ${locked} value="${esc(p.name)}" maxlength="80"></label><div class="composition-meter" role="group" aria-labelledby="composition-meter-label"><span id="composition-meter-label">Meter</span><div class="composition-meter-fields"><input type="number" data-comp-field="meterNum" ${locked} min="1" max="32" value="${p.meter.numerator}" aria-label="Beats per bar"><span aria-hidden="true">/</span><select data-comp-field="meterDen" ${locked} aria-label="Beat unit">${[1, 2, 4, 8, 16, 32].map(d => option(d, d, p.meter.denominator)).join('')}</select></div></div><label class="composition-groups"><span>Beat groups</span><input data-comp-field="meterGroups" ${locked} value="${esc(groupsText(meterGroups(p.meter)))}" placeholder="${esc(groupsText(meterGroups({numerator: p.meter.numerator, denominator: p.meter.denominator})))}" aria-describedby="composition-groups-note"><small id="composition-groups-note">How each bar’s beats are grouped, such as 2+2+3 for 7/8. The roll draws and shades each group.</small></label><div class="composition-project-actions" role="group" aria-label="Project actions">${btn('save', 'Save composition…')}${btn('open', 'Open…')}${btn('new', 'New composition')}${btn('close', 'Close')}</div></div></details>
  <p class="composition-context" data-comp-context>${esc(p.context.name)} · ${p.context.scale.n} notes · mode ${p.context.scale.mode + 1} · ${esc(p.context.tuning.method ?? 'manual tuning')}</p>
  ${v.matchesApp || v.mode === 'game' ? '' : `<p class="composition-notice" role="status">The app is set to a different tuning or scale than this composition. The composition keeps its own. ${btn('load-context', 'Load the composition’s setup into the app')}</p>`}`;
@@ -701,10 +702,10 @@ export function renderSelectionPanel(v) {
 export function renderComposition(v) {
   const p = v.project;
   if (p && v.mode === 'game' && v.game)
-    return `${transportBar(v)}${projectBar(v)}${renderGame(v.game, {project: p, board: v.board})}${v.message ? `<p class="composition-message" role="status">${esc(v.message)}</p>` : ''}<input type="file" data-comp-file accept=".json,application/json" hidden>`;
+    return `${transportBar(v)}${projectBar(v)}${renderGame(v.game, {project: p, board: v.board, practice: v.practice})}${v.message ? `<p class="composition-message" role="status">${esc(v.message)}</p>` : ''}<input type="file" data-comp-file accept=".json,application/json" hidden>`;
   return `${p ? transportBar(v) : '<h2>Compose and play</h2>'}${projectBar(v)}${
     p
-      ? `${renderFiguration(v)}${timelineSection(v)}<div class="composition-lower"><section class="comp-panel comp-board-panel"><div class="comp-panel-heading"><h3>HexBoard</h3><div class="tabs comp-board-show" role="group" aria-label="Show on the board">${[
+      ? `${renderPrelude(v)}${renderFiguration(v)}${timelineSection(v)}<div class="composition-lower"><section class="comp-panel comp-board-panel"><div class="comp-panel-heading"><h3>HexBoard</h3><div class="tabs comp-board-show" role="group" aria-label="Show on the board">${[
           ['chords', 'Chords'],
           ['melody', 'Melody'],
           ['both', 'Both']

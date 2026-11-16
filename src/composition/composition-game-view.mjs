@@ -149,7 +149,7 @@ function setup(g, project, board) {
   <section class="game-board-wrap" aria-label="Preview"><div class="game-preview"><h4>Preview</h4><output data-game-preview aria-live="polite">${esc(preview.text)}</output><div class="game-preview-actions">${btn('game-preview-first', 'First', preview.hasNotes ? '' : 'disabled')}${btn('game-preview-prev', 'Previous', preview.hasNotes ? '' : 'disabled')}${btn('game-preview-next', 'Next', preview.hasNotes ? '' : 'disabled')}${btn('game-preview-hear', 'Hear', preview.hasNotes ? '' : 'disabled')}</div></div>${gameBoardMarkup(project, board)}<p class="game-hint">Play on this board, on a focused key with Enter, or on a connected HexBoard.</p></section></div>`;
 }
 
-function stage(g, project, board) {
+function stage(g, project, board, practice) {
   const {chart, lanes, targets} = g,
     from = chart.from,
     laneOf = new Map(lanes.map((l, i) => [l.id, i])),
@@ -187,7 +187,7 @@ function stage(g, project, board) {
       )
     : `${stat('Score', '0', 'data-game-score')}${stat('Accuracy', '100.0%', 'data-game-accuracy')}`;
   return `<div class="game-hud" role="group" aria-label="${wait ? 'Note progress' : 'Score'}">
-   <dl class="game-stats">${stats}${stat('Pass', g.pass ?? 1, '', 'game-pass')}</dl>
+   <dl class="game-stats">${practice ? stat(`Stage ${practice.index + 1} of ${practice.total}`, esc(practice.name), '', 'game-stage-name') : ''}${stats}${stat('Pass', g.pass ?? 1, '', 'game-pass')}</dl>
    ${wait ? '' : '<p class="game-combo" data-game-combo></p>'}
    <div class="game-controls">${wait ? btn('game-hear-current', 'Hear current notes', g.waitingTick === null || g.waitingTick === undefined ? 'hidden' : '') : ''}${btn('game-pause', g.paused ? '▶ Resume' : 'Ⅱ Pause')}${btn('game-restart', 'Restart')}${btn('game-quit', 'Quit')}</div>
    <div class="game-progress" aria-hidden="true"><i data-game-progress></i></div>
@@ -204,7 +204,7 @@ function stage(g, project, board) {
   </div>`;
 }
 
-function results(g) {
+function results(g, practice) {
   const r = g.summary,
     s = g.settings,
     t = r.timing,
@@ -257,7 +257,11 @@ function results(g) {
   ${counts}
   ${wait ? '' : `<div class="game-timing"><h4>Timing</h4><p>${tendency}${spread}</p>${histogram}</div>`}
   ${weak}${repeat}
-  <div class="game-actions">${again}${btn('game-setup', 'Change settings')}</div></div>`;
+  <div class="game-actions">${again}${
+    practice
+      ? `${practice.next ? `<button data-comp="prelude-practice" data-value="${esc(practice.next.id)}">Next stage: ${esc(practice.next.name)}</button>` : ''}<button data-comp="mode-compose">Back to the prelude</button>`
+      : ''
+  }${btn('game-setup', 'Change settings')}</div></div>`;
 }
 
 function calibrating(g, project, board) {
@@ -270,14 +274,14 @@ function calibrating(g, project, board) {
 }
 
 /** The Play workspace for the controller's view model `g`. */
-export function renderGame(g, {project, board}) {
+export function renderGame(g, {project, board, practice = null}) {
   if (!board)
     return `<section class="game"><p class="composition-notice">Playing needs the composition's HexBoard layout. Start a composition from a Play layout to play it.</p></section>`;
   const body =
     g.phase === 'running' && g.chart
-      ? stage(g, project, board)
+      ? stage(g, project, board, practice)
       : g.phase === 'results' && g.summary
-        ? results(g)
+        ? results(g, practice)
         : g.phase === 'calibrating' && g.calibration
           ? calibrating(g, project, board)
           : setup(g, project, board);

@@ -505,6 +505,65 @@ export const applyFiguration = (project, pattern, targets, {patternId = null} = 
     if (errors.length) throw Error(errors[0].message);
   });
 
+/**
+ * Replaces the chord lane with a composed prelude (composition-prelude `composePrelude`): its voiced
+ * harmonies become the chord events and each takes its figure as an attached pattern. One edit;
+ * written melody notes are left alone, and the harmony stays silent under the figure.
+ */
+export const writePrelude = (project, {harmonies, patterns, lengthTick}) =>
+  commit(project, p => {
+    if (!Array.isArray(harmonies) || !harmonies.length)
+      fail('prelude', 'expected at least one harmony');
+    const kind = c => p.tracks.find(t => t.id === c.trackId)?.kind;
+    const chords = p.clips.filter(c => kind(c) === 'chords'),
+      melody = p.tracks.find(t => t.kind === 'melody');
+    if (!chords.length || !melody) fail('prelude', 'needs a chord lane and a melody lane');
+    const clip = chords[0];
+    p.clips = p.clips.filter(c => c === clip || kind(c) !== 'chords');
+    clip.startTick = 0;
+    clip.repeat = 1;
+    clip.events = [];
+    const taken = allIds(p),
+      ids = Object.fromEntries(Object.keys(patterns).map(key => [key, newId('pattern', taken)]));
+    p.format = FIGURATED_COMPOSITION_FORMAT;
+    p.figuration = {
+      patterns: Object.entries(patterns).map(([key, pattern]) => ({
+        id: ids[key],
+        pattern: validatePattern(structuredClone(pattern))
+      })),
+      attachments: [],
+      soundHarmony: false
+    };
+    for (const h of harmonies) {
+      if (!ids[h.pattern]) fail('prelude', `unknown figure "${h.pattern}"`);
+      const e = makeEvent(
+        {
+          startTick: h.startTick,
+          durationTick: h.durationTick,
+          tones: h.tones.map(coordinate => ({coordinate})),
+          source: h.source
+        },
+        taken
+      );
+      clip.events.push(e);
+      p.figuration.attachments.push({
+        id: newId('attachment', taken),
+        patternId: ids[h.pattern],
+        chordClipId: clip.id,
+        chordEventId: e.id,
+        trackId: melody.id
+      });
+    }
+    const end = Math.max(lengthTick, ...clip.events.map(e => e.startTick + e.durationTick));
+    clip.lengthTick = end;
+    for (const c of p.clips)
+      if (c !== clip && c.repeat === 1 && c.startTick + c.lengthTick < end)
+        c.lengthTick = end - c.startTick;
+    p.loop = {enabled: false, startTick: 0, endTick: null};
+    const errors = compileFiguration(p).errors;
+    if (errors.length) throw Error(errors[0].message);
+  });
+
 export const removeFiguration = (project, attachmentId, {detach = false} = {}) =>
   commit(project, p => {
     const attachment = p.figuration?.attachments.find(a => a.id === attachmentId);

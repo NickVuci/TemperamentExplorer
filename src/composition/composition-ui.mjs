@@ -41,8 +41,17 @@ import {
   setSoundHarmony,
   newId,
   editMelodyEvents,
-  setClipLength
+  setClipLength,
+  writePrelude
 } from './composition-project.mjs';
+import {
+  composePrelude,
+  preludeMaterial,
+  normalizePreludeOptions,
+  writtenPreludeOptions,
+  preludeSections
+} from './composition-prelude.mjs';
+import {practiceRungs} from './composition-prelude-view.mjs';
 import {
   compileFiguration,
   orderedChord,
@@ -169,6 +178,33 @@ export function createCompositionWorkspace({
     savedFigures = [],
     figureLibraryError = '',
     figurePanelOpen = false;
+  // The Prelude panel: its options, the harmony picked in the plan, and the practice stage in play.
+  const prelude = {
+    open: true,
+    options: normalizePreludeOptions({}),
+    selectedSlot: null,
+    stage: null,
+    cache: null,
+    retry: null,
+    retries: 0
+  };
+  const PRACTICE_KEY = 'temperament-lab-prelude-practice';
+  const practiceStore = gameStorage ?? {
+    get(key) {
+      try {
+        return JSON.parse(globalThis.localStorage?.getItem(key) ?? 'null');
+      } catch {
+        return null;
+      }
+    },
+    set(key, value) {
+      try {
+        globalThis.localStorage?.setItem(key, JSON.stringify(value));
+      } catch {
+        /* storage is optional */
+      }
+    }
+  };
   const figureOptions = {
     name: 'New figure',
     contour: 'random',
@@ -272,6 +308,7 @@ export function createCompositionWorkspace({
     getExportMatch: () => ui.matchMode,
     releaseHeld: () => keyPlayer.reset(),
     onLights,
+    onResult: result => preludeResult(result),
     ...(raf ? {raf} : {raf: null}),
     ...(gameStorage ? {storage: gameStorage} : {})
   });
@@ -611,6 +648,7 @@ export function createCompositionWorkspace({
             localPatternId: figureEditor?.localPatternId
           }
         : null,
+      prelude: p && !figureEditor ? preludeModel(p) : null,
       selectedChord: ui.selectedChord,
       selected: new Set(ui.selected),
       addLength: ui.addLength,
@@ -662,6 +700,14 @@ export function createCompositionWorkspace({
       euclidRange: p ? euclidPlan().text : '',
       euclidPreview: euclidPreview(),
       game: ui.mode === 'game' ? game.view() : null,
+      practice: (() => {
+        if (!p || ui.mode !== 'game' || !prelude.stage) return null;
+        const rungs = practiceRungs(preludeSections(p)),
+          index = rungs.findIndex(r => r.id === prelude.stage);
+        return index < 0
+          ? null
+          : {name: rungs[index].name, index, total: rungs.length, next: rungs[index + 1] ?? null};
+      })(),
       message
     };
   }
@@ -672,6 +718,8 @@ export function createCompositionWorkspace({
     if (!host) return;
     const figurePanel = host.querySelector('.figuration-panel');
     if (figurePanel?.tagName === 'DETAILS') figurePanelOpen = figurePanel.open;
+    const preludePanel = host.querySelector('.prelude-panel');
+    if (preludePanel) prelude.open = preludePanel.open;
     input?.hideGhost();
     const active = doc.activeElement,
       sel =
@@ -1305,6 +1353,15 @@ export function createCompositionWorkspace({
     frame = raf(step);
   }
 
+  // A newly opened piece shows the options its prelude was written with.
+  function resetPrelude() {
+    const p = project();
+    prelude.options = (p && writtenPreludeOptions(p)) ?? normalizePreludeOptions({}, p?.context.scale.n);
+    prelude.selectedSlot = null;
+    prelude.stage = null;
+    prelude.cache = null;
+    prelude.retries = 0;
+  }
   function resetSelection() {
     ui.selectedChord = null;
     ui.selected = new Set();
@@ -1326,6 +1383,215 @@ export function createCompositionWorkspace({
     }
     refresh();
   }
+  // --- Prelude: plan, figure, write, practice ---------------------------------------------------
+  function preludeEvents(p) {
+    return p.clips
+      .filter(c => p.tracks.find(t => t.id === c.trackId)?.kind === 'chords')
+      .flatMap(c => c.events.map(e => ({e, at: c.startTick + e.startTick})))
+      .filter(x => x.e.source?.kind === 'prelude')
+      .sort((a, b) => a.at - b.at);
+  }
+  /** The plan as it would be written now; cached until the piece, the options or the directory change. */
+  function preludeDraft(p) {
+    const matches = matchesApp(p.context, getState());
+    let pending = false;
+    const entriesFor = degree => {
+      if (!matches) return [];
+      const entries = getRootEntries(degree);
+      if (entries == null) pending = true;
+      return entries;
+    };
+    const cells = boardModel().board?.keys ?? [];
+    let material;
+    try {
+      material = preludeMaterial(p.context, {entriesFor});
+    } catch (error) {
+      return {draft: null, error: error.message, pending, matches};
+    }
+    // While the directory lists, look again a few times; the plan then takes its chords.
+    if (pending && !prelude.retry && prelude.retries < 20) {
+      prelude.retries++;
+      prelude.retry = setTimeout(() => {
+        prelude.retry = null;
+        if (project() && ui.mode === 'compose' && !figureEditor) refresh();
+      }, 500);
+      prelude.retry.unref?.();
+    }
+    const key = JSON.stringify([
+      p.id,
+      p.revision,
+      prelude.options,
+      material.source,
+      material.byRoot.map(list => list.map(c => c.key)),
+      cells.length
+    ]);
+    if (prelude.cache?.key === key) return prelude.cache.value;
+    let value;
+    try {
+      value = {
+        draft: composePrelude(p, prelude.options, {material, cells}),
+        error: '',
+        pending,
+        matches
+      };
+    } catch (error) {
+      value = {draft: null, error: error.message.replace(/^Prelude: /, ''), pending, matches};
+    }
+    prelude.cache = {key, value};
+    return value;
+  }
+  function preludeModel(p) {
+    const {draft, error, pending, matches} = preludeDraft(p),
+      written = preludeEvents(p),
+      saved = written.length ? writtenPreludeOptions(p) : null;
+    return {
+      open: prelude.open,
+      options: prelude.options,
+      draft,
+      error: error ? error.charAt(0).toUpperCase() + error.slice(1) : '',
+      selectedSlot: prelude.selectedSlot,
+      written: written.length > 0,
+      count: written.length,
+      stale: !!saved && JSON.stringify(saved) !== JSON.stringify(prelude.options),
+      sections: written.length ? preludeSections(p) : [],
+      practice: practiceStore.get(PRACTICE_KEY)?.[p.id] ?? {},
+      melodyNotes: melody().events.length,
+      directoryNote: pending
+        ? 'scale triads for now; the chord directory is still listing'
+        : matches
+          ? 'scale triads; the chord directory lists none here'
+          : 'scale triads; load the composition’s setup into the app to use the chord directory'
+    };
+  }
+  function setPreludeOption(name, value) {
+    const next = {...prelude.options, [name]: value};
+    // A different plan, home or voice count lays out different slots; earlier picks no longer apply.
+    if (['plan', 'home', 'voices'].includes(name)) next.choices = {};
+    prelude.options = normalizePreludeOptions(next, project().context.scale.n);
+    if (name === 'plan' || name === 'home') prelude.selectedSlot = null;
+    refresh();
+  }
+  const slotCents = slot => slot.cents;
+  function preludeAction(action, el) {
+    const p = project();
+    if (!p) return;
+    if (action === 'practice') return startPractice(el.dataset.value);
+    const {draft, error} = preludeDraft(p),
+      index = Number(el.dataset.index);
+    if (action === 'plan' || action === 'figure') return setPreludeOption(action, el.dataset.value);
+    if (!draft) return say(error || 'Choose a plan first.');
+    if (action === 'slot' || action === 'alt') {
+      let slot = draft.slots[index];
+      if (!slot) return;
+      if (action === 'alt') {
+        const choices = {...prelude.options.choices},
+          next = (slot.choice + 1) % slot.alternatives.length;
+        if (next) choices[index] = next;
+        else delete choices[index];
+        prelude.options = normalizePreludeOptions({...prelude.options, choices}, p.context.scale.n);
+        slot = preludeDraft(p).draft?.slots[index] ?? slot;
+      }
+      prelude.selectedSlot = index;
+      // Once written, picking a harmony also selects its chord, so the board shows its buttons.
+      const written = preludeEvents(p);
+      if (action === 'slot' && written.length === draft.slots.length) {
+        ui.selectedChord = written[index].e.id;
+        onChordFocus(written[index].e.tones.map(t => [...t.coordinate]));
+      }
+      audio.previewChord?.(slotCents(slot));
+      refresh();
+      return;
+    }
+    if (action === 'hear') {
+      transport.stop();
+      audio.previewChords?.(draft.slots.map(slotCents), 0.75);
+      return;
+    }
+    if (action === 'write') {
+      transport.stop();
+      if (!edit('Write prelude', pr => writePrelude(pr, draft))) return;
+      ui.boardShow = 'melody';
+      prelude.selectedSlot = null;
+      ui.selectedChord = null;
+      resetPracticeProgress();
+      notify(`Prelude written: ${draft.slots.length} harmonies.`);
+      refresh();
+      return;
+    }
+    if (action === 'listen') {
+      audio.cancelGroup?.('preview');
+      void transport.seek(0).then(() => startPlayback());
+      return;
+    }
+  }
+  function resetPracticeProgress() {
+    const p = project(),
+      all = practiceStore.get(PRACTICE_KEY) ?? {};
+    if (!all[p.id]) return;
+    delete all[p.id];
+    practiceStore.set(PRACTICE_KEY, all);
+  }
+  /** Opens Play on one rung of the practice ladder, its settings chosen, and starts the run. */
+  function startPractice(stage) {
+    const p = project(),
+      written = preludeEvents(p);
+    if (!written.length) return say('Write the prelude first.');
+    const bar = barTicks(p.meter),
+      base = {match: 'exact', guide: 'quiet', lights: 'dark', trainer: false, repeat: false, speed: 100};
+    let patch;
+    if (stage === 'harmonies') patch = {...base, part: 'chords', mode: 'learn', section: 'all'};
+    else if (stage === 'one') {
+      if (!written.some(x => x.e.id === ui.selectedChord)) ui.selectedChord = written[0].e.id;
+      patch = {...base, part: 'melody', mode: 'learn', section: 'selected', repeat: true};
+    } else if (stage.startsWith('sections:')) {
+      const section = preludeSections(p)[Number(stage.slice(9))];
+      if (!section) return;
+      patch = {
+        ...base,
+        part: 'melody',
+        mode: 'learn',
+        section: 'bars',
+        fromBar: Math.floor(section.start / bar) + 1,
+        toBar: Math.max(Math.floor(section.start / bar) + 1, Math.ceil(section.end / bar))
+      };
+    } else if (stage === 'whole') patch = {...base, part: 'melody', mode: 'learn', section: 'all'};
+    else if (stage === 'time')
+      patch = {
+        ...base,
+        part: 'melody',
+        mode: 'play',
+        section: 'all',
+        speed: 60,
+        trainer: true,
+        targetSpeed: 100,
+        repeat: true,
+        countIn: 1
+      };
+    else return;
+    if (take) endTake();
+    releaseHeld();
+    transport.stop();
+    audio.cancelGroup?.('preview');
+    stepGroup.cancel();
+    ui.mode = 'game';
+    game.configure(patch);
+    prelude.stage = stage;
+    refresh();
+    game.start();
+  }
+  /** A finished pass marks its rung: any completed Wait pass, or a Timed pass at 80% or better at full speed. */
+  function preludeResult({summary, settings}) {
+    const p = project(),
+      stage = prelude.stage;
+    if (!p || !stage || !summary) return;
+    const passed =
+      settings.mode === 'learn' ? true : summary.accuracy >= 80 && settings.speed >= 100;
+    if (!passed) return;
+    const all = practiceStore.get(PRACTICE_KEY) ?? {};
+    all[p.id] = {...all[p.id], [stage]: true};
+    practiceStore.set(PRACTICE_KEY, all);
+  }
+
   function figurePattern() {
     if (!figureEditor) throw Error('Open a figure to draw or generate notes first.');
     const p = project();
@@ -1624,6 +1890,7 @@ export function createCompositionWorkspace({
       if (next.figuration?.attachments.length) ui.boardShow = 'melody';
       resetSelection();
       resetInput();
+      resetPrelude();
       cache = null;
       message = '';
       refresh();
@@ -1648,6 +1915,7 @@ export function createCompositionWorkspace({
       );
       resetSelection();
       resetInput();
+      resetPrelude();
       cache = null;
       message = '';
       refresh();
@@ -1952,6 +2220,12 @@ export function createCompositionWorkspace({
       return true;
     }
     try {
+      if (action.startsWith('prelude-')) {
+        // The next rung can be started from a finished run's results as well as from Compose.
+        if (canEdit() || (action === 'prelude-practice' && !game.running))
+          preludeAction(action.slice(8), el);
+        return true;
+      }
       if (action.startsWith('figure-')) {
         if (canEdit()) void figureAction(action).catch(error => say(error.message));
         return true;
@@ -2016,6 +2290,7 @@ export function createCompositionWorkspace({
             return true;
           }
           if (ui.mode === 'game') game.leave();
+          if (next !== 'game') prelude.stage = null;
           if (take) endTake();
           releaseHeld();
           if (next === 'game') transport.stop();
@@ -2417,6 +2692,10 @@ export function createCompositionWorkspace({
     const field = el.dataset?.compField;
     if (field === undefined) return false;
     if (field.startsWith('game')) return ui.mode === 'game' && game.change(field, el);
+    if (field.startsWith('prelude')) {
+      if (canEdit()) setPreludeOption(field.slice(7), el.value);
+      return true;
+    }
     if (!canEdit() && field !== 'matchMode') return true;
     const p = project(),
       value = el.value,
