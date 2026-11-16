@@ -2,9 +2,12 @@
 // structural voices fitted to the saved HexBoard, and voice-slot figures projected over them.
 // Pure data: no DOM, audio, randomness or app state. The output is ordinary chord events plus
 // figuration patterns, so playback, cues, fingering and practice use the existing systems.
-import {coordinateCents} from '../core/pitch.mjs';
+import {coordinateCents, octavePeriods} from '../core/pitch.mjs';
 import {targetsForLimits} from '../core/ji-limit-engine.mjs';
+import {mapMonzo, ratioMonzo} from '../core/ji-monzo.mjs';
 import {equivalencePolicy, quotientCoordinate} from '../harmonic/harmonic-equivalence.mjs';
+import {axialCell} from '../shapes/geometric-shapes.mjs';
+import {degreeOf} from './composition-context.mjs';
 import {PPQ, barTicks} from './composition-project.mjs';
 
 export const PRELUDE_PLANS = Object.freeze([
@@ -22,6 +25,11 @@ export const PRELUDE_PLANS = Object.freeze([
     id: 'cycle',
     name: 'Sequence',
     note: 'Roots move by the same scale interval until they return home.'
+  },
+  {
+    id: 'pump',
+    name: 'Comma pump',
+    note: 'Roots move by pure intervals around a comma this temperament tempers out, and arrive home.'
   },
   {id: 'own', name: 'My chords', note: 'The chord lane as it stands, voiced again and figured.'}
 ]);
@@ -42,6 +50,15 @@ export const PRELUDE_SUSTAINS = Object.freeze([
   ['all', 'Every note held'],
   ['none', 'Detached']
 ]);
+export const PRELUDE_DISSONANCES = Object.freeze([
+  ['none', 'None'],
+  ['suspensions', 'Suspensions'],
+  ['all', 'Suspensions and passing tones']
+]);
+export const PRELUDE_HANDS = Object.freeze([
+  ['comfort', 'Comfortable hand shapes'],
+  ['any', 'Closest voice leading']
+]);
 export const PRELUDE_FUNCTIONS = Object.freeze({
   frame: 'Frame',
   motion: 'Motion',
@@ -61,6 +78,9 @@ export const PRELUDE_DEFAULTS = Object.freeze({
   sustain: 'bass',
   variety: 'strict',
   climax: 70,
+  dissonance: 'none',
+  hand: 'comfort',
+  pump: 0,
   choices: {}
 });
 
@@ -107,6 +127,17 @@ export function normalizePreludeOptions(input = {}, scaleSize = 7) {
     ),
     variety: pick(['strict', 'developing'], input.variety, d.variety),
     climax: number(input.climax, 40, 90, d.climax),
+    dissonance: pick(
+      PRELUDE_DISSONANCES.map(x => x[0]),
+      input.dissonance,
+      d.dissonance
+    ),
+    hand: pick(
+      PRELUDE_HANDS.map(x => x[0]),
+      input.hand,
+      d.hand
+    ),
+    pump: number(input.pump, 0, 7, d.pump),
     choices
   };
 }
@@ -295,6 +326,186 @@ export function preludeMaterial(context, {entriesFor = () => []} = {}) {
   };
 }
 
+// --- comma pumps -----------------------------------------------------------------------------------
+
+// Root motions are tried from the simplest consonances outward; a pump is at most this many moves.
+const PUMP_LIMITS = [7, 9, 11, 13, 15],
+  PUMP_MOVES = 8,
+  PUMP_STATES = 30000;
+
+/** The ratios of one odd limit that the basis spells, each with its monzo and tempered image. */
+function rootMotions(context, oddLimit) {
+  const out = [];
+  for (const t of targetsForLimits(oddLimit)) {
+    let m;
+    try {
+      m = ratioMonzo([t.n, t.d], context.basis);
+    } catch {
+      continue;
+    }
+    if (!m.withinBasis) continue;
+    out.push({
+      ratio: `${t.n}/${t.d}`,
+      cents: t.c,
+      monzo: m.basisMonzo,
+      image: mapMonzo(context.rows, m.basisMonzo)
+    });
+  }
+  return out;
+}
+
+/** A comma written from its exponents on the basis (the octave's ignored), as a ratio above 1/1. */
+function commaName(basis, exponents, two) {
+  let cents = 0;
+  exponents.forEach((e, i) => {
+    if (i !== two) cents += e * 1200 * Math.log2(basis[i]);
+  });
+  let octaves = -Math.round(cents / 1200),
+    sign = 1;
+  if (cents + 1200 * octaves < 0) {
+    sign = -1;
+    octaves = -octaves;
+  }
+  let n = 1n,
+    d = 1n;
+  exponents.forEach((e, i) => {
+    const power = i === two ? octaves : sign * e;
+    if (power > 0) n *= BigInt(basis[i]) ** BigInt(power);
+    else if (power < 0) d *= BigInt(basis[i]) ** BigInt(-power);
+  });
+  return {ratio: `${n}/${d}`, cents: Math.abs(cents + 1200 * sign * octaves)};
+}
+
+/**
+ * Comma pumps that stay inside the scale, shortest first: closed walks of the root by consonant just
+ * intervals (the smallest odd limit that yields one) whose just sum is a comma, so that in this
+ * temperament the last move arrives exactly home. Each is `{ratio, cents, moves, roots}`: the comma,
+ * the ratios moved by in order, and the root after each move as `{degree, shift}` (`shift` periods
+ * above the degree's own octave class, for divided octaves). The last root is home.
+ */
+export function preludePumps(context, home = 0, leading = null) {
+  const space = pitchSpace(context),
+    two = context.basis.indexOf(2),
+    n = context.scale.n;
+  if (!space.vector || two < 0 || !context.scale.degrees[home]) return [];
+  const periods = octavePeriods(context),
+    members = new Map();
+  for (let degree = 0; degree < n; degree++)
+    for (let shift = 0; shift < periods; shift++) {
+      const m = homeOf(context, degree),
+        key = space.key([m[0] + shift, m[1]]);
+      if (!members.has(key)) members.set(key, {degree, shift});
+    }
+  const origin = homeOf(context, home),
+    homeKey = space.key(origin),
+    odd = monzo => monzo.map((e, i) => (i === two ? 0 : e)),
+    plus = (a, b) => a.map((v, i) => v + b[i]),
+    classOf = at => space.key(plus(origin, at)),
+    isZero = v => v.every(e => e === 0);
+  for (const limit of PUMP_LIMITS) {
+    const motions = rootMotions(context, limit),
+      inverse = motions.map(m =>
+        motions.findIndex(x => odd(x.monzo).every((e, i) => e === -odd(m.monzo)[i]))
+      );
+    if (!motions.length || inverse.includes(-1)) continue;
+    // Breadth first over just pitch classes, keeping every root on a scale degree.
+    const start = {ji: odd(motions[0].monzo).fill(0), at: [0, 0], parent: null, move: -1, depth: 0},
+      seen = new Map([[start.ji.join(','), start]]),
+      goals = [];
+    let frontier = [start];
+    for (
+      let depth = 1;
+      depth <= PUMP_MOVES && frontier.length && seen.size < PUMP_STATES;
+      depth++
+    ) {
+      const next = [];
+      for (const state of frontier)
+        for (let i = 0; i < motions.length; i++) {
+          const ji = plus(state.ji, odd(motions[i].monzo)),
+            id = ji.join(',');
+          if (seen.has(id)) continue;
+          const at = plus(state.at, motions[i].image),
+            key = classOf(at);
+          if (!members.has(key)) continue;
+          const reached = {ji, at, parent: state, move: i, depth};
+          seen.set(id, reached);
+          if (key === homeKey && !isZero(ji)) goals.push(reached);
+          else if (key !== homeKey) next.push(reached);
+        }
+      frontier = next;
+      if (goals.length >= 16) break;
+    }
+    const pumps = [],
+      named = new Set();
+    for (const goal of goals) {
+      const comma = commaName(context.basis, goal.ji, two);
+      if (named.has(comma.ratio)) continue;
+      named.add(comma.ratio);
+      const multiset = [];
+      for (let state = goal; state.parent; state = state.parent) multiset.push(state.move);
+      const walk = orderPump(
+        [multiset, multiset.map(i => inverse[i])],
+        motions,
+        {members, classOf, homeKey, plus},
+        leading
+      );
+      if (walk)
+        pumps.push({
+          ...comma,
+          moves: walk.order.map(i => motions[i].ratio),
+          roots: walk.roots,
+          oddLimit: limit
+        });
+    }
+    if (pumps.length)
+      return pumps.sort((a, b) => a.moves.length - b.moves.length || a.cents - b.cents).slice(0, 4);
+  }
+  return [];
+}
+
+/**
+ * The order in which a pump's moves are taken: every root on a scale degree, none visited twice,
+ * the leading degree last before home when it can be, and equal moves kept together as a sequence.
+ */
+function orderPump(multisets, motions, {members, classOf, homeKey, plus}, leading) {
+  let best = null;
+  for (const multiset of multisets) {
+    const pool = [...multiset].sort((a, b) => a - b),
+      used = pool.map(() => false),
+      order = [],
+      roots = [],
+      visited = new Set([homeKey]);
+    const visit = at => {
+      if (order.length === pool.length) {
+        const before = roots.at(-2);
+        let score = before && before.degree === leading && !before.shift ? 4 : 0;
+        if (Math.abs(motions[order.at(-1)].cents - 498.045) < 1) score += 1;
+        for (let i = 1; i < order.length; i++) if (order[i] === order[i - 1]) score += 1;
+        if (!best || score > best.score) best = {score, order: [...order], roots: [...roots]};
+        return;
+      }
+      for (let i = 0; i < pool.length; i++) {
+        if (used[i] || (i && pool[i] === pool[i - 1] && !used[i - 1])) continue;
+        const to = plus(at, motions[pool[i]].image),
+          key = classOf(to),
+          last = order.length === pool.length - 1;
+        if (last ? key !== homeKey : visited.has(key) || !members.has(key)) continue;
+        used[i] = true;
+        order.push(pool[i]);
+        roots.push({...members.get(key)});
+        if (!last) visited.add(key);
+        visit(to);
+        if (!last) visited.delete(key);
+        roots.pop();
+        order.pop();
+        used[i] = false;
+      }
+    };
+    visit([0, 0]);
+  }
+  return best;
+}
+
 // --- the plan ------------------------------------------------------------------------------------
 
 function planTools(context, material) {
@@ -422,6 +633,26 @@ export function planPrelude(project, material, options) {
     if (!list.length) return fixed(fn, bass, bass);
     add(fn, bass, list[0], list);
   };
+  // A root `shift` periods above its degree's own octave class (divided octaves): the degree's
+  // chords, moved with it.
+  const rooted = (fn, {degree, shift}) => {
+    if (!shift) return fixed(fn, degree, degree);
+    const up = m => [m[0] + shift, m[1]],
+      chords = onRoot(degree).map(c => {
+        const classes = c.classes.map(up);
+        return {
+          ...c,
+          classes,
+          rootClass: up(homeOf(context, degree)),
+          key: classes.map(tools.space.key).join('|'),
+          set: classes.map(tools.space.key).sort().join('|')
+        };
+      });
+    add(fn, degree, chords[0], chords);
+    slots.at(-1).bassClass = up(homeOf(context, degree));
+  };
+  let pump = null,
+    pumps = [];
   const frame = closing => {
     const fn = closing ? 'close' : 'frame';
     fixed(fn, home, home);
@@ -447,6 +678,23 @@ export function planPrelude(project, material, options) {
     fixed('pedal', directional, home, true);
     fixed('cadence', directional, directional);
     frame(true);
+  } else if (o.plan === 'pump') {
+    pumps = preludePumps(context, home, directional);
+    pump = pumps[Math.min(o.pump, pumps.length - 1)];
+    if (!pump)
+      fail(
+        'no comma pump of this temperament stays inside this scale; choose a larger scale, another home degree or another plan.'
+      );
+    // A short pump is walked twice, so the ear meets the arrival before the close confirms it.
+    const rounds = pump.roots.length < 5 ? 2 : 1;
+    fixed('frame', home, home);
+    for (let round = 0; round < rounds; round++)
+      pump.roots.forEach((root, i) => {
+        const left = pump.roots.length - 1 - i;
+        if (!left) fixed(round === rounds - 1 ? 'close' : 'frame', home, home);
+        else rooted(left === 1 ? 'cadence' : 'motion', root);
+        slots.at(-1).move = pump.moves[i];
+      });
   } else {
     // Roots fall by the directional interval, so the leading harmony arrives just before home.
     const stepDown = (((directional - home) % n) + n) % n || 1;
@@ -467,7 +715,16 @@ export function planPrelude(project, material, options) {
     slot.concordance = slot.chord.concordance;
     slot.inversion = classIn(slot.chord, slot.bass) > 0;
   });
-  return {slots, home, directional, neighbour, source: material.source, options: o};
+  return {
+    slots,
+    home,
+    directional,
+    neighbour,
+    source: material.source,
+    options: o,
+    pump,
+    pumps: pumps.map(x => ({ratio: x.ratio, cents: x.cents, moves: x.moves.length}))
+  };
 }
 
 function ownPlan(project, o) {
@@ -476,7 +733,9 @@ function ownPlan(project, o) {
     events = [];
   for (const c of project.clips) {
     if (project.tracks.find(t => t.id === c.trackId)?.kind !== 'chords') continue;
-    for (const e of c.events) events.push({...e, at: c.startTick + e.startTick});
+    // A written prelude's suspensions and passing tones are decoration, not harmonies of their own.
+    for (const e of c.events)
+      if (!e.source?.decoration) events.push({...e, at: c.startTick + e.startTick});
   }
   events.sort((a, b) => a.at - b.at);
   if (!events.length) fail('the chord lane is empty; add chords or choose another plan.');
@@ -518,7 +777,16 @@ function ownPlan(project, o) {
       inversion: space.key(ordered[0]) !== space.key(rootCoordinate)
     };
   });
-  return {slots, home: o.home, directional: null, neighbour: null, source: 'own', options: o};
+  return {
+    slots,
+    home: o.home,
+    directional: null,
+    neighbour: null,
+    source: 'own',
+    options: o,
+    pump: null,
+    pumps: []
+  };
 }
 
 // --- voice leading ---------------------------------------------------------------------------------
@@ -551,12 +819,82 @@ const isPerfect = (interval, span) => {
   return Math.min(size, span - size) < 12 || Math.abs(size - 701.955) < 12;
 };
 
+// Strain counted per hand is capped here, so one awkward chord cannot outweigh the voice leading; a
+// shape one hand cannot cover at all counts as the cap.
+const HAND_CAP = 400;
+const GRADES = 'ABCD';
+
+/**
+ * How two hands take a voicing on the board: the right hand the top three voices, the left the rest.
+ * `hands` is `{left, right}` raters from `createHandRater` (hand-model.mjs). Returns a function from
+ * sounding tones (lowest first) to `{cost, left, right}` with each hand's grade, or null to skip.
+ */
+function handJudge(space, usable, hands) {
+  if (!hands?.left?.rate || !hands?.right?.rate || !usable.length) return null;
+  const keys = new Map();
+  for (const cell of usable) {
+    let axial;
+    try {
+      axial = axialCell(cell);
+    } catch {
+      continue;
+    }
+    const id = (cell.coordinate ?? cell.m).join(',');
+    if (!keys.has(id)) keys.set(id, []);
+    if (keys.get(id).length < 3) keys.get(id).push(axial);
+  }
+  const rated = {left: new Map(), right: new Map()};
+  const rate = (side, cells) => {
+    const id = cells.map(c => `${c[0] - cells[0][0]},${c[1] - cells[0][1]}`).join(' ');
+    if (!rated[side].has(id)) {
+      let result = null;
+      try {
+        result = hands[side].rate(cells);
+      } catch {
+        result = null;
+      }
+      rated[side].set(id, result);
+    }
+    return rated[side].get(id);
+  };
+  // The least strain over the keys that sound these pitches (a pitch may have several keys).
+  const hand = (side, tones) => {
+    const choices = tones.map(t => keys.get(t.coordinate.join(',')) ?? []);
+    if (!tones.length) return {strain: 0, grade: 'A'};
+    if (choices.some(list => !list.length)) return {strain: HAND_CAP, grade: null};
+    let best = null;
+    const walk = (i, chosen) => {
+      if (i === choices.length) {
+        if (new Set(chosen.map(c => c.join(','))).size < chosen.length) return;
+        const r = rate(side, chosen);
+        if (r && (!best || r.strain < best.strain)) best = {strain: r.strain, grade: r.grade};
+        return;
+      }
+      for (const cell of choices[i]) walk(i + 1, [...chosen, cell]);
+    };
+    walk(0, []);
+    return best ?? {strain: HAND_CAP, grade: null};
+  };
+  return sounding => {
+    const split = sounding.length - Math.min(3, sounding.length - 1),
+      left = hand('left', sounding.slice(0, split)),
+      right = hand('right', sounding.slice(split));
+    return {
+      cost: Math.min(HAND_CAP, left.strain) + Math.min(HAND_CAP, right.strain),
+      left: left.grade,
+      right: right.grade
+    };
+  };
+}
+
 /**
  * Gives every slot its sounding voices, lowest first: the bass follows the plan's bass line in the
  * nearest register, and the upper voices move as little as possible while covering the chord, never
  * crossing, and carrying the top voice toward a registral high point at `options.climax` percent.
+ * With `hands` (see `handJudge`) a voicing's hand strain counts beside its voice leading, and each
+ * slot reports `hand: {left, right, grade}`, the grades of its two hand shapes and the worse of them.
  */
-export function voicePrelude(project, plan, cells = []) {
+export function voicePrelude(project, plan, cells = [], {hands = null} = {}) {
   const context = project.context,
     space = pitchSpace(context),
     o = plan.options,
@@ -567,6 +905,7 @@ export function voicePrelude(project, plan, cells = []) {
   const low = Math.min(...range),
     high = Math.max(...range);
   const bassClassOf = slot => slot.bassClass ?? homeOf(context, slot.bass);
+  const judge = o.hand === 'comfort' ? handJudge(space, usable, hands) : null;
   let previous = null,
     anchor = null,
     lift = 0,
@@ -651,6 +990,7 @@ export function voicePrelude(project, plan, cells = []) {
                 cost += 150;
             }
         }
+        if (judge && cost < bestCost - 1e-9) cost += judge([bass, ...chosen]).cost;
         if (cost < bestCost - 1e-9) {
           bestCost = cost;
           best = [...chosen];
@@ -676,6 +1016,7 @@ export function voicePrelude(project, plan, cells = []) {
       rootKey = slot.chord.rootClass
         ? space.key(slot.chord.rootClass)
         : space.key(slot.chord.classes[0]);
+    const shapes = judge?.(sounding) ?? null;
     return {
       ...slot,
       tones: sounding.map(t => [...t.coordinate]),
@@ -683,10 +1024,90 @@ export function voicePrelude(project, plan, cells = []) {
       rootTone: Math.max(
         0,
         sounding.findIndex(t => space.key(t.coordinate) === rootKey)
-      )
+      ),
+      ...(shapes
+        ? {
+            hand: {
+              left: shapes.left,
+              right: shapes.right,
+              grade:
+                shapes.left && shapes.right
+                  ? GRADES[Math.max(GRADES.indexOf(shapes.left), GRADES.indexOf(shapes.right))]
+                  : null
+            }
+          }
+        : {})
     };
   });
   return voiced;
+}
+
+// --- non-chord tones --------------------------------------------------------------------------------
+
+/**
+ * Marks the suspensions and passing tones the voice leading itself offers, one per harmony at most,
+ * as `slot.decoration = {kind, voice, tone}`. Each belongs to one voice and resolves by step:
+ * - a suspension: an upper voice that steps down into this harmony first holds its old pitch, when
+ *   that pitch is foreign to the new chord and its resolution is not already sounding above the bass;
+ * - a passing tone: an upper voice about to move a third takes the scale degree between, when that
+ *   pitch is foreign to the chord and has a key.
+ * Neither may cross a neighbouring voice. The opening frame is left plain, so that returning
+ * material is the richer. A decoration takes one sounding of the figure, so harmonies other than
+ * the last need the figure twice (`twice`).
+ */
+function decorate(context, slots, cells, o, twice) {
+  if (o.dissonance === 'none') return;
+  const space = pitchSpace(context),
+    n = context.scale.n,
+    usable = cells.filter(c => !c.command && c.enabled !== false && (c.coordinate ?? c.m)),
+    playable = new Set(usable.map(c => (c.coordinate ?? c.m).join(',')));
+  const position = m => {
+    const d = degreeOf(context, m);
+    return d ? d.degree + n * d.register : null;
+  };
+  const at = pos => {
+    const degree = ((pos % n) + n) % n,
+      home = homeOf(context, degree);
+    return [home[0] + Math.floor(pos / n), home[1]];
+  };
+  const foreign = (slot, m) => !slot.chord.classes.some(c => space.key(c) === space.key(m));
+  // The pitch fits strictly between the voices on either side of `voice`.
+  const clear = (slot, voice, m) => {
+    const cents = space.cents(m);
+    return (
+      cents > slot.cents[voice - 1] + 1 &&
+      (voice === slot.cents.length - 1 || cents < slot.cents[voice + 1] - 1)
+    );
+  };
+  slots.forEach((slot, i) => {
+    if (slot.fn === 'frame') return;
+    const last = i === slots.length - 1,
+      before = slots[i - 1],
+      after = slots[i + 1];
+    if (before && (twice || last))
+      for (let v = slot.tones.length - 1; v >= 1; v--) {
+        const held = before.tones[v],
+          from = position(held),
+          to = position(slot.tones[v]);
+        if (from === null || to === null || from - to !== 1) continue;
+        if (!foreign(slot, held) || !clear(slot, v, held)) continue;
+        const resolution = space.key(slot.tones[v]);
+        if (slot.tones.some((t, u) => u > 0 && u !== v && space.key(t) === resolution)) continue;
+        slot.decoration = {kind: 'suspension', voice: v, tone: [...held]};
+        return;
+      }
+    if (o.dissonance !== 'all' || !after || !twice) return;
+    for (let v = slot.tones.length - 1; v >= 1; v--) {
+      const from = position(slot.tones[v]),
+        to = position(after.tones[v]);
+      if (from === null || to === null || Math.abs(to - from) !== 2) continue;
+      const between = at((from + to) / 2);
+      if (playable.size && !playable.has(between.join(','))) continue;
+      if (!foreign(slot, between) || !clear(slot, v, between)) continue;
+      slot.decoration = {kind: 'passing', voice: v, tone: between};
+      return;
+    }
+  });
 }
 
 // --- figures ---------------------------------------------------------------------------------------
@@ -772,14 +1193,16 @@ export function preludeTiming(meter, options) {
  * The whole prelude as data: voiced harmonies in time with the figure each one takes, and the
  * figuration patterns those names refer to. `writePrelude` (composition-project) stores it.
  */
-export function composePrelude(project, options, {material, cells = []} = {}) {
+export function composePrelude(project, options, {material, cells = [], hands = null} = {}) {
   const context = project.context,
     o = normalizePreludeOptions(options, context.scale.n),
     stuff = material ?? preludeMaterial(context),
     plan = planPrelude(project, stuff, o),
-    slots = voicePrelude(project, plan, cells),
+    slots = voicePrelude(project, plan, cells, {hands}),
     timing = preludeTiming(project.meter, o),
-    voices = o.voices;
+    voices = o.voices,
+    space = pitchSpace(context);
+  decorate(context, slots, cells, o, timing.repeats === 2);
   const base = {stepTick: timing.stepTick, lengthTick: timing.cycle, sustain: o.sustain, voices};
   const figureName = PRELUDE_FIGURES.find(f => f.id === o.figure).name;
   const patterns = {
@@ -813,32 +1236,53 @@ export function composePrelude(project, options, {material, cells = []} = {}) {
   const motion = slots.map((s, i) => (s.fn === 'motion' ? i : -1)).filter(i => i >= 0),
     turn = motion.length ? motion[Math.floor(motion.length / 2)] : Infinity;
   let tick = 0;
-  const harmonies = slots.map((slot, index) => {
-    const last = index === slots.length - 1,
-      durationTick = last ? closeLength : timing.harmony;
-    let pattern = 'main';
-    if (last) pattern = 'close';
-    else if (o.variety === 'developing') {
-      if (slot.fn === 'pedal') pattern = 'pedal';
-      else if (slot.fn === 'cadence') pattern = 'cadence';
-      else if (slot.fn === 'motion' && index >= turn) pattern = 'answer';
-    }
-    const harmony = {
+  const harmonies = [];
+  // One chord event of a harmony: the whole of it, or the part that carries its decoration.
+  const segment = (slot, index, durationTick, pattern, decorated) => {
+    const d = decorated ? slot.decoration : null,
+      tones = d ? slot.tones.map((t, v) => (v === d.voice ? d.tone : t)) : slot.tones,
+      rootKey = space.key(slot.tones[slot.rootTone]);
+    harmonies.push({
       startTick: tick,
       durationTick,
-      tones: slot.tones,
+      tones,
       pattern,
       source: {
         kind: 'prelude',
+        slot: index,
         label: slot.chord.label,
-        rootTone: slot.rootTone,
+        rootTone: Math.max(
+          0,
+          tones.findIndex(t => space.key(t) === rootKey)
+        ),
         fn: slot.fn,
         role: PRELUDE_FUNCTIONS[slot.fn],
-        ...(index === 0 ? {prelude: o} : {})
+        ...(d ? {decoration: d.kind, voice: d.voice} : {}),
+        ...(harmonies.length ? {} : {prelude: o})
       }
-    };
+    });
     tick += durationTick;
-    return harmony;
+  };
+  slots.forEach((slot, index) => {
+    const last = index === slots.length - 1,
+      kind = slot.decoration?.kind;
+    let pattern = 'main';
+    if (o.variety === 'developing') {
+      if (slot.fn === 'pedal') pattern = 'pedal';
+      else if (slot.fn === 'cadence' || last) pattern = 'cadence';
+      else if (slot.fn === 'motion' && index >= turn) pattern = 'answer';
+    }
+    if (last) {
+      // The close may be delayed: the suspension sounds through one more harmony of the figure.
+      if (kind === 'suspension') segment(slot, index, timing.harmony, pattern, true);
+      segment(slot, index, closeLength, 'close', false);
+    } else if (kind === 'suspension') {
+      segment(slot, index, timing.cycle, pattern, true);
+      segment(slot, index, timing.harmony - timing.cycle, pattern, false);
+    } else if (kind === 'passing') {
+      segment(slot, index, timing.harmony - timing.cycle, pattern, false);
+      segment(slot, index, timing.cycle, pattern, true);
+    } else segment(slot, index, timing.harmony, pattern, false);
   });
   const used = new Set(harmonies.map(h => h.pattern));
   for (const key of Object.keys(patterns)) if (!used.has(key)) delete patterns[key];

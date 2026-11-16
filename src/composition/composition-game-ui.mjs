@@ -11,6 +11,7 @@ import {
   WINDOWS,
   INPUT_SLACK_MS,
   PARTS,
+  VOICES,
   MATCHES,
   MODES
 } from './composition-game.mjs';
@@ -58,6 +59,7 @@ const CAL_CLICKS = 12,
   CAL_BPM = 90;
 const DEFAULTS = Object.freeze({
   part: 'melody',
+  voice: 'all',
   match: 'exact',
   mode: 'play',
   speed: 100,
@@ -137,6 +139,7 @@ export function normalizeSettings(s = {}) {
   };
   return {
     part: pick(PARTS, s.part, DEFAULTS.part),
+    voice: pick(VOICES, s.voice, DEFAULTS.voice),
     match: pick(MATCHES, s.match, DEFAULTS.match),
     mode: pick(MODES, s.mode, DEFAULTS.mode),
     speed: int(s.speed, 10, 200, DEFAULTS.speed),
@@ -307,7 +310,16 @@ export function createGameController({
       )
     };
   }
-  const bestKey = (p, s, range) => [p.id, s.part, s.match, s.speed, range.from, range.to].join('|');
+  // The voice joins the key only when one is chosen, so scores saved before voices keep their place.
+  const bestKey = (p, s, range) =>
+    [
+      p.id,
+      s.voice === 'all' ? s.part : `${s.part}:${s.voice}`,
+      s.match,
+      s.speed,
+      range.from,
+      range.to
+    ].join('|');
   const bestFor = key => storage.get(BEST_KEY)?.[key] ?? null;
   function setupInfo() {
     const p = getProject();
@@ -315,7 +327,12 @@ export function createGameController({
     const range = section(p);
     const targets = range.unavailable
       ? []
-      : buildChart(p, {part: settings.part, from: range.from, to: range.to}).targets;
+      : buildChart(p, {
+          part: settings.part,
+          voice: settings.voice,
+          from: range.from,
+          to: range.to
+        }).targets;
     return {
       section: range,
       targets,
@@ -561,7 +578,7 @@ export function createGameController({
       return;
     }
     const {from, to} = info.section,
-      c = buildChart(p, {part: settings.part, from, to});
+      c = buildChart(p, {part: settings.part, voice: settings.voice, from, to});
     if (!c.targets.length) {
       message =
         'There are no notes to play in this part and section. Choose another part or section.';
@@ -1217,6 +1234,7 @@ export function createGameController({
     const value = el.value,
       map = {
         gamePart: 'part',
+        gameVoice: 'voice',
         gameMatch: 'match',
         gameMode: 'mode',
         gameSpeed: 'speed',

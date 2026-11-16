@@ -769,6 +769,7 @@ const compositionWorkspace = createCompositionWorkspace({
   notify: toast,
   download: (name, text, type) => download(name, text, type),
   onLights: () => hexboardSync.schedule(),
+  getHandModel: () => hexWorkspace.shapeExplorer.serialize().hand?.model ?? null,
   loadState: setup => {
     state = validate(setup);
     coverageSignature = scaleDefaultKey(state, coverageSettings(state));

@@ -814,21 +814,31 @@ prelude, with Sound harmony enabling accompaniment. Saved figures extend the bro
 and its backups. Compositions containing figuration use format v2; v1 remains readable and session
 envelopes are unchanged. See [Figuration preludes](FIGURATION.md) for the workflow.
 
-Prelude (D-054). Compose opens with a Prelude panel of three steps. Harmony: a plan (tonic frame;
-bass octave, which is opening frame, a bass scale falling an octave, a pedal on the leading degree
-and a closing frame; a sequence of roots moving by one scale interval; or the chord lane as it
-stands), a home degree and three to five voices. Each harmony is a card naming its formal function,
-chord and bass; pressing it sounds its voicing, and its counter steps through the other chords that
-hold that bass. A contour shows the bass line and top voice. Figure: five voice-order figures, note
+Prelude (D-054, D-055). Compose opens with a Prelude panel of three steps. Harmony: a plan (tonic
+frame; bass octave, which is opening frame, a bass scale falling an octave, a pedal on the leading
+degree and a closing frame; a sequence of roots moving by one scale interval; a comma pump; or the
+chord lane as it stands), a home degree and three to five voices. A comma pump moves the root by
+just consonances whose just sum is a comma the mapping tempers out, so the last move arrives home;
+the shortest pump that keeps every root in the scale is the default, others are offered, and a
+short one is walked twice. With Comfortable hand shapes (the default) the player's hand model
+(`hand-model.mjs`, from the shape explorer) weighs each voicing by the strain of its two hand
+shapes, the right hand taking the top three voices. Each harmony is a card naming its formal
+function, chord, bass, non-chord tone and hand grade; pressing it sounds its voicing, and its
+counter steps through the other chords that hold that bass. A contour shows the bass line and top
+voice. Figure: five voice-order figures, note
 value, harmony length, one or two cycles per harmony, touch, and whether the figure develops with
 the form (answered in the second half of the motion, an oscillation over the pedal, a contrary
-figure at the cadence); the last harmony always takes a held arpeggio. Write the prelude replaces
-the chord lane and attachments as one undoable edit and keeps written melody notes. Practice: five
-rungs that open Play with preset settings and start it (block harmonies in Wait; the figure on one
-harmony, repeated; each formal section; the whole piece in Wait; Timed from 60% with the speed
-trainer). A finished Wait pass, or a Timed pass at 80% or better at full speed, marks its rung in
-this browser (`temperament-lab-prelude-practice`). `composition-prelude.mjs` owns the plan, voice
-leading, figure sequences and timing; `composition-prelude-view.mjs` the panel.
+figure at the cadence); the last harmony always takes a held arpeggio. Non-chord tones are
+optional: suspensions, or suspensions and passing tones, each in one upper voice and taking one
+sounding of the figure, so a decorated harmony is written as two chord events. Write the prelude
+replaces the chord lane and attachments as one undoable edit and keeps written melody notes.
+Practice: seven rungs that open Play with preset settings and start it (block harmonies in Wait;
+the bass line alone; the top voice alone; the figure on one harmony, repeated; each formal section;
+the whole piece in Wait; Timed from 60% with the speed trainer). A finished Wait pass, or a Timed pass at 80% or better at full speed, marks its rung in
+this browser (`temperament-lab-prelude-practice`). `composition-prelude.mjs` owns the plan, pumps,
+voice leading, non-chord tones, figure sequences and timing; `composition-prelude-view.mjs` the
+panel. Play's Voice setting (every voice, bass, top or inner voices) charts one voice of the
+harmonies and their figures; `buildChart` reads a note's voice from its chord, low to high.
 
 Piano roll. Notes are placed on a time grid (`composition-grid.mjs`): a base division from 1/1 to 1/64,
 straight, dotted, triplet (3:2), quintuplet (5:4), septuplet (7:4) or any custom n:m tuplet, with
@@ -965,7 +975,7 @@ the layout the lit keys shine brightly over a dimmed background; Off shows the l
 suggested-key cues from the screen and device. Setup lights its previewed notes over the layout, and
 results show the layout. Calibration plays twelve clicks and stores
 the median lag of taps on the last eight; it is taken off every Timed press. Settings, that offset and
-the best score per composition, part, match, speed and section stay in this browser only.
+the best score per composition, part, voice, match, speed and section stay in this browser only.
 
 Create opens one composition at a time: a chord progression built from collected
 chords, a scale-degree piano roll, a looping tuned transport, and a game-ready cue

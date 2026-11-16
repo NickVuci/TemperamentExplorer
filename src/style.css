@@ -9276,3 +9276,19 @@ body:has(.game.is-running) .app-header {
 .game.is-running .game-note {
   --note-h: min(max(calc(var(--lane-h) - 12px), calc(var(--lane-h) * 0.72)), 56px);
 }
+
+/* A harmony card's second line: its non-chord tone and how the hands take it. */
+.prelude-slot > button:first-child {
+  min-height: 108px;
+}
+.prelude-slot .prelude-slot-more {
+  color: var(--mint);
+}
+.prelude-slot small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.prelude-panel .prelude-status {
+  min-height: 4.5em;
+}

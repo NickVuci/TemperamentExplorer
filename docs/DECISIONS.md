@@ -1249,8 +1249,40 @@ chords are the reduction a player practises first.
 matches the composition, and otherwise from the scale's most concordant three-note chords; the
 concordance measure (9-odd-limit fit) only ranks candidates and is not an interval classification.
 The leading and neighbour degrees are chosen by voice-leading pull toward the home chord, with the
-degrees nearest 3/2 and 4/3 preferred when the scale has them. Non-chord tones, suspensions and
-changes of register within a figure are not generated; a hand-drawn figure can still be attached
-to any harmony. The random texture generator remains in the figure editor for single figures. Do
+degrees nearest 3/2 and 4/3 preferred when the scale has them. Changes of register within a figure
+are not generated (non-chord tones: D-055); a hand-drawn figure can still be attached to any
+harmony. The random texture generator remains in the figure editor for single figures. Do
 not add a second prelude or progression format: extend the plan or the figure sequences.
+
+## D-055 — Pumps, non-chord tones and hand comfort extend the prelude without a new format
+
+**Decision.** Three additions to D-054 keep its storage (voiced chord events plus rank figures).
+
+- A comma pump is found, not listed: a breadth-first search over just pitch classes by consonant
+  root motions (the 7-odd-limit ratios the basis spells, then 9, 11, 13 and 15 if none is found),
+  keeping every root on a scale degree, until a class is reached whose tempered image is home while
+  its just sum is not a unison. The moves are then ordered so that no root repeats, the leading
+  degree comes last when it can, and equal moves stay together. For divided octaves a root may lie
+  whole periods above its degree's own octave class.
+- A suspension or passing tone is one voice of one harmony taking another pitch for one sounding
+  of the figure. It is written by splitting the harmony into two chord events, the decorated one
+  carrying the substituted tone, both marked with the same `source.slot`. The figure's rank
+  references then sound it in the same voice slot with no change to patterns.
+- Hand comfort is a cost on voicings: the strain `createHandRater` gives each hand's key shape,
+  capped per hand, added to the voice-leading cost. It reorders candidates only.
+
+**Rationale.** A pattern-level scale-step offset was the alternative for non-chord tones. It would
+have changed the figuration format, its validation, the figure editor and saved figures, and would
+have made dissonance a property of the figure rather than of the voice leading. Suspensions are
+harmonic events (prepared, held, resolved). In the pattern preludes this workflow is modelled on,
+a dissonance lasts a whole sounding of the figure, so splitting the harmony states it directly and
+gives the player the dissonant chord to practise as a block. A fixed pump catalogue would not follow custom
+temperaments, subgroups or the chosen scale; the search needs only the basis and mapping.
+
+**Consequences.** Decorations need the figure twice per harmony, except a suspension on the last
+harmony, which delays the close by one harmony. They are skipped in the opening frame so that
+returning material is the richer, and at most one voice of a harmony is decorated. Neighbour tones,
+anticipations and chromatic approaches are not generated. A plan's degrees still cover one period,
+so in a divided octave only the pump plan leaves the home period. `source.slot` identifies a
+harmony's events; code that maps plan slots to chord events must use it rather than position.
 

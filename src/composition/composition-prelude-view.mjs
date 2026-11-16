@@ -5,6 +5,8 @@ import {
   PRELUDE_FIGURES,
   PRELUDE_DIVISIONS,
   PRELUDE_SUSTAINS,
+  PRELUDE_DISSONANCES,
+  PRELUDE_HANDS,
   PRELUDE_FUNCTIONS,
   figureSequence
 } from './composition-prelude.mjs';
@@ -15,6 +17,8 @@ export const PRACTICE_STAGES = Object.freeze([
     name: 'The harmonies',
     note: 'Hold each harmony as a chord, at your own pace.'
   },
+  {id: 'bass', name: 'The bass line', note: 'The lowest voice alone, through the whole figure.'},
+  {id: 'top', name: 'The top voice', note: 'The highest voice alone, through the whole figure.'},
   {
     id: 'one',
     name: 'One harmony',
@@ -106,6 +110,9 @@ function contour(slots) {
     .join('')}</svg>`;
 }
 
+const DECORATIONS = {suspension: 'suspension', passing: 'passing tone'};
+const plural = (count, one, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
+
 function slotCard(slot, index, selected) {
   const root = slot.chord.root,
     name = `${root === null || root === undefined ? '' : `${root} - `}${slot.chord.label}`,
@@ -116,7 +123,13 @@ function slotCard(slot, index, selected) {
           ? 'root in bass'
           : `bass ${slot.bass}`;
   const more = slot.alternatives.length > 1;
-  return `<li class="prelude-slot is-${slot.fn}${selected ? ' is-selected' : ''}"><button data-comp="prelude-slot" data-index="${index}" aria-pressed="${selected}" title="Hear harmony ${index + 1}: ${esc(name)}, ${bass}"><span class="prelude-slot-fn">${PRELUDE_FUNCTIONS[slot.fn]}</span><b>${esc(name)}</b><small>${bass}${slot.pedal ? ' · held' : ''}</small></button>${more ? `<button class="prelude-slot-alt" data-comp="prelude-alt" data-index="${index}" title="Another chord on this bass (${slot.choice + 1} of ${slot.alternatives.length})" aria-label="Another chord for harmony ${index + 1}">${slot.choice + 1}/${slot.alternatives.length}</button>` : ''}</li>`;
+  // Two lines that are always there, so every card keeps its height: the non-chord tone, the hands.
+  const decoration = slot.decoration ? DECORATIONS[slot.decoration.kind] : '',
+    grade = slot.hand ? (slot.hand.grade ? `hands ${slot.hand.grade}` : 'wide reach') : '';
+  const hands = slot.hand
+    ? `. Left hand ${slot.hand.left ?? 'cannot cover it'}, right hand ${slot.hand.right ?? 'cannot cover it'}`
+    : '';
+  return `<li class="prelude-slot is-${slot.fn}${selected ? ' is-selected' : ''}"><button data-comp="prelude-slot" data-index="${index}" aria-pressed="${selected}" title="Hear harmony ${index + 1}: ${esc(name)}, ${bass}${hands}"><span class="prelude-slot-fn">${PRELUDE_FUNCTIONS[slot.fn]}</span><b>${esc(name)}</b><small>${bass}${slot.pedal ? ' · held' : ''}${slot.move ? ` · by ${esc(slot.move)}` : ''}</small><small class="prelude-slot-more">${decoration || '&nbsp;'}</small><small class="prelude-slot-hands">${grade || '&nbsp;'}</small></button>${more ? `<button class="prelude-slot-alt" data-comp="prelude-alt" data-index="${index}" title="Another chord on this bass (${slot.choice + 1} of ${slot.alternatives.length})" aria-label="Another chord for harmony ${index + 1}">${slot.choice + 1}/${slot.alternatives.length}</button>` : ''}</li>`;
 }
 
 export function renderPrelude(v) {
@@ -135,10 +148,37 @@ export function renderPrelude(v) {
         : draft.plan.source === 'mixed'
           ? 'directory chords, with scale triads where it lists none'
           : m.directoryNote;
+  const pump = draft?.plan.pump,
+    pumpNote = pump
+      ? ` · pumps ${esc(pump.ratio)} (${pump.cents.toFixed(2)}¢): roots move by ${esc(pump.moves.join(', '))}`
+      : '';
+  const suspensions = slots.filter(s => s.decoration?.kind === 'suspension').length,
+    passing = slots.filter(s => s.decoration?.kind === 'passing').length;
+  const decorationNote =
+    o.dissonance === 'none' || !draft
+      ? ''
+      : ` ${[
+          plural(suspensions, 'suspension'),
+          ...(o.dissonance === 'all' ? [plural(passing, 'passing tone')] : [])
+        ].join(
+          ', '
+        )}.${draft.timing.repeats === 2 ? '' : ' They need the figure twice per harmony; only a last suspension can sound.'}`;
   const status = m.error
     ? `<span class="prelude-error" role="alert">${esc(m.error)}</span>`
     : draft
-      ? `${slots.length} harmonies · ${draft.lengthTick / (draft.timing.harmony / o.bars)} bars${draft.plan.directional === null ? '' : ` · home ${draft.plan.home}, leading harmony on ${draft.plan.directional}`} · ${esc(sourceNote)}`
+      ? `${slots.length} harmonies · ${draft.lengthTick / (draft.timing.harmony / o.bars)} bars${draft.plan.directional === null ? '' : ` · home ${draft.plan.home}, leading harmony on ${draft.plan.directional}`}${pumpNote} · ${esc(sourceNote)}`
+      : '';
+  const pumpSelect =
+    o.plan === 'pump' && draft?.plan.pumps.length > 1
+      ? select(
+          'pump',
+          'Comma',
+          draft.plan.pumps.map((x, i) => [
+            i,
+            `${x.ratio} · ${x.cents.toFixed(2)}¢ · ${x.moves} moves`
+          ]),
+          Math.min(o.pump, draft.plan.pumps.length - 1)
+        )
       : '';
   const harmony = `<li class="prelude-step"><h4><span class="prelude-num">1</span>Harmony</h4><div class="prelude-plans" role="group" aria-label="Harmonic plan">${PRELUDE_PLANS.map(
     p => button('plan', p.name, {pressed: o.plan === p.id, extra: `data-value="${p.id}"`})
@@ -158,7 +198,7 @@ export function renderPrelude(v) {
       [5, 5]
     ],
     o.voices
-  )}</div>${contour(slots)}<ol class="prelude-slots">${slots.map((s, i) => slotCard(s, i, m.selectedSlot === i)).join('')}</ol><p class="prelude-status" role="status">${status}</p></li>`;
+  )}${select('hand', 'Voicing', PRELUDE_HANDS, o.hand)}${pumpSelect}</div>${contour(slots)}<ol class="prelude-slots">${slots.map((s, i) => slotCard(s, i, m.selectedSlot === i)).join('')}</ol><p class="prelude-status" role="status">${status}</p></li>`;
   const steps = draft?.timing.steps ?? 8;
   const figure = `<li class="prelude-step"><h4><span class="prelude-num">2</span>Figure</h4><div class="prelude-figures" role="group" aria-label="Figure">${PRELUDE_FIGURES.map(
     f =>
@@ -190,7 +230,7 @@ export function renderPrelude(v) {
       ['developing', 'Figure develops with the form']
     ],
     o.variety
-  )}</div><div class="prelude-actions">${button('hear', 'Hear the harmonies', {disabled: !draft})}${button('write', m.written ? 'Write again' : 'Write the prelude', {disabled: !draft, cls: 'primary'})}${button('listen', 'Listen', {disabled: !m.written})}</div><p class="prelude-status" role="status">${
+  )}${select('dissonance', 'Non-chord tones', PRELUDE_DISSONANCES, o.dissonance)}</div><div class="prelude-actions">${button('hear', 'Hear the harmonies', {disabled: !draft})}${button('write', m.written ? 'Write again' : 'Write the prelude', {disabled: !draft, cls: 'primary'})}${button('listen', 'Listen', {disabled: !m.written})}</div><p class="prelude-status" role="status">${
     m.written
       ? m.stale
         ? 'The settings have changed since the prelude was written. Write again to hear them.'
@@ -198,7 +238,7 @@ export function renderPrelude(v) {
       : m.melodyNotes
         ? `Writing replaces the chord lane. Your ${m.melodyNotes} melody notes stay.`
         : 'Writing fills the chord lane and attaches the figure. One step to undo.'
-  }</p></li>`;
+  }${esc(decorationNote)}</p></li>`;
   const done = id => !!m.practice?.[id];
   const upNext =
     m.written && !m.stale ? practiceRungs(m.sections).find(r => !done(r.id))?.id : null;

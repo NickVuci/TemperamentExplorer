@@ -7,7 +7,11 @@ import {
 } from '../src/composition/composition-project.mjs';
 import {compileFiguration} from '../src/composition/composition-figuration.mjs';
 import {compositionBoard} from '../src/composition/composition-board.mjs';
-import {coordinateCents} from '../src/core/pitch.mjs';
+import {coordinateCents, octavePeriods} from '../src/core/pitch.mjs';
+import {mapMonzo, ratioMonzo} from '../src/core/ji-monzo.mjs';
+import {degreeOf} from '../src/composition/composition-context.mjs';
+import {buildChart} from '../src/composition/composition-game.mjs';
+import {createHandRater, handModelDefaults} from '../src/shapes/hand-model.mjs';
 import {
   PRELUDE_PLANS,
   PRELUDE_FIGURES,
@@ -15,6 +19,7 @@ import {
   figureSequence,
   normalizePreludeOptions,
   preludeMaterial,
+  preludePumps,
   preludeSections,
   preludeTiming,
   writtenPreludeOptions
@@ -259,4 +264,215 @@ for (const file of readdirSync(dir).filter(f => f.endsWith('.json'))) {
 // Without a saved layout the voices take octave copies around the tonic.
 const bare = composePrelude({...meantone, layout: null}, {plan: 'frame'}, {cells: []});
 assert.equal(bare.slots.length, 7);
+
+// --- Comma pumps: closed walks of the root by just intervals whose just sum is a tempered comma.
+const near = (a, b) => Math.abs(a - b) < 0.0001;
+const syntonic = preludePumps(meantone.context, 0, 4)[0];
+assert.equal(syntonic.ratio, '81/80');
+assert.ok(near(syntonic.cents, 21.5063));
+// The syntonic comma pump in its classic order: I, vi, ii, V, I.
+assert.deepEqual(syntonic.moves, ['5/3', '4/3', '4/3', '4/3']);
+assert.deepEqual(
+  syntonic.roots.map(r => r.degree),
+  [5, 1, 4, 0]
+);
+const expectedPumps = {
+  '04-seven-quills-porcupine.composition.json': ['250/243', 49.1661],
+  '05-glass-harbor-magic.composition.json': ['3125/3072', 29.6136],
+  '06-half-octave-mirrors-pajara.composition.json': ['50/49', 34.9756]
+};
+for (const file of readdirSync(dir).filter(f => f.endsWith('.json'))) {
+  const p = open(file),
+    pumps = preludePumps(p.context, 0);
+  assert.ok(pumps.length, `${file}: a pump inside the scale`);
+  if (expectedPumps[file]) {
+    assert.equal(pumps[0].ratio, expectedPumps[file][0], file);
+    assert.ok(near(pumps[0].cents, expectedPumps[file][1]), file);
+  }
+  for (const pump of pumps) {
+    // The moves sum to the comma: not a unison in just intonation, a whole number of octaves here.
+    const monzos = pump.moves.map(r => ratioMonzo(r.split('/').map(Number), p.context.basis)),
+      sum = p.context.basis.map((_, i) => monzos.reduce((t, m) => t + m.basisMonzo[i], 0)),
+      image = mapMonzo(p.context.rows, sum);
+    assert.ok(
+      sum.some((e, i) => p.context.basis[i] !== 2 && e !== 0),
+      `${file} ${pump.ratio}: just sum is not a unison`
+    );
+    assert.equal(image[1], 0, `${file} ${pump.ratio}: tempered sum has no generator part`);
+    assert.equal(image[0] % octavePeriods(p.context), 0, `${file} ${pump.ratio}: whole octaves`);
+    assert.deepEqual(pump.roots.at(-1), {degree: 0, shift: 0});
+    assert.equal(pump.roots.length, pump.moves.length);
+  }
+}
+// Pajara's 64/63 is there too, and its shortest pump moves the root by the half octave.
+const pajara = open('06-half-octave-mirrors-pajara.composition.json'),
+  pajaraPumps = preludePumps(pajara.context, 0);
+assert.ok(near(pajaraPumps.find(x => x.ratio === '64/63').cents, 27.2641));
+assert.deepEqual(pajaraPumps[0].roots, [
+  {degree: 0, shift: 1},
+  {degree: 0, shift: 0}
+]);
+const pumped = composePrelude(meantone, {plan: 'pump'}, {cells});
+assert.equal(pumped.plan.pump.ratio, '81/80');
+assert.deepEqual(
+  pumped.slots.map(s => s.chord.root),
+  [0, 5, 1, 4, 0, 5, 1, 4, 0],
+  'a short pump is walked twice'
+);
+assert.deepEqual(
+  pumped.slots.map(s => s.fn),
+  ['frame', 'motion', 'motion', 'cadence', 'frame', 'motion', 'motion', 'cadence', 'close']
+);
+assert.deepEqual(
+  pumped.slots.slice(1, 5).map(s => s.move),
+  ['5/3', '4/3', '4/3', '4/3']
+);
+assert.ok(pumped.slots.every(s => s.bass === s.chord.root));
+assert.equal(
+  compileFiguration(writePrelude(pajara, composePrelude(pajara, {plan: 'pump'}))).errors.length,
+  0
+);
+
+// --- Non-chord tones: one voice of one harmony, held over or passing by step, never crossing.
+const position = (p, m) => {
+  const d = degreeOf(p.context, m);
+  return d.degree + p.context.scale.n * d.register;
+};
+assert.ok(composePrelude(meantone, {}, {cells}).slots.every(s => !s.decoration));
+const decorated = composePrelude(meantone, {dissonance: 'all'}, {cells}),
+  suspended = decorated.slots.filter(s => s.decoration?.kind === 'suspension'),
+  passing = decorated.slots.filter(s => s.decoration?.kind === 'passing');
+assert.ok(suspended.length > 0 && passing.length > 0);
+assert.deepEqual(
+  decorated.slots.map(s => s.tones),
+  made.slots.map(s => s.tones),
+  'decoration leaves the harmonies as they were'
+);
+decorated.slots.forEach((slot, i) => {
+  const d = slot.decoration;
+  if (!d) return;
+  assert.notEqual(slot.fn, 'frame', 'the opening frame stays plain');
+  assert.ok(d.voice >= 1, 'the bass is never decorated');
+  const cents = coordinateCents(meantone.context, d.tone);
+  assert.ok(cents > slot.cents[d.voice - 1] && cents < (slot.cents[d.voice + 1] ?? Infinity));
+  assert.ok(playable.has(key(d.tone)));
+  if (d.kind === 'suspension') {
+    assert.deepEqual(d.tone, decorated.slots[i - 1].tones[d.voice], 'prepared in the same voice');
+    assert.equal(position(meantone, d.tone) - position(meantone, slot.tones[d.voice]), 1);
+  } else {
+    const from = position(meantone, slot.tones[d.voice]),
+      to = position(meantone, decorated.slots[i + 1].tones[d.voice]);
+    assert.equal(Math.abs(to - from), 2);
+    assert.equal(position(meantone, d.tone), (from + to) / 2);
+  }
+});
+assert.ok(
+  composePrelude(meantone, {dissonance: 'suspensions'}, {cells}).slots.every(
+    s => s.decoration?.kind !== 'passing'
+  )
+);
+// A decorated harmony is two chord events: the decoration takes one sounding of the figure.
+const decoratedWritten = writePrelude(meantone, decorated),
+  decoratedEvents = decoratedWritten.clips[0].events;
+assert.equal(compileFiguration(decoratedWritten).errors.length, 0);
+const lastSuspended = decorated.slots.at(-1).decoration ? 1 : 0;
+assert.equal(decoratedEvents.length, 18 + suspended.length + passing.length);
+assert.equal(
+  decorated.lengthTick,
+  made.lengthTick + lastSuspended * decorated.timing.harmony,
+  'only a delayed close lengthens the piece'
+);
+for (const e of decoratedEvents) {
+  const slot = decorated.slots[e.source.slot],
+    d = e.source.decoration ? slot.decoration : null;
+  assert.deepEqual(
+    e.tones.map(t => t.coordinate),
+    slot.tones.map((t, v) => (d && v === d.voice ? d.tone : t))
+  );
+  if (d) assert.equal(e.source.decoration, d.kind);
+}
+for (const slot of suspended.filter(s => s !== decorated.slots.at(-1))) {
+  const [first, second] = decoratedEvents.filter(
+    e => e.source.slot === decorated.slots.indexOf(slot)
+  );
+  assert.equal(first.source.decoration, 'suspension', 'the suspension sounds first');
+  assert.equal(second.source.decoration, undefined);
+  assert.equal(first.durationTick, decorated.timing.cycle);
+  assert.equal(second.startTick, first.startTick + first.durationTick);
+}
+for (const slot of passing) {
+  const parts = decoratedEvents.filter(e => e.source.slot === decorated.slots.indexOf(slot));
+  assert.deepEqual(
+    parts.map(e => e.source.decoration),
+    [undefined, 'passing'],
+    'the passing tone comes last'
+  );
+}
+assert.deepEqual(writtenPreludeOptions(decoratedWritten), decorated.options);
+assert.deepEqual(
+  preludeSections(decoratedWritten).map(s => s.group),
+  ['frame', 'motion', 'pedal', 'close']
+);
+// Read back as My chords, the decorations are not harmonies of their own.
+assert.equal(composePrelude(decoratedWritten, {plan: 'own'}, {cells}).slots.length, 18);
+// With the figure once per harmony only a delayed close can sound.
+assert.ok(
+  composePrelude(meantone, {dissonance: 'all', repeats: 1}, {cells})
+    .slots.slice(0, -1)
+    .every(s => !s.decoration)
+);
+
+// --- Hand shapes: with the hand model, each harmony reports how the two hands take it.
+const rotation = meantone.layout.deviceRotation ?? 0,
+  hands = {
+    left: createHandRater(handModelDefaults(), {hand: 'L', rotation}),
+    right: createHandRater(handModelDefaults(), {hand: 'R', rotation})
+  };
+const comfortable = composePrelude(meantone, {hand: 'comfort'}, {cells, hands});
+for (const slot of comfortable.slots) {
+  assert.equal(slot.hand.left, 'A', 'the left hand has the bass alone');
+  assert.ok(['A', 'B', 'C', 'D', null].includes(slot.hand.right));
+  assert.ok(slot.tones.every(t => playable.has(key(t))));
+  assert.ok(slot.cents.every((c, v) => !v || c > slot.cents[v - 1] + 1));
+}
+assert.deepEqual(composePrelude(meantone, {hand: 'comfort'}, {cells, hands}), comfortable);
+// Without raters, or when the closest voice leading is asked for, the voicing is the plain one.
+assert.deepEqual(
+  composePrelude(meantone, {hand: 'any'}, {cells, hands}).slots.map(s => s.tones),
+  made.slots.map(s => s.tones)
+);
+assert.ok(composePrelude(meantone, {hand: 'any'}, {cells, hands}).slots.every(s => !s.hand));
+// The hands never make a harmony harder than the plain voicing's hardest.
+const worst = list => Math.max(...list.map(s => 'ABCD'.indexOf(s.hand.right ?? 'D')));
+const graded = handed =>
+  handed.slots.map(s => ({
+    hand: {right: hands.right.rate(shapeOf(s.tones.slice(-3)))?.grade ?? null}
+  }));
+function shapeOf(tones) {
+  return tones.map(t => {
+    const k = cells.find(c => c.enabled && !c.command && key(c.m) === key(t));
+    return [(k.x - k.y) / 2, k.y];
+  });
+}
+assert.ok(worst(comfortable.slots) <= worst(graded(made)));
+
+// --- One voice alone: Play can chart the bass, the top voice or the inner voices of the figure.
+const chart = voice => buildChart(written, {part: 'melody', voice}).targets,
+  chordAt = tick =>
+    written.clips[0].events.find(e => e.startTick <= tick && tick < e.startTick + e.durationTick);
+const whole = chart('all'),
+  bassLine = chart('bass'),
+  topLine = chart('top'),
+  inner = chart('inner');
+// Every figure note belongs to one voice; the melody notes written by hand belong to none.
+assert.equal(bassLine.length + topLine.length + inner.length, 17 * 12 + 4);
+assert.ok(whole.length > 17 * 12 + 4);
+// Two soundings of the figure in each of seventeen harmonies, and the closing arpeggio's first note.
+assert.equal(bassLine.length, 17 * 2 + 1);
+for (const t of bassLine) assert.deepEqual(t.coordinate, chordAt(t.tick).tones[0].coordinate);
+for (const t of topLine) assert.deepEqual(t.coordinate, chordAt(t.tick).tones.at(-1).coordinate);
+// The block harmonies can be taken one voice at a time as well.
+assert.equal(buildChart(written, {part: 'chords', voice: 'bass'}).targets.length, 18);
+assert.equal(buildChart(written, {part: 'chords'}).targets.length, 18 * 4);
+
 console.log('composition-prelude: ok');

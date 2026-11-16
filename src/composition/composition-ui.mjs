@@ -52,6 +52,7 @@ import {
   preludeSections
 } from './composition-prelude.mjs';
 import {practiceRungs} from './composition-prelude-view.mjs';
+import {createHandRater, handModelDefaults} from '../shapes/hand-model.mjs';
 import {
   compileFiguration,
   orderedChord,
@@ -162,6 +163,9 @@ export function createCompositionWorkspace({
   gameStorage,
   // Told when a Play run's lit keys change, so a connected HexBoard can show them at once.
   onLights = () => {},
+  // The player's hand model (hand-model.mjs), which the Prelude panel uses to prefer voicings that
+  // lie comfortably under the hands; null for the default hand.
+  getHandModel = () => null,
   raf = globalThis.requestAnimationFrame?.bind(globalThis),
   timer,
   figurationStore = browserPresetStore
@@ -185,6 +189,7 @@ export function createCompositionWorkspace({
     selectedSlot: null,
     stage: null,
     cache: null,
+    hands: null,
     retry: null,
     retries: 0
   };
@@ -1361,6 +1366,7 @@ export function createCompositionWorkspace({
     prelude.options =
       (p && writtenPreludeOptions(p)) ?? normalizePreludeOptions({}, p?.context.scale.n);
     prelude.selectedSlot = null;
+    if (['bass', 'top'].includes(prelude.stage)) game.configure({voice: 'all'});
     prelude.stage = null;
     prelude.cache = null;
     prelude.retries = 0;
@@ -1394,6 +1400,42 @@ export function createCompositionWorkspace({
       .filter(x => x.e.source?.kind === 'prelude')
       .sort((a, b) => a.at - b.at);
   }
+  /** Raters for the two hands on this composition's board, kept until the hand model or the board's turn changes. */
+  function preludeHands(p) {
+    let model = null;
+    try {
+      model = getHandModel();
+    } catch {
+      model = null;
+    }
+    model ??= handModelDefaults();
+    const rotation = p.layout?.deviceRotation ?? 0,
+      key = JSON.stringify([model, rotation]);
+    if (prelude.hands?.key !== key) {
+      let value = null;
+      try {
+        value = {
+          left: createHandRater(model, {hand: 'L', rotation}),
+          right: createHandRater(model, {hand: 'R', rotation})
+        };
+      } catch {
+        value = null;
+      }
+      prelude.hands = {key, value};
+    }
+    return prelude.hands;
+  }
+  /** The written chord of one harmony of the plan, while the written prelude is the one the panel shows. */
+  function writtenHarmony(p, index) {
+    const written = preludeEvents(p),
+      saved = written.length ? writtenPreludeOptions(p) : null;
+    if (!saved || JSON.stringify(saved) !== JSON.stringify(prelude.options)) return null;
+    return (
+      written.find(x => x.e.source.slot === index && !x.e.source.decoration)?.e ??
+      (written.every(x => x.e.source.slot === undefined) ? written[index]?.e : null) ??
+      null
+    );
+  }
   /** The plan as it would be written now; cached until the piece, the options or the directory change. */
   function preludeDraft(p) {
     const matches = matchesApp(p.context, getState());
@@ -1404,7 +1446,8 @@ export function createCompositionWorkspace({
       if (entries == null) pending = true;
       return entries;
     };
-    const cells = boardModel().board?.keys ?? [];
+    const cells = boardModel().board?.keys ?? [],
+      hands = prelude.options.hand === 'comfort' && cells.length ? preludeHands(p) : null;
     let material;
     try {
       material = preludeMaterial(p.context, {entriesFor});
@@ -1426,13 +1469,14 @@ export function createCompositionWorkspace({
       prelude.options,
       material.source,
       material.byRoot.map(list => list.map(c => c.key)),
-      cells.length
+      cells.length,
+      hands?.key ?? null
     ]);
     if (prelude.cache?.key === key) return prelude.cache.value;
     let value;
     try {
       value = {
-        draft: composePrelude(p, prelude.options, {material, cells}),
+        draft: composePrelude(p, prelude.options, {material, cells, hands: hands?.value ?? null}),
         error: '',
         pending,
         matches
@@ -1454,7 +1498,7 @@ export function createCompositionWorkspace({
       error: error ? error.charAt(0).toUpperCase() + error.slice(1) : '',
       selectedSlot: prelude.selectedSlot,
       written: written.length > 0,
-      count: written.length,
+      count: new Set(written.map(x => x.e.source.slot ?? x.e.id)).size,
       stale: !!saved && JSON.stringify(saved) !== JSON.stringify(prelude.options),
       sections: written.length ? preludeSections(p) : [],
       practice: practiceStore.get(PRACTICE_KEY)?.[p.id] ?? {},
@@ -1468,10 +1512,11 @@ export function createCompositionWorkspace({
   }
   function setPreludeOption(name, value) {
     const next = {...prelude.options, [name]: value};
-    // A different plan, home or voice count lays out different slots; earlier picks no longer apply.
-    if (['plan', 'home', 'voices'].includes(name)) next.choices = {};
+    // A different plan, home, pump or voice count lays out different slots; earlier picks no longer apply.
+    if (['plan', 'home', 'voices', 'pump'].includes(name)) next.choices = {};
+    if (name === 'plan' || name === 'home') next.pump = 0;
     prelude.options = normalizePreludeOptions(next, project().context.scale.n);
-    if (name === 'plan' || name === 'home') prelude.selectedSlot = null;
+    if (['plan', 'home', 'pump'].includes(name)) prelude.selectedSlot = null;
     refresh();
   }
   const slotCents = slot => slot.cents;
@@ -1496,10 +1541,10 @@ export function createCompositionWorkspace({
       }
       prelude.selectedSlot = index;
       // Once written, picking a harmony also selects its chord, so the board shows its buttons.
-      const written = preludeEvents(p);
-      if (action === 'slot' && written.length === draft.slots.length) {
-        ui.selectedChord = written[index].e.id;
-        onChordFocus(written[index].e.tones.map(t => [...t.coordinate]));
+      const written = action === 'slot' ? writtenHarmony(p, index) : null;
+      if (written) {
+        ui.selectedChord = written.id;
+        onChordFocus(written.tones.map(t => [...t.coordinate]));
       }
       audio.previewChord?.(slotCents(slot));
       refresh();
@@ -1541,6 +1586,7 @@ export function createCompositionWorkspace({
     if (!written.length) return say('Write the prelude first.');
     const bar = barTicks(p.meter),
       base = {
+        voice: 'all',
         match: 'exact',
         guide: 'quiet',
         lights: 'dark',
@@ -1550,6 +1596,8 @@ export function createCompositionWorkspace({
       };
     let patch;
     if (stage === 'harmonies') patch = {...base, part: 'chords', mode: 'learn', section: 'all'};
+    else if (stage === 'bass' || stage === 'top')
+      patch = {...base, part: 'melody', voice: stage, mode: 'learn', section: 'all'};
     else if (stage === 'one') {
       if (!written.some(x => x.e.id === ui.selectedChord)) ui.selectedChord = written[0].e.id;
       patch = {...base, part: 'melody', mode: 'learn', section: 'selected', repeat: true};
@@ -2300,6 +2348,9 @@ export function createCompositionWorkspace({
             return true;
           }
           if (ui.mode === 'game') game.leave();
+          // A single-voice stage leaves Play charting every voice again.
+          if (next !== 'game' && ['bass', 'top'].includes(prelude.stage))
+            game.configure({voice: 'all'});
           if (next !== 'game') prelude.stage = null;
           if (take) endTake();
           releaseHeld();

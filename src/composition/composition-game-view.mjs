@@ -89,6 +89,17 @@ function setup(g, project, board) {
      ],
      s.part
    )}
+   ${field(
+     'Voice',
+     'gameVoice',
+     [
+       ['all', 'Every voice'],
+       ['bass', 'Bass alone'],
+       ['top', 'Top voice alone'],
+       ['inner', 'Inner voices alone']
+     ],
+     s.voice
+   )}
    ${field('Section', 'gameSection', sectionOptions, s.section)}
    ${field(
      'Notes count when',

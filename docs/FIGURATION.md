@@ -4,18 +4,48 @@
 
 **Create → Compose** opens with the **Prelude** panel. It works in three steps.
 
-1. **Harmony.** Choose a plan: **Tonic frame**, **Bass octave**, **Sequence** or **My chords**
-   (your own chord lane). Set the home degree and the number of voices. Each card is one harmony,
-   with its place in the form, its chord and its bass. Press a card to hear it. Where a bass can
-   carry other chords, the counter on the card steps through them. The line chart shows the bass
-   and the top voice across the piece.
+1. **Harmony.** Choose a plan: **Tonic frame**, **Bass octave**, **Sequence**, **Comma pump** or
+   **My chords** (your own chord lane). Set the home degree and the number of voices. Each card is
+   one harmony, with its place in the form, its chord and its bass. Press a card to hear it. Where
+   a bass can carry other chords, the counter on the card steps through them. The line chart shows
+   the bass and the top voice across the piece.
 2. **Figure.** Choose the order in which the voices sound, the note value, how long each harmony
    lasts and how the notes are held. **Hear the harmonies** plays the plan as block chords.
    **Write the prelude** fills the chord lane and attaches the figure; Undo takes it back in one
    step. Melody notes you have written stay.
-3. **Practice on the HexBoard.** Five stages, each opening Play with its settings chosen: the
-   harmonies as held chords, the figure on one harmony, each section, the whole prelude at your
-   own pace, then in time from 60% speed. A completed stage is marked.
+3. **Practice on the HexBoard.** Seven stages, each opening Play with its settings chosen: the
+   harmonies as held chords, the bass line alone, the top voice alone, the figure on one harmony,
+   each section, the whole prelude at your own pace, then in time from 60% speed. A completed
+   stage is marked, and the results screen offers the next one.
+
+### Comma pump
+
+A comma pump moves the root by pure intervals (3/2, 5/4, 6/5, 7/4 and their kin) that, in just
+intonation, would end a comma away from where they began. In a temperament that tempers the comma
+out, the last move arrives exactly home. Meantone's is the syntonic comma pump (81/80): the root
+moves by 5/3, 4/3, 4/3, 4/3. The plan finds the shortest pump whose roots all lie in your scale;
+where the temperament has several, the **Comma** list offers them. Each card shows the interval
+its root moved by. A short pump is played twice.
+
+### Non-chord tones
+
+**Non-chord tones** adds suspensions, or suspensions and passing tones. Both come from the voice
+leading that is already there. A voice that steps down into a harmony may hold its old note for
+the first sounding of the figure and then resolve. A voice about to move by a third may take the
+note between for the last sounding. They need the figure **twice per harmony**; the opening frame
+is left plain. A decorated harmony appears as two chords in the chord lane.
+
+### Hand shapes
+
+With **Comfortable hand shapes**, the hand model from the shape explorer (your hand size and
+finger settings) rates how each voicing lies under the hands: the right hand takes the top three
+voices, the left the rest. Voicings that strain the hand are avoided where the voice leading
+allows, and each card shows the grade, A to D. **Closest voice leading** ignores the hands.
+
+### One voice at a time
+
+Play's **Voice** setting charts the bass, the top voice or the inner voices alone. The bass-line
+and top-voice practice stages use it.
 
 The harmonies are voice-led before any figure is applied: the bass follows the plan, the upper
 voices move as little as they can and stay on keys of the saved layout, and the top voice rises
