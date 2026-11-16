@@ -10,12 +10,15 @@ import {browserPresetStore} from '../presets/preset-store.mjs';
 import {shapePresetFromPlacement} from './shape-preset-data.mjs';
 import {validateChordShapeConstraints, chordShapeDefaults} from './chord-shapes.mjs';
 import {axialCell, shapeOrientations} from './geometric-shapes.mjs';
+import {createHandRater, handModelDefaults, normalizeHandModel} from './hand-model.mjs';
 import {
-  createHandRater,
-  handModelDefaults,
-  normalizeHandModel,
-  FINGER_NAMES
-} from './hand-model.mjs';
+  applyHandField,
+  toggleHandFinger,
+  handModelMarkup,
+  isHandModelField,
+  isHandSlider,
+  showHandLive
+} from './hand-model-ui.mjs';
 import {inversionName, rootedChordName} from '../harmonic/harmonic-bass.mjs';
 import {sourceShapeVoicing} from '../harmonic/harmonic-selection.mjs';
 import {validateHarmonicSelection} from '../harmonic/harmonic-types.mjs';
@@ -50,11 +53,6 @@ const comfortGrades = value => {
   return grades.length ? grades : (LEGACY_COMFORT[value] ?? [...GRADES]);
 };
 const GRADE_WORDS = {A: 'easy', B: 'fair', C: 'a stretch', D: 'awkward'};
-const HAND_FIELDS = {
-  handScale: ['scale', 60, 150],
-  handSpacing: ['spacing', 10, 40],
-  handDoubleCost: ['doubleCost', 0, 200]
-};
 const GEOMETRY_FILTERS = [
   ['all', 'All shapes'],
   ['same-size', 'Same key count'],
@@ -932,15 +930,28 @@ export function createShapeExplorer({
     ${
       result.shapes.length
         ? `<div class="shape-fields"><label class="checklabel"><input type="checkbox" data-shape-field="savedOnly" ${savedOnly ? 'checked' : ''}>Saved shapes only</label><label>Show<select data-shape-field="related">${GEOMETRY_FILTERS.map(([value, label]) => option(value, label, related)).join('')}</select>${related !== 'all' ? `<small>${reference ? `Compared with ${reference.kind === 'keys' ? 'the selected keys' : 'the chosen shape'}` : 'Choose a shape or identify keys to compare'}</small>` : ''}</label>
-     <label>Order<select data-shape-field="order">${option('inversion', 'Root position first, then inversions', order)}${option('comfort', 'Easiest fingering first', order)}${option('geometry', 'Most compact first', order)}</select></label><label>Hand<select data-shape-field="hand">${option('R', 'Right hand', handSide)}${option('L', 'Left hand', handSide)}</select></label>
+     <label>Order<select data-shape-field="order">${option('inversion', 'Root position first, then inversions', order)}${option('comfort', 'Easiest fingering first', order)}${option('geometry', 'Most compact first', order)}</select></label><div class="comfort-filter" role="group" aria-label="Hand"><span>Hand</span><div>${[
+       ['R', 'Right'],
+       ['L', 'Left']
+     ]
+       .map(([side, label]) =>
+         action(
+           'hand-side',
+           label,
+           `class="comfort hand-side" data-side="${side}" aria-pressed="${handSide === side}" title="${label} hand"`
+         )
+       )
+       .join('')}</div></div>
      <div class="comfort-filter" role="group" aria-label="Comfort grades to show"><span>Comfort</span><div>${GRADES.map(grade => action('comfort', grade, `class="comfort comfort-${grade.toLowerCase()}" data-grade="${grade}" aria-pressed="${comfort.includes(grade)}" title="${grade}: ${GRADE_WORDS[grade]}"`)).join('')}</div></div><label>Key numbers<select data-shape-field="keyNumbers">${option('tones', 'Chord tones', keyNumbers)}${option('fingers', 'Fingers', keyNumbers)}</select></label></div>
-    <details class="hand-model-options"><summary>Hand model</summary><div class="shape-fields">
-     <label>Hand size<input type="number" min="60" max="150" step="1" data-shape-field="handScale" value="${handModel.scale}"><small>Percent of a typical adult hand</small></label>
-     <label>Key spacing<input type="number" min="10" max="40" step="0.5" data-shape-field="handSpacing" value="${handModel.spacing}"><small>Millimetres between key centres; the HexBoard’s is 20</small></label>
-     <label>Two-key cost<input type="number" min="0" max="200" step="5" data-shape-field="handDoubleCost" value="${handModel.doubleCost}"><small>Strain added for each two-key press; the thumb pays half</small></label></div>
-     <label class="checklabel"><input type="checkbox" data-shape-field="handDouble" ${handModel.double ? 'checked' : ''}>One finger may press two touching keys</label>
-     <div class="hand-fingers" role="group" aria-label="Fingers in use">${FINGER_NAMES.map((name, i) => `<label class="checklabel"><input type="checkbox" data-shape-field="handFinger" data-index="${i}" ${handModel.fingers[i].on ? 'checked' : ''}>${i + 1} ${name}</label>`).join('')}</div>
-     <p>Each pattern is fingered for one hand by a model of a resting hand: the fingering that moves the fingers least from their rest spots wins. Comfort grades A to D count the strain above the most natural position this hand has for the same number of keys, so they follow the hand size and key spacing set here. The model’s numbers are estimates and have not been tested on an instrument.</p>${action('hand-reset', 'Reset hand model')}</details>`
+    ${handModelMarkup(handModel, {
+      hand: handSide,
+      rotation: rotation(),
+      open: {
+        panel: globalThis.document?.querySelector('.shape-explorer .hand-model-options')?.open,
+        advanced: globalThis.document?.querySelector('.shape-explorer .hand-advanced')?.open
+      },
+      reset: action('hand-reset', 'Reset hand model')
+    })}`
         : ''
     }
     ${!visible.some(shape => shape.id === selectedId) ? details() : ''}<div class="shape-cards">${visible
@@ -1147,6 +1158,19 @@ export function createShapeExplorer({
         page = 0;
         revealSelected();
       }
+      if (act === 'hand-side') {
+        if (!['R', 'L'].includes(el.dataset.side)) return true;
+        handSide = el.dataset.side;
+        error = '';
+        page = 0;
+        revealSelected();
+      }
+      if (act === 'hand-finger') {
+        handModel = toggleHandFinger(handModel, Number(el.dataset.index));
+        error = '';
+        page = 0;
+        revealSelected();
+      }
       if (act === 'hand-reset') {
         handModel = handModelDefaults();
         page = 0;
@@ -1188,7 +1212,26 @@ export function createShapeExplorer({
     }
     return true;
   }
+  // A re-render replaces the control being used; keyboard users keep their place.
+  function restoreFocus(el) {
+    const {shapeField, index, key} = el.dataset ?? {},
+      where = [shapeField && `[data-shape-field="${shapeField}"]`]
+        .concat(index !== undefined ? `[data-index="${index}"]` : [])
+        .concat(key !== undefined ? `[data-key="${key}"]` : [])
+        .join('');
+    if (shapeField) globalThis.document?.querySelector?.(`.shape-explorer ${where}`)?.focus?.();
+  }
   function input(el) {
+    // Dragging a hand slider moves its readout and the picture; the shapes are re-rated on release.
+    if (isHandSlider(el)) {
+      try {
+        handModel = applyHandField(handModel, el);
+        showHandLive(el, handModel, {hand: handSide, rotation: rotation()});
+      } catch {
+        // The release reports a bad value.
+      }
+      return true;
+    }
     if (el?.dataset?.shapeDraft === undefined) return false;
     draft = el.value.slice(0, 16000);
     return true;
@@ -1216,32 +1259,15 @@ export function createShapeExplorer({
         return true;
       }
       // Hand-model settings re-rate and re-order the shapes already found; nothing is searched again.
-      if (
-        ['order', 'hand', 'keyNumbers', 'handDouble', 'handFinger'].includes(field) ||
-        HAND_FIELDS[field]
-      ) {
+      if (['order', 'keyNumbers'].includes(field) || isHandModelField(field)) {
         if (field === 'order') order = normalizeOrder(el.value);
-        else if (field === 'hand') handSide = el.value === 'L' ? 'L' : 'R';
         else if (field === 'keyNumbers') keyNumbers = el.value === 'fingers' ? 'fingers' : 'tones';
-        else if (field === 'handDouble')
-          handModel = normalizeHandModel({...handModel, double: !!el.checked});
-        else if (field === 'handFinger') {
-          const fingers = handModel.fingers.map((finger, i) =>
-            i === Number(el.dataset.index) ? {...finger, on: !!el.checked} : finger
-          );
-          if (!fingers.some(finger => finger.on)) throw Error('Keep at least one finger in use.');
-          handModel = normalizeHandModel({...handModel, fingers});
-        } else {
-          const [name, low, high] = HAND_FIELDS[field],
-            n = Number(el.value);
-          if (el.value === '' || !Number.isFinite(n) || n < low || n > high)
-            throw Error(`Choose a value from ${low} to ${high}.`);
-          handModel = normalizeHandModel({...handModel, [name]: n});
-        }
+        else handModel = applyHandField(handModel, el);
         error = '';
         page = 0;
         revealSelected();
         refresh();
+        restoreFocus(el);
         return true;
       }
       if (field === 'universe') universe = el.value === 'directory' ? 'directory' : 'selected';

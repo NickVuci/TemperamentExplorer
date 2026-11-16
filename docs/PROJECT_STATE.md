@@ -1199,6 +1199,7 @@ targets or limits clears them.
 | --- | --- |
 | Axial cells, translation IDs, orientations, distances, geometry score, board structure key | `geometric-shapes.mjs` |
 | One-hand fingering, strain, comfort grades, natural-hand baselines, two-key presses | `hand-model.mjs` |
+| Hand-model dropdown: markup, control validation, hand picture | `hand-model-ui.mjs` |
 | Board placement index and cooperative key assignment (shared with `chordPlacements`) | `hexboard-chords.mjs` |
 | Forward search, reverse identification, reference lifts, doublings | `chord-shapes.mjs` |
 | Bounded JI source universe for searches | `shape-targets.mjs` |
@@ -1219,9 +1220,10 @@ Strain is counted from the most natural position the hand has for the same numbe
 laying the resting fingertips on the key lattice, so every key count has a grade-A position at any hand
 size or key spacing. Optionally one finger presses two touching keys. Patterns with more keys than the
 fingers in use can cover are not rated. The Shapes view owns the settings (hand, order, comfort filter,
-key numbers as chord tones or fingers, hand size, key spacing, two-key presses, fingers in use), saves
-them in its session record as an optional `hand` object, and re-rates found shapes without searching
-again. Ratings are per pattern, so all of a shape's fingerings share one. The model's numbers are
+key numbers as chord tones or fingers) and its "Hand model" dropdown (`hand-model-ui.mjs`: a picture of
+the resting fingertips, hand size, key spacing, resting turn, wrist limits, finger gap,
+two-key presses and cost, fingers in use, grade bands and every per-finger number), saves them in its
+session record as an optional `hand` object, and re-rates found shapes without searching again. Ratings are per pattern, so all of a shape's fingerings share one. The model's numbers are
 estimates and are not validated on an instrument.
 
 Not implemented: two-hand fingerings, fingering across a chord change, ergonomic ratings outside the
