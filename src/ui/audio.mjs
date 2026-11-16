@@ -309,7 +309,11 @@ export function createAudioEngine({
     // Block chords one after another, each `seconds` long (a harmonic skeleton).
     previewChords: (chords, seconds = 0.8, settings) =>
       playEvents(
-        chords.map((pitches, i) => ({pitches, offset: 0.03 + i * seconds, duration: seconds * 0.94})),
+        chords.map((pitches, i) => ({
+          pitches,
+          offset: 0.03 + i * seconds,
+          duration: seconds * 0.94
+        })),
         'preview',
         settings
       ),

@@ -1093,15 +1093,14 @@ export function createGameController({
   }
 
   // ---- the physical HexBoard: a run's lit keys on a dark board or over the layout, hits and misses flashed ----
-  function deviceSnapshot(held = []) {
+  function deviceSnapshot() {
     const p = playingProject(),
       board = playingBoard();
     if (!p || !board) return null;
     // Setup lights the previewed notes over the layout; results and calibration show the layout alone.
     const running = phase === 'running',
       snap = compositionDeviceSnapshot(p, board, [
-        ...(running ? lit : phase === 'setup' ? rings : []),
-        ...held
+        ...(running ? lit : phase === 'setup' ? rings : [])
       ]);
     if (!running) return snap;
     const dark = active().lights === 'dark';

@@ -200,18 +200,23 @@ export function renderPrelude(v) {
         : 'Writing fills the chord lane and attaches the figure. One step to undo.'
   }</p></li>`;
   const done = id => !!m.practice?.[id];
-  const upNext = m.written && !m.stale ? practiceRungs(m.sections).find(r => !done(r.id))?.id : null;
+  const upNext =
+    m.written && !m.stale ? practiceRungs(m.sections).find(r => !done(r.id))?.id : null;
   const stageButton = s => {
     if (s.id !== 'sections')
       return `<li class="${done(s.id) ? 'is-done' : ''}">${button('practice', `<b>${esc(s.name)}</b><small>${esc(s.note)}</small>`, {disabled: !m.written || m.stale, cls: upNext === s.id ? 'is-next' : '', extra: `data-value="${s.id}"`})}<span class="prelude-done" aria-label="${done(s.id) ? 'Completed' : 'Not yet completed'}">${done(s.id) ? '✓' : ''}</span></li>`;
     const parts = (m.sections ?? [])
       .map((x, i) => {
         const key = `sections:${i}`;
-        return button('practice', `${esc(SECTION_NAMES[x.group] ?? x.group)}${done(key) ? ' ✓' : ''}`, {
-          disabled: !m.written || m.stale,
-          cls: done(key) ? 'is-done' : upNext === key ? 'is-next' : '',
-          extra: `data-value="${key}"`
-        });
+        return button(
+          'practice',
+          `${esc(SECTION_NAMES[x.group] ?? x.group)}${done(key) ? ' ✓' : ''}`,
+          {
+            disabled: !m.written || m.stale,
+            cls: done(key) ? 'is-done' : upNext === key ? 'is-next' : '',
+            extra: `data-value="${key}"`
+          }
+        );
       })
       .join('');
     const all = (m.sections ?? []).length > 0 && m.sections.every((_, i) => done(`sections:${i}`));

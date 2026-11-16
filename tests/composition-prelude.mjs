@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import {readFileSync, readdirSync} from 'node:fs';
-import {parseProject, writePrelude, createHistory} from '../src/composition/composition-project.mjs';
+import {
+  parseProject,
+  writePrelude,
+  createHistory
+} from '../src/composition/composition-project.mjs';
 import {compileFiguration} from '../src/composition/composition-figuration.mjs';
 import {compositionBoard} from '../src/composition/composition-board.mjs';
 import {coordinateCents} from '../src/core/pitch.mjs';
@@ -109,7 +113,11 @@ for (let i = 1; i < made.slots.length; i++)
       Math.abs(made.slots[i].cents[v] - made.slots[i - 1].cents[v]) <= 720,
       `voice ${v} into harmony ${i + 1}`
     );
-assert.deepEqual(composePrelude(meantone, {plan: 'octave', voices: 4}, {cells}), made, 'deterministic');
+assert.deepEqual(
+  composePrelude(meantone, {plan: 'octave', voices: 4}, {cells}),
+  made,
+  'deterministic'
+);
 
 // Writing: one undoable edit that fills the chord lane and attaches the figure.
 const history = createHistory(meantone);
@@ -150,7 +158,13 @@ assert.equal(history.project, meantone);
 
 // A developing figure changes with the form; the strict one only at the close.
 const developing = composePrelude(meantone, {variety: 'developing'}, {cells});
-assert.deepEqual(Object.keys(developing.patterns).sort(), ['answer', 'cadence', 'close', 'main', 'pedal']);
+assert.deepEqual(Object.keys(developing.patterns).sort(), [
+  'answer',
+  'cadence',
+  'close',
+  'main',
+  'pedal'
+]);
 assert.equal(developing.harmonies.at(-1).pattern, 'close');
 assert.equal(developing.harmonies.find(h => h.source.fn === 'pedal').pattern, 'pedal');
 
@@ -170,9 +184,24 @@ const material = preludeMaterial(meantone.context, {
   entriesFor: d =>
     d === 0
       ? [
-          {rootPosition: true, root: home(0), chord: '8:10:15', coords: [up(0, 0), up(0, 2), up(0, 6)]},
-          {rootPosition: true, root: home(0), chord: '4:5:6', coords: [up(0, 0), up(0, 2), up(0, 4)]},
-          {rootPosition: false, root: home(0), chord: '4:5:6', coords: [up(0, 2), up(0, 4), up(0, 7)]}
+          {
+            rootPosition: true,
+            root: home(0),
+            chord: '8:10:15',
+            coords: [up(0, 0), up(0, 2), up(0, 6)]
+          },
+          {
+            rootPosition: true,
+            root: home(0),
+            chord: '4:5:6',
+            coords: [up(0, 0), up(0, 2), up(0, 4)]
+          },
+          {
+            rootPosition: false,
+            root: home(0),
+            chord: '4:5:6',
+            coords: [up(0, 2), up(0, 4), up(0, 7)]
+          }
         ]
       : []
 });
@@ -194,7 +223,11 @@ assert.deepEqual(
 );
 assert.ok(own.slots.every(s => s.tones.length === 3));
 assert.throws(
-  () => composePrelude({...meantone, clips: meantone.clips.map(c => ({...c, events: []}))}, {plan: 'own'}),
+  () =>
+    composePrelude(
+      {...meantone, clips: meantone.clips.map(c => ({...c, events: []}))},
+      {plan: 'own'}
+    ),
   /chord lane is empty/
 );
 
@@ -204,12 +237,23 @@ for (const file of readdirSync(dir).filter(f => f.endsWith('.json'))) {
   for (const plan of PRELUDE_PLANS.map(x => x.id))
     for (const voices of [3, 4])
       for (const figure of ['rise', 'weave']) {
-        const c = composePrelude(p, {plan, voices, figure, variety: 'developing'}, {cells: cellsOf(p)});
+        const c = composePrelude(
+          p,
+          {plan, voices, figure, variety: 'developing'},
+          {cells: cellsOf(p)}
+        );
         const w = writePrelude(p, c);
         assert.equal(compileFiguration(w).errors.length, 0, `${file} ${plan} ${voices}`);
         assert.equal(c.slots.at(-1).bass, plan === 'own' ? c.slots.at(-1).bass : 0);
-        const board = new Set(cellsOf(p).filter(k => k.enabled).map(k => key(k.coordinate ?? k.m)));
-        assert.ok(c.slots.every(s => s.tones.every(t => board.has(key(t)))), `${file} ${plan}: keys`);
+        const board = new Set(
+          cellsOf(p)
+            .filter(k => k.enabled)
+            .map(k => key(k.coordinate ?? k.m))
+        );
+        assert.ok(
+          c.slots.every(s => s.tones.every(t => board.has(key(t)))),
+          `${file} ${plan}: keys`
+        );
       }
 }
 // Without a saved layout the voices take octave copies around the tonic.

@@ -536,22 +536,24 @@ export function createCompositionWorkspace({
   function deviceSnapshot() {
     const p = project();
     if (!p) return null;
-    if (ui.mode === 'game') return game.deviceSnapshot(Array.from(held.values(), h => h.index));
+    const heldKeys = Array.from(held.values(), h => h.index);
+    if (ui.mode === 'game') {
+      const snapshot = game.deviceSnapshot();
+      if (snapshot) snapshot.held = heldKeys;
+      return snapshot;
+    }
     const active = transport.state === 'playing' ? soundingKeys(transport.position()) : [],
       following = ui.follow && active.length > 0;
     const options =
       ui.chooseButtons && !following && selectedPitches().length ? optionKeys() : null;
-    return compositionDeviceSnapshot(
+    const snapshot = compositionDeviceSnapshot(
       p,
       boardModel().board,
-      [
-        ...new Set([
-          ...(following ? active : [...selectedKeys(), ...noteKeys()]),
-          ...Array.from(held.values(), h => h.index)
-        ])
-      ],
+      [...new Set(following ? active : [...selectedKeys(), ...noteKeys()])],
       options
     );
+    if (snapshot) snapshot.held = heldKeys;
+    return snapshot;
   }
 
   // ---- piano roll helpers ----
@@ -1356,7 +1358,8 @@ export function createCompositionWorkspace({
   // A newly opened piece shows the options its prelude was written with.
   function resetPrelude() {
     const p = project();
-    prelude.options = (p && writtenPreludeOptions(p)) ?? normalizePreludeOptions({}, p?.context.scale.n);
+    prelude.options =
+      (p && writtenPreludeOptions(p)) ?? normalizePreludeOptions({}, p?.context.scale.n);
     prelude.selectedSlot = null;
     prelude.stage = null;
     prelude.cache = null;
@@ -1537,7 +1540,14 @@ export function createCompositionWorkspace({
       written = preludeEvents(p);
     if (!written.length) return say('Write the prelude first.');
     const bar = barTicks(p.meter),
-      base = {match: 'exact', guide: 'quiet', lights: 'dark', trainer: false, repeat: false, speed: 100};
+      base = {
+        match: 'exact',
+        guide: 'quiet',
+        lights: 'dark',
+        trainer: false,
+        repeat: false,
+        speed: 100
+      };
     let patch;
     if (stage === 'harmonies') patch = {...base, part: 'chords', mode: 'learn', section: 'all'};
     else if (stage === 'one') {

@@ -208,9 +208,7 @@ function scaleTriads(context, space) {
             space,
             set
               .map(d => homeOf(context, d))
-              .sort(
-                (x, y) => offset(homeOf(context, root), x) - offset(homeOf(context, root), y)
-              )
+              .sort((x, y) => offset(homeOf(context, root), x) - offset(homeOf(context, root), y))
           );
           if (classes.length === 3)
             fallback[root].push({classes, score: concordance(space, classes)});
@@ -260,9 +258,7 @@ export function preludeMaterial(context, {entriesFor = () => []} = {}) {
     }
     // Three-note chords first, the most concordant leading; the plan's default is the first.
     for (const c of chords) c.concordance = concordance(space, c.classes);
-    chords.sort(
-      (a, b) => a.classes.length - b.classes.length || b.concordance - a.concordance
-    );
+    chords.sort((a, b) => a.classes.length - b.classes.length || b.concordance - a.concordance);
     chords.length = Math.min(chords.length, 6);
     if (chords.length) directory++;
     else {
@@ -485,9 +481,7 @@ function ownPlan(project, o) {
   events.sort((a, b) => a.at - b.at);
   if (!events.length) fail('the chord lane is empty; add chords or choose another plan.');
   const slots = events.map((e, index) => {
-    const ordered = e.tones
-        .map(t => t.coordinate)
-        .sort((a, b) => space.cents(a) - space.cents(b)),
+    const ordered = e.tones.map(t => t.coordinate).sort((a, b) => space.cents(a) - space.cents(b)),
       classes = uniqueClasses(space, ordered),
       rootTone = e.source?.rootTone,
       rootCoordinate =
@@ -569,9 +563,7 @@ export function voicePrelude(project, plan, cells = []) {
     span = space.span ?? 1200,
     upper = o.voices - 1;
   const usable = cells.filter(c => !c.command && c.enabled !== false && (c.coordinate ?? c.m));
-  const range = usable.length
-    ? usable.map(c => space.cents(c.coordinate ?? c.m))
-    : [-1300, 2500];
+  const range = usable.length ? usable.map(c => space.cents(c.coordinate ?? c.m)) : [-1300, 2500];
   const low = Math.min(...range),
     high = Math.max(...range);
   const bassClassOf = slot => slot.bassClass ?? homeOf(context, slot.bass);
@@ -604,8 +596,7 @@ export function voicePrelude(project, plan, cells = []) {
     } else {
       const fits = bassChoices.filter(b => room(b) >= upper),
         from = fits.length ? fits : bassChoices;
-      const cost = b =>
-        Math.abs(b.cents - previous.bass.cents) + 0.3 * Math.abs(b.cents - anchor);
+      const cost = b => Math.abs(b.cents - previous.bass.cents) + 0.3 * Math.abs(b.cents - anchor);
       bass = from.reduce((a, b) => (cost(a) <= cost(b) ? a : b));
     }
     const above = tones.filter(t => t.cents > bass.cents + 1);
@@ -621,7 +612,9 @@ export function voicePrelude(project, plan, cells = []) {
     const target = previous ? firstTop + lift * arch : null;
     // The nearest few candidates of each voice keep the search small and the motion close.
     const perVoice = Array.from({length: upper}, (_, i) =>
-      [...above].sort((a, b) => Math.abs(a.cents - ideal(i)) - Math.abs(b.cents - ideal(i))).slice(0, 5)
+      [...above]
+        .sort((a, b) => Math.abs(a.cents - ideal(i)) - Math.abs(b.cents - ideal(i)))
+        .slice(0, 5)
     );
     const classKeys = slot.chord.classes.map(space.key),
       bassKey = space.key(bass.coordinate);
@@ -877,7 +870,11 @@ export function preludeSections(project) {
     if (project.tracks.find(t => t.id === c.trackId)?.kind !== 'chords') continue;
     for (const e of c.events)
       if (e.source?.kind === 'prelude')
-        events.push({fn: e.source.fn, start: c.startTick + e.startTick, end: c.startTick + e.startTick + e.durationTick});
+        events.push({
+          fn: e.source.fn,
+          start: c.startTick + e.startTick,
+          end: c.startTick + e.startTick + e.durationTick
+        });
   }
   events.sort((a, b) => a.start - b.start);
   const sections = [];
