@@ -9473,3 +9473,50 @@ body:has(.game.is-running) .app-header {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* An open page: the workspace wrappers are not frames. Each screen sits directly on the ground with
+   one level of panels at most, and parts inside a panel are divided by a rule or by space. */
+main {
+  max-width: 1760px;
+  padding: 28px clamp(16px, 2vw, 32px) 0;
+}
+.composition-suite,
+.hex-workspace,
+.material-collection {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+.material-collection {
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+/* Inside the Prelude panel the three steps are bands divided by a rule, not boxes. */
+.prelude-step {
+  padding: 18px 0 4px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+}
+.prelude-steps {
+  gap: 10px;
+}
+.prelude-editor,
+.prelude-ladder > li > div {
+  padding: 10px 0 0;
+  border: 0;
+  border-radius: 0;
+}
+.prelude-editor {
+  border-top: 1px dashed var(--line);
+}
+/* Panels themselves are lighter: a little more room inside, no second frame around them. */
+.comp-panel,
+.unified-pane,
+.game-setup-form,
+.game-board-wrap,
+.composition-start section {
+  padding: 18px 20px;
+}
