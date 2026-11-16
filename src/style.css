@@ -9344,3 +9344,53 @@ body:has(.game.is-running) .app-header {
 .prelude-editor > b {
   font-size: 14px;
 }
+
+/* The three steps run as full-width bands, one under another, so the harmonies read across the
+   whole screen like a line of music. */
+.prelude-steps {
+  grid-template-columns: minmax(0, 1fr);
+}
+.prelude-step .prelude-controls {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 8px 28px;
+}
+.prelude-step .prelude-note {
+  min-height: 1.5em;
+  max-width: none;
+}
+.prelude-step.is-harmony .prelude-slots {
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+}
+.prelude-step.is-harmony .prelude-contour {
+  height: 96px;
+}
+.prelude-editor {
+  min-height: 0;
+}
+.prelude-step.is-practice .prelude-ladder {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+  align-items: stretch;
+}
+.prelude-step.is-practice .prelude-ladder > li > button,
+.prelude-step.is-practice .prelude-ladder > li > div {
+  height: 100%;
+  align-content: start;
+}
+.prelude-step.is-practice .prelude-stage-sections {
+  grid-column: span 2;
+}
+@media (max-width: 700px) {
+  .prelude-step .prelude-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .prelude-step.is-practice .prelude-stage-sections {
+    grid-column: auto;
+  }
+}
+.prelude-editor .prelude-controls {
+  grid-template-columns: minmax(0, 1fr);
+}
+.prelude-step .prelude-status {
+  min-height: 1.5em;
+}

@@ -232,7 +232,7 @@ export function renderPrelude(v) {
           Math.min(o.pump, draft.plan.pumps.length - 1)
         )
       : '';
-  const harmony = `<li class="prelude-step"><h4><span class="prelude-num">1</span>Harmony</h4><div class="prelude-plans" role="group" aria-label="Harmonic plan">${PRELUDE_PLANS.map(
+  const harmony = `<li class="prelude-step is-harmony"><h4><span class="prelude-num">1</span>Harmony</h4><div class="prelude-plans" role="group" aria-label="Harmonic plan">${PRELUDE_PLANS.map(
     p => button('plan', p.name, {pressed: o.plan === p.id, extra: `data-value="${p.id}"`})
   ).join(
     ''
@@ -252,7 +252,7 @@ export function renderPrelude(v) {
     o.voices
   )}${select('hand', 'Voicing', PRELUDE_HANDS, o.hand)}${pumpSelect}${directionSelect}${stepSelect}</div>${contour(slots)}<ol class="prelude-slots">${slots.map((s, i) => slotCard(s, i, m.selectedSlot === i)).join('')}</ol>${editor}<p class="prelude-status" role="status">${status}</p></li>`;
   const steps = draft?.timing.steps ?? 8;
-  const figure = `<li class="prelude-step"><h4><span class="prelude-num">2</span>Figure</h4><div class="prelude-figures" role="group" aria-label="Figure">${PRELUDE_FIGURES.map(
+  const figure = `<li class="prelude-step is-figure"><h4><span class="prelude-num">2</span>Figure</h4><div class="prelude-figures" role="group" aria-label="Figure">${PRELUDE_FIGURES.map(
     f =>
       `<button data-comp="prelude-figure" data-value="${f.id}" aria-pressed="${o.figure === f.id}" title="${esc(f.note)}">${figureDiagram(f.id, o.voices, Math.min(steps, 16))}<span>${esc(f.name)}</span></button>`
   ).join(
@@ -314,6 +314,6 @@ export function renderPrelude(v) {
     const all = (m.sections ?? []).length > 0 && m.sections.every((_, i) => done(`sections:${i}`));
     return `<li class="prelude-stage-sections${all ? ' is-done' : ''}"><div><b>${esc(s.name)}</b><small>${esc(s.note)}</small><div class="prelude-section-buttons">${parts || '<small>Write the prelude to see its sections.</small>'}</div></div><span class="prelude-done" aria-label="${all ? 'Completed' : 'Not yet completed'}">${all ? '✓' : ''}</span></li>`;
   };
-  const practice = `<li class="prelude-step"><h4><span class="prelude-num">3</span>Practice on the HexBoard</h4><p class="prelude-note">From the bare harmonies to the finished piece. Each stage lights the keys to press; a connected HexBoard lights with it.</p><ol class="prelude-ladder">${PRACTICE_STAGES.map(stageButton).join('')}</ol></li>`;
+  const practice = `<li class="prelude-step is-practice"><h4><span class="prelude-num">3</span>Practice on the HexBoard</h4><p class="prelude-note">From the bare harmonies to the finished piece. Each stage lights the keys to press; a connected HexBoard lights with it.</p><ol class="prelude-ladder">${PRACTICE_STAGES.map(stageButton).join('')}</ol></li>`;
   return `<details class="comp-panel prelude-panel" ${m.open ? 'open' : ''}><summary>Prelude${m.written ? ` · ${slots.length || m.count} harmonies written` : ''}</summary><p class="prelude-lede">Choose a harmonic plan, give it a figure, then learn it stage by stage. The harmonies are voice-led first; the figure only spreads them through time.</p><ol class="prelude-steps">${harmony}${figure}${practice}</ol></details>`;
 }
