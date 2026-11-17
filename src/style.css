@@ -9017,96 +9017,7 @@ footer {
   background: #26304a;
   color: #fff;
 }
-.prelude-contour {
-  display: block;
-  width: 100%;
-  height: 84px;
-  margin-top: 14px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--board-bg);
-}
-.prelude-contour rect {
-  fill: transparent;
-}
-.prelude-contour rect.is-motion {
-  fill: rgb(130 156 255 / 7%);
-}
-.prelude-contour rect.is-pedal {
-  fill: rgb(131 206 190 / 8%);
-}
-.prelude-contour polyline {
-  fill: none;
-  stroke-width: 1.6;
-  vector-effect: non-scaling-stroke;
-}
-.prelude-contour-top {
-  stroke: var(--a);
-  stroke-dasharray: 4 3;
-}
-polyline.prelude-contour-bass {
-  stroke: var(--b);
-}
-circle.prelude-contour-bass {
-  fill: var(--b);
-}
-.prelude-slots {
-  list-style: none;
-  margin: 10px 0 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
-  gap: 6px;
-}
-.prelude-slot {
-  position: relative;
-  min-width: 0;
-}
-.prelude-slot > button:first-child {
-  display: grid;
-  gap: 2px;
-  width: 100%;
-  height: 100%;
-  min-height: 74px;
-  padding: 8px 8px 8px 10px;
-  text-align: left;
-  border-top: 3px solid var(--line);
-  align-content: start;
-}
-.prelude-slot.is-frame > button:first-child,
-.prelude-slot.is-close > button:first-child {
-  border-top-color: var(--b);
-}
-.prelude-slot.is-motion > button:first-child {
-  border-top-color: var(--a);
-}
-.prelude-slot.is-pedal > button:first-child,
-.prelude-slot.is-approach > button:first-child,
-.prelude-slot.is-cadence > button:first-child {
-  border-top-color: var(--mint);
-}
-.prelude-slot-fn {
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.prelude-slot b {
-  font: 500 13px var(--font-mono);
-  overflow-wrap: anywhere;
-}
-.prelude-slot small {
-  font-size: 12px;
-  color: var(--muted);
-}
-.prelude-slot-alt {
-  position: absolute;
-  top: 7px;
-  right: 5px;
-  padding: 1px 5px;
-  font: 11px var(--font-mono);
-  color: var(--muted);
-}
+
 .prelude-status {
   min-height: 3em;
   margin: 10px 0 0;
@@ -9295,54 +9206,8 @@ body:has(.game.is-running) .app-header {
   --note-h: min(max(calc(var(--lane-h) - 12px), calc(var(--lane-h) * 0.72)), 56px);
 }
 
-/* A harmony card's second line: its non-chord tone and how the hands take it. */
-.prelude-slot > button:first-child {
-  min-height: 108px;
-}
-.prelude-slot .prelude-slot-more {
-  color: var(--mint);
-}
-.prelude-slot small {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 .prelude-panel .prelude-status {
   min-height: 4.5em;
-}
-
-/* The editor of the selected harmony; its space is kept whether or not one is selected. */
-.prelude-editor {
-  display: grid;
-  gap: 8px;
-  align-content: start;
-  min-height: 150px;
-  margin-top: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  font-size: 14px;
-}
-.prelude-editor .prelude-controls {
-  margin-top: 0;
-}
-.prelude-editor small {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.5;
-}
-.prelude-edit-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.prelude-edit-actions button {
-  padding: 6px 10px;
-  font-size: 13px;
-}
-
-.prelude-editor > b {
-  font-size: 14px;
 }
 
 /* The three steps run as full-width bands, one under another, so the harmonies read across the
@@ -9358,15 +9223,7 @@ body:has(.game.is-running) .app-header {
   min-height: 1.5em;
   max-width: none;
 }
-.prelude-step.is-harmony .prelude-slots {
-  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
-}
-.prelude-step.is-harmony .prelude-contour {
-  height: 96px;
-}
-.prelude-editor {
-  min-height: 0;
-}
+
 .prelude-step.is-practice .prelude-ladder {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 8px;
@@ -9388,9 +9245,7 @@ body:has(.game.is-running) .app-header {
     grid-column: auto;
   }
 }
-.prelude-editor .prelude-controls {
-  grid-template-columns: minmax(0, 1fr);
-}
+
 .prelude-step .prelude-status {
   min-height: 1.5em;
 }
@@ -9503,15 +9358,12 @@ main {
 .prelude-steps {
   gap: 10px;
 }
-.prelude-editor,
 .prelude-ladder > li > div {
   padding: 10px 0 0;
   border: 0;
   border-radius: 0;
 }
-.prelude-editor {
-  border-top: 1px dashed var(--line);
-}
+
 /* Panels themselves are lighter: a little more room inside, no second frame around them. */
 .comp-panel,
 .unified-pane,
@@ -9521,79 +9373,6 @@ main {
   padding: 18px 20px;
 }
 
-/* The arrangement: sections side by side, wrapping like lines of music; each a run of chords. */
-.arr {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px 18px;
-  margin-top: 12px;
-}
-.arr-section {
-  min-width: 0;
-  padding-left: 12px;
-  border-left: 2px solid var(--line);
-}
-.arr-section.is-selected {
-  border-left-color: var(--b);
-}
-.arr-section > header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 34px;
-}
-.arr-name {
-  padding: 2px 6px;
-  border: 0;
-  background: none;
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--muted);
-}
-.arr-section.is-selected .arr-name {
-  color: var(--b);
-  background: none;
-}
-.arr-tools {
-  display: inline-flex;
-  gap: 4px;
-}
-.arr-tools button {
-  min-height: 28px;
-  padding: 2px 9px;
-  font-size: 12px;
-}
-.arr-section .prelude-slots,
-.prelude-step.is-harmony .arr-section .prelude-slots {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
-}
-.arr-section .prelude-slot {
-  width: 124px;
-}
-.prelude-slot > button:first-child {
-  min-height: 78px;
-}
-.prelude-slot.is-selected > button:first-child {
-  border-color: var(--b);
-}
-.arr-add {
-  display: grid;
-  gap: 8px;
-  margin-top: 16px;
-}
-.arr-templates {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.arr-templates button {
-  padding: 7px 12px;
-  font-size: 13px;
-  border-style: dashed;
-}
 .prelude-more {
   margin-top: 8px;
 }
@@ -9602,6 +9381,339 @@ main {
   font-size: 13px;
   color: var(--muted);
 }
-.prelude-editor {
-  margin-top: 14px;
+
+/* The Harmony step's chart: sections in a row that wraps like lines of music, each a run of bars.
+   A bar shows its voicing on the piece's whole pitch range, its root degree and its chord; the
+   bass line and the top voice run through the bars. The cell width matches CELL_W in
+   composition-prelude-view.mjs. */
+.harm-chart {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 10px;
+  user-select: none;
+}
+.harm-section {
+  position: relative;
+  min-width: 0;
+}
+/* The name never widens its section: a long name on a short section is cut. */
+.harm-section-name {
+  display: block;
+  width: 0;
+  min-width: 100%;
+  min-height: 24px;
+  padding: 0 2px 5px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.harm-section .harm-section-name:hover {
+  background: none;
+  color: var(--text);
+}
+.harm-section.is-selected .harm-section-name {
+  background: none;
+  color: var(--b);
+}
+.harm-cells {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--board-bg);
+}
+.harm-section.is-selected .harm-cells {
+  border-color: color-mix(in srgb, var(--b) 60%, var(--line));
+}
+.harm-cell {
+  --fn: var(--line);
+  position: relative;
+  flex: none;
+  width: 72px;
+  box-shadow: 1px 0 0 var(--line);
+}
+.harm-cell:last-child {
+  box-shadow: none;
+}
+.harm-cell.is-frame,
+.harm-cell.is-close {
+  --fn: var(--b);
+}
+.harm-cell.is-motion {
+  --fn: var(--a);
+}
+.harm-cell.is-pedal,
+.harm-cell.is-approach,
+.harm-cell.is-cadence {
+  --fn: var(--mint);
+}
+/* The bar itself: voicing, root degree, chord. Its lower edge carries the formal function. */
+.harm-cell > button:first-child {
+  position: relative;
+  display: grid;
+  grid-template-rows: 46px auto auto;
+  justify-items: start;
+  width: 100%;
+  padding: 0 0 9px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: inset 0 -2px 0 var(--fn);
+  color: var(--text);
+  text-align: left;
+}
+.harm-cell:first-child > button:first-child {
+  border-radius: 5px 0 0 5px;
+}
+.harm-cell:last-child > button:first-child {
+  border-radius: 0 5px 5px 0;
+}
+.harm-cell:only-child > button:first-child {
+  border-radius: 5px;
+}
+.harm-cell > button:first-child:hover {
+  background: var(--surface2);
+}
+.harm-cell > button:first-child:focus-visible {
+  outline-offset: -2px;
+}
+.harm-cell.is-playing > button:first-child {
+  background: rgb(131 206 190 / 16%);
+}
+.harm-cell.is-selected > button:first-child {
+  background: #26304a;
+  box-shadow: inset 0 0 0 2px var(--b);
+}
+.harm-voicing {
+  display: block;
+  width: 72px;
+  height: 46px;
+}
+.harm-voicing polyline {
+  fill: none;
+  stroke-width: 1.4;
+}
+.harm-voicing polyline.is-top {
+  stroke: var(--a);
+  stroke-dasharray: 3 3;
+  opacity: 0.75;
+}
+.harm-voicing polyline.is-bass {
+  stroke: var(--b);
+}
+.harm-voicing circle {
+  fill: #7b889d;
+}
+.harm-voicing circle.is-top {
+  fill: var(--a);
+}
+.harm-voicing circle.is-bass {
+  fill: var(--b);
+}
+.harm-root {
+  padding: 0 8px;
+  font: 600 17px/1.2 var(--font-mono);
+}
+.harm-root small {
+  margin-left: 1px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.harm-name {
+  max-width: 100%;
+  padding: 1px 8px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 11px/1.3 var(--font-mono);
+  color: var(--detail-text);
+}
+.harm-mark {
+  position: absolute;
+  top: 2px;
+  right: 5px;
+  font-size: 10px;
+  color: var(--mint);
+}
+/* On the bar line after a chord: add a chord there. Shown where a pointer can hover. */
+.harm-plus {
+  position: absolute;
+  top: 32px;
+  right: -9px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-color: var(--border-strong);
+  border-radius: 50%;
+  background: var(--surface2);
+  font: 500 13px/1 var(--font-ui);
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: opacity 0.12s;
+}
+.harm-cell:hover > .harm-plus,
+.harm-plus:focus-visible {
+  opacity: 1;
+}
+.harm-chart.is-sorting .harm-plus {
+  display: none;
+}
+@media (hover: none) {
+  .harm-plus {
+    display: none;
+  }
+}
+/* Dragging a chord or a section: the lifted one fades, a gold line shows where it will land. */
+.harm-chart.is-sorting,
+.harm-chart.is-sorting button {
+  cursor: grabbing;
+}
+.harm-chart .is-dragging {
+  opacity: 0.4;
+}
+.harm-cell[data-drop]::after,
+.harm-section[data-drop]::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  z-index: 3;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--b);
+  pointer-events: none;
+}
+.harm-cell[data-drop='before']::after {
+  left: -2px;
+}
+.harm-cell[data-drop='after']::after {
+  right: -2px;
+}
+.harm-section[data-drop='before']::after {
+  left: -7px;
+}
+.harm-section[data-drop='after']::after {
+  right: -7px;
+}
+
+/* What the selected chord or section offers, in one band under the chart. Its height is kept
+   whatever is selected, so nothing below it moves. */
+.harm-inspector {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-height: 128px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--inset-bg);
+}
+/* With nothing selected it is one line of help. */
+.harm-inspector.is-idle {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.harm-inspector.is-idle .prelude-note {
+  margin: 0;
+}
+.harm-what {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin: 0;
+}
+.harm-what b {
+  font: 600 15px var(--font-mono);
+  color: var(--text);
+}
+.harm-what span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.harm-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px 22px;
+}
+.harm-fields .prelude-field {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 4px;
+}
+.harm-fields .prelude-label {
+  font-size: 12px;
+}
+.harm-fields input {
+  width: 24ch;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+.harm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.harm-actions button {
+  min-width: 34px;
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 13px;
+  line-height: 1.2;
+}
+.harm-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.harm-keys kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--control-bg);
+  font: 11px var(--font-mono);
+  color: var(--detail-text);
+}
+.harm-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 12px;
+}
+.harm-templates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.harm-templates button {
+  min-height: 30px;
+  padding: 4px 11px;
+  border-style: dashed;
+  font-size: 13px;
+  line-height: 1.2;
 }

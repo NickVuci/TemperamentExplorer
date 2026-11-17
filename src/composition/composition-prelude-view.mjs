@@ -7,6 +7,7 @@ import {
   PRELUDE_SUSTAINS,
   PRELUDE_DISSONANCES,
   PRELUDE_HANDS,
+  PRELUDE_FUNCTIONS,
   figureSequence
 } from './composition-prelude.mjs';
 
@@ -49,16 +50,16 @@ export function practiceRungs(sections = []) {
 
 const button = (action, label, {disabled = false, pressed = null, extra = '', cls = ''} = {}) =>
   `<button data-comp="prelude-${action}" ${cls ? `class="${cls}"` : ''} ${disabled ? 'disabled' : ''} ${pressed === null ? '' : `aria-pressed="${pressed}"`} ${extra}>${label}</button>`;
-// One setting: its label on the left and its choices as a row of buttons, the chosen one pressed.
-// Only a list too long to scan (a large scale's degrees) falls back to a menu.
+// One setting: its label and its choices as a row of buttons, the chosen one pressed. A choice is
+// [value, name, tooltip?]. Only a list too long to scan (a large scale's degrees) falls back to a menu.
 const select = (field, label, choices, value) => {
   const control =
     choices.length > 24
       ? `<select data-comp-field="prelude${field}" aria-label="${esc(label)}">${choices.map(([k, n]) => option(k, n, value)).join('')}</select>`
       : `<div class="prelude-seg" role="group" aria-label="${esc(label)}">${choices
           .map(
-            ([k, n]) =>
-              `<button data-comp="prelude-set" data-field="${field}" data-value="${esc(String(k))}" aria-pressed="${String(k) === String(value)}">${esc(String(n))}</button>`
+            ([k, n, tip]) =>
+              `<button data-comp="prelude-set" data-field="${field}" data-value="${esc(String(k))}" aria-pressed="${String(k) === String(value)}"${tip ? ` title="${esc(tip)}"` : ''}>${esc(String(n))}</button>`
           )
           .join('')}</div>`;
   return `<div class="prelude-field"><span class="prelude-label">${esc(label)}</span>${control}</div>`;
@@ -85,38 +86,36 @@ function figureDiagram(figure, voices, steps) {
   return `<svg class="prelude-figure-diagram" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" aria-hidden="true">${rules}${dots}</svg>`;
 }
 
-/** The bass line and the top voice across the plan, with the formal sections shaded. */
-function contour(slots) {
-  if (!slots.length || !slots[0].cents) return '';
-  const all = slots.flatMap(s => s.cents),
-    lo = Math.min(...all),
-    hi = Math.max(...all),
-    W = 600,
-    H = 84,
-    pad = 8;
-  const x = i => pad + ((i + 0.5) * (W - 2 * pad)) / slots.length,
-    y = c => H - pad - ((c - lo) * (H - 2 * pad)) / Math.max(1, hi - lo);
-  const line = pickCents =>
-    slots.map((s, i) => `${x(i).toFixed(1)},${y(pickCents(s)).toFixed(1)}`).join(' ');
-  const bands = [];
-  slots.forEach((s, i) => {
-    const group = s.fn === 'approach' || s.fn === 'cadence' ? 'pedal' : s.fn,
-      last = bands.at(-1);
-    if (last && last.group === group) last.to = i;
-    else bands.push({group, from: i, to: i});
-  });
-  const step = (W - 2 * pad) / slots.length;
-  return `<svg class="prelude-contour" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Bass line and top voice across the plan">${bands
+// A chart cell is this wide, and its voicing this tall, in CSS pixels (style.css: .harm-cell).
+const CELL_W = 72,
+  VOICING_H = 46;
+
+/**
+ * One harmony's voicing on the piece's whole pitch range: a dot per voice, with the bass line and
+ * the top voice drawn through to the neighbouring cells, so the lines read across the chart.
+ */
+function voicing(slots, index, lo, hi) {
+  const slot = slots[index];
+  if (!slot.cents?.length) return `<span class="harm-voicing"></span>`;
+  const pad = 7,
+    y = c => VOICING_H - pad - ((c - lo) * (VOICING_H - 2 * pad)) / Math.max(1, hi - lo),
+    mid = CELL_W / 2,
+    f = n => n.toFixed(1);
+  const line = (pick, cls) => {
+    const here = y(pick(slot)),
+      edge = (other, x) => (other?.cents?.length ? [`${x},${f((y(pick(other)) + here) / 2)}`] : []);
+    const points = [
+      ...edge(slots[index - 1], 0),
+      `${mid},${f(here)}`,
+      ...edge(slots[index + 1], CELL_W)
+    ];
+    return points.length > 1 ? `<polyline class="${cls}" points="${points.join(' ')}"/>` : '';
+  };
+  const last = slot.cents.length - 1;
+  return `<svg class="harm-voicing" viewBox="0 0 ${CELL_W} ${VOICING_H}" width="${CELL_W}" height="${VOICING_H}" aria-hidden="true">${line(s => s.cents.at(-1), 'is-top')}${line(s => s.cents[0], 'is-bass')}${slot.cents
     .map(
-      b =>
-        `<rect class="is-${b.group}" x="${(pad + b.from * step).toFixed(1)}" y="0" width="${((b.to - b.from + 1) * step - 2).toFixed(1)}" height="${H}"/>`
-    )
-    .join(
-      ''
-    )}<polyline class="prelude-contour-top" points="${line(s => s.cents.at(-1))}"/><polyline class="prelude-contour-bass" points="${line(s => s.cents[0])}"/>${slots
-    .map(
-      (s, i) =>
-        `<circle class="prelude-contour-bass" cx="${x(i).toFixed(1)}" cy="${y(s.cents[0]).toFixed(1)}" r="2.6"/>`
+      (c, v) =>
+        `<circle${v === 0 ? ' class="is-bass"' : v === last ? ' class="is-top"' : ''} cx="${mid}" cy="${f(y(c))}" r="${v === 0 ? 3 : 2.4}"/>`
     )
     .join('')}</svg>`;
 }
@@ -139,16 +138,30 @@ function inversionName(slot) {
   return slot.bass === slot.chord.root ? ORDINALS[0] : `Over ${slot.bass}`;
 }
 
-/** One harmony of the arrangement: its chord, how it sits, and any non-chord tone. */
-function slotCard(slot, index, selected) {
-  const root = slot.chord.root,
-    name = `${root === null || root === undefined ? '' : `${root} · `}${slot.chord.label}`,
+const chordName = slot => {
+  const root = slot.chord.root;
+  return `${root === null || root === undefined ? '' : `${root} · `}${slot.chord.label}`;
+};
+
+/**
+ * One harmony as a cell of the chart: its voicing, its root degree (over its bass when that is
+ * another degree) and its chord. `span` is its written time, for the playhead.
+ */
+function chartCell(slots, index, {selected, focusable, range, span}) {
+  const slot = slots[index],
+    root = slot.chord.root,
+    rooted = root !== null && root !== undefined,
+    over =
+      rooted && slot.bass !== null && slot.bass !== undefined && slot.bass !== root
+        ? `<small>/${slot.bass}</small>`
+        : '',
     sits = inversionName(slot),
-    decoration = slot.decoration ? DECORATIONS[slot.decoration.kind] : '';
-  const hands = slot.hand
-    ? `. Hands: left ${slot.hand.left ?? 'cannot cover it'}, right ${slot.hand.right ?? 'cannot cover it'}`
-    : '';
-  return `<li class="prelude-slot is-${slot.fn}${selected ? ' is-selected' : ''}"><button data-comp="prelude-slot" data-index="${index}" aria-pressed="${selected}" title="${esc(name)}, ${esc(sits.toLowerCase())}${hands}"><b>${esc(name)}</b><small>${esc(sits)}</small><small class="prelude-slot-more">${decoration || '&nbsp;'}</small></button></li>`;
+    decoration = slot.decoration ? DECORATIONS[slot.decoration.kind] : '',
+    hands = slot.hand
+      ? `. Hands: left ${slot.hand.left ?? 'cannot cover it'}, right ${slot.hand.right ?? 'cannot cover it'}`
+      : '',
+    title = `${PRELUDE_FUNCTIONS[slot.fn] ? `${PRELUDE_FUNCTIONS[slot.fn]}: ` : ''}${chordName(slot)}, ${sits.toLowerCase()}${decoration ? `, with a ${decoration}` : ''}${hands}`;
+  return `<li class="harm-cell is-${slot.fn}${selected ? ' is-selected' : ''}"${span ? ` data-start="${span[0]}" data-end="${span[1]}"` : ''}><button data-comp="prelude-slot" data-index="${index}" aria-pressed="${selected}" tabindex="${focusable ? 0 : -1}" title="${esc(title)}">${voicing(slots, index, range[0], range[1])}<b class="harm-root">${rooted ? root : '–'}${over}</b><span class="harm-name">${esc(slot.chord.label)}</span>${decoration ? `<i class="harm-mark">${decoration === 'suspension' ? 'sus' : 'pass'}</i>` : ''}</button><button class="harm-plus" data-comp="prelude-edit" data-kind="add" data-index="${index}" tabindex="-1" aria-label="Repeat this chord" title="Add a chord here: a copy of this one">+</button></li>`;
 }
 
 export function renderPrelude(v) {
@@ -185,33 +198,66 @@ export function renderPrelude(v) {
       : draft
         ? `${plural(slots.length, 'harmony', 'harmonies')} · ${draft.lengthTick / (draft.timing.harmony / o.bars)} bars · ${esc(sourceNote)}`
         : '';
-  const edit = (kind, label, value = '', disabled = false, action = 'edit') =>
-    `<button data-comp="prelude-${action}" data-kind="${kind}" data-value="${value}" ${disabled ? 'disabled' : ''}>${label}</button>`;
+  const edit = (kind, label, value = '', disabled = false, action = 'edit', tip = '') =>
+    `<button data-comp="prelude-${action}" data-kind="${kind}" data-value="${value}" ${tip ? `title="${esc(tip)}"` : ''} ${disabled ? 'disabled' : ''}>${label}</button>`;
   const keep = (id, summary, body) =>
     `<details class="prelude-more" data-keep="${id}" ${m.more?.has(id) ? 'open' : ''}><summary>${summary}</summary>${body}</details>`;
-  // The arrangement: sections in order, each a run of harmonies. A plan-made prelude shows as one.
+  // The chart: sections in order, each a run of harmonies. A plan-made prelude shows as one.
   const names = o.plan === 'custom' ? o.sections : ['Prelude'];
   const sectionOf = slot => (o.plan === 'custom' ? (slot.section ?? 0) : 0);
-  const strip = names
+  const all = slots.flatMap(x => x.cents ?? []),
+    range = [Math.min(...all), Math.max(...all)];
+  // Where each harmony sounds, while the composition holds exactly what the chart shows.
+  const spans = new Map();
+  if (m.written && !m.stale)
+    for (const h of draft?.harmonies ?? []) {
+      const at = spans.get(h.source.slot),
+        end = h.startTick + h.durationTick;
+      spans.set(h.source.slot, at ? [at[0], Math.max(at[1], end)] : [h.startTick, end]);
+    }
+  const focused = m.selectedSlot ?? 0;
+  const chart = names
     .map((name, at) => {
       const on = m.selectedSection === at,
-        cards = slots
-          .map((slot, i) => (sectionOf(slot) === at ? slotCard(slot, i, m.selectedSlot === i) : ''))
+        cells = slots
+          .map((slot, i) =>
+            sectionOf(slot) === at
+              ? chartCell(slots, i, {
+                  selected: m.selectedSlot === i,
+                  focusable: focused === i,
+                  range,
+                  span: spans.get(i)
+                })
+              : ''
+          )
           .join('');
-      const tools = on
-        ? `<span class="arr-tools">${edit('move', '←', -1, at === 0, 'section-edit')}${edit('move', '→', 1, at === names.length - 1, 'section-edit')}${edit('copy', 'Repeat', '', false, 'section-edit')}${edit('remove', 'Remove', '', false, 'section-edit')}</span>`
-        : '';
-      return `<section class="arr-section${on ? ' is-selected' : ''}"><header><button class="arr-name" data-comp="prelude-section" data-index="${at}" aria-pressed="${on}" title="Select and hear this section">${esc(name)}</button>${tools}</header><ol class="prelude-slots">${cards}</ol></section>`;
+      return `<section class="harm-section${on ? ' is-selected' : ''}" data-section="${at}"><button class="harm-section-name" data-comp="prelude-section" data-index="${at}" aria-pressed="${on}" title="${esc(name)}: select and hear this section. Drag to reorder.">${esc(name)}</button><ol class="harm-cells">${cells}</ol></section>`;
     })
     .join('');
-  const palette = `<div class="arr-add"><span class="prelude-label">${empty ? 'Start with a section' : m.selectedSection === null ? 'Add a section' : 'Add after the selected section'}</span><div class="arr-templates">${PRELUDE_TEMPLATES.map(
+  const picked = m.selectedSlot === null ? null : (slots[m.selectedSlot] ?? null);
+  const after = m.selectedSection === null ? null : (names[m.selectedSection] ?? null);
+  const palette = `<div class="harm-add"><span class="prelude-label">${empty ? 'Start with a section' : after === null ? 'Add a section at the end' : `Add a section after ${esc(after)}`}</span><div class="harm-templates">${PRELUDE_TEMPLATES.map(
     t =>
       `<button data-comp="prelude-template" data-value="${t.id}" title="${esc(t.note)}">${esc(t.name)}</button>`
   ).join('')}</div></div>`;
-  const picked = m.selectedSlot === null ? null : (slots[m.selectedSlot] ?? null);
-  const rootChoices = (m.chordsByRoot ?? []).map((list, i) => [i, `${i} · ${list[0] ?? ''}`]);
-  const editor = picked
-    ? `<div class="prelude-editor"><div class="prelude-controls">${select('edit-root', 'Harmony', rootChoices, picked.chord.root)}${
+  const rootChoices = (m.chordsByRoot ?? []).map((list, i) => [
+    i,
+    i,
+    `Degree ${i}${list[0] ? `: ${list[0]}` : ''}`
+  ]);
+  const keys = [
+    ['← →', 'select'],
+    ['Shift ← →', 'move'],
+    ['↑ ↓', 'root'],
+    ['C', 'colour'],
+    ['I', 'inversion'],
+    ['PgUp PgDn', 'register'],
+    ['Ctrl D', 'repeat'],
+    ['Del', 'remove']
+  ];
+  // What the selection offers: a chord's harmony and place, or a section's name and place.
+  const inspector = picked
+    ? `<div class="harm-inspector" role="group" aria-label="Selected chord"><p class="harm-what"><b>${esc(chordName(picked))}</b><span>${esc(inversionName(picked))} · chord ${m.selectedSlot + 1} of ${slots.length}</span></p><div class="harm-fields">${select('edit-root', 'Root', rootChoices, picked.chord.root)}${
         (m.chordsByRoot[picked.chord.root] ?? []).length > 1
           ? select(
               'edit-chord',
@@ -224,20 +270,26 @@ export function renderPrelude(v) {
         'edit-bass',
         'Inversion',
         (picked.stands ?? [])
-          .map((degree, i) => [degree, ORDINALS[i] ?? `Inversion ${i}`])
+          .map((degree, i) => [
+            degree,
+            i ? (ORDINALS[i] ?? `${i}th inversion`).split(' ')[0] : 'Root',
+            `${ORDINALS[i] ?? `Inversion ${i}`}: bass on degree ${degree}`
+          ])
           .filter(x => x[0] !== null),
         picked.bass
       )}${select(
         'edit-lift',
-        'Voicing',
+        'Register',
         [
           [-1, 'Lower'],
           [0, 'As led'],
           [1, 'Higher']
         ],
         picked.lift ?? 0
-      )}</div><div class="prelude-edit-actions">${edit('move', '← Swap', -1, m.selectedSlot === 0)}${edit('move', 'Swap →', 1, m.selectedSlot === slots.length - 1)}${edit('add', 'Repeat')}${edit('lead', 'Add a lead-in')}${edit('remove', 'Remove', '', slots.length < 2)}</div></div>`
-    : '';
+      )}<div class="prelude-field"><span class="prelude-label">Place</span><div class="harm-actions">${edit('move', '←', -1, m.selectedSlot === 0, 'edit', 'Swap with the chord before')}${edit('move', '→', 1, m.selectedSlot === slots.length - 1, 'edit', 'Swap with the chord after')}${edit('add', 'Repeat', '', false, 'edit', 'Add a copy after this chord')}${edit('lead', 'Lead-in', '', false, 'edit', 'Add the harmony that leads into this chord, before it')}${edit('remove', 'Remove', '', slots.length < 2)}</div></div></div><p class="harm-keys">${keys.map(([k, what]) => `<span><kbd>${k}</kbd> ${what}</span>`).join('')}</p></div>`
+    : after !== null && o.plan === 'custom'
+      ? `<div class="harm-inspector" role="group" aria-label="Selected section"><p class="harm-what"><b>${esc(after)}</b><span>Section ${m.selectedSection + 1} of ${names.length} · ${plural(slots.filter(x => sectionOf(x) === m.selectedSection).length, 'harmony', 'harmonies')}</span></p><div class="harm-fields"><label class="prelude-field"><span class="prelude-label">Name</span><input data-comp-field="preludesection-name" value="${esc(after)}" maxlength="32" autocomplete="off"></label><div class="prelude-field"><span class="prelude-label">Place</span><div class="harm-actions">${edit('move', '←', -1, m.selectedSection === 0, 'section-edit', 'Move this section earlier')}${edit('move', '→', 1, m.selectedSection === names.length - 1, 'section-edit', 'Move this section later')}${edit('copy', 'Repeat', '', false, 'section-edit', 'Add a copy after this section')}${edit('remove', 'Remove', '', false, 'section-edit')}</div></div></div><p class="harm-keys">Drag the name to move the section. A new section is added after this one.</p></div>`
+      : `<div class="harm-inspector is-idle"><p class="prelude-note">Select a chord to change its root, colour, inversion or register. Select a section’s name to rename, move, repeat or remove it. Drag either one to a new place.</p></div>`;
   const settings = keep(
     'harmony',
     'Settings',
@@ -260,8 +312,8 @@ export function renderPrelude(v) {
   const harmony = `<li class="prelude-step is-harmony"><h4><span class="prelude-num">1</span>Harmony</h4>${
     empty
       ? '<p class="prelude-note">Build the harmony from sections. Pick one to begin; add more to make a whole piece. Every section and chord can be changed afterwards.</p>'
-      : `${contour(slots)}<div class="arr">${strip}</div>`
-  }${editor}${palette}<p class="prelude-status" role="status">${status}</p>${settings}</li>`;
+      : `<div class="harm-chart">${chart}</div>${inspector}`
+  }${palette}<p class="prelude-status" role="status">${status}</p>${settings}</li>`;
   const steps = draft?.timing.steps ?? 8;
   const figure = `<li class="prelude-step is-figure"><h4><span class="prelude-num">2</span>Figure</h4><div class="prelude-figures" role="group" aria-label="Figure">${PRELUDE_FIGURES.map(
     f =>

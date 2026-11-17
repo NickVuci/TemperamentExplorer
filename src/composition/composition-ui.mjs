@@ -126,6 +126,10 @@ const FOCUS_ATTRS = [
   'data-comp',
   'data-comp-field',
   'type',
+  'data-index',
+  'data-field',
+  'data-kind',
+  'data-value',
   'data-event',
   'data-tick',
   'data-a',
@@ -1331,6 +1335,14 @@ export function createCompositionWorkspace({
           Number(n.dataset.start) <= tick &&
           tick < Number(n.dataset.end)
       );
+    // The chart of the Prelude panel follows the playhead too, one harmony at a time.
+    for (const c of doc.querySelectorAll?.('.harm-cell[data-start]') ?? [])
+      c.classList.toggle(
+        'is-playing',
+        transport.state === 'playing' &&
+          Number(c.dataset.start) <= tick &&
+          tick < Number(c.dataset.end)
+      );
     const roll = doc.querySelector('[data-comp-roll]'),
       playhead = doc.querySelector('[data-comp-playhead]');
     if (roll && playhead) {
@@ -1535,6 +1547,13 @@ export function createCompositionWorkspace({
           : 'scale triads; load the composition’s setup into the app to use the chord directory'
     };
   }
+  /** One step back or forward in the history, from a button or the keyboard. */
+  function undoRedo(redo) {
+    if (redo) history.redo();
+    else history.undo();
+    followWrittenPrelude();
+    changed();
+  }
   /** After undo or redo the arrangement shows what the composition now holds. */
   function followWrittenPrelude() {
     const p = project(),
@@ -1670,8 +1689,10 @@ export function createCompositionWorkspace({
       custom.splice(index, 0, {...item, fn: 'approach', root, bass: root, chord: 0, lift: 0});
       prelude.selectedSlot = index + 1;
     } else if (kind === 'remove') {
+      // The selection passes to the chord that takes its place, so editing goes on from there.
       custom.splice(index, 1);
-      prelude.selectedSlot = null;
+      prelude.selectedSlot = custom.length ? Math.min(index, custom.length - 1) : null;
+      if (prelude.selectedSlot !== null) prelude.selectedSection = custom[prelude.selectedSlot].s;
     } else if (kind === 'move') {
       // Two neighbours trade places; each place keeps its section.
       const to = index + number;
@@ -1681,10 +1702,220 @@ export function createCompositionWorkspace({
         {...custom[index], s: custom[to].s}
       ];
       prelude.selectedSlot = to;
+      prelude.selectedSection = custom[to].s;
     }
     setArrangement(custom, prelude.options.sections, kind === 'remove' ? null : 'chord');
   }
+  /** Where a dragged item lands: before or after the target, counted once the item is lifted out. */
+  const landing = (from, target, side) => {
+    const to = target + (side === 'after' ? 1 : 0);
+    return from < to ? to - 1 : to;
+  };
+  /** Lifts one harmony out and sets it down beside another, in that one's section. */
+  function placeHarmony(from, target, side) {
+    if (!customPlan()) return;
+    const custom = prelude.options.custom.map(x => ({...x}));
+    if (!custom[from] || !custom[target]) return;
+    const to = landing(from, target, side),
+      s = custom[target].s;
+    if (to === from && s === custom[from].s) return;
+    const [item] = custom.splice(from, 1);
+    custom.splice(to, 0, {...item, s});
+    prelude.selectedSlot = to;
+    prelude.selectedSection = s;
+    setArrangement(custom, prelude.options.sections, 'chord');
+    focusChord();
+  }
+  /** Lifts one section out and sets it down beside another. */
+  function placeSection(from, target, side) {
+    if (!customPlan()) return;
+    const o = prelude.options,
+      groups = o.sections.map((name, i) => ({name, items: o.custom.filter(x => x.s === i)}));
+    if (!groups[from] || !groups[target]) return;
+    const to = landing(from, target, side);
+    if (to === from) return;
+    groups.splice(to, 0, groups.splice(from, 1)[0]);
+    prelude.selectedSection = to;
+    prelude.selectedSlot = null;
+    setArrangement(
+      groups.flatMap((g, i) => g.items.map(x => ({...x, s: i}))),
+      groups.map(g => g.name),
+      'section'
+    );
+  }
+  /** Renames the selected section. */
+  function renameSection(value) {
+    const at = prelude.selectedSection,
+      name = String(value ?? '').trim();
+    if (at === null || !name || !customPlan()) return refresh();
+    if (name === prelude.options.sections[at]) return;
+    setArrangement(
+      prelude.options.custom,
+      prelude.options.sections.map((x, i) => (i === at ? name : x))
+    );
+  }
+  /** Selects one harmony of the chart, sounds it and shows its buttons on the board. */
+  function pickChord(index) {
+    const p = project(),
+      slot = preludeDraft(p).draft?.slots[index];
+    if (!slot) return false;
+    prelude.selectedSlot = index;
+    if (slot.section !== undefined) prelude.selectedSection = slot.section;
+    const written = writtenHarmony(p, index);
+    if (written) {
+      ui.selectedChord = written.id;
+      onChordFocus(written.tones.map(t => [...t.coordinate]));
+    }
+    audio.previewChord?.(slot.cents);
+    refresh();
+    return true;
+  }
+  const focusChord = () =>
+    prelude.selectedSlot !== null &&
+    getHost?.()
+      ?.querySelector?.(`[data-comp="prelude-slot"][data-index="${prelude.selectedSlot}"]`)
+      ?.focus?.({preventScroll: true});
+  /**
+   * Keys on a focused chord of the chart: arrows select along it (Shift moves the chord), up and down
+   * step its root through the scale, C and I turn its colour and inversion (Shift backwards), Page
+   * Up and Down its register; Ctrl/⌘+D repeats it and Delete removes it.
+   */
+  function chartKey(event, index) {
+    const p = project(),
+      {draft, material} = preludeDraft(p),
+      slots = draft?.slots ?? [],
+      slot = slots[index];
+    if (!slot) return false;
+    const key = event.key.length === 1 ? event.key.toLowerCase() : event.key,
+      turn = event.shiftKey ? -1 : 1,
+      wrap = (i, size) => ((i % size) + size) % size,
+      n = p.context.scale.n;
+    const act = fn => {
+      event.preventDefault();
+      prelude.selectedSlot = index;
+      if (slot.section !== undefined) prelude.selectedSection = slot.section;
+      fn();
+      focusChord();
+      return true;
+    };
+    if (event.ctrlKey || event.metaKey)
+      return key === 'd' && !event.shiftKey ? act(() => editHarmony('add')) : false;
+    switch (key) {
+      case 'ArrowLeft':
+      case 'ArrowRight': {
+        const step = key === 'ArrowLeft' ? -1 : 1;
+        return act(() => (event.shiftKey ? editHarmony('move', step) : pickChord(index + step)));
+      }
+      case 'Home':
+        return act(() => pickChord(0));
+      case 'End':
+        return act(() => pickChord(slots.length - 1));
+      case 'ArrowUp':
+      case 'ArrowDown': {
+        const root = slot.chord.root ?? slot.bass ?? 0;
+        return act(() => editHarmony('root', wrap(root + (key === 'ArrowUp' ? 1 : -1), n)));
+      }
+      case 'c': {
+        const count = material?.byRoot[slot.chord.root]?.length ?? 0;
+        return count > 1
+          ? act(() => editHarmony('chord', wrap((slot.choice ?? 0) + turn, count)))
+          : false;
+      }
+      case 'i': {
+        const stands = (slot.stands ?? []).filter(x => x !== null);
+        return stands.length > 1
+          ? act(() =>
+              editHarmony(
+                'bass',
+                stands[wrap(Math.max(0, stands.indexOf(slot.bass)) + turn, stands.length)]
+              )
+            )
+          : false;
+      }
+      case 'PageUp':
+      case 'PageDown': {
+        const lift = Math.max(-1, Math.min(1, (slot.lift ?? 0) + (key === 'PageUp' ? 1 : -1)));
+        return act(() => lift !== (slot.lift ?? 0) && editHarmony('lift', lift));
+      }
+      case 'Delete':
+      case 'Backspace':
+        return slots.length > 1 ? act(() => editHarmony('remove')) : false;
+      case 'Escape':
+        return act(() => {
+          prelude.selectedSlot = null;
+          prelude.selectedSection = null;
+          refresh();
+        });
+    }
+    return false;
+  }
+  // Dragging on the chart: a chord to a new place among the chords, a section among the sections.
+  // Pointer events, since a button cannot start a native drag in every browser.
+  let chartDrag = null;
+  function chartDrop(event) {
+    const d = chartDrag,
+      node = doc
+        .elementFromPoint?.(event.clientX, event.clientY)
+        ?.closest?.(d.kind === 'chord' ? '.harm-cell' : '.harm-section');
+    if (!node) return null;
+    const box = node.getBoundingClientRect(),
+      index =
+        d.kind === 'chord'
+          ? Number(node.querySelector('[data-comp="prelude-slot"]')?.dataset.index)
+          : Number(node.dataset.section);
+    return {node, index, side: event.clientX < box.left + box.width / 2 ? 'before' : 'after'};
+  }
+  function chartMark(target) {
+    for (const x of doc.querySelectorAll?.('[data-drop]') ?? [])
+      if (x !== target?.node) x.removeAttribute('data-drop');
+    target?.node.setAttribute('data-drop', target.side);
+  }
+  function chartPointerDown(event) {
+    chartDrag = null;
+    if (event.button !== 0 || event.pointerType === 'touch' || !project() || !canEdit()) return;
+    const el = event.target?.closest?.('[data-comp="prelude-slot"], [data-comp="prelude-section"]');
+    if (!el) return;
+    chartDrag = {
+      kind: el.dataset.comp === 'prelude-slot' ? 'chord' : 'section',
+      index: Number(el.dataset.index),
+      source: el.closest('.harm-cell, .harm-section'),
+      x: event.clientX,
+      y: event.clientY,
+      active: false
+    };
+  }
+  function chartPointerMove(event) {
+    const d = chartDrag;
+    if (!d) return;
+    if (!d.active) {
+      if (Math.hypot(event.clientX - d.x, event.clientY - d.y) < 6) return;
+      d.active = true;
+      d.source?.classList.add('is-dragging');
+      d.source?.closest('.harm-chart')?.classList.add('is-sorting');
+    }
+    event.preventDefault();
+    chartMark(chartDrop(event));
+  }
+  function chartPointerUp(event) {
+    const d = chartDrag;
+    if (!d) return;
+    const target = d.active && event.type === 'pointerup' ? chartDrop(event) : null;
+    chartDrag = null;
+    if (!d.active) return;
+    chartMark(null);
+    d.source?.classList.remove('is-dragging');
+    d.source?.closest('.harm-chart')?.classList.remove('is-sorting');
+    // The click that ends the drag is not a press on the chord under the pointer.
+    suppressClick = true;
+    setTimeout(() => {
+      suppressClick = false;
+    }, 0);
+    if (!target || !Number.isInteger(target.index)) return;
+    if (d.kind === 'chord') placeHarmony(d.index, target.index, target.side);
+    else placeSection(d.index, target.index, target.side);
+  }
   function setPreludeOption(name, value) {
+    if (name === 'section-name') return renameSection(value);
     if (name.startsWith('edit-')) return editHarmony(name.slice(5), value);
     const next = {...prelude.options, [name]: value};
     // A different plan, home, pump or voice count lays out different slots; earlier picks no longer apply.
@@ -1704,7 +1935,16 @@ export function createCompositionWorkspace({
     const {draft, error} = preludeDraft(p),
       index = Number(el.dataset.index);
     if (action === 'plan' || action === 'figure') return setPreludeOption(action, el.dataset.value);
-    if (action === 'edit') return editHarmony(el.dataset.kind, el.dataset.value);
+    if (action === 'edit') {
+      // A cell's own button names its chord; the inspector's buttons act on the selected one.
+      if (el.dataset.index !== undefined) {
+        prelude.selectedSlot = index;
+        prelude.selectedSection = draft?.slots[index]?.section ?? prelude.selectedSection;
+        editHarmony(el.dataset.kind, el.dataset.value);
+        return void focusChord();
+      }
+      return editHarmony(el.dataset.kind, el.dataset.value);
+    }
     if (action === 'template') return addSection(el.dataset.value);
     if (action === 'section-edit') return editSection(el.dataset.kind, el.dataset.value);
     if (action === 'section') {
@@ -1719,29 +1959,23 @@ export function createCompositionWorkspace({
     }
     if (action === 'set') return setPreludeOption(el.dataset.field, el.dataset.value);
     if (!draft) return say(error || 'Choose a plan first.');
-    if (action === 'slot' || action === 'alt') {
+    // A press on a chord always selects and sounds it, so pressing again hears it again.
+    if (action === 'slot') return void pickChord(index);
+    if (action === 'alt') {
       let slot = draft.slots[index];
       if (!slot) return;
-      if (action === 'alt' && prelude.options.plan === 'custom') {
+      if (prelude.options.plan === 'custom') {
         prelude.selectedSlot = index;
         return editHarmony('chord', (slot.choice + 1) % slot.alternatives.length);
       }
-      if (action === 'alt') {
-        const choices = {...prelude.options.choices},
-          next = (slot.choice + 1) % slot.alternatives.length;
-        if (next) choices[index] = next;
-        else delete choices[index];
-        prelude.options = normalizePreludeOptions({...prelude.options, choices}, p.context.scale.n);
-        slot = preludeDraft(p).draft?.slots[index] ?? slot;
-      }
-      prelude.selectedSlot = prelude.selectedSlot === index && action === 'slot' ? null : index;
+      const choices = {...prelude.options.choices},
+        next = (slot.choice + 1) % slot.alternatives.length;
+      if (next) choices[index] = next;
+      else delete choices[index];
+      prelude.options = normalizePreludeOptions({...prelude.options, choices}, p.context.scale.n);
+      slot = preludeDraft(p).draft?.slots[index] ?? slot;
+      prelude.selectedSlot = index;
       if (slot.section !== undefined) prelude.selectedSection = slot.section;
-      // Once written, picking a harmony also selects its chord, so the board shows its buttons.
-      const written = action === 'slot' ? writtenHarmony(p, index) : null;
-      if (written) {
-        ui.selectedChord = written.id;
-        onChordFocus(written.tones.map(t => [...t.coordinate]));
-      }
       audio.previewChord?.(slotCents(slot));
       refresh();
       return;
@@ -2525,14 +2759,10 @@ export function createCompositionWorkspace({
           refresh();
           return true;
         case 'undo':
-          history.undo();
-          followWrittenPrelude();
-          changed();
+          undoRedo(false);
           return true;
         case 'redo':
-          history.redo();
-          followWrittenPrelude();
-          changed();
+          undoRedo(true);
           return true;
         case 'load-context':
           loadState(structuredClone(p.context.state));
@@ -2739,26 +2969,24 @@ export function createCompositionWorkspace({
       target === doc.body ||
       target === doc.documentElement ||
       !!target.closest?.('.composition-timeline');
-    if (!inRoll || event.altKey) return false;
     const done = fn => {
       event.preventDefault();
       fn();
       return true;
     };
-    const k = key.length === 1 ? key.toLowerCase() : key,
-      some = ui.selected.size > 0,
+    const k = key.length === 1 ? key.toLowerCase() : key;
+    // In the Prelude panel: undo and redo, and a focused chord of the chart takes its own keys.
+    if (!inRoll && !event.altKey && target.closest?.('.prelude-panel')) {
+      if (mod && (k === 'z' || k === 'y')) return done(() => undoRedo(k === 'y' || event.shiftKey));
+      const chord = canEdit() && target.closest('[data-comp="prelude-slot"]');
+      return chord ? chartKey(event, Number(chord.dataset.index)) : false;
+    }
+    if (!inRoll || event.altKey) return false;
+    const some = ui.selected.size > 0,
       editing = canEdit();
     if (mod) {
-      if (k === 'z')
-        return done(() => {
-          event.shiftKey ? history.redo() : history.undo();
-          changed();
-        });
-      if (k === 'y')
-        return done(() => {
-          history.redo();
-          changed();
-        });
+      if (k === 'z') return done(() => undoRedo(event.shiftKey));
+      if (k === 'y') return done(() => undoRedo(true));
       if (!editing) return false;
       if (k === 'a') return done(() => selectionAction('sel-all'));
       if (k === 'c' && some) return done(() => selectionAction('sel-copy'));
@@ -2921,10 +3149,23 @@ export function createCompositionWorkspace({
     }
   }
   doc.addEventListener?.('dblclick', doubleClick);
-  doc.addEventListener?.('pointerdown', input.pointerDown);
-  doc.addEventListener?.('pointermove', input.pointerMove);
-  doc.addEventListener?.('pointerup', input.pointerUp);
-  doc.addEventListener?.('pointercancel', input.pointerUp);
+  // One listener per pointer event serves both the roll and the Prelude chart.
+  const pointer = {
+    pointerdown: event => {
+      chartPointerDown(event);
+      input.pointerDown(event);
+    },
+    pointermove: event => {
+      chartPointerMove(event);
+      input.pointerMove(event);
+    },
+    pointerup: event => {
+      chartPointerUp(event);
+      input.pointerUp(event);
+    }
+  };
+  pointer.pointercancel = pointer.pointerup;
+  for (const [type, fn] of Object.entries(pointer)) doc.addEventListener?.(type, fn);
   doc.addEventListener?.('wheel', input.wheel, {passive: false});
 
   function change(el) {
@@ -3241,10 +3482,7 @@ export function createCompositionWorkspace({
       keyPlayer.destroy();
       doc.removeEventListener?.('click', surfaceClick);
       doc.removeEventListener?.('dblclick', doubleClick);
-      doc.removeEventListener?.('pointerdown', input.pointerDown);
-      doc.removeEventListener?.('pointermove', input.pointerMove);
-      doc.removeEventListener?.('pointerup', input.pointerUp);
-      doc.removeEventListener?.('pointercancel', input.pointerUp);
+      for (const [type, fn] of Object.entries(pointer)) doc.removeEventListener?.(type, fn);
       doc.removeEventListener?.('wheel', input.wheel, {passive: false});
     },
     // Test and integration hooks.

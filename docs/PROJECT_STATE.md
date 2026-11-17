@@ -827,12 +827,17 @@ the shortest pump that keeps every root in the scale is the default, others are 
 short one is walked twice. With Comfortable hands (the default) the player's hand model
 (`hand-model.mjs`, from the shape explorer) weighs each voicing by the strain of its two hand
 shapes, the right hand taking the top three voices. The bass octave, sequence and pump take a direction, and the sequence a root interval
-in scale degrees. Selecting a card opens an editor for its root, chord, bass and role and for
-adding, moving and removing harmonies; the first edit freezes the plan into a Custom plan
-(`options.custom`, via `customFromPlan`). Each harmony is a card naming its formal
-function, chord, bass, non-chord tone and hand grade; pressing it sounds its voicing, and its
-counter steps through the other chords that hold that bass. A contour shows the bass line and top
-voice. Figure: five voice-order figures, note
+in scale degrees. The arrangement is shown as a chord chart: each section a named run of fixed-width
+cells, each cell one harmony showing its voicing on the piece's pitch range (bass line and top voice
+drawn through the cells), its root degree with the bass degree as a slash, its chord and any
+non-chord tone; its lower edge carries the formal function and it lights while it sounds. Pressing a
+cell sounds and selects it; one inspector band below the chart edits the selected chord (root,
+colour, inversion, register; swap, repeat, lead-in, remove) or the selected section (rename, move,
+repeat, remove). The chart is one tab stop; on a focused chord ←/→ select, Shift+←/→ swap, ↑/↓ step
+the root, C and I turn colour and inversion, Page Up/Down the register, Ctrl/⌘+D repeats, Delete
+removes, and Ctrl/⌘+Z/Y undo and redo. Chords drag to any place, including into another section,
+and sections drag by their names; a + on each bar line repeats that chord. The first edit freezes a
+plan into a Custom plan (`options.custom`, via `customFromPlan`). Figure: five voice-order figures, note
 value, harmony length, one or two cycles per harmony, touch, and whether the figure develops with
 the form (answered in the second half of the motion, an oscillation over the pedal, a contrary
 figure at the cadence); the last harmony always takes a held arpeggio. Non-chord tones are
