@@ -479,7 +479,7 @@ export function createHarmonicCatalogueWorkspace({
     return bass;
   }
   const bassWhere = () =>
-    `${bass.scale === 'play' ? 'Play' : 'Discover'} scale degree ${bass.degree}`;
+    `${bass.scale === 'play' ? 'Board' : 'Discover'} scale degree ${bass.degree}`;
   function renderBassList(entries) {
     if (!entries.length)
       return `<p class="harmony-empty">No listed chord can have its bass on ${esc(bassWhere())}. Try another degree or widen the filters.</p>`;
@@ -991,7 +991,7 @@ export function createHarmonicCatalogueWorkspace({
             ? ` · root position${root == null ? '' : ` of ${chord}`}`
             : ` · ${inversionName(k)} of ${chord}`;
       if (chosen)
-        role += ` · bass on ${bassChoice.scale === 'play' ? 'Play' : 'Discover'} scale degree ${bassChoice.degree}`;
+        role += ` · bass on ${bassChoice.scale === 'play' ? 'Board' : 'Discover'} scale degree ${bassChoice.degree}`;
     } catch {}
     return `<p class="harmony-current-rotation" aria-live="polite">Rotation <b>${esc(current.display ?? current.label)}</b>${role}</p>`;
   }
@@ -1152,7 +1152,7 @@ export function createHarmonicCatalogueWorkspace({
       form === 'et'
         ? `<p class="harmony-et-context">ET is relative to the selected JI limits (odd limit ${esc(getSettings(getState()).limit ?? 15)}): every pair has an allowed reading, but no single JI chord realizes them all within those limits. The displayed ratios label tempered intervals from the bass; inversions refer to the tempered chord.</p>`
         : '';
-    return `${followSwitch}<h4>${esc(rowLabel(entry))}${['ji', 'tempered'].includes(entry.kind) ? ` <span class="form-badge ${form}">${FORM_LABELS[form]}</span>` : ''}</h4>${currentRotation(m)}${etContext}${geometry ? `${chordLineDiagram(m)}${rotationButtons(m)}${chordIntervalMatrix(m)}` : ''}${spellings(m)}${entry.kind === 'ji' || geometry ? `<div class="panelactions">${entry.kind === 'ji' ? button('dual', 'Open reciprocal chord') : ''}${geometry ? `${button('hear', m.voice ? 'Hear voicing' : 'Hear mapped notes')}${button('collect', 'Add to collection', occurrenceShape(m.state, geometry.shape).members.length < 2 ? 'disabled' : '')}${button('send', 'Send to Play')}` : ''}</div>` : ''}
+    return `${followSwitch}<h4>${esc(rowLabel(entry))}${['ji', 'tempered'].includes(entry.kind) ? ` <span class="form-badge ${form}">${FORM_LABELS[form]}</span>` : ''}</h4>${currentRotation(m)}${etContext}${geometry ? `${chordLineDiagram(m)}${rotationButtons(m)}${chordIntervalMatrix(m)}` : ''}${spellings(m)}${entry.kind === 'ji' || geometry ? `<div class="panelactions">${entry.kind === 'ji' ? button('dual', 'Open reciprocal chord') : ''}${geometry ? `${button('hear', m.voice ? 'Hear voicing' : 'Hear mapped notes')}${button('collect', 'Add to collection', occurrenceShape(m.state, geometry.shape).members.length < 2 ? 'disabled' : '')}${button('send', 'Send to Board')}` : ''}</div>` : ''}
    ${entry.kind === 'source' ? '<p>Source sounding coordinates and voices are preserved.</p>' : ''}
    ${entry.kind === 'ji' ? otherReadings() : ''}
    ${
@@ -1189,8 +1189,8 @@ export function createHarmonicCatalogueWorkspace({
         ['temperament', 'Whole temperament'],
         ['discover', 'Discover scale · anywhere'],
         ['discover-tonic', 'Discover scale · tonic'],
-        ['play', 'Play scale · anywhere'],
-        ['play-tonic', 'Play scale · tonic']
+        ['play', 'Board scale · anywhere'],
+        ['play-tonic', 'Board scale · tonic']
       ])}<label>Search or exact ratio chord<input type="search" data-harmony-field="search" maxlength="300" value="${esc(query)}" placeholder="4:5:6, 5:6:8 or 1/6:5:4"></label>${button('lookup', 'Look up chord')}</div>
    <div class="harmony-status" role="status" aria-live="polite">${status === 'loading' ? `Listing chords · ${progress?.count ?? 0} records` : status === 'cancelled' ? 'Listing cancelled. Any retained list is from the last completed result.' : status === 'incomplete' ? `Partial list · ${rows.length} chords. A search bound was reached, so some chords are not listed.` : `${rows.length} chords${result?.complete ? ' · complete' : ''}`}</div>
    ${error ? `<p role="alert">${esc(error)}</p>` : ''}`,
@@ -1246,10 +1246,10 @@ export function createHarmonicCatalogueWorkspace({
             ['temperament', 'Whole temperament'],
             ['discover', 'Discover scale · anywhere'],
             ['discover-tonic', 'Discover scale · tonic'],
-            ['play', 'Play scale · anywhere'],
-            ['play-tonic', 'Play scale · tonic']
+            ['play', 'Board scale · anywhere'],
+            ['play-tonic', 'Board scale · tonic']
           ]
-        )}${select('bass', 'Bass note', bass ? `${bass.scale}:${bass.degree}` : '', [['', 'Any'], ...Array.from({length: getState().n}, (_, i) => [`discover:${i}`, `Discover scale · degree ${i}`]), ...Array.from({length: getPlayState().n}, (_, i) => [`play:${i}`, `Play scale · degree ${i}`])])}</div>${formChips}` +
+        )}${select('bass', 'Bass note', bass ? `${bass.scale}:${bass.degree}` : '', [['', 'Any'], ...Array.from({length: getState().n}, (_, i) => [`discover:${i}`, `Discover scale · degree ${i}`]), ...Array.from({length: getPlayState().n}, (_, i) => [`play:${i}`, `Board scale · degree ${i}`])])}</div>${formChips}` +
         parts.controls.slice(parts.controls.indexOf('</div>') + 6);
       parts.list =
         bass && visible.length

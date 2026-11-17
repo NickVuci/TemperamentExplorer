@@ -72,6 +72,14 @@ assert.deepEqual(
   {h: 1, s: 0, v: 127},
   'a sounding key is white'
 );
+const heldWithHighlight = ledFrame(
+  {keys: keys.map(k => (k.index === 5 ? {...k, lit: true} : k)), held: [6]},
+  new Set([8])
+);
+assert.deepEqual(heldWithHighlight.get(5), hexToLed('#5686df', LEVEL.lit));
+assert.deepEqual(heldWithHighlight.get(6), hexToLed('#ffffff'));
+assert.deepEqual(heldWithHighlight.get(8), hexToLed('#ffffff'));
+assert.deepEqual(heldWithHighlight.get(9), hexToLed('#5686df', LEVEL.dim));
 assert.ok(ledFrame(null).get(10).v === 0, 'no snapshot means a dark board');
 assert.ok(LEVEL.normal < LEVEL.lit);
 assert.ok(LEVEL.dim < LEVEL.normal, 'background dimming is limited to active highlights');

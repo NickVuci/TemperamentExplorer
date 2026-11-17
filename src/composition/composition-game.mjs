@@ -14,6 +14,7 @@
 // played again is a repeat there too.
 import {buildCueTimeline, boardSnapshot} from './composition-cues.mjs';
 import {degreeOf} from './composition-context.mjs';
+import {compileFiguration, orderedChord} from './composition-figuration.mjs';
 import {PPQ, barTicks} from './composition-project.mjs';
 
 export const WINDOWS = Object.freeze({perfect: 40, great: 80, good: 130}); // milliseconds either side
@@ -25,6 +26,8 @@ export const POINTS = Object.freeze({perfect: 100, great: 75, good: 40, miss: 0}
 export const HOLD_BONUS = 25;
 const HOLD_MIN_TICKS = PPQ;
 export const PARTS = ['melody', 'chords', 'both'];
+// One voice of the harmonies alone: the lowest, the highest, or those between.
+export const VOICES = ['all', 'bass', 'top', 'inner'];
 export const MATCHES = ['exact', 'degree'];
 export const MODES = ['play', 'learn'];
 const GRADES = [
@@ -41,12 +44,47 @@ const RESULTS = ['perfect', 'great', 'good', 'miss'];
  * that play its exact pitch and the keys that play its degree in any register. A chord's tones share
  * a group. Ends are cut at `to`.
  */
+/**
+ * Which voice of its harmony each cue sounds: a function from a cue to `{voice, count}` (0 is the
+ * lowest of `count` tones) or null. A chord's own tones and the notes of its attached figure are read
+ * against the chord as written, low to high; hand-written melody notes belong to no voice.
+ */
+function cueVoices(project) {
+  const chords = new Map(),
+    figure = new Map();
+  for (const c of project.clips)
+    if (project.tracks.find(t => t.id === c.trackId)?.kind === 'chords')
+      for (const e of c.events)
+        chords.set(
+          e.id,
+          orderedChord(project.context, e).map(m => m.join(','))
+        );
+  for (const e of compileFiguration(project).events) figure.set(e.id, e.source.chordEventId);
+  return q => {
+    const ordered = chords.get(figure.get(q.eventId) ?? q.eventId),
+      voice = ordered ? ordered.indexOf(q.coordinate.join(',')) : -1;
+    return voice < 0 ? null : {voice, count: ordered.length};
+  };
+}
+const inVoice = (wanted, v) =>
+  !!v &&
+  (wanted === 'bass'
+    ? v.voice === 0
+    : wanted === 'top'
+      ? v.voice === v.count - 1
+      : v.voice > 0 && v.voice < v.count - 1);
+
 export function buildChart(
   project,
-  {part = 'melody', from = 0, to = Infinity, snapshot = boardSnapshot(project)} = {}
+  {part = 'melody', voice = 'all', from = 0, to = Infinity, snapshot = boardSnapshot(project)} = {}
 ) {
+  const voiceOf = voice === 'all' ? null : cueVoices(project);
   const cues = buildCueTimeline(project, snapshot, {ignoreMixer: true}).filter(
-    q => (part === 'both' || q.trackKind === part) && q.onsetTick >= from && q.onsetTick < to
+    q =>
+      (part === 'both' || q.trackKind === part) &&
+      q.onsetTick >= from &&
+      q.onsetTick < to &&
+      (!voiceOf || inVoice(voice, voiceOf(q)))
   );
   return {
     from,

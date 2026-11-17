@@ -5,7 +5,7 @@ import {resolveTone} from './composition-context.mjs';
 
 export function compositionBoard(project) {
   if (!project?.layout)
-    return {board: null, reason: 'Start a composition from a Play layout to see its HexBoard.'};
+    return {board: null, reason: 'Start a composition from a Board layout to see its HexBoard.'};
   try {
     return {board: buildBoard(project.context.state, project.layout), reason: ''};
   } catch (e) {

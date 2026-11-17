@@ -34,7 +34,8 @@ interval/JI, chord, and HexBoard-layout application.
 
 ## Main user workflow
 
-The top-level tabs are **Discover**, **Play**, and **Create**.
+The top-level tabs are **Discover**, **Board** (labelled Play before D-056; the code still calls it
+`play`), and **Compose** (`create`).
 
 Temperament and Tuning controls sit in the app header on every tab; their advanced
 options (comma search and direct mapping input; tuning-method settings and Optimize
@@ -793,7 +794,7 @@ notes. Browser installability and offline loading are checked manually.
 
 ## Composition suite (MVP)
 
-The composition workspace has two views: **Compose** and **Play**. Compose shows a piano roll
+The composition workspace has two views: **Compose** and **Practice** (the game; `mode: game`). Compose shows a piano roll
 (bar ruler, chord lane, melody rows, velocity lane, root lane) above two responsive panels: the saved
 HexBoard and the selection. Play owns guided learning and timed runs.
 
@@ -813,6 +814,43 @@ playback/practice; manual melody overlap is a warning. The chord lane is silent 
 prelude, with Sound harmony enabling accompaniment. Saved figures extend the browser preset library
 and its backups. Compositions containing figuration use format v2; v1 remains readable and session
 envelopes are unchanged. See [Figuration preludes](FIGURATION.md) for the workflow.
+
+Prelude (D-054, D-055, D-057). Since D-057 the Harmony step is an arrangement of template sections
+(add, move, repeat, remove; chords edited in place for harmony, colour, inversion, register, order
+and lead-ins) written live to the composition; the whole-piece plans described next remain in the
+engine and feed the templates. Compose opens with a Prelude panel of three steps. Harmony: a plan (tonic
+frame; bass octave, which is opening frame, a bass scale falling an octave, a pedal on the leading
+degree and a closing frame; a sequence of roots moving by one scale interval; a comma pump; or the
+chord lane as it stands), a home degree and three to five voices. A comma pump moves the root by
+just consonances whose just sum is a comma the mapping tempers out, so the last move arrives home;
+the shortest pump that keeps every root in the scale is the default, others are offered, and a
+short one is walked twice. With Comfortable hands (the default) the player's hand model
+(`hand-model.mjs`, from the shape explorer) weighs each voicing by the strain of its two hand
+shapes, the right hand taking the top three voices. The bass octave, sequence and pump take a direction, and the sequence a root interval
+in scale degrees. The arrangement is shown as a chord chart: each section a named run of fixed-width
+cells, each cell one harmony showing its voicing on the piece's pitch range (bass line and top voice
+drawn through the cells), its root degree with the bass degree as a slash, its chord and any
+non-chord tone; its lower edge carries the formal function and it lights while it sounds. Pressing a
+cell sounds and selects it; one inspector band below the chart edits the selected chord (root,
+colour, inversion, register; swap, repeat, lead-in, remove) or the selected section (rename, move,
+repeat, remove). The chart is one tab stop; on a focused chord ←/→ select, Shift+←/→ swap, ↑/↓ step
+the root, C and I turn colour and inversion, Page Up/Down the register, Ctrl/⌘+D repeats, Delete
+removes, and Ctrl/⌘+Z/Y undo and redo. Chords drag to any place, including into another section,
+and sections drag by their names; a + on each bar line repeats that chord. The first edit freezes a
+plan into a Custom plan (`options.custom`, via `customFromPlan`). Figure: five voice-order figures, note
+value, harmony length, one or two cycles per harmony, touch, and whether the figure develops with
+the form (answered in the second half of the motion, an oscillation over the pedal, a contrary
+figure at the cadence); the last harmony always takes a held arpeggio. Non-chord tones are
+optional: suspensions, or suspensions and passing tones, each in one upper voice and taking one
+sounding of the figure, so a decorated harmony is written as two chord events. Write the prelude
+replaces the chord lane and attachments as one undoable edit and keeps written melody notes.
+Practice: seven rungs that open Play with preset settings and start it (block harmonies in Wait;
+the bass line alone; the top voice alone; the figure on one harmony, repeated; each formal section;
+the whole piece in Wait; Timed from 60% with the speed trainer). A finished Wait pass, or a Timed pass at 80% or better at full speed, marks its rung in
+this browser (`temperament-lab-prelude-practice`). `composition-prelude.mjs` owns the plan, pumps,
+voice leading, non-chord tones, figure sequences and timing; `composition-prelude-view.mjs` the
+panel. Play's Voice setting (every voice, bass, top or inner voices) charts one voice of the
+harmonies and their figures; `buildChart` reads a note's voice from its chord, low to high.
 
 Piano roll. Notes are placed on a time grid (`composition-grid.mjs`): a base division from 1/1 to 1/64,
 straight, dotted, triplet (3:2), quintuplet (5:4), septuplet (7:4) or any custom n:m tuplet, with
@@ -949,7 +987,7 @@ the layout the lit keys shine brightly over a dimmed background; Off shows the l
 suggested-key cues from the screen and device. Setup lights its previewed notes over the layout, and
 results show the layout. Calibration plays twelve clicks and stores
 the median lag of taps on the last eight; it is taken off every Timed press. Settings, that offset and
-the best score per composition, part, match, speed and section stay in this browser only.
+the best score per composition, part, voice, match, speed and section stay in this browser only.
 
 Create opens one composition at a time: a chord progression built from collected
 chords, a scale-degree piano roll, a looping tuned transport, and a game-ready cue
@@ -970,6 +1008,7 @@ timeline. The authoritative plan, frozen limits and action log are in
 | Piano-roll pointer gestures, hover readout and ghost note, wheel zoom | `composition-roll-input.mjs` |
 | Voice groups, scoped scheduling/cancellation, clock snapshot | `audio.mjs` (additive; legacy preview methods unchanged) |
 | Cue timeline, board-cell lookup, practice-target export | `composition-cues.mjs` |
+| Prelude plan, voice leading to the saved layout, figure sequences, timing / panel markup | `composition-prelude.mjs` / `composition-prelude-view.mjs` |
 
 Play freezes settings and absolute section bounds for each pass. The shared transport accepts
 `play({countIn, untilTick, graceMs})`; bounded scheduling caps onsets and releases at `untilTick`,

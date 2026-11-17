@@ -1225,3 +1225,99 @@ rating wherever it lies on the board, so board edges and reach from a previous c
 Session records gain an optional `hand` object and older sessions load with the defaults. A second
 ergonomic scorer must not be added elsewhere: other views that need comfort should call this
 module.
+
+## D-054 — Preludes are composed structure-first and stored as voiced chords with attached figures
+
+**Decision.** The Prelude panel composes a figuration prelude in three pure stages
+(`composition-prelude.mjs`): a harmonic plan (formal function, bass degree and chord for each
+harmony), voice leading (a fixed number of sounding voices per harmony, fitted to the saved
+layout's enabled keys), and a figure (the order in which voice slots sound). `writePrelude` stores
+the result with no new format: each harmony is an ordinary chord event whose tones are its voiced
+structural pitches, and its figure is a version 1 figuration pattern whose ranks are voice slots.
+The plan, its function labels and the options are kept in the chord events' free-form `source`
+(`kind: 'prelude'`). Practice stages are presets of the existing Play settings.
+
+**Rationale.** Thoroughbass pedagogy (Niedt, C. P. E. Bach's plan of tonic frame, bass octave,
+dominant pedal and closing frame, and Lester's reading of Bach's pattern preludes) treats the
+broken surface as a projection of voice-led harmony. The earlier generator chose chord tones at
+random per figure, so nothing connected one harmony to the next. Because `orderedChord` already
+ranks a chord's written pitches low to high, a voiced chord plus rank references gives voice-slot
+figuration through the existing compile, transport, cue, fingering and Play paths, and the block
+chords are the reduction a player practises first.
+
+**Consequences.** Harmony comes from the chord directory's root-position chords while the app
+matches the composition, and otherwise from the scale's most concordant three-note chords; the
+concordance measure (9-odd-limit fit) only ranks candidates and is not an interval classification.
+The leading and neighbour degrees are chosen by voice-leading pull toward the home chord, with the
+degrees nearest 3/2 and 4/3 preferred when the scale has them. Changes of register within a figure
+are not generated (non-chord tones: D-055); a hand-drawn figure can still be attached to any
+harmony. The random texture generator remains in the figure editor for single figures. Do
+not add a second prelude or progression format: extend the plan or the figure sequences.
+
+## D-055 — Pumps, non-chord tones and hand comfort extend the prelude without a new format
+
+**Decision.** Three additions to D-054 keep its storage (voiced chord events plus rank figures).
+
+- A comma pump is found, not listed: a breadth-first search over just pitch classes by consonant
+  root motions (the 7-odd-limit ratios the basis spells, then 9, 11, 13 and 15 if none is found),
+  keeping every root on a scale degree, until a class is reached whose tempered image is home while
+  its just sum is not a unison. The moves are then ordered so that no root repeats, the leading
+  degree comes last when it can, and equal moves stay together. For divided octaves a root may lie
+  whole periods above its degree's own octave class.
+- A suspension or passing tone is one voice of one harmony taking another pitch for one sounding
+  of the figure. It is written by splitting the harmony into two chord events, the decorated one
+  carrying the substituted tone, both marked with the same `source.slot`. The figure's rank
+  references then sound it in the same voice slot with no change to patterns.
+- Hand comfort is a cost on voicings: the strain `createHandRater` gives each hand's key shape,
+  capped per hand, added to the voice-leading cost. It reorders candidates only.
+
+**Rationale.** A pattern-level scale-step offset was the alternative for non-chord tones. It would
+have changed the figuration format, its validation, the figure editor and saved figures, and would
+have made dissonance a property of the figure rather than of the voice leading. Suspensions are
+harmonic events (prepared, held, resolved). In the pattern preludes this workflow is modelled on,
+a dissonance lasts a whole sounding of the figure, so splitting the harmony states it directly and
+gives the player the dissonant chord to practise as a block. A fixed pump catalogue would not follow custom
+temperaments, subgroups or the chosen scale; the search needs only the basis and mapping.
+
+**Consequences.** Decorations need the figure twice per harmony, except a suspension on the last
+harmony, which delays the close by one harmony. They are skipped in the opening frame so that
+returning material is the richer, and at most one voice of a harmony is decorated. Neighbour tones,
+anticipations and chromatic approaches are not generated. A plan's degrees still cover one period,
+so in a divided octave only the pump plan leaves the home period. `source.slot` identifies a
+harmony's events; code that maps plan slots to chord events must use it rather than position.
+
+## D-056 — "Play" names an action, not a place
+
+**Decision.** The top-level HexBoard workspace is labelled **Board** and the composition game is
+labelled **Practice**. "Play" is kept only for actions (the transport button, "Play scale", "Play
+chord"). Internal names (`data-section="play"`, `#play-view`, `mode: 'game'`, `playState`) are
+unchanged, so sessions, stored settings and tests that address them keep working.
+
+**Rationale.** The app had a Play tab, a Play mode inside Compose and a Play transport button, all
+on one screen. Board describes what the tab holds (the HexBoard layout, its scale and chord
+shapes); Practice describes the game. Renaming only labels avoids a session-format migration.
+
+**Consequences.** User-facing text says "the Board scale", "the Board layout", "Send to Board".
+`docs/HEXBOARD_WORKSPACE_PLAN.md` still plans to fold the Board tab into Compose; this rename does
+not change that plan.
+
+## D-057 — The prelude's harmony is an arrangement of template sections, written live
+
+**Decision.** The Prelude panel no longer offers whole-piece plans to choose between. Its harmony
+is an arrangement: `options.custom` items each carry a section index `s` and a register `lift`,
+and `options.sections` names the sections. Sections are added from templates
+(`PRELUDE_TEMPLATES`, laid out by `templateSection`, which runs the existing planner and takes
+the part it needs). Every edit to the arrangement, figure or settings rewrites the prelude at once
+through `writePrelude` as one undoable step; there is no Write button. Undo and redo reload the
+panel's options from the written prelude. The whole-piece plans remain in the engine (templates
+and tests use them), and a prelude written from one is converted to sections on first edit.
+
+**Rationale.** Picking one fixed plan and then adjusting settings did not let the player shape a
+piece: there was no way to combine a pump with a cadence, repeat a part or reorder. Sections that
+can be added, moved, repeated and edited chord by chord give that, with far fewer controls on
+screen. Live writing removes the stale state between the panel and the composition.
+
+**Consequences.** Each change adds a history entry. A template uses the home degree and scale at
+the moment it is added; changing the home degree later does not re-lay existing sections. Practice
+sections follow the arrangement's sections (`source.section`).
+

@@ -146,7 +146,7 @@ function fitPlayHarmony(coords) {
     );
   if (fitted === play) return;
   if (!fitted) {
-    toast('No collision-free Play scale fits these notes within 256 notes.');
+    toast('No collision-free Board scale fits these notes within 256 notes.');
     return;
   }
   layoutState.state = validate(fitted);
@@ -549,7 +549,7 @@ function syncNavigation() {
   const materialHost = $('#material-host');
   if (section === 'create') destination.appendChild(materialHost);
   $('#workspace-title').hidden = section === 'discover';
-  $('#workspace-title').textContent = 'Play';
+  $('#workspace-title').textContent = 'Board';
   const approximation = $('#approximation-module'),
     inDiscover = section === 'discover';
   $('#approximation-settings').hidden = !inDiscover;
@@ -769,6 +769,7 @@ const compositionWorkspace = createCompositionWorkspace({
   notify: toast,
   download: (name, text, type) => download(name, text, type),
   onLights: () => hexboardSync.schedule(),
+  getHandModel: () => hexWorkspace.shapeExplorer.serialize().hand?.model ?? null,
   loadState: setup => {
     state = validate(setup);
     coverageSignature = scaleDefaultKey(state, coverageSettings(state));

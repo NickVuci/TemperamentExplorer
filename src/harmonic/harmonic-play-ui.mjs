@@ -146,8 +146,8 @@ export function createHarmonicPlayWorkspace({
   ${
     voicing
       ? `<p>${voicing.voices.length} voices · ${esc(voicing.reference?.label ?? 'Preserved source voicing')}</p><p>${voicing.pitches.map(p => p.toFixed(3)).join(' · ')} ¢</p>
-   ${voicing.withinScale === false ? '<p>The requested sounding notes do not belong to the Play scale. Your scale and voicing have been preserved.</p><button data-harmony-play="fit">Fit Play scale to these notes</button>' : ''}
-   ${occurrences?.completeOccurrences.length ? `<label>Play occurrence<select data-harmony-play-field="root"><option value="">Preserve requested sounding notes</option>${occurrences.completeOccurrences.map(root => option(root.id, `${rootedChordName(root.root, selection.label ?? 'Coordinate harmony')}${root.tonicAnchored ? ' · tonic' : ''}`, rootId)).join('')}</select></label>` : '<p>No complete abstract occurrence in the Play scale.</p>'}
+   ${voicing.withinScale === false ? '<p>The requested sounding notes do not belong to the Board scale. Your scale and voicing have been preserved.</p><button data-harmony-play="fit">Fit Board scale to these notes</button>' : ''}
+   ${occurrences?.completeOccurrences.length ? `<label>Board occurrence<select data-harmony-play-field="root"><option value="">Preserve requested sounding notes</option>${occurrences.completeOccurrences.map(root => option(root.id, `${rootedChordName(root.root, selection.label ?? 'Coordinate harmony')}${root.tonicAnchored ? ' · tonic' : ''}`, rootId)).join('')}</select></label>` : '<p>No complete abstract occurrence in the Board scale.</p>'}
    ${
      placements.length
        ? `<p>${placements.length} exact fingerings${fingering < 0 ? ' · choose one to highlight' : ''}</p><div class="harmony-fingerings">${placements

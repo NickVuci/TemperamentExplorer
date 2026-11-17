@@ -8,6 +8,7 @@ import {captureContext} from '../src/composition/composition-context.mjs';
 import {compositionBoard} from '../src/composition/composition-board.mjs';
 import {START_DELAY_SECONDS, CLICK} from '../src/composition/composition-transport.mjs';
 import {normalizeSettings} from '../src/composition/composition-game-ui.mjs';
+import {ledFrame} from '../src/hexboard/hexboard-sync.mjs';
 
 const demo = JSON.parse(
   await readFile(new URL('./fixtures/composition/phase0-demo.json', import.meta.url), 'utf8')
@@ -171,7 +172,16 @@ assert.ok(
   !ws.deviceSnapshot().keys.some(k => k.lit && !k.command),
   'Note hints can hide setup suggestions'
 );
-assert.match(host.innerHTML, /<option value="off" selected>/);
+const unpressed = ledFrame(ws.deviceSnapshot()),
+  playedKey = board.keys.find(k => k.enabled && !k.command).index;
+assert.equal(ws.pressKey(playedKey), true);
+const pressed = ledFrame(ws.deviceSnapshot());
+assert.deepEqual(pressed.get(playedKey), {h: 1, s: 0, v: 127});
+for (const [index, color] of unpressed)
+  if (index !== playedKey) assert.deepEqual(pressed.get(index), color);
+ws.releaseKey(playedKey);
+assert.deepEqual(ledFrame(ws.deviceSnapshot()), unpressed);
+assert.match(host.innerHTML, /data-field="gameLights" data-value="off" aria-pressed="true"/);
 assert.equal(
   store.get('temperament-lab-game-settings').lights,
   'off',

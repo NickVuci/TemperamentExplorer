@@ -24,6 +24,7 @@ export function ledFrame(snapshot, held = new Set(), brightness = BRIGHTNESS.def
   const frame = new Map(),
     scale = clampBrightness(brightness),
     white = hexToLed('#ffffff', scale),
+    sounding = new Set([...held, ...(snapshot?.held ?? [])]),
     highlighted = snapshot?.keys.some(
       key => key?.enabled && !key.command && (key.lit || key.marked)
     ),
@@ -34,7 +35,7 @@ export function ledFrame(snapshot, held = new Set(), brightness = BRIGHTNESS.def
       frame.set(led, OFF);
       continue;
     }
-    if (held.has(led)) {
+    if (sounding.has(led)) {
       frame.set(led, white);
       continue;
     }

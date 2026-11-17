@@ -87,7 +87,7 @@ const change = (compField, value, rest = {}) =>
 ws.restore(fixture);
 ws.refresh();
 assert.match(host.innerHTML, /Compose and play/);
-assert.match(host.innerHTML, /data-comp="mode-game"[^>]*>Play<\/button>/);
+assert.match(host.innerHTML, /data-comp="mode-game"[^>]*>Practice<\/button>/);
 assert.match(host.innerHTML, /data-comp-roll/);
 assert.match(host.innerHTML, /composition-lower/);
 // The Compose board is a miniature of Play's: the layout's own colours, label ink and tonic marker.

@@ -92,9 +92,13 @@ page.input('#hexboard-brightness', 40);
 await page.until(() => record(index).v < 80, {message: 'the brightness repaint'});
 assertLedColour(record(index), '#55b5ba', 0.5 * 0.4);
 assert.equal(page.window.localStorage.getItem('temperament-lab-hexboard-brightness'), '40');
+const beforeHold = ledRecords(sent);
 input.onmidimessage({data: [0x90 | Math.floor(index / 100), index % 100, 127], timeStamp: 0});
 await page.until(() => record(index).s === 0, {message: 'held-key white'});
 assertLedColour(record(index), '#ffffff', 0.4);
+for (const [other, color] of beforeHold)
+  if (other !== index)
+    assert.deepEqual(record(other), color, 'holding a key leaves other LEDs unchanged');
 input.onmidimessage({data: [0x80 | Math.floor(index / 100), index % 100, 0], timeStamp: 0});
 await page.until(() => record(index).s > 0, {message: 'release restores cyan'});
 assertLedColour(record(index), '#55b5ba', 0.5 * 0.4);

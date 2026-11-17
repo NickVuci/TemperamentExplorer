@@ -796,7 +796,7 @@ export function createShapeExplorer({
           reading.possibleInversions?.length
             ? reading.possibleInversions.map(inversionName).join(' / ')
             : null,
-          reading.withinScale === false ? 'outside the Play scale' : null
+          reading.withinScale === false ? 'outside the Board scale' : null
         ]
           .filter(Boolean)
           .join(' · ');
@@ -918,7 +918,7 @@ export function createShapeExplorer({
     <label>Highest register<input type="number" step="1" data-shape-field="registerMax" placeholder="All" value="${constraints.registerMax ?? ''}"></label>
     <label>Search nodes<input type="number" min="1" max="1000000" step="1" data-shape-field="maxNodes" value="${constraints.maxNodes}"></label>
     <label>Placement limit<input type="number" min="1" max="20000" step="1" data-shape-field="maxPlacements" value="${constraints.maxPlacements}"></label></div>
-    <label class="checklabel"><input type="checkbox" data-shape-field="scaleOnly" ${constraints.scaleOnly ? 'checked' : ''}>Only notes in the selected Play scale</label>
+    <label class="checklabel"><input type="checkbox" data-shape-field="scaleOnly" ${constraints.scaleOnly ? 'checked' : ''}>Only notes in the selected Board scale</label>
     <p>Every voicing within these limits is searched on enabled keys; notes move only by whole octaves (or the temperament’s mapped reference interval). Source chords have 2–8 tones, and tones the temperament merges share one key. Identify selected keys reads the chosen keys whatever these filters say, within the node and placement limits.</p></details>
    ${status === 'searching' ? `<p role="status">${progress?.stage === 'sources' ? 'Preparing JI readings' : 'Searching board shapes'}${progress?.count != null ? ` · ${progress.count} sources` : ''}${progress?.visited != null ? ` · ${progress.visited} nodes` : ''}…</p>` : ''}
    ${error ? `<p role="alert">${esc(error)}</p>` : ''}

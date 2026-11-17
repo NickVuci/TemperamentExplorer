@@ -85,7 +85,7 @@ function setup({
 // No chord: a prompt, no Start button.
 {
   const t = setup({fingerings: null});
-  assert.match(t.host.innerHTML, /Choose a chord fingering on the Play board/);
+  assert.match(t.host.innerHTML, /Choose a chord fingering on the Board/);
   assert.doesNotMatch(t.host.innerHTML, /data-fg="start"/);
 }
 

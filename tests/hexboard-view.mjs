@@ -2,6 +2,7 @@
 // HexBoard player (hold, release, physical presses) exactly as Play's do.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {ledFrame} from '../src/hexboard/hexboard-sync.mjs';
 import {makeState} from '../src/core/catalog.mjs';
 import {buildBoard} from '../src/hexboard/hexboard.mjs';
 import {fingeringPattern, fingeringMap} from '../src/hexboard/hexboard-view.mjs';
@@ -158,14 +159,23 @@ compose.restore(fixture);
 compose.refresh();
 const board = buildBoard(fixture.context.state, fixture.layout),
   key = board.keys.find(k => k.enabled && !k.command && k.index !== 65);
+const beforePress = ledFrame(compose.deviceSnapshot());
 fire('pointerdown', {target: node(key.index)});
 assert.equal(voices.length, 1, 'a held Compose key sounds once');
 assert.equal(voices[0].cents, key.c);
 assert.ok(node(key.index).classList.has('is-playing'), 'and is lit as playing');
-assert.ok(compose.deviceSnapshot().keys[key.index].marked, 'the physical board shows it held');
+const heldFrame = ledFrame(compose.deviceSnapshot());
+assert.deepEqual(heldFrame.get(key.index), {h: 1, s: 0, v: 127}, 'the held key lights white');
+for (const [index, color] of beforePress)
+  if (index !== key.index) assert.deepEqual(heldFrame.get(index), color, 'other LEDs do not dim');
 fire('pointerup', {});
 assert.equal(voices[0].released, true, 'releasing the pointer stops it');
 assert.ok(!node(key.index).classList.has('is-playing'));
+assert.deepEqual(
+  ledFrame(compose.deviceSnapshot()),
+  beforePress,
+  'release restores the LED picture'
+);
 // A physical key presses the on-screen Compose key through the same player.
 assert.equal(compose.pressKey(65, 2), true);
 assert.equal(voices.length, 2);

@@ -1,5 +1,67 @@
 # Figuration preludes
 
+## Compose a prelude
+
+**Compose** opens with the **Prelude** panel. It works in three steps, and everything you do is
+written into the composition at once (one Undo per change), so there is nothing to apply.
+
+1. **Harmony.** Build an arrangement from sections. Press a section under **Add a section**:
+   Opening, Falling bass, Rising bass, Sequence, Comma pump, Pedal point, Half cadence, Cadence,
+   Plagal close or Home chord. Each is laid out for your scale and tuning. Add more to make a
+   whole piece.
+   - Press a section's name to select and hear it. Then move it with the arrows, **Repeat** it or
+     **Remove** it. A new section goes after the selected one.
+   - Press a chord to hear it and edit it in place: **Harmony** (which chord), **Colour** (other
+     chords on the same root), **Inversion**, **Voicing** (lower, as led, higher), **Swap** with a
+     neighbour, **Repeat**, **Add a lead-in** (its own leading harmony before it) or **Remove**.
+2. **Figure.** Choose the order in which the voices sound. **Hear the harmonies** plays the block
+   chords; **Listen** plays the prelude. Note value, harmony length, touch, development and
+   dissonance are under **Settings**.
+3. **Practice on the HexBoard.** The harmonies as held chords, the bass line, the top voice, one
+   harmony, each of your sections, the whole prelude, then in time. A completed stage is marked.
+
+Home degree, the number of voices and hand comfort are under the Harmony step's **Settings**.
+
+### Comma pump
+
+A comma pump moves the root by pure intervals (3/2, 5/4, 6/5, 7/4 and their kin) that, in just
+intonation, would end a comma away from where they began. In a temperament that tempers the comma
+out, the last move arrives exactly home. Meantone's is the syntonic comma pump (81/80): the root
+moves by 5/3, 4/3, 4/3, 4/3. The plan finds the shortest pump whose roots all lie in your scale;
+where the temperament has several, the **Comma** list offers them. Each card shows the interval
+its root moved by. A short pump is played twice.
+
+### Non-chord tones
+
+**Non-chord tones** adds suspensions, or suspensions and passing tones. Both come from the voice
+leading that is already there. A voice that steps down into a harmony may hold its old note for
+the first sounding of the figure and then resolve. A voice about to move by a third may take the
+note between for the last sounding. They need the figure **twice per harmony**; the opening frame
+is left plain. A decorated harmony appears as two chords in the chord lane.
+
+### Hand shapes
+
+With **Comfortable hands**, the hand model from the shape explorer (your hand size and
+finger settings) rates how each voicing lies under the hands: the right hand takes the top three
+voices, the left the rest. Voicings that strain the hand are avoided where the voice leading
+allows, and each card shows the grade, A to D. **Closest motion** ignores the hands.
+
+### One voice at a time
+
+Play's **Voice** setting charts the bass, the top voice or the inner voices alone. The bass-line
+and top-voice practice stages use it.
+
+The harmonies are voice-led before any figure is applied: the bass follows the plan, the upper
+voices move as little as they can and stay on keys of the saved layout, and the top voice rises
+toward a high point about two-thirds through. The figure only spreads those voices through time.
+Chords come from the chord directory while the app is set to the composition's tuning and scale;
+otherwise the plan uses the scale's most concordant three-note chords and says so.
+
+To change one harmony's figure by hand, select its chord and use **Edit attached figure** below.
+
+## Draw a figure by hand
+
+
 In **Create → Compose**, arrange your harmonies in the chord lane. Select a chord,
 open **Figuration**, and choose **New figure**. The roll becomes a pattern editor
 whose numbered rows follow that reference chord from lowest to highest pitch.
@@ -57,7 +119,7 @@ chord tones and unsupported octave shifts must be corrected before playback or
 practice.
 
 The chord lane is a silent template by default. Enable **Sound harmony** to hear
-sustained chords underneath. Open **Play** to practice the melody with the normal
+sustained chords underneath. Open **Practice** to practise the melody with the normal
 Timed or Wait settings and the composition's saved HexBoard layout. Notes without
 playable buttons are reported before starting. You can select attached notes and
 choose their buttons without detaching them.

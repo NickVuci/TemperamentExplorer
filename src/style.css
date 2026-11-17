@@ -8916,3 +8916,804 @@ footer {
   vertical-align: middle;
   accent-color: var(--mint);
 }
+
+/* Prelude panel: harmonic plan, figure and practice ladder. */
+.prelude-panel {
+  margin-block: 12px;
+}
+.prelude-panel > summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 17px;
+}
+.prelude-lede,
+.prelude-note {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 8px 0 0;
+  max-width: 68ch;
+}
+.prelude-note {
+  min-height: 3em;
+}
+.prelude-steps {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.prelude-step {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--inset-bg);
+}
+.prelude-step h4 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+.prelude-num {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--b);
+  border-radius: 50%;
+  color: var(--b);
+  font: 500 13px var(--font-mono);
+}
+.prelude-plans,
+.prelude-figures,
+.prelude-actions,
+.prelude-controls,
+.prelude-section-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.prelude-controls {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+/* A setting: label in a fixed left column, choices as joined buttons on the right. */
+.prelude-field {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+.prelude-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+.prelude-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.prelude-seg button {
+  min-width: 34px;
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 13px;
+  line-height: 1.2;
+}
+.prelude-field select {
+  justify-self: start;
+  padding: 6px 8px;
+  color: var(--text);
+}
+.prelude-panel button[aria-pressed='true'] {
+  border-color: var(--a);
+  background: #26304a;
+  color: #fff;
+}
+
+.prelude-status {
+  min-height: 3em;
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.prelude-error {
+  color: var(--danger, #f98b8b);
+}
+.prelude-figures button {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+.prelude-figure-diagram line {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.prelude-figure-diagram circle {
+  fill: var(--a);
+}
+.prelude-figure-diagram circle.is-bass {
+  fill: var(--b);
+}
+.prelude-actions {
+  margin-top: 14px;
+}
+.prelude-ladder {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  counter-reset: rung;
+}
+.prelude-ladder > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 8px;
+}
+.prelude-ladder > li > button,
+.prelude-ladder > li > div {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 9px 12px;
+  text-align: left;
+}
+.prelude-ladder > li > div {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.prelude-ladder small {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+  font-weight: 400;
+}
+.prelude-section-buttons {
+  margin-top: 6px;
+}
+.prelude-section-buttons button {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+.prelude-done {
+  font-size: 16px;
+  text-align: center;
+}
+/* An earned mark: completed rungs are drawn in gold foil. */
+.prelude-ladder .is-done .prelude-done,
+.prelude-section-buttons button.is-done {
+  background: linear-gradient(120deg, #b98a2e, #f6e3a1 45%, #e9c46a 60%, #a8792a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.prelude-section-buttons button.is-done {
+  border-color: var(--b);
+}
+@media (max-width: 1100px) {
+  .prelude-steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A run fills the screen: the score bar on top, the highway and the HexBoard sharing the rest, so
+   nothing needs scrolling while both hands are on the keys. */
+.game.is-running {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0;
+  padding: 10px max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left));
+  background: var(--bg);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+.game.is-running .game-hud {
+  margin-bottom: 0;
+}
+.game.is-running .game-stage {
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
+}
+.game.is-running .game-highway,
+.game.is-running .game-board-wrap {
+  min-height: 0;
+}
+.game.is-running .game-road {
+  min-height: 0;
+  height: auto;
+}
+.game.is-running .game-board-wrap {
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  place-items: center;
+  padding: 8px;
+}
+/* Many lanes on a short screen grow thinner before any is cut off. */
+.game.is-running .game-lanes,
+.game.is-running .game-window {
+  --lane-h: clamp(11px, calc(100cqh / var(--lanes)), 84px);
+}
+.game.is-running .game-lanes span,
+.game.is-running .game-note b {
+  font-size: clamp(9px, calc(var(--lane-h) - 6px), 14px);
+  line-height: 1;
+}
+.game.is-running .composition-board.hex-board {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}
+.game-stats .game-stage-name dd {
+  font: 600 16px/1.6 var(--font-ui);
+  white-space: nowrap;
+}
+@media (max-width: 1000px) {
+  .game.is-running {
+    gap: 8px;
+    padding-top: 8px;
+  }
+  .game.is-running .game-stage {
+    grid-template-rows: minmax(110px, 0.8fr) minmax(0, 1.2fr);
+    gap: 8px;
+  }
+  .game.is-running .game-hud {
+    gap: 6px 12px;
+    padding: 8px 10px 0;
+  }
+  .game.is-running .game-stats {
+    gap: 14px;
+  }
+  .game.is-running .game-stats dd {
+    font-size: 17px;
+  }
+  .game.is-running .game-stats .game-stage-name dd {
+    font-size: 14px;
+  }
+  .game.is-running .game-controls button {
+    min-height: 32px;
+    padding: 4px 10px;
+    font-size: 13px;
+  }
+}
+/* The rung to take next. */
+.prelude-ladder button.is-next {
+  border-color: var(--b);
+  box-shadow: inset 3px 0 var(--b);
+}
+/* The app header steps aside for a run; it returns with the results. */
+body:has(.game.is-running) .app-header {
+  visibility: hidden;
+}
+.game.is-running .game-note {
+  --note-h: min(max(calc(var(--lane-h) - 12px), calc(var(--lane-h) * 0.72)), 56px);
+}
+
+.prelude-panel .prelude-status {
+  min-height: 4.5em;
+}
+
+/* The three steps run as full-width bands, one under another, so the harmonies read across the
+   whole screen like a line of music. */
+.prelude-steps {
+  grid-template-columns: minmax(0, 1fr);
+}
+.prelude-step .prelude-controls {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 8px 28px;
+}
+.prelude-step .prelude-note {
+  min-height: 1.5em;
+  max-width: none;
+}
+
+.prelude-step.is-practice .prelude-ladder {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+  align-items: stretch;
+}
+.prelude-step.is-practice .prelude-ladder > li > button,
+.prelude-step.is-practice .prelude-ladder > li > div {
+  height: 100%;
+  align-content: start;
+}
+.prelude-step.is-practice .prelude-stage-sections {
+  grid-column: span 2;
+}
+@media (max-width: 700px) {
+  .prelude-step .prelude-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .prelude-step.is-practice .prelude-stage-sections {
+    grid-column: auto;
+  }
+}
+
+.prelude-step .prelude-status {
+  min-height: 1.5em;
+}
+
+/* Practice settings: each a label above a row of joined choice buttons. */
+.game .game-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.game .game-field > span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.game-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.game-seg button {
+  min-height: 32px;
+  padding: 5px 11px;
+  font-size: 13px;
+}
+.game-seg button[aria-pressed='true'] {
+  border-color: var(--a);
+  background: #26304a;
+  color: #fff;
+}
+
+/* Compose's start screen: start new on the left, the samples on the right. */
+.composition-start {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 18px;
+  max-width: none;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.composition-start section {
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.composition-start h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+.composition-start-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 6px;
+}
+.composition-samples {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+.composition-samples button {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  min-height: 58px;
+  padding: 10px 12px;
+  text-align: left;
+}
+.composition-samples small {
+  color: var(--muted);
+  font-size: 12px;
+}
+@media (max-width: 800px) {
+  .composition-start {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* An open page: the workspace wrappers are not frames. Each screen sits directly on the ground with
+   one level of panels at most, and parts inside a panel are divided by a rule or by space. */
+main {
+  max-width: 1760px;
+  padding: 28px clamp(16px, 2vw, 32px) 0;
+}
+.composition-suite,
+.hex-workspace,
+.material-collection {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+.material-collection {
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+/* Inside the Prelude panel the three steps are bands divided by a rule, not boxes. */
+.prelude-step {
+  padding: 18px 0 4px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+}
+.prelude-steps {
+  gap: 10px;
+}
+.prelude-ladder > li > div {
+  padding: 10px 0 0;
+  border: 0;
+  border-radius: 0;
+}
+
+/* Panels themselves are lighter: a little more room inside, no second frame around them. */
+.comp-panel,
+.unified-pane,
+.game-setup-form,
+.game-board-wrap,
+.composition-start section {
+  padding: 18px 20px;
+}
+
+.prelude-more {
+  margin-top: 8px;
+}
+.prelude-more > summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* The Harmony step's chart: sections in a row that wraps like lines of music, each a run of bars.
+   A bar shows its voicing on the piece's whole pitch range, its root degree and its chord; the
+   bass line and the top voice run through the bars. The cell width matches CELL_W in
+   composition-prelude-view.mjs. */
+.harm-chart {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 10px;
+  user-select: none;
+}
+.harm-section {
+  position: relative;
+  min-width: 0;
+}
+/* The name never widens its section: a long name on a short section is cut. */
+.harm-section-name {
+  display: block;
+  width: 0;
+  min-width: 100%;
+  min-height: 24px;
+  padding: 0 2px 5px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.harm-section .harm-section-name:hover {
+  background: none;
+  color: var(--text);
+}
+.harm-section.is-selected .harm-section-name {
+  background: none;
+  color: var(--b);
+}
+.harm-cells {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--board-bg);
+}
+.harm-section.is-selected .harm-cells {
+  border-color: color-mix(in srgb, var(--b) 60%, var(--line));
+}
+.harm-cell {
+  --fn: var(--line);
+  position: relative;
+  flex: none;
+  width: 72px;
+  box-shadow: 1px 0 0 var(--line);
+}
+.harm-cell:last-child {
+  box-shadow: none;
+}
+.harm-cell.is-frame,
+.harm-cell.is-close {
+  --fn: var(--b);
+}
+.harm-cell.is-motion {
+  --fn: var(--a);
+}
+.harm-cell.is-pedal,
+.harm-cell.is-approach,
+.harm-cell.is-cadence {
+  --fn: var(--mint);
+}
+/* The bar itself: voicing, root degree, chord. Its lower edge carries the formal function. */
+.harm-cell > button:first-child {
+  position: relative;
+  display: grid;
+  grid-template-rows: 46px auto auto;
+  justify-items: start;
+  width: 100%;
+  padding: 0 0 9px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: inset 0 -2px 0 var(--fn);
+  color: var(--text);
+  text-align: left;
+}
+.harm-cell:first-child > button:first-child {
+  border-radius: 5px 0 0 5px;
+}
+.harm-cell:last-child > button:first-child {
+  border-radius: 0 5px 5px 0;
+}
+.harm-cell:only-child > button:first-child {
+  border-radius: 5px;
+}
+.harm-cell > button:first-child:hover {
+  background: var(--surface2);
+}
+.harm-cell > button:first-child:focus-visible {
+  outline-offset: -2px;
+}
+.harm-cell.is-playing > button:first-child {
+  background: rgb(131 206 190 / 16%);
+}
+.harm-cell.is-selected > button:first-child {
+  background: #26304a;
+  box-shadow: inset 0 0 0 2px var(--b);
+}
+.harm-voicing {
+  display: block;
+  width: 72px;
+  height: 46px;
+}
+.harm-voicing polyline {
+  fill: none;
+  stroke-width: 1.4;
+}
+.harm-voicing polyline.is-top {
+  stroke: var(--a);
+  stroke-dasharray: 3 3;
+  opacity: 0.75;
+}
+.harm-voicing polyline.is-bass {
+  stroke: var(--b);
+}
+.harm-voicing circle {
+  fill: #7b889d;
+}
+.harm-voicing circle.is-top {
+  fill: var(--a);
+}
+.harm-voicing circle.is-bass {
+  fill: var(--b);
+}
+.harm-root {
+  padding: 0 8px;
+  font: 600 17px/1.2 var(--font-mono);
+}
+.harm-root small {
+  margin-left: 1px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.harm-name {
+  max-width: 100%;
+  padding: 1px 8px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 11px/1.3 var(--font-mono);
+  color: var(--detail-text);
+}
+.harm-mark {
+  position: absolute;
+  top: 2px;
+  right: 5px;
+  font-size: 10px;
+  color: var(--mint);
+}
+/* On the bar line after a chord: add a chord there. Shown where a pointer can hover. */
+.harm-plus {
+  position: absolute;
+  top: 32px;
+  right: -9px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-color: var(--border-strong);
+  border-radius: 50%;
+  background: var(--surface2);
+  font: 500 13px/1 var(--font-ui);
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: opacity 0.12s;
+}
+.harm-cell:hover > .harm-plus,
+.harm-plus:focus-visible {
+  opacity: 1;
+}
+.harm-chart.is-sorting .harm-plus {
+  display: none;
+}
+@media (hover: none) {
+  .harm-plus {
+    display: none;
+  }
+}
+/* Dragging a chord or a section: the lifted one fades, a gold line shows where it will land. */
+.harm-chart.is-sorting,
+.harm-chart.is-sorting button {
+  cursor: grabbing;
+}
+.harm-chart .is-dragging {
+  opacity: 0.4;
+}
+.harm-cell[data-drop]::after,
+.harm-section[data-drop]::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  z-index: 3;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--b);
+  pointer-events: none;
+}
+.harm-cell[data-drop='before']::after {
+  left: -2px;
+}
+.harm-cell[data-drop='after']::after {
+  right: -2px;
+}
+.harm-section[data-drop='before']::after {
+  left: -7px;
+}
+.harm-section[data-drop='after']::after {
+  right: -7px;
+}
+
+/* What the selected chord or section offers, in one band under the chart. Its height is kept
+   whatever is selected, so nothing below it moves. */
+.harm-inspector {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-height: 128px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--inset-bg);
+}
+/* With nothing selected it is one line of help. */
+.harm-inspector.is-idle {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.harm-inspector.is-idle .prelude-note {
+  margin: 0;
+}
+.harm-what {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin: 0;
+}
+.harm-what b {
+  font: 600 15px var(--font-mono);
+  color: var(--text);
+}
+.harm-what span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.harm-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px 22px;
+}
+.harm-fields .prelude-field {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 4px;
+}
+.harm-fields .prelude-label {
+  font-size: 12px;
+}
+.harm-fields input {
+  width: 24ch;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+.harm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.harm-actions button {
+  min-width: 34px;
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 13px;
+  line-height: 1.2;
+}
+.harm-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.harm-keys kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--control-bg);
+  font: 11px var(--font-mono);
+  color: var(--detail-text);
+}
+.harm-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 12px;
+}
+.harm-templates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.harm-templates button {
+  min-height: 30px;
+  padding: 4px 11px;
+  border-style: dashed;
+  font-size: 13px;
+  line-height: 1.2;
+}

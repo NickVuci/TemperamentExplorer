@@ -34,7 +34,7 @@ export function createFingeringGameUi({
        <div class="panelactions"><button data-fg="again">Play again</button><button data-fg="close">Close</button></div>`;
     }
     if (!f)
-      return `${head}<p class="viewnote">Choose a chord fingering on the Play board, then practise it at every matching bass position.</p>${note}`;
+      return `${head}<p class="viewnote">Choose a chord fingering on the Board, then practise it at every matching bass position.</p>${note}`;
     const options = countOptions(f.placements.length),
       chosen = options.includes(count)
         ? count

@@ -169,7 +169,7 @@ const chordClip = () => P().clips[0],
 
 // ---- no project: only the start screen ----
 assert.equal(ws.open, false);
-assert.match(ws.render(), /New composition from the current Play setup/);
+assert.match(ws.render(), /New composition from the current Board setup/);
 assert.doesNotMatch(ws.render(), /data-comp="play"/, 'no transport without a project');
 assert.equal(press('save'), true, 'actions without a project are harmless');
 assert.equal(P(), null);
