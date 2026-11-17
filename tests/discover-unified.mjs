@@ -120,8 +120,6 @@ assert.ok($('.unified-scale .scale-details'));
 assert.equal($('.explore-scale-controls'), null);
 
 // Every redraw shows the focused harmony on the diamond and the matrix.
-page.click('[data-harmony-action="directory-group"][data-group="size-3"]');
-page.click('[data-harmony-action="directory-group"][data-group="size-3-otonal"]');
 await page.settle();
 page.click($$('[data-harmony-action="select"]').find(row => /4:5:6/.test(row.textContent)));
 await page.settle();
@@ -169,6 +167,26 @@ assert.equal($('#approximation-settings').hidden, true);
 page.section('discover');
 await page.settle();
 assert.equal($('#approximation-module').parentElement.id, 'approximation-settings-body');
+page.click('[data-harmony-action="directory-clear"]');
+const majorRow = () =>
+  $$('[data-harmony-action="select"]').find(row => row.textContent === '4:5:6');
+await page.until(majorRow, {message: 'the restored chord directory'});
+page.click(majorRow());
+page.click('[data-harmony-action="rotation"][data-index="1"]');
+assert.ok(detailPane().querySelector('tr[data-chord-row="1"].is-active-rotation'));
+assert.deepEqual(
+  [...detailPane().querySelectorAll('.harmony-destinations button')].map(b => b.textContent),
+  ['Collect voicing', 'Find places']
+);
+assert.doesNotMatch(
+  detailPane().textContent,
+  /Use this chord|Open collection|Hear voicing|Favourite chord|Current voicing/
+);
+page.click('[data-harmony-action="collect"]');
+page.section('create');
+assert.equal($('#material-host').hidden, false);
+assert.ok($('#material-host details').open);
+assert.match($('#material-host [data-material-name]').value, /5:6:8/);
 assert.deepEqual(page.errors, []);
 
 // The scale pane follows the three main modules.

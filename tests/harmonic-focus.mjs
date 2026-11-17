@@ -196,7 +196,7 @@ assert.equal(ui.followPlaying(), true);
   assert.equal(neutral.focus().rotation, 1);
   assert.match(
     neutral.render(),
-    /Rotation <b>1\/1 · 11\/9 · 3\/2<\/b> · 1st inversion of 1\/1 · 4\/3 · 18\/11/
+    /title="1st inversion of 1\/1 · 4\/3 · 18\/11" aria-pressed="true">1\/1 · 11\/9 · 3\/2/
   );
   assert.deepEqual(
     new Set(neutral.focus().classKeys),

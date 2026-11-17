@@ -197,48 +197,32 @@ function starControl(input, label, favourites, ids = null) {
     `class="directory-star" data-input="${esc(input)}" data-ids="${esc(all.join(' '))}" data-label="${esc(label)}" aria-pressed="${starred}" aria-label="${starred ? 'Unstar' : 'Star'} chord ${esc(label)}" title="${starred ? 'Remove from' : 'Add to'} favourites"`
   );
 }
-function savedChordRow(r, favourites) {
-  return `<div class="directory-chord-row">${button('directory-recent', esc(r.label), `class="directory-chord" data-input="${esc(r.input)}"`)}${starControl(r.input, r.label, favourites)}</div>`;
-}
-// Collapsed groups render no chords and open groups show a bounded first page, so a large
-// odd limit does not put thousands of rows into the page on every refresh.
 const DIRECTORY_GROUP_PAGE = 100;
-// Groups start collapsed; openGroups lists the ones the user has opened.
-export function renderDirectoryTree(
-  rows,
-  selected,
-  openGroups = new Set(),
-  favourites = [],
-  expandedGroups = new Set()
-) {
-  const sizes = [...new Set(rows.map(directorySize))].sort((a, b) => a - b),
-    starred = new Set(favourites.map(r => favouriteKey(r.input)));
-  return `<div class="directory-tree" aria-label="Chord groups">${sizes
-    .map(size => {
-      const members = rows.filter(row => directorySize(row) === size),
-        label = SIZE_LABELS[size] ?? `${size}-note chords`,
-        id = 'size-' + size,
-        open = openGroups.has(id);
-      return `<details class="directory-folder" ${open ? 'open' : ''}><summary data-harmony-action="directory-group" data-group="${id}"><span class="directory-folder-icon" aria-hidden="true">▱</span>${label}<small>${members.length}</small></summary>${
-        !open
-          ? ''
-          : Object.keys(FORM_LABELS)
-              .map(form => {
-                const items = members.filter(row => directoryForm(row) === form),
-                  group = id + '-' + form;
-                if (!items.length) return '';
-                const groupOpen = openGroups.has(group),
-                  shown = !groupOpen
-                    ? []
-                    : expandedGroups.has(group)
-                      ? items
-                      : items.slice(0, DIRECTORY_GROUP_PAGE);
-                return `<details class="directory-family" ${groupOpen ? 'open' : ''}><summary data-harmony-action="directory-group" data-group="${group}"><i class="directory-dot ${form}" aria-hidden="true"></i>${FORM_LABELS[form]}<small>${items.length}</small></summary><div class="directory-chords">${shown.map(row => `<div class="directory-chord-row"><button class="directory-chord" data-harmony-action="select" data-id="${esc(row.id)}" aria-pressed="${selected === row.id}">${esc(rowLabel(row))}</button>${starControl(rowInput(row), rowLabel(row), starred, row.mergedInterpretationIds)}</div>`).join('')}${shown.length && shown.length < items.length ? button('directory-more', `Show all ${items.length}`, `class="directory-more" data-group="${group}"`) : ''}</div></details>`;
-              })
-              .join('')
-      }</details>`;
+function auditionButton(label, target) {
+  return button(
+    'directory-audition',
+    '▶',
+    `class="directory-audition" aria-label="Audition ${esc(label)}" title="Audition ${esc(label)}" ${target}`
+  );
+}
+function savedChordRow(r, favourites) {
+  const target = `data-input="${esc(r.input)}"`;
+  return `<div class="directory-chord-row">${auditionButton(r.label, target)}${button('directory-recent', esc(r.label), `class="directory-chord" ${target}`)}${starControl(r.input, r.label, favourites)}</div>`;
+}
+export function renderDirectoryList(rows, selected, favourites = [], page = 0) {
+  const starred = new Set(favourites.map(r => favouriteKey(r.input))),
+    start = page * DIRECTORY_GROUP_PAGE,
+    items = rows.slice(start, start + DIRECTORY_GROUP_PAGE);
+  return `<div class="directory-results"><div class="directory-columns directory-head" aria-hidden="true"><span></span><span>Chord</span><span>Form</span><span title="Favourite">★</span></div>${items
+    .map(row => {
+      const label = rowLabel(row),
+        form = directoryForm(row),
+        target = `data-id="${esc(row.id)}"`;
+      return `<div class="directory-columns directory-result">${auditionButton(label, target)}${button('select', esc(label), `class="directory-chord" ${target} aria-pressed="${selected === row.id}"`)}<span class="directory-form"><i class="directory-dot ${form}" aria-hidden="true"></i>${FORM_LABELS[form]}</span>${starControl(rowInput(row), label, starred, row.mergedInterpretationIds)}</div>`;
     })
-    .join('')}</div>`;
+    .join(
+      ''
+    )}</div>${rows.length > DIRECTORY_GROUP_PAGE ? `<div class="panelactions">${button('directory-page', 'Previous', `data-page="${page - 1}" ${page ? '' : 'disabled'}`)}<small>${start + 1}–${start + items.length} of ${rows.length}</small>${button('directory-page', 'Next', `data-page="${page + 1}" ${start + items.length === rows.length ? 'disabled' : ''}`)}</div>` : ''}`;
 }
 
 /** No board dependency: occurrence and voicing are selected lazily. */
@@ -287,9 +271,10 @@ export function createHarmonicCatalogueWorkspace({
     sizeMax = 6,
     directoryFormFilter = 'all',
     recent = [];
-  const closedGroups = new Set(),
-    openGroups = new Set(),
-    expandedGroups = new Set();
+  let directoryTab = 'browse',
+    directoryPage = 0,
+    filtersOpen = false;
+  const expandedGroups = new Set();
   let favourites = loadFavourites();
   function saveFavourites() {
     try {
@@ -489,7 +474,7 @@ export function createHarmonicCatalogueWorkspace({
         const items = entries.filter(e => e.classCount === size),
           group = 'bass-' + size,
           shown = expandedGroups.has(group) ? items : items.slice(0, DIRECTORY_GROUP_PAGE);
-        return `<section class="bass-group"><h5>${SIZE_LABELS[size] ?? `${size}-note chords`} <small>${items.length}</small></h5><div class="directory-chords">${shown.map(e => `<div class="directory-chord-row">${button('bass-select', `<span>${esc(e.label)}</span><small>${esc(e.role)}</small>`, `class="directory-chord bass-chord" data-id="${esc(e.row.id)}" data-member="${e.member}" aria-pressed="${selected === e.row.id && bassChoice?.member === e.member}"`)}</div>`).join('')}${shown.length < items.length ? button('directory-more', `Show all ${items.length}`, `class="directory-more" data-group="${group}"`) : ''}</div></section>`;
+        return `<section class="bass-group"><h5>${SIZE_LABELS[size] ?? `${size}-note chords`} <small>${items.length}</small></h5><div class="directory-chords">${shown.map(e => `<div class="directory-chord-row">${auditionButton(e.label + ' ' + e.role, `data-id="${esc(e.row.id)}" data-member="${e.member}"`)}${button('bass-select', `<span>${esc(e.label)}</span><small>${esc(e.role)}</small>`, `class="directory-chord bass-chord" data-id="${esc(e.row.id)}" data-member="${e.member}" aria-pressed="${selected === e.row.id && bassChoice?.member === e.member}"`)}</div>`).join('')}${shown.length < items.length ? button('directory-more', `Show all ${items.length}`, `class="directory-more" data-group="${group}"`) : ''}</div></section>`;
       })
       .join('')}</div>`;
   }
@@ -706,7 +691,10 @@ export function createHarmonicCatalogueWorkspace({
     const wrap = c => (span > 0 ? ((c % span) + span) % span : c),
       idealWrap = c => (octave ? ((c % 1200) + 1200) % 1200 : c);
     const labels = coords.map((_, i) => tones?.[i]?.label ?? `Tone ${i + 1}`),
-      activeRow = rotations(m)[rotation]?.index ?? 0;
+      choices = rotations(m),
+      active = choices[rotation] ?? choices[0],
+      activeRow = active ? rotationMember(m, active) : 0,
+      buttons = rotationRowButtons(m, choices, active);
     const rows = coords
       .map((from, i) => {
         const ordered = coords
@@ -721,7 +709,7 @@ export function createHarmonicCatalogueWorkspace({
             )
           }))
           .sort((a, b) => (a.j === i ? -1 : b.j === i ? 1 : a.c - b.c || a.j - b.j));
-        return `<tr data-chord-row="${i}" aria-label="Intervals from ${esc(labels[i])}"${i === activeRow ? ' class="is-active-rotation" aria-current="true"' : ''}>${ordered
+        return `<tr data-chord-row="${i}" aria-label="Intervals from ${esc(labels[i])}"${i === activeRow ? ' class="is-active-rotation" aria-current="true"' : ''}>${buttons.size ? `<th scope="row" class="rotation-label">${buttons.get(i) ?? esc(labels[i])}</th>` : ''}${ordered
           .map(({to, j}) => {
             if (i === j)
               return '<td><span class="cell ratio-cell chord-matrix-unison" style="background:#fff;color:#11151c" title="Unison · 0.000 cents">1/1</span></td>';
@@ -752,60 +740,84 @@ export function createHarmonicCatalogueWorkspace({
   function chordLineDiagram(m) {
     const coords = m.geometry.shape.coordinates,
       tones = m.geometry.tones,
-      current = rotations(m)[rotation],
-      root = current?.index ?? 0,
-      base = coordinateCents(m.state, coords[root]),
-      idealBase = tones?.[root]?.c ?? 0;
+      choices = rotations(m);
     const octave = m.state.basis.includes(2) ? mapRatio(2, 1, m.state) : null,
       span =
         entry.kind === 'tempered' ? m.state.p : octave ? coordinateCents(m.state, octave) : null;
-    const notes = coords.map((point, i) => ({
-      label: `Tone ${i + 1}`,
-      actual:
-        span > 0
-          ? mod(coordinateCents(m.state, point) - base, span)
-          : coordinateCents(m.state, point) - base,
-      ideal:
-        tones?.[i]?.c == null
-          ? null
-          : octave
-            ? mod(tones[i].c - idealBase, 1200)
-            : tones[i].c - idealBase
-    }));
-    if (current?.ratios)
-      [...notes]
-        .sort((a, b) => a.ideal - b.ideal)
-        .forEach((note, i) => {
-          note.label = current.ratios[i] ?? note.label;
-        });
-    notes.sort((a, b) => a.actual - b.actual);
-    const values = notes.flatMap(n => (n.ideal == null ? [n.actual] : [n.actual, n.ideal])),
-      lo = Math.min(0, ...values),
-      hi = Math.max(1, ...values),
-      width = Math.max(400, notes.length * 90),
-      x = c => 36 + ((c - lo) / (hi - lo)) * (width - 72),
-      hasIdeal = notes.every(n => n.ideal != null);
-    // Stagger labels only where neighbouring ticks are close; the pitch positions remain exact.
-    const lanes = field => {
-      const ends = [],
-        lanes = [];
-      notes
-        .map((n, i) => ({i, x: x(n[field])}))
-        .sort((a, b) => a.x - b.x)
-        .forEach(n => {
-          let lane = ends.findIndex(end => end < n.x - 30);
-          if (lane < 0) lane = ends.length;
-          ends[lane] = n.x + 30;
-          lanes[n.i] = lane;
-        });
-      return lanes;
-    };
-    const actualLanes = lanes('actual'),
-      idealLanes = hasIdeal ? lanes('ideal') : [],
-      top = hasIdeal ? 38 + Math.max(...idealLanes) * 16 : 16,
-      railY = top + 26,
-      height = railY + 58 + Math.max(...actualLanes) * 16;
-    return `<div class="chord-line-diagram"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Chord tones: JI ticks above and tempered ticks below one pitch line">${hasIdeal ? '<text x="8" y="14" class="chord-line-heading">JI</text>' : ''}<text x="8" y="${height - 4}" class="chord-line-heading">Tempered</text><line x1="36" x2="${width - 36}" y1="${railY}" y2="${railY}" class="chord-line-rail"/>${notes.map((n, i) => `<g><title>${esc(n.label)} · tempered ${number(n.actual)} cents${hasIdeal ? ` · JI ${number(n.ideal)} cents` : ''}</title><line x1="${x(n.actual)}" x2="${x(n.actual)}" y1="${railY}" y2="${railY + 14}" class="chord-line-tempered"/><text x="${x(n.actual)}" y="${railY + 30 + actualLanes[i] * 16}" text-anchor="middle">${n.actual.toFixed(1)}¢</text>${hasIdeal ? `<line x1="${x(n.ideal)}" x2="${x(n.ideal)}" y1="${railY - 14}" y2="${railY}" class="chord-line-ideal"/><text x="${x(n.ideal)}" y="${railY - 22 - idealLanes[i] * 16}" text-anchor="middle">${n.ideal.toFixed(1)}¢</text>` : ''}</g>`).join('')}</svg></div>`;
+    const labelGutter = 72,
+      plotWidth = Math.max(400, coords.length * 90),
+      width = labelGutter + plotWidth;
+    function rotationNotes(current) {
+      const root = current ? rotationMember(m, current) : 0,
+        base = coordinateCents(m.state, coords[root]),
+        idealBase = tones?.[root]?.c ?? 0;
+      const notes = coords.map((point, i) => ({
+        label: `Tone ${i + 1}`,
+        actual:
+          span > 0
+            ? mod(coordinateCents(m.state, point) - base, span)
+            : coordinateCents(m.state, point) - base,
+        ideal:
+          tones?.[i]?.c == null
+            ? null
+            : octave
+              ? mod(tones[i].c - idealBase, 1200)
+              : tones[i].c - idealBase
+      }));
+      if (current?.ratios)
+        [...notes]
+          .sort((a, b) => a.ideal - b.ideal)
+          .forEach((note, i) => {
+            note.label = current.ratios[i] ?? note.label;
+          });
+      notes.sort((a, b) => a.actual - b.actual);
+      return notes;
+    }
+    const noteSets = choices.length ? choices.map(rotationNotes) : [rotationNotes(null)];
+    const pitches = notes =>
+      notes.flatMap(n => (n.ideal == null ? [n.actual] : [n.actual, n.ideal]));
+    // Exact (non-octave) rotations may include negative intervals. Reserve their space
+    // across all rotations so changing the root never shifts the zero tick.
+    const values = noteSets.flatMap(pitches);
+    const lo = Math.min(0, ...values),
+      hi = Math.max(1, ...values);
+    const left = labelGutter + 36,
+      right = width - 36;
+    const origin = lo < 0 ? left + (-lo / (hi - lo)) * (right - left) : left;
+    function layout(notes) {
+      const scale =
+        lo < 0 ? (right - left) / (hi - lo) : (right - origin) / Math.max(1, ...pitches(notes));
+      const x = c => origin + c * scale,
+        hasIdeal = notes.every(n => n.ideal != null);
+      // Stagger labels only where neighbouring ticks are close; the pitch positions remain exact.
+      const lanes = field => {
+        const ends = [],
+          lanes = [];
+        notes
+          .map((n, i) => ({i, x: x(n[field])}))
+          .sort((a, b) => a.x - b.x)
+          .forEach(n => {
+            let lane = ends.findIndex(end => end < n.x - 30);
+            if (lane < 0) lane = ends.length;
+            ends[lane] = n.x + 30;
+            lanes[n.i] = lane;
+          });
+        return lanes;
+      };
+      return {
+        notes,
+        x,
+        hasIdeal,
+        actualLanes: lanes('actual'),
+        idealLanes: hasIdeal ? lanes('ideal') : []
+      };
+    }
+    // Keep the rail and matrix stationary using the largest label stack across this chord's rotations.
+    const layouts = noteSets.map(layout);
+    const {notes, x, hasIdeal, actualLanes, idealLanes} = layouts[rotation] ?? layouts[0];
+    const railY = hasIdeal ? 38 + 16 * Math.max(...layouts.flatMap(l => l.idealLanes)) : 12;
+    const height = railY + 38 + 16 * Math.max(...layouts.flatMap(l => l.actualLanes));
+    return `<div class="chord-line-diagram"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${hasIdeal ? 'Chord tones: JI ticks above and tempered ticks below one pitch line' : 'Tempered chord tones'}">${hasIdeal ? `<text x="4" y="${railY - 8}" class="chord-line-heading">JI</text>` : ''}<text x="4" y="${railY + 17}" class="chord-line-heading">Tempered</text><line x1="4" x2="${labelGutter - 8}" y1="${railY}" y2="${railY}" class="chord-line-divider"/><line x1="${origin}" x2="${right}" y1="${railY}" y2="${railY}" class="chord-line-rail"/>${notes.map((n, i) => `<g><title>${esc(n.label)} · tempered ${number(n.actual)} cents${hasIdeal ? ` · JI ${number(n.ideal)} cents` : ''}</title><line x1="${x(n.actual)}" x2="${x(n.actual)}" y1="${railY}" y2="${railY + 14}" class="chord-line-tempered"/><text x="${x(n.actual)}" y="${railY + 30 + actualLanes[i] * 16}" text-anchor="middle">${n.actual.toFixed(1)}¢</text>${hasIdeal ? `<line x1="${x(n.ideal)}" x2="${x(n.ideal)}" y1="${railY - 14}" y2="${railY}" class="chord-line-ideal"/><text x="${x(n.ideal)}" y="${railY - 22 - idealLanes[i] * 16}" text-anchor="middle">${n.ideal.toFixed(1)}¢</text>` : ''}</g>`).join('')}</svg></div>`;
   }
   function otherReadings() {
     const ids = (result?.shapeGroups?.[entry.shapeId] ?? []).filter(id => id !== entry.id),
@@ -966,39 +978,35 @@ export function createHarmonicCatalogueWorkspace({
       m.geometry.tones?.findIndex(t => rotationRootKey(t.n, t.d, octave) === current.root) ?? -1
     );
   }
-  function currentRotation(m) {
-    const list = rotations(m);
-    if (list.length < 2) return '';
-    const current = list[rotation] ?? list[0];
-    let role = '';
-    try {
-      const member = rotationMember(m, current),
-        classes =
-          member >= 0
-            ? chordClasses(
-                m.state,
-                m.geometry.shape.coordinates,
-                entry.kind === 'ji' ? m.geometry.tones : null
-              ).classes
-            : [];
-      const k = classes.findIndex(c => c.member === member),
-        chosen = bassChoice?.rowId === entry.id && bassChoice.member === member;
-      const root = chosen ? bassChoice.rootDegree : m.root?.root,
-        chord = esc(rootedChordName(root, rowLabel(entry)));
-      if (k >= 0)
-        role =
-          k === 0
-            ? ` · root position${root == null ? '' : ` of ${chord}`}`
-            : ` · ${inversionName(k)} of ${chord}`;
-      if (chosen)
-        role += ` · bass on ${bassChoice.scale === 'play' ? 'Board' : 'Discover'} scale degree ${bassChoice.degree}`;
-    } catch {}
-    return `<p class="harmony-current-rotation" aria-live="polite">Rotation <b>${esc(current.display ?? current.label)}</b>${role}</p>`;
-  }
-  function rotationButtons(m) {
-    const list = rotations(m);
-    if (list.length < 2) return '';
-    return `<h5>Rotations</h5><div class="harmony-rotations" role="group" aria-label="Rotations">${list.map(r => button('rotation', esc(r.display ?? r.label), `data-index="${r.index}" aria-pressed="${(list[rotation]?.index ?? 0) === r.index}"`)).join('')}</div>`;
+  function rotationRowButtons(m, list, active) {
+    const buttons = new Map();
+    if (list.length < 2) return buttons;
+    const {classes} = chordClasses(m.state, m.geometry.shape.coordinates, m.geometry.tones);
+    for (const r of list) {
+      const member = rotationMember(m, r),
+        position = classes.findIndex(c => c.member === member);
+      const name =
+        position === 0
+          ? 'Root position'
+          : position > 0 && m.state.basis.includes(2)
+            ? inversionName(position)
+            : 'Rotation';
+      const chosen = bassChoice?.rowId === entry.id && bassChoice.member === member;
+      const root = chosen ? bassChoice.rootDegree : m.root?.root;
+      const bassLabel = chosen
+        ? ` · bass on ${bassChoice.scale === 'play' ? 'Board' : 'Discover'} scale degree ${bassChoice.degree}`
+        : '';
+      const title = `${name} of ${rootedChordName(root, rowLabel(entry))}${bassLabel}`;
+      buttons.set(
+        member,
+        button(
+          'rotation',
+          `${esc(r.display ?? r.label)}<small>${name}</small>`,
+          `data-index="${r.index}" title="${esc(title)}" aria-pressed="${active === r}"`
+        )
+      );
+    }
+    return buttons;
   }
   // A JI chord is found by its family (rotations and doublings merge); a tempered chord by its shape,
   // preferring a JI row that maps onto it.
@@ -1029,11 +1037,9 @@ export function createHarmonicCatalogueWorkspace({
     }
     return null;
   }
-  // Make the row visible in the directory: its size in range, its type shown, its groups open.
+  // Make the row visible in the directory: its size in range, its type shown, its page shown.
   function revealRow(row) {
-    const size = directorySize(row),
-      form = directoryForm(row),
-      group = `size-${size}-${form}`;
+    const size = directorySize(row);
     if (size >= SIZE_RANGE[0]) {
       sizeMin = Math.min(sizeMin, size);
       sizeMax = Math.max(sizeMax, size);
@@ -1046,13 +1052,11 @@ export function createHarmonicCatalogueWorkspace({
       )
     )
       query = '';
-    openGroups.add(`size-${size}`);
-    openGroups.add(group);
-    const members = filtered().filter(
-      item => directorySize(item) === size && directoryForm(item) === form
+    directoryTab = 'browse';
+    directoryPage = Math.max(
+      0,
+      Math.floor(directoryRows().findIndex(item => item.id === row.id) / DIRECTORY_GROUP_PAGE)
     );
-    if (members.findIndex(item => item.id === row.id) >= DIRECTORY_GROUP_PAGE)
-      expandedGroups.add(group);
     reveal = row.id;
   }
   // Played notes read against this directory: its rows by shape are built once per result.
@@ -1136,6 +1140,8 @@ export function createHarmonicCatalogueWorkspace({
     if (next < 0) next = 0;
     if (!changed && next === rotation) return true;
     rotation = next;
+    if (list[next]) inversion = Math.max(0, rotationMember(m, list[next]));
+    sourceSelection = null;
     revealRow(row);
     refresh();
     return true;
@@ -1152,7 +1158,15 @@ export function createHarmonicCatalogueWorkspace({
       form === 'et'
         ? `<p class="harmony-et-context">ET is relative to the selected JI limits (odd limit ${esc(getSettings(getState()).limit ?? 15)}): every pair has an allowed reading, but no single JI chord realizes them all within those limits. The displayed ratios label tempered intervals from the bass; inversions refer to the tempered chord.</p>`
         : '';
-    return `${followSwitch}<h4>${esc(rowLabel(entry))}${['ji', 'tempered'].includes(entry.kind) ? ` <span class="form-badge ${form}">${FORM_LABELS[form]}</span>` : ''}</h4>${currentRotation(m)}${etContext}${geometry ? `${chordLineDiagram(m)}${rotationButtons(m)}${chordIntervalMatrix(m)}` : ''}${spellings(m)}${entry.kind === 'ji' || geometry ? `<div class="panelactions">${entry.kind === 'ji' ? button('dual', 'Open reciprocal chord') : ''}${geometry ? `${button('hear', m.voice ? 'Hear voicing' : 'Hear mapped notes')}${button('collect', 'Add to collection', occurrenceShape(m.state, geometry.shape).members.length < 2 ? 'disabled' : '')}${button('send', 'Send to Board')}` : ''}</div>` : ''}
+    const identity = `<h4>${esc(rowLabel(entry))}${['ji', 'tempered'].includes(entry.kind) ? ` <span class="form-badge ${form}">${FORM_LABELS[form]}</span>` : ''}</h4>`;
+    const explorer = geometry
+      ? `<section class="analysis-rotations">${identity}<div class="rotation-explorer">${chordLineDiagram(m)}<h5>Rotations</h5>${chordIntervalMatrix(m)}</div></section>`
+      : identity;
+    const destinations = geometry
+      ? `<div class="harmony-destinations"><div><span><strong>Collection</strong><small>Keep this voicing for Compose</small></span>${button('collect', 'Collect voicing', occurrenceShape(m.state, geometry.shape).members.length < 2 ? 'disabled' : '')}</div>
+      <div><span><strong>Board</strong><small>Find this chord on the HexBoard</small></span>${button('send', 'Find places')}</div></div>`
+      : '';
+    return `${explorer}${destinations}${followSwitch}${etContext}${spellings(m)}${entry.kind === 'ji' ? button('dual', 'Open reciprocal chord') : ''}
    ${entry.kind === 'source' ? '<p>Source sounding coordinates and voices are preserved.</p>' : ''}
    ${entry.kind === 'ji' ? otherReadings() : ''}
    ${
@@ -1238,7 +1252,7 @@ export function createHarmonicCatalogueWorkspace({
         )
         .join('')}</div>`;
       parts.controls =
-        `${quick}<div class="directory-search"><label><span class="sr-only">Search chords or enter an exact ratio</span><input type="search" data-harmony-field="search" maxlength="300" value="${esc(query)}" placeholder="Search chords or enter 4:5:6…"></label>${button('lookup', '↵', 'title="Look up exact ratio chord" aria-label="Look up exact ratio chord"')}</div><div class="directory-filter-heading"><span>Quick filters</span>${button('directory-clear', 'Clear')}</div><div class="directory-quick-filters">${select(
+        `<div class="directory-search"><label><span class="sr-only">Search chords or enter an exact ratio</span><input type="search" data-harmony-field="search" maxlength="300" value="${esc(query)}" placeholder="Search chords or enter 4:5:6…"></label>${button('lookup', '↵', 'title="Look up exact ratio chord" aria-label="Look up exact ratio chord"')}</div><div class="directory-filter-heading">${button('directory-filters', 'Filters', `aria-expanded="${filtersOpen}"`)}${button('directory-clear', 'Clear')}</div><div class="directory-quick-filters">${select(
           'scope',
           'Scale membership',
           scope,
@@ -1249,19 +1263,57 @@ export function createHarmonicCatalogueWorkspace({
             ['play', 'Board scale · anywhere'],
             ['play-tonic', 'Board scale · tonic']
           ]
-        )}${select('bass', 'Bass note', bass ? `${bass.scale}:${bass.degree}` : '', [['', 'Any'], ...Array.from({length: getState().n}, (_, i) => [`discover:${i}`, `Discover scale · degree ${i}`]), ...Array.from({length: getPlayState().n}, (_, i) => [`play:${i}`, `Board scale · degree ${i}`])])}</div>${formChips}` +
+        )}${select('bass', 'Bass note', bass ? `${bass.scale}:${bass.degree}` : '', [['', 'Any'], ...Array.from({length: getState().n}, (_, i) => [`discover:${i}`, `Discover scale · degree ${i}`]), ...Array.from({length: getPlayState().n}, (_, i) => [`play:${i}`, `Board scale · degree ${i}`])])}</div>${filtersOpen ? quick + formChips : ''}` +
         parts.controls.slice(parts.controls.indexOf('</div>') + 6);
-      parts.list =
-        bass && visible.length
+      const tabs = `<div class="tabs directory-tabs" role="group" aria-label="Directory views">${[
+        ['browse', 'Browse'],
+        ['recent', 'Recent'],
+        ['favourites', 'Favourites']
+      ]
+        .map(([id, label]) =>
+          button('directory-tab', label, `data-value="${id}" aria-pressed="${directoryTab === id}"`)
+        )
+        .join('')}</div>`;
+      if (directoryTab === 'browse') {
+        directoryPage = Math.min(
+          directoryPage,
+          Math.max(0, Math.ceil(visible.length / DIRECTORY_GROUP_PAGE) - 1)
+        );
+        parts.list = bass
           ? renderBassList(directoryBassEntries())
           : visible.length
-            ? renderDirectoryTree(visible, selected, openGroups, favourites, expandedGroups)
-            : status === 'loading'
-              ? '<p class="harmony-empty">Loading harmony…</p>'
-              : '<p class="harmony-empty">No chords match these filters.</p>';
-      parts.info =
-        `<details class="directory-recent" aria-label="Recent chords" ${closedGroups.has('recent') ? '' : 'open'}><summary data-harmony-action="directory-group" data-group="recent">Recent</summary>${recent.length ? recent.map(r => savedChordRow(r, favourites)).join('') : '<p>Select a chord to keep it here.</p>'}</details><details class="directory-favourites" aria-label="Favourite chords" ${closedGroups.has('favourites') ? '' : 'open'}><summary data-harmony-action="directory-group" data-group="favourites">Favourites</summary>${favourites.length ? favourites.map(r => savedChordRow(r, favourites)).join('') : '<p>Star a chord to keep it here.</p>'}</details>` +
-        parts.info;
+            ? renderDirectoryList(visible, selected, favourites, directoryPage)
+            : `<p class="harmony-empty">${status === 'loading' ? 'Loading harmony…' : 'No chords match these filters.'}</p>`;
+        const chips = [];
+        if (sizeMin !== 3 || sizeMax !== 6)
+          chips.push(
+            button(
+              'directory-reset-size',
+              `${sizeMin === sizeMax ? (SIZE_LABELS[sizeMin] ?? sizeMin + ' notes') : sizeMin + '–' + sizeMax + ' notes'} ×`,
+              'aria-label="Reset note range"'
+            )
+          );
+        if (directoryFormFilter !== 'all')
+          chips.push(
+            button(
+              'directory-form',
+              `${FORM_LABELS[directoryFormFilter] ?? (directoryFormFilter === 'ji' ? 'JI' : 'Custom')} ×`,
+              'data-value="all" aria-label="Remove chord type filter"'
+            )
+          );
+        parts.controls =
+          tabs +
+          parts.controls +
+          (chips.length ? `<div class="directory-form-filters">${chips.join('')}</div>` : '');
+      } else {
+        const saved = directoryTab === 'recent' ? recent : favourites;
+        parts.controls = tabs;
+        parts.list = saved.length
+          ? saved.map(r => savedChordRow(r, favourites)).join('')
+          : `<p class="harmony-empty">${directoryTab === 'recent' ? 'Select a chord to keep it here.' : 'Star a chord to keep it here.'}</p>`;
+      }
+      if (entry)
+        parts.list += `<div class="directory-selection"><span>Selected · ${esc(rowLabel(entry))}</span>${button('directory-analysis', 'Open analysis')}</div>`;
     }
     return parts;
   }
@@ -1276,6 +1328,7 @@ export function createHarmonicCatalogueWorkspace({
     if (!name) return false;
     if (name === 'search' && query === el.value) return true;
     try {
+      if (['search', 'scope', 'bass', 'sizeMin', 'sizeMax'].includes(name)) directoryPage = 0;
       if (name === 'search') {
         query = String(el.value).slice(0, 300);
         page = 0;
@@ -1302,10 +1355,17 @@ export function createHarmonicCatalogueWorkspace({
         }
       } else if (name === 'root') {
         selectedRoot = el.value;
-        inversion = 0;
+        const m = detailModel(),
+          current = rotations(m)[rotation];
+        inversion = current ? Math.max(0, rotationMember(m, current)) : 0;
         sourceSelection = null;
-      } else if (name === 'inversion') inversion = Number(el.value);
-      else if (name === 'style') style = el.value;
+      } else if (name === 'inversion') {
+        inversion = Number(el.value);
+        sourceSelection = null;
+        const m = detailModel();
+        if (m.geometry)
+          rotation = rotationIndexFor(entry, m.geometry, inversion, m.state.basis.includes(2));
+      } else if (name === 'style') style = el.value;
       else if (name === 'periodShift')
         periodShift = Math.max(-8, Math.min(8, Math.round(Number(el.value) || 0)));
       refresh();
@@ -1370,13 +1430,45 @@ export function createHarmonicCatalogueWorkspace({
         saveFavourites();
       }
       if (action === 'directory-more') expandedGroups.add(b.dataset.group);
-      if (action === 'directory-group') {
-        const id = b.dataset.group,
-          set = id === 'recent' || id === 'favourites' ? closedGroups : openGroups;
-        if (set.has(id)) set.delete(id);
-        else set.add(id);
+      if (action === 'directory-reset-size') {
+        sizeMin = 3;
+        sizeMax = 6;
+        directoryPage = 0;
+      }
+      if (action === 'directory-page') directoryPage = Math.max(0, Number(b.dataset.page) || 0);
+      if (
+        action === 'directory-tab' &&
+        ['browse', 'recent', 'favourites'].includes(b.dataset.value)
+      )
+        directoryTab = b.dataset.value;
+      if (action === 'directory-filters') filtersOpen = !filtersOpen;
+      if (action === 'directory-audition') {
+        if (b.dataset.member != null) {
+          const pick = directoryBassEntries().find(
+            e => e.row.id === b.dataset.id && e.member === Number(b.dataset.member)
+          );
+          if (pick)
+            play(
+              pick.coords.map(coord =>
+                coordinateCents(bass.scale === 'play' ? getPlayState() : getState(), coord)
+              )
+            );
+        } else {
+          const identity = b.dataset.input ? chordIdentity(b.dataset.input) : null;
+          const row = identity
+            ? (result?.items.find(
+                r => rowInput(r) === b.dataset.input || hasInterpretation(r, identity.fingerprint)
+              ) ?? {kind: 'ji', interpretation: {identity}})
+            : result?.items.find(r => r.id === b.dataset.id);
+          const s = state(),
+            geometry = row && harmonicEntryGeometry(s, row);
+          if (geometry) playRotation({state: s, geometry}, 0);
+          else notify('This chord has no mapped voicing in the current temperament.');
+        }
+        return true;
       }
       if (action === 'directory-form') {
+        directoryPage = 0;
         directoryFormFilter = [
           'all',
           'ji',
@@ -1390,6 +1482,8 @@ export function createHarmonicCatalogueWorkspace({
           : 'all';
       }
       if (action === 'directory-clear') {
+        directoryPage = 0;
+        scope = 'temperament';
         sizeMin = 3;
         sizeMax = 6;
         directoryFormFilter = 'all';
@@ -1431,21 +1525,20 @@ export function createHarmonicCatalogueWorkspace({
       }
       if (action === 'dual' && entry?.interpretation)
         void openInput(entry.interpretation.exactDual.originalInput);
-      if (action === 'hear') {
-        const value = currentSelection();
-        if (value) play(value.voicing.voices.map(v => coordinateCents(state(), v.coordinate)));
-      }
       if (action === 'collect' || action === 'send') {
         const value = currentSelection();
         if (value) {
-          if (action === 'collect')
+          if (action === 'collect') {
+            const current = rotations(detailModel())[rotation];
+            const spelling = current?.display ?? current?.label;
+            const label = rotation && spelling ? value.label + ' · ' + spelling : value.label;
             onCollect(
               state(),
               value.voicing.voices.map(v => v.coordinate),
-              value.label,
+              label,
               {exact: true, harmonicSelection: value}
             );
-          else onSendToHexBoard(value);
+          } else onSendToHexBoard(value);
         }
       }
       if (action === 'rotation') {
@@ -1454,7 +1547,12 @@ export function createHarmonicCatalogueWorkspace({
           rotations(detailModel()).findIndex(r => r.index === Number(b.dataset.index))
         );
         const m = detailModel();
-        if (m.geometry) playRotation(m, rotations(m)[rotation]?.index ?? 0);
+        if (m.geometry) {
+          const current = rotations(m)[rotation];
+          inversion = Math.max(0, rotationMember(m, current));
+          sourceSelection = null;
+          playRotation(m, inversion);
+        }
       }
       if (action === 'inspect') onInspect();
       refresh();
@@ -1517,6 +1615,7 @@ export function createHarmonicCatalogueWorkspace({
     },
     /** Sets (or clears, with null) the shared bass filter {scale:'discover'|'play', degree}; returns the applied value. */
     setBass(value) {
+      directoryTab = 'browse';
       const applied = setBass(value);
       refresh();
       return applied;
@@ -1566,6 +1665,7 @@ export function createHarmonicCatalogueWorkspace({
       const field = el?.dataset?.harmonyField;
       if (field !== 'search') return false;
       query = String(el.value).slice(0, 300);
+      directoryPage = 0;
       page = 0;
       refresh();
       return true;
@@ -1632,8 +1732,9 @@ export function createHarmonicCatalogueWorkspace({
         ? data.directoryFormFilter
         : 'all';
       setBass(data?.bass ?? null);
-      closedGroups.clear();
-      openGroups.clear();
+      directoryTab = 'browse';
+      directoryPage = 0;
+      filtersOpen = false;
       expandedGroups.clear();
       generation++;
       jobs.cancel();

@@ -951,8 +951,21 @@ document.addEventListener('click', e => {
   for (const open of document.querySelectorAll('.app-header details[open]'))
     if (!open.contains(e.target)) open.open = false;
   if (compositionWorkspace.click(e.target)) return;
+  if (e.target.closest?.('[data-harmony-action="directory-analysis"]')) {
+    manualChordInspector = false;
+    refreshHarmony();
+    const detail = document.querySelector('[data-unified-pane="detail"]');
+    if (detail) {
+      detail.tabIndex = -1;
+      detail.focus({preventScroll: true});
+      detail.scrollIntoView?.({block: 'nearest'});
+    }
+    return;
+  }
   if (
-    e.target.closest?.('[data-harmony-action="select"], [data-harmony-action="directory-recent"]')
+    e.target.closest?.(
+      '[data-harmony-action="select"], [data-harmony-action="bass-select"], [data-harmony-action="directory-recent"]'
+    )
   )
     manualChordInspector = false;
   if (harmonicWorkspace.click(e.target)) return;

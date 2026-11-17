@@ -449,7 +449,7 @@ any member (`tonicMemberOccurrences`), and sending a chord to Play whose source 
 fall outside the Play scale starts from its first occurrence there. JI
 rows come from the curated/line producers plus chord-space chords, oriented otonal/utonal as the curated seeds are; ET rows are
 the chord-space shapes no JI chord maps onto. A notes-from/to range (3–8, default
-3–6) sets which sizes are listed. Size and type groups start collapsed; type
+3–6) sets which sizes are listed. Browse lists playable previews beside chord names. Recent and Favourites recall saved spellings. Type
 filters select JI, otonal, utonal, ambitonal (self-reciprocal chords that read the
 same otonally and utonally), ET or custom lookups. Otherwise a chord is otonal when its
 reduced harmonic form has the lower maximum odd harmonic than its reduced subharmonic
@@ -461,7 +461,10 @@ essentially tempered, unresolved), the otonal and utonal spellings, pitch classe
 merged spellings, and the chord's rotations, each labelled in the chord's form
 (a utonal chord's as `1/a:b:c`, otonal and ambitonal ones as `a:b:c`). The directory chord stays in the
 heading with the selected rotation beneath it; choosing a rotation puts that note in the bass of the
-focus and sounds it bass-first within an octave. It lists, for every member pair, the tempered
+focus and sounds it bass-first within an octave. The inspector labels each rotation by
+position and spelling, outlines its row in the full interval matrix, and keeps the JI/tempered
+pitch line visible. Below the matrix, Collection saves the voicing for Compose and Board finds places for it.
+The inspector lists, for every member pair, the tempered
 interval and each JI interval mapped to it with its tempering error, marking the readings a
 JI chord uses, the commas closing an ET chord's conflicting cycles (`assessET`), and other
 JI chords on the same shape.
@@ -504,7 +507,7 @@ and directory refresh.
 
 Other views set the focus through `focusExternal`: a JI chord by family (any rotation or
 doubling, keeping the picked rotation), otherwise a tempered shape (preferring a JI row that
-maps onto it). The row is revealed: its size and type become visible, its groups open, and
+maps onto it). The row is revealed: its size and type become visible, its Browse page opens, and
 the directory list scrolls to it. Selecting three or more diamond pitch classes focuses
 them at once; a held chord does so after 250 ms while "Follow what I play" (saved, on by
 default) is on. Shift-clicking interval-matrix cells collects their scale degrees, and
@@ -1279,6 +1282,5 @@ after the app's own handlers), with a 250 ms poll only as a fallback for changes
 key press. The read-only polls (LED sync, fingering game, harmonies panel) share one cached board
 (`hexboard-ui.mjs#boardFor`, rebuilt only when the layout signature changes), so idle cost stays near zero.
 
-The harmony directory renders no chords inside collapsed groups and at most 100 per
-open group until "Show all" is chosen, and memoizes its whole-temperament filtering
+The harmony directory pages Browse results in batches of 100, and memoizes its whole-temperament filtering
 per result, so redraws stay small at high odd limits.

@@ -5,7 +5,7 @@ import {
   createHarmonicCatalogueWorkspace,
   renderCatalogueList,
   catalogueListGroups,
-  renderDirectoryTree
+  renderDirectoryList
 } from '../src/harmonic/harmonic-catalogue-ui.mjs';
 import {curatedJIChords} from '../src/harmonic/harmonic-ji-chords.mjs';
 import {chordIdentity} from '../src/chords/chord-identity.mjs';
@@ -109,8 +109,16 @@ assert.ok(
 change('root', root.id);
 change('inversion', 1);
 assert.deepEqual(ui.selection().voicing.ratios, ['5/4', '3/2', '2/1']);
-click('hear');
-assert.deepEqual(heard, ui.selection().voicing.pitches);
+click('rotation', {index: '2'});
+assert.equal(
+  ui.selection().voicing.request.inversion,
+  2,
+  'rotation updates the chosen occurrence voicing'
+);
+click('collect');
+assert.deepEqual(collected.c, ui.selection().voicing.coords);
+assert.match(collected.l, /3:4:5/);
+click('rotation', {index: '1'});
 click('send');
 assert.equal(sent.voicing.voices.length, 3);
 click('collect');
@@ -149,18 +157,32 @@ assert.equal(
 );
 const mergedInput = ui.model().entry.interpretation.identity.originalInput;
 assert.ok(ui.model().entry.custom);
+click('directory-filters');
 const directory = ui.renderParts({directory: true});
 assert.match(directory.controls, /data-harmony-field="sizeMin"/);
 assert.match(directory.controls, /data-harmony-field="sizeMax"/);
-assert.match(directory.info, /Recent/);
-assert.match(directory.info, new RegExp('data-input="' + mergedInput + '"'));
-assert.match(directory.list, /directory-tree/);
-click('directory-group', {group: 'size-3'});
-for (const [, group] of ui
-  .renderParts({directory: true})
-  .list.matchAll(/data-group="(size-3-[a-z]+)"/g))
-  click('directory-group', {group});
-assert.match(ui.renderParts({directory: true}).list, /data-harmony-action="directory-star"/);
+assert.match(directory.controls, /Recent/);
+assert.match(directory.list, /directory-audition[^]*data-harmony-action="select"/);
+const auditionId = ui
+  .model()
+  .result.items.find(
+    row => row.kind === 'ji' && row.mappingStatus === 'mapped' && row.id !== ui.model().selected
+  ).id;
+const beforePreview = ui.serialize();
+heard = null;
+click('directory-audition', {id: auditionId});
+assert.ok(heard?.length >= 2);
+assert.deepEqual(
+  ui.serialize(),
+  beforePreview,
+  'audition leaves selection, history and filters intact'
+);
+click('directory-tab', {value: 'recent'});
+assert.match(
+  ui.renderParts({directory: true}).list,
+  new RegExp('data-input="' + mergedInput + '"')
+);
+click('directory-tab', {value: 'favourites'});
 const selectionBeforeStar = ui.model().selected;
 click('directory-star', {
   input: mergedInput,
@@ -170,8 +192,8 @@ click('directory-star', {
 assert.equal(ui.model().selected, selectionBeforeStar, 'starring does not change chord selection');
 assert.equal(ui.serialize().favourites.length, 1);
 assert.match(
-  ui.renderParts({directory: true}).info,
-  new RegExp('directory-favourites[^]*data-input="' + mergedInput + '"')
+  ui.renderParts({directory: true}).list,
+  new RegExp('data-input="' + mergedInput + '"')
 );
 const withFavourite = JSON.parse(JSON.stringify(ui.serialize()));
 click('directory-star', {
@@ -206,27 +228,17 @@ assert.deepEqual(
 click('directory-clear');
 ui.renderParts({directory: true});
 await ready();
-assert.doesNotMatch(
-  ui.renderParts({directory: true}).list,
-  /<details class="directory-(folder|family)" open>/,
-  'every chord group starts collapsed'
-);
-click('directory-group', {group: 'size-3'});
-assert.match(
-  ui.renderParts({directory: true}).list,
-  /<details class="directory-folder" open><summary[^>]*data-group="size-3"/
-);
-click('directory-group', {group: 'size-3'});
-assert.match(
-  ui.renderParts({directory: true}).list,
-  /<details class="directory-folder" ><summary[^>]*data-group="size-3"/
-);
+assert.match(ui.renderParts({directory: true}).list, /directory-audition/);
 const repeated = JSON.parse(JSON.stringify(ui.serialize()));
 ui.restore(repeated);
 ui.sync();
 await ready();
+click('directory-tab', {value: 'favourites'});
+heard = null;
+click('directory-audition', {input: mergedInput});
+assert.equal(heard.length, 3);
 assert.match(
-  ui.renderParts({directory: true}).info,
+  ui.renderParts({directory: true}).list,
   new RegExp('data-input="' + mergedInput + '"')
 );
 assert.equal(
@@ -234,6 +246,7 @@ assert.equal(
   3,
   'the merged lookup survives session restoration'
 );
+click('directory-tab', {value: 'browse'});
 ui.input({dataset: {harmonyField: 'search'}, value: '4:'});
 assert.doesNotThrow(() => ui.render());
 assert.equal(ui.model().error, '');
@@ -283,6 +296,40 @@ assert.ok(
   'ET diagram uses positive cents modulo the temperament period'
 );
 
+await ui.openInput('8:9:10:15');
+const frames = new Set(),
+  labelPositions = new Set();
+for (const index of [0, 1, 2, 3]) {
+  click('rotation', {index: String(index)});
+  const svg = ui.render().match(/class="chord-line-diagram"><svg([^]*?)<\/svg>/)[1];
+  const rail = svg.match(
+    /<line x1="([^"]+)" x2="[^"]+" y1="([^"]+)" y2="[^"]+" class="chord-line-rail"/
+  );
+  const divider = svg.match(
+    /<line x1="[^"]+" x2="([^"]+)" y1="([^"]+)" y2="[^"]+" class="chord-line-divider"/
+  );
+  assert.ok(Number(divider[1]) < Number(rail[1]), 'leave a gap before zero cents');
+  assert.equal(divider[2], rail[2], 'align the label divider with the pitch rail');
+  for (const tick of svg.matchAll(/<text x="([^"]+)" y="[^"]+" text-anchor="middle">0\.0¢/g))
+    assert.equal(tick[1], rail[1]);
+  frames.add(
+    rail[1] +
+      ' ' +
+      svg.match(/viewBox="([^"]+)"/)[1] +
+      ' ' +
+      svg.match(/y1="([^"]+)" y2="[^"]+" class="chord-line-rail"/)[1]
+  );
+  labelPositions.add(
+    [...svg.matchAll(/<text x="[^"]+" y="([^"]+)" text-anchor="middle"/g)]
+      .map(match => match[1])
+      .join(',')
+  );
+}
+assert.ok(
+  labelPositions.size > 1,
+  'the fixture staggers colliding labels differently across rotations'
+);
+assert.equal(frames.size, 1, 'all rotations keep the same diagram height and rail position');
 await ui.openInput('4:5:6');
 assert.match(ui.render(), /chord-line-diagram/);
 const matrixRows = ui
@@ -293,8 +340,8 @@ assert.equal(matrixRows.length, 3);
 for (const row of matrixRows)
   assert.match(
     row,
-    /<tr[^>]*><td><span class="cell ratio-cell chord-matrix-unison"/,
-    'every row begins with unison'
+    /<\/th><td><span class="cell ratio-cell chord-matrix-unison"/,
+    'the first interval after the rotation button is unison'
   );
 assert.doesNotMatch(ui.render(), /<th>Member<\/th>|<th>Pair<\/th>/);
 assert.match(ui.render(), /dyad-used/, 'a JI chord marks the JI readings it uses');
@@ -302,12 +349,18 @@ const spellings = () => ui.render().match(/<p class="harmony-forms">([^]*?)<\/p>
 assert.equal(spellings(), 'Otonal <b>4:5:6</b> · Utonal <b>1/15:12:10</b>');
 const analysisMarkup = ui.renderParts({directory: true}).detail;
 const innerMatrix = analysisMarkup.match(/class="matrix chord-interval-matrix"[^]*?<\/table>/)[0];
-assert.doesNotMatch(innerMatrix, /<th\b|<thead\b/, 'the matrix has only interval cells');
+for (const [i, row] of matrixRows.entries())
+  assert.match(
+    row,
+    new RegExp(
+      '<th scope="row"[^>]*><button data-harmony-action="rotation"[^>]*data-index="' + i + '"'
+    )
+  );
+assert.equal((innerMatrix.match(/class="rotation-label"/g) ?? []).length, 3);
 assert.doesNotMatch(analysisMarkup, /<h5>Interval matrix<\/h5>/);
 assert.ok(
-  analysisMarkup.indexOf('chord-line-diagram') < analysisMarkup.indexOf('harmony-rotations') &&
-    analysisMarkup.indexOf('harmony-rotations') < analysisMarkup.indexOf('chord-interval-matrix'),
-  'tone diagram, rotations, then interval matrix'
+  analysisMarkup.indexOf('chord-line-diagram') < analysisMarkup.indexOf('chord-interval-matrix'),
+  'pitch diagram precedes the matrix with attached rotations'
 );
 click('rotation', {index: '1'});
 assert.equal(heard[0], 0, 'JI rotations also use the central tonic');
@@ -333,12 +386,12 @@ const heading = () =>
       .match(/<h4>([^<]*)/)[1]
       .trim(),
   currentRotation = () =>
-    ui.render().match(/class="harmony-current-rotation"[^>]*>Rotation <b>([^<]*)<\/b>/)?.[1];
+    ui.render().match(/data-harmony-action="rotation"[^>]*aria-pressed="true">([^<]*)<small>/)?.[1];
 const rotationLabels = () =>
   [
     ...ui
       .render()
-      .match(/class="harmony-rotations"[^]*?<\/div>/)[0]
+      .match(/class="matrix chord-interval-matrix"[^]*?<\/table>/)[0]
       .matchAll(/data-harmony-action="rotation"[^>]*>([^<]*)</g)
   ].map(m => m[1]);
 assert.equal(heading(), '4:5:6', 'the directory chord stays at the top');
@@ -372,11 +425,11 @@ await ui.openInput('4:5:6');
 click('rotation', {index: '0'});
 assert.match(
   ui.render(),
-  /Rotation <b>4:5:6<\/b> · root position/,
+  /aria-pressed="true">4:5:6<small>Root position/,
   'the directory spelling is root position'
 );
 click('rotation', {index: '1'});
-assert.match(ui.render(), /Rotation <b>5:6:8<\/b> · 1st inversion of 4:5:6/);
+assert.match(ui.render(), /title="1st inversion of 4:5:6" aria-pressed="true">5:6:8/);
 click('rotation', {index: '0'});
 // Chords on a bass note: every inversion of a listed chord whose lowest note can stand on a scale degree.
 {
@@ -456,7 +509,7 @@ click('rotation', {index: '0'});
   assert.equal(
     voice.degrees[voice.pitches.indexOf(Math.min(...voice.pitches))],
     2,
-    'Hear voicing and Send to Play sound degree 2 in the bass'
+    'the selected voicing has degree 2 in the bass'
   );
   assert.equal(
     ui.setBass({scale: 'play', degree: 5}),
@@ -477,9 +530,7 @@ assert.ok(
   'ET chords can be starred'
 );
 ui.input({dataset: {harmonyField: 'search'}, value: ''});
-const etSize = tempered.shape.coordinates.length;
-click('directory-group', {group: `size-${etSize}`});
-click('directory-group', {group: `size-${etSize}-et`});
+click('directory-form', {value: 'et'});
 assert.match(
   ui.renderParts({directory: true}).list,
   new RegExp(`data-input="${tempered.spelling}"[^>]*aria-pressed="true"`)
@@ -526,7 +577,7 @@ assert.doesNotMatch(
   ),
   /<script>/
 );
-// Large groups render a bounded first page; collapsed groups render no chords.
+// Browse pages bound the number of rendered chords.
 const many = Array.from({length: 150}, (_, i) => ({
   id: 't' + i,
   kind: 'tempered',
@@ -542,12 +593,9 @@ const many = Array.from({length: 150}, (_, i) => ({
   }
 }));
 const count = html => (html.match(/data-harmony-action="select"/g) || []).length;
-const opened = new Set(['size-3', 'size-3-et']);
-assert.equal(count(renderDirectoryTree(many, '')), 0, 'collapsed by default');
-assert.equal(count(renderDirectoryTree(many, '', new Set(['size-3']))), 0);
-assert.equal(count(renderDirectoryTree(many, '', opened)), 100);
-assert.match(renderDirectoryTree(many, '', opened), /Show all 150/);
-assert.equal(count(renderDirectoryTree(many, '', opened, [], new Set(['size-3-et']))), 150);
+assert.equal(count(renderDirectoryList(many, '')), 100);
+assert.equal(count(renderDirectoryList(many, '', [], 1)), 50);
+assert.match(renderDirectoryList(many, ''), /1–100 of 150/);
 const ambi = {
   id: 'a',
   kind: 'ji',
@@ -555,9 +603,9 @@ const ambi = {
   interpretation: {presentationForm: 'self', identity: {cardinality: 3, originalInput: '4:7:8'}}
 };
 assert.match(
-  renderDirectoryTree([ambi], '', new Set(['size-3'])),
+  renderDirectoryList([ambi], ''),
   /directory-dot ambitonal[^>]*><\/i>Ambitonal/,
-  'self-reciprocal chords form the Ambitonal group'
+  'self-reciprocal chords show their form'
 );
 console.log(
   'Harmonic UI covers lazy A/B jobs, aliases, scope, inversion, sound, target changes, ET evidence, alternatives and native exact input.'
