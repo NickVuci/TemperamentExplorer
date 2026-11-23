@@ -32,9 +32,13 @@ assert.equal(
   'Advanced matrix options'
 );
 assert.equal(matrixOptions.open, false);
-const arrangement = matrixOptions.querySelector('div.matrix-option-fields > label');
-assert.equal(arrangement.firstChild.textContent, 'Arrangement');
-assert.ok(arrangement.querySelector('select#layout'));
+const arrangement = matrixOptions.querySelector('div.matrix-option-fields > .layout-choice');
+assert.deepEqual(
+  [...arrangement.querySelectorAll('button[data-layout]')].map(b => b.dataset.layout),
+  ['distance', 'notes'],
+  'the arrangement is two buttons, not a dropdown'
+);
+assert.ok(arrangement.querySelector('select#layout[hidden]'));
 assert.equal(matrixOptions.querySelector('.targetlegend, .legend, .labeltoggle'), null);
 const labelControls = $index('#matrix-label-controls.labeltoggle');
 assert.match(labelControls.textContent, /Cell labels/);
@@ -280,6 +284,17 @@ assert.equal($('#matrix-controls').parentElement, $('[data-matrix-controls-host]
 assert.equal($('#matrix-label-controls').parentElement, $('[data-matrix-labels-host]'));
 assert.equal($('#ji-controls').parentElement, $('#ji-controls-parking'));
 assert.equal(host().hidden, false, 'the matrix keeps the tolerance control visible');
+// The arrangement is two buttons that set the layout and show which is chosen.
+const layoutButton = name => $(`[data-layout="${name}"]`);
+assert.equal(layoutButton('distance').getAttribute('aria-pressed'), 'true');
+page.click('[data-layout="notes"]');
+await page.settle();
+assert.equal($('#layout').value, 'notes');
+assert.equal(layoutButton('notes').getAttribute('aria-pressed'), 'true');
+assert.equal(layoutButton('distance').getAttribute('aria-pressed'), 'false');
+page.click('[data-layout="distance"]');
+await page.settle();
+assert.equal($('#layout').value, 'distance');
 page.click('[data-unified-center="diamond"]');
 await page.settle();
 assert.equal($('#matrix-controls').parentElement, $('#matrix-controls-parking'));

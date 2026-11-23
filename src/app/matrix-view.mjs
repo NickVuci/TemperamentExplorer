@@ -215,6 +215,9 @@ export function createMatrixPane(deps) {
         } else if (dataset.label) {
           $('#labels').value = dataset.label;
           refreshLabels();
+        } else if (dataset.layout) {
+          $('#layout').value = dataset.layout;
+          deps.render();
         } else if (dataset.buildchord) {
           const [, i, j] = dataset.buildchord.split(',').map(Number);
           deps.buildChord(i, j);

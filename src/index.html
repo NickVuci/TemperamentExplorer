@@ -293,12 +293,21 @@
             <details id="matrix-controls" class="matrix-controls advanced-approximation-options">
               <summary>Advanced matrix options</summary>
               <div class="matrix-option-fields">
-                <label
-                  >Arrangement<select id="layout">
+                <div class="layout-choice">
+                  <div class="tabs" role="group" aria-label="Matrix arrangement">
+                    <button
+                      data-layout="distance"
+                      aria-pressed="true"
+                      title="Ascending rows, as in Scale Workshop"
+                    >
+                      Ascending rows</button
+                    ><button data-layout="notes" aria-pressed="false">Note × note</button>
+                  </div>
+                  <select id="layout" hidden aria-label="Matrix arrangement">
                     <option value="distance">Ascending rows · Scale Workshop</option>
                     <option value="notes">Note × note</option>
-                  </select></label
-                >
+                  </select>
+                </div>
               </div>
             </details>
           </div>

@@ -689,6 +689,11 @@ function renderWorkspace({keepNotes = false} = {}) {
       liveChordRecognizer.prepare(liveChordContext.state, liveChordContext.settings);
     tuningPanel.refreshExplorer();
     $('#layout').disabled = c === 'targets';
+    document.querySelectorAll('[data-layout]').forEach(b => {
+      b.disabled = c === 'targets';
+      b.classList.toggle('active', b.dataset.layout === cfg.layout);
+      b.setAttribute('aria-pressed', String(b.dataset.layout === cfg.layout));
+    });
     $('#labels').disabled = c !== 'matrices';
     document.querySelectorAll('[data-label]').forEach(b => {
       b.disabled = c !== 'matrices';

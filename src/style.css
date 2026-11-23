@@ -5101,6 +5101,42 @@ footer {
 }
 /* The centre views are folder tabs along the top edge of the pane. They are placed from the pane's own
    edge (whatever its padding), standing on its top border; the active tab hides that stretch of it. */
+/* The matrix arrangement is two buttons (the select behind them keeps the value). */
+.matrix-option-fields .layout-choice {
+  grid-column: 1 / -1;
+  margin: 4px 0;
+}
+.layout-choice .tabs {
+  display: inline-flex;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.layout-choice .tabs button {
+  flex: none;
+  min-height: 32px;
+  padding: 5px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--control-bg);
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.layout-choice .tabs button[aria-pressed='true'] {
+  border-color: var(--a);
+  background: var(--surface2);
+  color: var(--text);
+  font-weight: 600;
+}
+.layout-choice .tabs button:disabled {
+  opacity: 0.5;
+}
+/* The tabs fill the top of the main row, so the section needs no gap of its own above it. */
+#discover-view #analysis-explore {
+  margin-top: 0;
+}
 .unified-main {
   padding-top: 32px;
 }
