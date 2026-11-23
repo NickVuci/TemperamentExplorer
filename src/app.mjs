@@ -13,6 +13,7 @@ import {
   renderUnified,
   unifiedDirectory,
   unifiedDetail,
+  unifiedActions,
   unifiedCenterView,
   normalizeUnifiedCenter
 } from './ui/discover-unified.mjs';
@@ -122,7 +123,9 @@ function refreshHarmony() {
       detail = host.querySelector('[data-unified-pane="detail"]');
     if (!directory || !detail) return;
     directory.innerHTML = unifiedDirectory(parts);
+    const actions = host.querySelector('[data-unified-actions]');
     if (!manualChordInspector) detail.innerHTML = unifiedDetail(parts);
+    if (actions) actions.innerHTML = manualChordInspector ? '' : unifiedActions(parts);
     focusSync.applyFocus();
     revealDirectoryRow(directory);
     if (key) {
@@ -274,8 +277,6 @@ const harmonicWorkspace = createHarmonicCatalogueWorkspace({
   refresh: refreshHarmony,
   notify: toast,
   play: playPitches,
-  onCollect: (s, coords, label, options) =>
-    materialWorkspace.add('chord', s, coords, label, options),
   onSendToHexBoard: value => {
     view = 'hexboard';
     matrixPane.deselect();
@@ -514,6 +515,7 @@ function unifiedWorkspace() {
         : targetTable(),
     directory: unifiedDirectory(parts),
     detail: manualChordInspector ? chordWorkspace.render() : unifiedDetail(parts),
+    actions: manualChordInspector ? '' : unifiedActions(parts),
     scaleControls: scalePane.controls(),
     scaleMarkup: scalePane.details()
   });

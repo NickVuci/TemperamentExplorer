@@ -174,19 +174,18 @@ await page.until(majorRow, {message: 'the restored chord directory'});
 page.click(majorRow());
 page.click('[data-harmony-action="rotation"][data-index="1"]');
 assert.ok(detailPane().querySelector('tr[data-chord-row="1"].is-active-rotation'));
-assert.deepEqual(
-  [...detailPane().querySelectorAll('.harmony-destinations button')].map(b => b.textContent),
-  ['Collect voicing', 'Find places']
+const mapButton = $('[data-unified-actions] .harmony-map[data-harmony-action="send"]');
+assert.equal(
+  mapButton?.textContent,
+  'Map to layout',
+  'the analysis header has a Map to layout button with a hexagon icon'
 );
+assert.ok(mapButton.querySelector('svg polygon'));
+assert.equal(detailPane().querySelector('.harmony-destinations'), null);
 assert.doesNotMatch(
   detailPane().textContent,
   /Use this chord|Open collection|Hear voicing|Favourite chord|Current voicing/
 );
-page.click('[data-harmony-action="collect"]');
-page.section('create');
-assert.equal($('#material-host').hidden, false);
-assert.ok($('#material-host details').open);
-assert.match($('#material-host [data-material-name]').value, /5:6:8/);
 assert.deepEqual(page.errors, []);
 
 // The scale pane follows the three main modules.

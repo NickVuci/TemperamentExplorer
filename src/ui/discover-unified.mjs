@@ -22,6 +22,7 @@ export function unifiedCenterToggle(center) {
 export const unifiedDirectory = parts =>
   `${parts.controls}<div class="unified-directory-list">${parts.list}</div>${parts.info}`;
 export const unifiedDetail = parts => parts.detail;
+export const unifiedActions = parts => parts.actions ?? '';
 
 // The scale controls live in the scale pane here instead of the shared setup bar.
 export function renderUnified({
@@ -29,6 +30,7 @@ export function renderUnified({
   centerMarkup,
   directory,
   detail,
+  actions = '',
   scaleControls,
   scaleMarkup
 }) {
@@ -36,7 +38,7 @@ export function renderUnified({
 <div class="unified-main">
 <section class="unified-pane unified-directory harmony-workspace" aria-label="Harmony directory"><h3 class="unified-pane-title">Harmony directory</h3><div data-unified-pane="directory">${directory}</div></section>
 <section class="unified-pane unified-center" aria-label="Harmonic space"><div class="unified-center-head">${unifiedCenterToggle(center)}</div>${centerMarkup}</section>
-<section class="unified-pane unified-analysis harmony-workspace" aria-label="Chord analysis"><h3 class="unified-pane-title">Chord analysis</h3><article class="harmony-detail" data-unified-pane="detail" aria-label="Selected harmony">${detail}</article></section>
+<section class="unified-pane unified-analysis harmony-workspace" aria-label="Chord analysis"><div class="unified-pane-head"><h3 class="unified-pane-title">Chord analysis</h3><div data-unified-actions>${actions}</div></div><article class="harmony-detail" data-unified-pane="detail" aria-label="Selected harmony">${detail}</article></section>
 </div>
 <section class="unified-pane unified-scale" aria-label="Scale"><h3 class="unified-pane-title">Scale</h3><div class="discover-scale unified-scale-controls" aria-label="Scale and mode">${scaleControls}</div>${scaleMarkup}</section>
 </div>`;

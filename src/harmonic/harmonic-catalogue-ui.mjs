@@ -5,7 +5,7 @@ import {
   harmonicSelection,
   sourceShapeVoicing
 } from './harmonic-selection.mjs';
-import {searchShapeOccurrences, occurrenceShape} from '../chords/chord-occurrence.mjs';
+import {searchShapeOccurrences} from '../chords/chord-occurrence.mjs';
 import {realizeShape} from '../chords/chord-realization.mjs';
 import {chordIdentity} from '../chords/chord-identity.mjs';
 import {chordRotations, rotationRootKey} from './harmonic-ji-chords.mjs';
@@ -254,7 +254,6 @@ export function createHarmonicCatalogueWorkspace({
   refresh = () => {},
   notify = () => {},
   play = () => {},
-  onCollect = () => {},
   onSendToHexBoard = () => {},
   onInspect = () => {},
   workerFactory
@@ -305,7 +304,8 @@ export function createHarmonicCatalogueWorkspace({
     forms = new Set(DIRECTORY_FORMS),
     primesOff = new Set(),
     recent = [];
-  let directoryTab = 'browse',
+  let starredOnly = false,
+    directoryTab = 'browse',
     directoryPage = 0,
     directorySort = '',
     directoryDir = 1,
@@ -451,10 +451,17 @@ export function createHarmonicCatalogueWorkspace({
   const bassEntries = (rows, value = bass) => degreeEntries(rows, value, 'bass');
   // The bass list over the directory's visible rows (size range and type filters applied).
   const directoryRows = () => filtered().filter(directoryShown);
+  // A row is starred when its own spelling, or any spelling it merges, is a favourite.
+  const isStarred = row => {
+    const keys = new Set(favourites.map(r => favouriteKey(r.input))),
+      input = rowInput(row),
+      ids = row.mergedInterpretationIds ?? (input ? [favouriteKey(input)] : []);
+    return ids.some(id => keys.has(id));
+  };
   // The browse list: the shown rows in the chosen sort order (ties keep the catalogue order).
   const sortedDirectoryRows = rows => {
     const key = COLUMN_SORTS[directorySort],
-      shown = rows.filter(directoryShown);
+      shown = rows.filter(row => directoryShown(row) && (!starredOnly || isStarred(row)));
     return key ? shown.sort((a, b) => compareKeys(key(a), key(b), directoryDir)) : shown;
   };
   const directoryBassEntries = (value = bass) => (value ? bassEntries(directoryRows(), value) : []);
@@ -1092,6 +1099,7 @@ export function createHarmonicCatalogueWorkspace({
     if (size >= SIZE_RANGE[0]) sizes.add(size);
     if (!formShown(row)) forms.add(directoryForm(row));
     for (const prime of rowPrimes(row)) primesOff.delete(prime);
+    if (starredOnly && !isStarred(row)) starredOnly = false;
     if (
       query &&
       ![rowLabel(row), ...(row.aliases ?? [])].some(text =>
@@ -1195,6 +1203,11 @@ export function createHarmonicCatalogueWorkspace({
     refresh();
     return true;
   }
+  // Top right of the analysis: send the chord to the board layout.
+  function mapToLayoutButton() {
+    if (!entry || !detailModel().geometry) return '';
+    return `<button type="button" data-harmony-action="send" class="harmony-map" title="Find this chord on the HexBoard layout"><svg class="map-icon" viewBox="2.5 2.5 18 18.5" width="16" height="16" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><polygon points="7.1,3.4 11.1,5.7 11.1,10.3 7.1,12.6 3.1,10.3 3.1,5.7"/><polygon points="15.9,3.4 19.9,5.7 19.9,10.3 15.9,12.6 11.9,10.3 11.9,5.7"/><polygon points="11.5,11.1 15.5,13.4 15.5,18.0 11.5,20.3 7.5,18.0 7.5,13.4"/></svg>Map to layout</button>`;
+  }
   function details() {
     if (!entry)
       return `<p class="harmony-empty">Select a harmony, or select or play a chord on the diamond or matrix, to inspect it.</p><label class="checklabel harmony-follow"><input type="checkbox" data-harmony-field="follow" ${followPlaying ? 'checked' : ''}> Follow what I play</label>`;
@@ -1211,11 +1224,7 @@ export function createHarmonicCatalogueWorkspace({
     const explorer = geometry
       ? `<section class="analysis-rotations">${identity}<div class="rotation-explorer">${chordLineDiagram(m)}<h5>Rotations</h5>${chordIntervalMatrix(m)}</div></section>`
       : identity;
-    const destinations = geometry
-      ? `<div class="harmony-destinations"><div><span><strong>Collection</strong><small>Keep this voicing for Compose</small></span>${button('collect', 'Collect voicing', occurrenceShape(m.state, geometry.shape).members.length < 2 ? 'disabled' : '')}</div>
-      <div><span><strong>Board</strong><small>Find this chord on the HexBoard</small></span>${button('send', 'Find places')}</div></div>`
-      : '';
-    return `${explorer}${destinations}${followSwitch}${etContext}${spellings(m)}${entry.kind === 'ji' ? button('dual', 'Open reciprocal chord') : ''}
+    return `${explorer}${followSwitch}${etContext}${spellings(m)}${entry.kind === 'ji' ? button('dual', 'Open reciprocal chord') : ''}
    ${entry.kind === 'source' ? '<p>Source sounding coordinates and voices are preserved.</p>' : ''}
    ${entry.kind === 'ji' ? otherReadings() : ''}
    ${
@@ -1265,7 +1274,8 @@ export function createHarmonicCatalogueWorkspace({
         next = !sorted ? 'low to high' : directoryDir > 0 ? 'high to low' : 'off';
       return `<span class="directory-th"><button type="button" class="directory-th-button${filtered || openMenu === column ? ' active' : ''}" data-harmony-action="directory-menu" data-value="${column}" aria-haspopup="true" aria-expanded="${openMenu === column}" title="${title}: choose which to show">${label}</button><button type="button" class="directory-th-sort${sorted ? ' active' : ''}" data-harmony-action="directory-sort" data-value="${column}" aria-label="Sort by ${label.toLowerCase()}" title="Sort by ${label.toLowerCase()}: ${next}">${sorted ? (directoryDir > 0 ? '▲' : '▼') : '⇅'}</button></span>`;
     });
-    const [star, notes, primes, type] = ['<span></span>', ...cells];
+    const star = `<span><button type="button" class="directory-th-sort${starredOnly ? ' active' : ''}" data-harmony-action="directory-starred" aria-pressed="${starredOnly}" aria-label="Show only starred chords" title="${starredOnly ? 'Showing starred chords only' : 'Show only starred chords'}">${starredOnly ? '★' : '☆'}</button></span>`;
+    const [notes, primes, type] = cells;
     let menu = '';
     if (openMenu) {
       const [, label] = HEAD_COLUMNS.find(([column]) => column === openMenu);
@@ -1306,6 +1316,7 @@ export function createHarmonicCatalogueWorkspace({
    ${error ? `<p role="alert">${esc(error)}</p>` : ''}`,
       list: `${rows.length ? renderCatalogueList(rows, selected, {page}) : status === 'loading' ? '<p>Loading harmony…</p>' : '<p class="harmony-empty">No matching chords. Adjust the limits or scale filter, or look up an exact chord.</p>'}`,
       detail: details(),
+      actions: mapToLayoutButton(),
       info: `   <details class="harmony-search-info"><summary>Search scope and bounds</summary><p>Catalogue identities are independent of the selected scale and board. Tolerance changes tuning quality, not mapping. Every chord in the chosen size range whose intervals all lie in the odd limit is listed: JI when some JI chord maps onto it, essentially tempered otherwise. Exact lookups can inspect chords outside these limits.</p><p>Catalogue bound: 20000 records. Approximation generator bound: ±32. Mapping previews preserve the current columns. ${result?.recordCap ? 'Record cap reached.' : ''}</p>${
         result
           ? `<pre>${esc(
@@ -1331,8 +1342,7 @@ export function createHarmonicCatalogueWorkspace({
         `<div class="harmony-status sr-only" role="status" aria-live="polite">${statusLine}</div>${error && query.trim() ? `<p role="alert">${esc(error)}</p>` : ''}`;
       const tabs = `<div class="tabs directory-tabs" role="group" aria-label="Directory views">${[
         ['browse', 'Browse'],
-        ['recent', 'Recent'],
-        ['favourites', 'Favourites']
+        ['recent', 'Recent']
       ]
         .map(([id, label]) =>
           button('directory-tab', label, `data-value="${id}" aria-pressed="${directoryTab === id}"`)
@@ -1347,14 +1357,13 @@ export function createHarmonicCatalogueWorkspace({
           ? renderBassList(directoryBassEntries())
           : visible.length
             ? renderDirectoryList(visible, selected, favourites, directoryPage, directoryHead())
-            : `<div class="directory-results">${directoryHead()}</div><p class="harmony-empty">${status === 'loading' ? 'Loading harmony…' : 'No chords match these filters.'}</p>`;
+            : `<div class="directory-results">${directoryHead()}</div><p class="harmony-empty">${status === 'loading' ? 'Loading harmony…' : starredOnly && !favourites.length ? 'Star a chord to keep it here.' : 'No chords match these filters.'}</p>`;
         parts.controls = tabs + parts.controls;
       } else {
-        const saved = directoryTab === 'recent' ? recent : favourites;
         parts.controls = tabs;
-        parts.list = saved.length
-          ? saved.map(r => savedChordRow(r, favourites)).join('')
-          : `<p class="harmony-empty">${directoryTab === 'recent' ? 'Select a chord to keep it here.' : 'Star a chord to keep it here.'}</p>`;
+        parts.list = recent.length
+          ? recent.map(r => savedChordRow(r, favourites)).join('')
+          : '<p class="harmony-empty">Select a chord to keep it here.</p>';
       }
     }
     return parts;
@@ -1362,7 +1371,7 @@ export function createHarmonicCatalogueWorkspace({
   function render() {
     const parts = renderParts();
     return `<section class="harmony-workspace" aria-label="Harmonic discovery">
-   ${parts.controls}<div class="harmony-columns"><div>${parts.list}</div><article class="harmony-detail" aria-label="Selected harmony">${parts.detail}</article></div>
+   ${parts.controls}<div class="harmony-columns"><div>${parts.list}</div><article class="harmony-detail" aria-label="Selected harmony">${parts.actions}${parts.detail}</article></div>
    ${parts.info}</section>`;
   }
   function change(el) {
@@ -1535,16 +1544,18 @@ export function createHarmonicCatalogueWorkspace({
         directoryPage = 0;
       }
       if (action === 'directory-page') directoryPage = Math.max(0, Number(b.dataset.page) || 0);
-      if (
-        action === 'directory-tab' &&
-        ['browse', 'recent', 'favourites'].includes(b.dataset.value)
-      )
+      if (action === 'directory-tab' && ['browse', 'recent'].includes(b.dataset.value))
         directoryTab = b.dataset.value;
+      if (action === 'directory-starred') {
+        starredOnly = !starredOnly;
+        directoryPage = 0;
+      }
       if (action === 'directory-clear') {
         directoryPage = 0;
         scope = 'temperament';
         sizes = new Set(DEFAULT_SIZES);
         ensureListed();
+        starredOnly = false;
         forms = new Set(DIRECTORY_FORMS);
         primesOff = new Set();
         directorySort = '';
@@ -1588,21 +1599,9 @@ export function createHarmonicCatalogueWorkspace({
       }
       if (action === 'dual' && entry?.interpretation)
         void openInput(entry.interpretation.exactDual.originalInput);
-      if (action === 'collect' || action === 'send') {
+      if (action === 'send') {
         const value = currentSelection();
-        if (value) {
-          if (action === 'collect') {
-            const current = rotations(detailModel())[rotation];
-            const spelling = current?.display ?? current?.label;
-            const label = rotation && spelling ? value.label + ' · ' + spelling : value.label;
-            onCollect(
-              state(),
-              value.voicing.voices.map(v => v.coordinate),
-              label,
-              {exact: true, harmonicSelection: value}
-            );
-          } else onSendToHexBoard(value);
-        }
+        if (value) onSendToHexBoard(value);
       }
       if (action === 'rotation') {
         rotation = Math.max(
@@ -1767,6 +1766,7 @@ export function createHarmonicCatalogueWorkspace({
       sizes: [...sizes],
       forms: [...forms],
       primesOff: [...primesOff],
+      starredOnly,
       directorySort,
       directoryDir,
       bass: bass ? {...bass} : null,
@@ -1816,6 +1816,7 @@ export function createHarmonicCatalogueWorkspace({
       setBass(data?.bass ?? null);
       directorySort = COLUMN_SORTS[data?.directorySort] ? data.directorySort : '';
       directoryDir = data?.directoryDir === -1 ? -1 : 1;
+      starredOnly = data?.starredOnly === true;
       openMenu = '';
       directoryTab = 'browse';
       directoryPage = 0;

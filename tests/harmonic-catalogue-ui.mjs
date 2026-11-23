@@ -66,14 +66,12 @@ let state = {...makeState('meantone'), n: 7, mode: 0},
   playState = {...state, n: 2},
   limit = 15,
   sent = null,
-  collected = null,
   heard = null;
 const ui = createHarmonicCatalogueWorkspace({
   getState: () => state,
   getPlayState: () => playState,
   getSettings: () => ({limit, primeLimit: state.basis, tol: 0}),
   play: notes => (heard = notes),
-  onCollect: (s, c, l, o) => (collected = {s, c, l, o}),
   onSendToHexBoard: value => (sent = value)
 });
 const change = (field, value) => ui.change({dataset: {harmonyField: field}, value: String(value)}),
@@ -121,14 +119,9 @@ assert.equal(
   2,
   'rotation updates the chosen occurrence voicing'
 );
-click('collect');
-assert.deepEqual(collected.c, ui.selection().voicing.coords);
-assert.match(collected.l, /3:4:5/);
 click('rotation', {index: '1'});
 click('send');
 assert.equal(sent.voicing.voices.length, 3);
-click('collect');
-assert.equal(collected.o.harmonicSelection.shapeId, majorId);
 const saved = JSON.parse(JSON.stringify(ui.serialize())),
   savedVoices = ui.selection().voicing.coords;
 ui.restore(saved);
@@ -179,8 +172,8 @@ assert.doesNotMatch(directory.list, /directory-selection|Open analysis/);
 assert.match(directory.controls, /Recent/);
 assert.match(
   directory.list,
-  /<span><\/span><span>Chord<\/span>(<span class="directory-th"><button[^>]*>(Notes|Primes|Type)<\/button><button[^>]*data-harmony-action="directory-sort"[^>]*>[^<]*<\/button><\/span>){3}/,
-  'the headers are star, chord, then notes, primes and type, each with a sort arrow'
+  /<span><button[^>]*directory-starred[^>]*>[^<]*<\/button><\/span><span>Chord<\/span>(<span class="directory-th"><button[^>]*>(Notes|Primes|Type)<\/button><button[^>]*data-harmony-action="directory-sort"[^>]*>[^<]*<\/button><\/span>){3}/,
+  'the headers are a star filter, chord, then notes, primes and type, each with a sort arrow'
 );
 assert.doesNotMatch(directory.list, /Limit/, 'there is no limit column');
 assert.match(
@@ -204,7 +197,6 @@ assert.match(
   ui.renderParts({directory: true}).list,
   new RegExp('data-input="' + mergedInput + '"')
 );
-click('directory-tab', {value: 'favourites'});
 const selectionBeforeStar = ui.model().selected;
 click('directory-star', {
   input: mergedInput,
@@ -217,6 +209,31 @@ assert.match(
   ui.renderParts({directory: true}).list,
   new RegExp('data-input="' + mergedInput + '"')
 );
+{
+  // The star above the star column keeps only the starred chords in the list.
+  const rows = () =>
+    (ui.renderParts({directory: true}).list.match(/data-harmony-action="select"/g) ?? []).length;
+  click('directory-tab', {value: 'browse'});
+  ui.input({dataset: {harmonyField: 'search'}, value: ''});
+  await ready();
+  const all = rows();
+  assert.ok(all > 1);
+  assert.doesNotMatch(
+    ui.renderParts({directory: true}).controls,
+    /Favourites/,
+    'there is no Favourites tab'
+  );
+  assert.match(ui.renderParts({directory: true}).list, /data-harmony-action="directory-starred"/);
+  click('directory-starred');
+  assert.equal(ui.serialize().starredOnly, true);
+  assert.equal(rows(), 1, 'only the starred chord remains');
+  assert.match(
+    ui.renderParts({directory: true}).list,
+    new RegExp('data-input="' + mergedInput + '"')
+  );
+  click('directory-starred');
+  assert.equal(rows(), all, 'pressing it again shows every chord');
+}
 const withFavourite = JSON.parse(JSON.stringify(ui.serialize()));
 click('directory-star', {
   input: mergedInput,
@@ -337,7 +354,7 @@ const repeated = JSON.parse(JSON.stringify(ui.serialize()));
 ui.restore(repeated);
 ui.sync();
 await ready();
-click('directory-tab', {value: 'favourites'});
+click('directory-tab', {value: 'recent'});
 heard = null;
 click('directory-recent', {input: mergedInput, play: '1'});
 assert.equal(heard.length, 3);

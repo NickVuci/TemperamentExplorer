@@ -4912,6 +4912,9 @@ footer {
 }
 .unified-directory {
   grid-area: directory;
+}
+/* Beats the later ".unified-pane" padding, so the chord list gets the room. */
+.unified-pane.unified-directory {
   padding-inline: 8px;
 }
 .unified-center {
@@ -5095,6 +5098,49 @@ footer {
 }
 .unified-center-toggle button {
   margin: 0;
+}
+/* The centre views are folder tabs along the top edge of the pane. They are placed from the pane's own
+   edge (whatever its padding), standing on its top border; the active tab hides that stretch of it. */
+.unified-main {
+  padding-top: 32px;
+}
+.unified-center {
+  position: relative;
+}
+.unified-center-head {
+  --tab-height: 30px;
+  height: 0;
+  margin: 0;
+}
+.unified-center-head .unified-center-toggle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translateY(-100%);
+  display: flex;
+  gap: 2px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+.unified-center-head .unified-center-toggle button {
+  min-height: var(--tab-height);
+  height: var(--tab-height);
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-bottom-color: var(--line);
+  border-radius: 8px 8px 0 0;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 13px;
+}
+.unified-center-head .unified-center-toggle button.active {
+  border-color: var(--line);
+  border-bottom-color: var(--surface);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
 }
 .unified-workspace .harmony-controls {
   margin: 0 0 12px;
@@ -5440,6 +5486,10 @@ footer {
   font-size: 8px;
   padding: 0 2px;
 }
+.unified-directory .directory-head > span:first-child .directory-th-sort {
+  font-size: 15px;
+  padding: 0;
+}
 .unified-directory .directory-th-button.active,
 .unified-directory .directory-th-sort.active {
   color: var(--a);
@@ -5706,34 +5756,23 @@ footer {
   outline: 2px solid var(--a);
   outline-offset: -2px;
 }
-.harmony-destinations {
-  display: grid;
-  gap: 5px;
-  margin: 8px 0;
-}
-.harmony-destinations > div {
+.unified-pane-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  margin-bottom: 10px;
 }
-.harmony-destinations span {
-  display: grid;
-  line-height: 1.3;
-  gap: 3px;
+.unified-pane-head .unified-pane-title {
+  margin: 0;
 }
-.harmony-destinations small {
-  color: var(--muted);
-  font-size: 11px;
-}
-.harmony-destinations button {
-  flex: none;
-}
-.harmony-detail .harmony-destinations [data-harmony-action='collect'] {
-  background: var(--a);
-  color: #111827;
-  border-color: var(--a);
-  font-weight: 650;
+.harmony-map {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 3px 10px;
+  font-size: 12px;
 }
 .matrix-chord-hint {
   margin: 2px 0 6px;
