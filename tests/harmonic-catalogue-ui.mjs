@@ -78,6 +78,12 @@ const ui = createHarmonicCatalogueWorkspace({
 });
 const change = (field, value) => ui.change({dataset: {harmonyField: field}, value: String(value)}),
   click = (action, extra = {}) => ui.click({dataset: {harmonyAction: action, ...extra}});
+// Opens a column's header menu, presses one toggle button, and closes the menu.
+const columnFilter = (column, value) => {
+  click('directory-menu', {value: column});
+  click('directory-filter', {value: String(value)});
+  click('directory-menu', {value: column});
+};
 async function ready() {
   const start = Date.now();
   while (ui.model().status === 'loading') {
@@ -157,26 +163,42 @@ assert.equal(
 );
 const mergedInput = ui.model().entry.interpretation.identity.originalInput;
 assert.ok(ui.model().entry.custom);
-click('directory-filters');
 const directory = ui.renderParts({directory: true});
-assert.match(directory.controls, /data-harmony-field="sizeMin"/);
-assert.match(directory.controls, /data-harmony-field="sizeMax"/);
+assert.doesNotMatch(
+  directory.controls,
+  /data-harmony-field="(sizeMin|sizeMax|scope|bass|sort)"|directory-(size|prime|form)"/,
+  'the directory has no filter buttons or sort dropdown; the column headers do both'
+);
+for (const column of ['notes', 'primes', 'type'])
+  assert.match(
+    directory.list,
+    new RegExp(`data-harmony-action="directory-menu" data-value="${column}"`),
+    `the ${column} column header opens its sort and filter menu`
+  );
+assert.doesNotMatch(directory.list, /directory-selection|Open analysis/);
 assert.match(directory.controls, /Recent/);
-assert.match(directory.list, /directory-audition[^]*data-harmony-action="select"/);
+assert.match(
+  directory.list,
+  /<span><\/span><span>Chord<\/span>(<span class="directory-th"><button[^>]*>(Notes|Primes|Type)<\/button><button[^>]*data-harmony-action="directory-sort"[^>]*>[^<]*<\/button><\/span>){3}/,
+  'the headers are star, chord, then notes, primes and type, each with a sort arrow'
+);
+assert.doesNotMatch(directory.list, /Limit/, 'there is no limit column');
+assert.match(
+  directory.list,
+  /directory-result"><button[^>]*directory-star[^]*?<button[^>]*class="directory-chord"[^]*?directory-cell">\d+<\/span><span class="directory-cell">[\d –]+<\/span><span class="directory-form">/,
+  'rows run star, chord, notes, primes, type'
+);
 const auditionId = ui
   .model()
   .result.items.find(
     row => row.kind === 'ji' && row.mappingStatus === 'mapped' && row.id !== ui.model().selected
   ).id;
-const beforePreview = ui.serialize();
 heard = null;
-click('directory-audition', {id: auditionId});
-assert.ok(heard?.length >= 2);
-assert.deepEqual(
-  ui.serialize(),
-  beforePreview,
-  'audition leaves selection, history and filters intact'
-);
+click('select', {id: auditionId, play: '1'});
+assert.ok(heard?.length >= 2, 'pressing a chord label sounds the chord');
+assert.equal(ui.model().selected, auditionId, 'and selects it');
+await ui.openInput(mergedInput);
+await ready();
 click('directory-tab', {value: 'recent'});
 assert.match(
   ui.renderParts({directory: true}).list,
@@ -206,37 +228,121 @@ ui.restore(withFavourite);
 ui.sync();
 await ready();
 assert.equal(ui.serialize().favourites.length, 1, 'favourites survive saved sessions');
-assert.deepEqual(ui.serialize().sizeRange, [3, 6], 'chords start at three notes');
-change('sizeMin', 2);
-assert.deepEqual(ui.serialize().sizeRange, [3, 6], 'there is no two-note chord size');
-change('sizeMax', 3);
+assert.deepEqual(ui.serialize().sizes, [3, 4, 5, 6], 'chords start at three to six notes');
+columnFilter('notes', 2);
+assert.deepEqual(ui.serialize().sizes, [3, 4, 5, 6], 'there is no two-note chord size');
+for (const size of [4, 5, 6]) columnFilter('notes', size);
+assert.deepEqual(ui.serialize().sizes, [3]);
+ui.renderParts({directory: true});
+assert.equal(ui.model().status, 'complete', 'hiding note counts does not relist the catalogue');
+assert.ok(ui.model().entry, 'and keeps the selected chord');
 assert.doesNotMatch(ui.renderParts({directory: true}).list, /data-group="size-4"/);
 await ready();
-change('sizeMin', 7);
-assert.deepEqual(
-  ui.serialize().sizeRange,
-  [7, 7],
-  'raising the minimum past the maximum moves the maximum'
-);
+columnFilter('notes', 7);
+columnFilter('notes', 3);
+columnFilter('notes', 7);
+assert.deepEqual(ui.serialize().sizes, [7], 'the last enabled note count cannot be turned off');
 ui.renderParts({directory: true});
 await ready();
 assert.deepEqual(
   ui.model().result.sources.find(source => source.kind === 'chords').sizes,
   [7],
-  'the listing follows the size filter, beyond six notes'
+  'the listing follows the note-count filter, beyond six notes'
 );
 click('directory-clear');
 ui.renderParts({directory: true});
 await ready();
-assert.match(ui.renderParts({directory: true}).list, /directory-audition/);
+const listedBefore = ui.renderParts({directory: true}).list;
+columnFilter('primes', 5);
+assert.deepEqual(ui.serialize().primesOff, [5]);
+assert.notEqual(
+  ui.renderParts({directory: true}).list,
+  listedBefore,
+  'switching a basis prime off hides chords that use it'
+);
+columnFilter('primes', 5);
+assert.deepEqual(ui.serialize().primesOff, []);
+assert.doesNotMatch(ui.renderParts({directory: true}).list, /directory-dot/, 'no colour dots');
+{
+  // A column's header menu holds toggle buttons and Reset, and closes on an outside click.
+  click('directory-menu', {value: 'primes'});
+  const open = ui.renderParts({directory: true}).list;
+  assert.match(open, /class="directory-menu"/);
+  assert.match(open, /data-harmony-action="directory-filter" data-value="3" aria-pressed="true"/);
+  assert.match(open, /directory-menu-reset/);
+  assert.doesNotMatch(open, /type="checkbox"|Done/, 'toggle buttons, no Done button');
+  ui.click({closest: () => null, dataset: {}});
+  assert.doesNotMatch(ui.renderParts({directory: true}).list, /class="directory-menu"/);
+  columnFilter('primes', 5);
+  click('directory-menu', {value: 'primes'});
+  click('directory-menu-reset');
+  assert.deepEqual(ui.serialize().primesOff, [], 'Reset restores the column filter');
+}
+{
+  // The header arrows sort at once: low to high, high to low, then off.
+  const order = () =>
+    [
+      ...ui
+        .renderParts({directory: true})
+        .list.matchAll(/class="directory-chord" data-play="1" data-id="([^"]+)"/g)
+    ].map(m => {
+      const id = m[1]
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&amp;', '&');
+      return ui.model().result.items.find(row => row.id === id);
+    });
+  const arrow = column => click('directory-sort', {value: column});
+  const sorted = (keys, direction = 1) =>
+    keys.every((key, i) => i === 0 || (direction > 0 ? key >= keys[i - 1] : key <= keys[i - 1]));
+  const size = row => row.interpretation?.identity?.cardinality ?? row.shape?.coordinates?.length;
+  arrow('notes');
+  assert.equal(ui.serialize().directorySort, 'notes');
+  assert.ok(sorted(order().map(size)), 'notes sort low to high');
+  arrow('notes');
+  assert.equal(ui.serialize().directoryDir, -1);
+  assert.ok(sorted(order().map(size), -1), 'notes sort high to low');
+  arrow('notes');
+  assert.equal(ui.serialize().directorySort, '', 'a third press turns the sort off');
+  arrow('bogus');
+  assert.equal(ui.serialize().directorySort, '', 'an unknown column is ignored');
+  arrow('primes');
+  const topPrime = row => {
+    const primes = row.interpretation?.identity?.primeSupport?.filter(prime => prime !== 2);
+    return primes ? (primes.length ? Math.max(...primes) : 0) : Infinity;
+  };
+  assert.ok(sorted(order().map(topPrime)), 'primes sort by their highest prime, ET chords last');
+  arrow('type');
+  const rank = {otonal: 0, utonal: 1, ambitonal: 2};
+  const byType = order().map(
+    row =>
+      rank[
+        row.interpretation?.presentationForm === 'self'
+          ? 'ambitonal'
+          : row.interpretation?.presentationForm
+      ] ?? 3
+  );
+  assert.deepEqual(
+    byType,
+    [...byType].sort((a, b) => a - b),
+    'sort by type'
+  );
+  click('directory-clear');
+  assert.equal(ui.serialize().directorySort, '', 'Clear resets the sort');
+}
+assert.match(ui.renderParts({directory: true}).list, /data-play="1"/);
 const repeated = JSON.parse(JSON.stringify(ui.serialize()));
 ui.restore(repeated);
 ui.sync();
 await ready();
 click('directory-tab', {value: 'favourites'});
 heard = null;
-click('directory-audition', {input: mergedInput});
+click('directory-recent', {input: mergedInput, play: '1'});
 assert.equal(heard.length, 3);
+await ui.openInput(mergedInput);
+await ready();
 assert.match(
   ui.renderParts({directory: true}).list,
   new RegExp('data-input="' + mergedInput + '"')
@@ -530,7 +636,8 @@ assert.ok(
   'ET chords can be starred'
 );
 ui.input({dataset: {harmonyField: 'search'}, value: ''});
-click('directory-form', {value: 'et'});
+for (const form of ['otonal', 'utonal', 'ambitonal']) columnFilter('type', form);
+assert.deepEqual(ui.serialize().forms, ['et'], 'chord types toggle independently');
 assert.match(
   ui.renderParts({directory: true}).list,
   new RegExp(`data-input="${tempered.spelling}"[^>]*aria-pressed="true"`)
@@ -604,7 +711,7 @@ const ambi = {
 };
 assert.match(
   renderDirectoryList([ambi], ''),
-  /directory-dot ambitonal[^>]*><\/i>Ambitonal/,
+  /directory-form">Ambitonal/,
   'self-reciprocal chords show their form'
 );
 console.log(

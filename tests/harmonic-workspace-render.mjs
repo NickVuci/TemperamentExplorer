@@ -52,19 +52,28 @@ controlsSurvive();
 await ready('the 9-odd-limit catalogue');
 assert.ok(chordCount() < at15, 'a smaller limit lists fewer chords');
 
-// Native selects close after committing a choice: the redraw does not refocus the replacement.
+// The note-count filter hides and shows rows without a reload; only a size that was never listed
+// asks the catalogue again, and the list on screen stays put until the new one arrives.
+const shown = () => $$('[data-unified-pane="directory"] [data-harmony-action="select"]').length;
+const notes = value => {
+  page.click('[data-harmony-action="directory-menu"][data-value="notes"]');
+  page.click(`[data-harmony-action="directory-filter"][data-value="${value}"]`);
+  page.click('[data-harmony-action="directory-menu"][data-value="notes"]');
+};
+const rowsAt9 = shown();
+assert.ok(rowsAt9 > 0);
+notes(3);
+assert.ok(shown() < rowsAt9, 'switching triads off hides them at once');
+assert.ok(complete(), 'without relisting the catalogue');
+notes(3);
+assert.equal(shown(), rowsAt9, 'switching them back on restores the rows at once');
+notes(7);
+assert.ok(shown() > 0, 'the list stays on screen while a new size is listed');
+await page.until(() => complete(), {message: 'the catalogue with seven-note chords'});
+notes(7);
+assert.equal(shown(), rowsAt9);
+
 // Text fields keep focus and caret while the result list redraws.
-const scope = $('[data-harmony-field="scope"]');
-scope.focus();
-page.change(scope, 'discover');
-await page.settle();
-assert.notEqual(
-  document.activeElement?.dataset?.harmonyField,
-  'scope',
-  'Browse selection does not reopen its native picker during redraw'
-);
-page.change('[data-harmony-field="scope"]', 'temperament');
-await ready('the whole-temperament catalogue');
 const search = $('[data-harmony-field="search"]');
 search.focus();
 search.value = '4:5:6';

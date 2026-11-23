@@ -931,8 +931,8 @@ export function createShapeExplorer({
       result.shapes.length
         ? `<div class="shape-fields"><label class="checklabel"><input type="checkbox" data-shape-field="savedOnly" ${savedOnly ? 'checked' : ''}>Saved shapes only</label><label>Show<select data-shape-field="related">${GEOMETRY_FILTERS.map(([value, label]) => option(value, label, related)).join('')}</select>${related !== 'all' ? `<small>${reference ? `Compared with ${reference.kind === 'keys' ? 'the selected keys' : 'the chosen shape'}` : 'Choose a shape or identify keys to compare'}</small>` : ''}</label>
      <label>Order<select data-shape-field="order">${option('inversion', 'Root position first, then inversions', order)}${option('comfort', 'Easiest fingering first', order)}${option('geometry', 'Most compact first', order)}</select></label><div class="comfort-filter" role="group" aria-label="Hand"><span>Hand</span><div>${[
-       ['R', 'Right'],
-       ['L', 'Left']
+       ['L', 'Left'],
+       ['R', 'Right']
      ]
        .map(([side, label]) =>
          action(

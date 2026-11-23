@@ -4896,7 +4896,7 @@ footer {
 }
 .unified-main {
   display: grid;
-  grid-template-columns: minmax(250px, 1fr) minmax(0, 2fr) minmax(360px, 1.5fr);
+  grid-template-columns: minmax(320px, 1fr) minmax(0, 2fr) minmax(360px, 1.5fr);
   grid-template-areas: 'directory center analysis';
   gap: 12px;
   align-items: start;
@@ -4912,6 +4912,7 @@ footer {
 }
 .unified-directory {
   grid-area: directory;
+  padding-inline: 8px;
 }
 .unified-center {
   grid-area: center;
@@ -5023,7 +5024,7 @@ footer {
 }
 @media (max-width: 1250px) {
   .unified-main {
-    grid-template-columns: minmax(240px, 1fr) minmax(0, 1.3fr);
+    grid-template-columns: minmax(320px, 1fr) minmax(0, 1.3fr);
     grid-template-areas: 'center center' 'directory analysis';
   }
 }
@@ -5349,22 +5350,6 @@ footer {
 }
 
 /* Discover harmony library: compact folders and chord rows. */
-.unified-directory .directory-size-range {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0 0 12px;
-  font-size: 12px;
-  color: var(--muted);
-}
-.unified-directory .directory-size-range label {
-  margin: 0;
-}
-.unified-directory .directory-size-range select {
-  min-height: 28px;
-  padding: 3px 6px;
-  font-size: 12px;
-}
 .directory-search {
   display: flex;
   gap: 4px;
@@ -5377,7 +5362,8 @@ footer {
 .directory-search input {
   width: 100%;
 }
-.directory-search .sr-only {
+.directory-search .sr-only,
+.unified-directory .harmony-status.sr-only {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -5388,76 +5374,13 @@ footer {
   white-space: nowrap;
   border: 0;
 }
-.directory-filter-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12px;
-  font-weight: 600;
-}
-.unified-directory .directory-filter-heading button {
+.unified-directory .bass-clear {
   border: 0;
   background: none;
-  padding: 0;
-  min-height: 24px;
+  padding: 0 0 0 6px;
+  min-height: 0;
   font-size: 11px;
   color: var(--a);
-}
-.directory-quick-filters {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin: 6px 0 10px;
-}
-.unified-directory .directory-quick-filters label {
-  font-size: 11px;
-}
-.unified-directory .directory-quick-filters select {
-  font-size: 11px;
-  padding: 4px;
-}
-.directory-form-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin: 8px 0;
-}
-.unified-directory .directory-form-filters button {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  border-radius: 16px;
-  padding: 4px 7px;
-  min-height: 26px;
-  font-size: 11px;
-}
-.unified-directory .directory-form-filters button[aria-pressed='true'] {
-  border-color: var(--a);
-  background: var(--surface2);
-}
-.directory-form-filters small {
-  font-size: 10px;
-  color: var(--muted);
-}
-.directory-dot {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--muted);
-  flex-shrink: 0;
-}
-.directory-dot.otonal {
-  background: #e5a251;
-}
-.directory-dot.utonal {
-  background: #73a3f7;
-}
-.directory-dot.ambitonal {
-  background: var(--mint);
-}
-.directory-dot.other {
-  background: var(--muted);
 }
 .directory-tabs {
   margin-bottom: 8px;
@@ -5468,8 +5391,8 @@ footer {
 }
 .directory-columns {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) minmax(60px, 0.72fr) 28px;
-  gap: 3px;
+  grid-template-columns: 20px minmax(104px, 1fr) 40px 48px 50px;
+  gap: 2px;
   align-items: center;
 }
 .directory-result {
@@ -5478,35 +5401,91 @@ footer {
 .directory-head,
 .directory-form {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
 }
 .directory-head {
   padding: 5px 0;
 }
-.directory-head span:last-child {
+.directory-head span {
   text-align: center;
+  font-size: 10px;
 }
-.directory-form .directory-dot {
-  margin-right: 4px;
+.directory-head span:nth-child(2) {
+  text-align: left;
+  padding-left: 5px;
 }
-.unified-directory .directory-audition {
-  width: 28px;
-  min-height: 28px;
-  padding: 0;
-  font-size: 12px;
+.directory-head span:nth-child(5) {
+  text-align: left;
 }
-.directory-selection {
-  display: flex;
+.directory-results {
+  position: relative;
+  overflow-x: auto;
+}
+.directory-th {
+  display: inline-flex;
   align-items: center;
+}
+.unified-directory .directory-th-button,
+.unified-directory .directory-th-sort {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+  min-height: 22px;
+  font-size: 10px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.unified-directory .directory-th-sort {
+  font-size: 8px;
+  padding: 0 2px;
+}
+.unified-directory .directory-th-button.active,
+.unified-directory .directory-th-sort.active {
+  color: var(--a);
+}
+.unified-directory .directory-th-button:hover,
+.unified-directory .directory-th-sort:hover {
+  color: var(--text);
+}
+.directory-menu {
+  position: absolute;
+  z-index: 5;
+  right: 0;
+  top: 26px;
+  display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
+  align-items: center;
   gap: 4px;
+  width: max-content;
+  max-width: 100%;
+  padding: 6px;
   background: var(--surface);
-  border-top: 1px solid var(--line);
-  padding: 6px 0;
-  font-size: 12px;
-  position: sticky;
-  bottom: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+.unified-directory .directory-menu button {
+  min-height: 24px;
+  min-width: 26px;
+  padding: 2px 7px;
+  border-radius: 12px;
+  font-size: 11px;
+}
+.unified-directory .directory-menu button[aria-pressed='true'] {
+  border-color: var(--a);
+  background: var(--surface2);
+}
+.unified-directory .directory-menu .directory-menu-reset {
+  border-color: transparent;
+  background: none;
+  color: var(--a);
+}
+.directory-cell {
+  text-align: center;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.2;
 }
 .directory-chords {
   border-left: 1px solid var(--line);
@@ -5521,9 +5500,9 @@ footer {
   border-radius: 4px;
   background: transparent;
   font-size: 13px;
-  padding: 5px 8px;
-  min-height: 28px;
-  margin: 1px 0;
+  padding: 3px 4px;
+  min-height: 26px;
+  margin: 0;
   overflow-wrap: anywhere;
 }
 .unified-directory .directory-chord:hover {
@@ -5564,19 +5543,18 @@ footer {
   font-size: 18px;
   color: var(--muted);
 }
+.unified-directory .directory-columns .directory-star {
+  width: 20px;
+  min-height: 24px;
+  padding: 0;
+  font-size: 16px;
+}
 .unified-directory .directory-star:hover {
   color: var(--b);
   background: var(--surface2);
 }
 .unified-directory .directory-star[aria-pressed='true'] {
   color: var(--b);
-}
-.directory-dot.et {
-  background: #c07ad9;
-}
-.directory-dot.unknown {
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--muted);
 }
 .dyad-table td:last-child {
   line-height: 1.7;
